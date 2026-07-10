@@ -1,0 +1,16 @@
+# Dépendances et artefacts de build
+node_modules/
+dist/
+
+# Sorties de test
+coverage/
+test-results/
+playwright-report/
+
+# IDE et système
+.idea/
+.DS_Store
+
+# Documents sources personnels (schémas de ligne), trop lourds pour le dépôt
+*.pdf
+*.zip
