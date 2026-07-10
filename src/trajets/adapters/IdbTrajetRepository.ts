@@ -44,7 +44,7 @@ interface Schema extends DBSchema {
 export class IdbTrajetRepository implements TrajetRepository {
     private readonly promesseDb: Promise<IDBPDatabase<Schema>>;
 
-    constructor(nomDeBase = 'grossemadame') {
+    constructor(nomDeBase = 'etudes2lignes') {
         this.promesseDb = ouvrirBase(nomDeBase);
     }
 

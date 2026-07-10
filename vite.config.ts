@@ -9,8 +9,8 @@ export default defineConfig({
         VitePWA({
             registerType: 'autoUpdate',
             manifest: {
-                name: 'GrosseMadame — Suivi de schémas de ligne',
-                short_name: 'GrosseMadame',
+                name: 'Etudes2Lignes — Suivi de schémas de ligne',
+                short_name: 'Etudes2Lignes',
                 description:
                     'Suivi géolocalisé de schémas de ligne ferroviaires, entièrement hors ligne.',
                 lang: 'fr',

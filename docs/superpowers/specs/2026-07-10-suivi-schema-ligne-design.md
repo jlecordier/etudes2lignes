@@ -1,4 +1,4 @@
-# GrosseMadame — Suivi géolocalisé de schémas de ligne ferroviaires (PWA hors ligne)
+# Etudes2Lignes — Suivi géolocalisé de schémas de ligne ferroviaires (PWA hors ligne)
 
 ## Contexte
 

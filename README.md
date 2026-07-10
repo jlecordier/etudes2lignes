@@ -1,4 +1,4 @@
-# GrosseMadame
+# Etudes2Lignes
 
 Suivi géolocalisé de schémas de ligne ferroviaires — une PWA **entièrement hors
 ligne** : vous importez les pages (images) de votre schéma de ligne, vous
