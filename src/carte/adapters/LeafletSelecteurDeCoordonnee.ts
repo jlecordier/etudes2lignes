@@ -1,0 +1,130 @@
+import * as L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import iconeRetina from 'leaflet/dist/images/marker-icon-2x.png';
+import icone from 'leaflet/dist/images/marker-icon.png';
+import ombre from 'leaflet/dist/images/marker-shadow.png';
+import { Coordonnee } from '../../trajets/domain/Coordonnee';
+import type { SelecteurDeCoordonnee } from '../ports/SelecteurDeCoordonneePort';
+
+// Leaflet devine l'URL de ses icônes depuis le chemin de son script,
+// ce qu'un bundler casse : on lui fournit les fichiers explicitement.
+delete (L.Icon.Default.prototype as { _getIconUrl?: unknown })._getIconUrl;
+L.Icon.Default.mergeOptions({ iconRetinaUrl: iconeRetina, iconUrl: icone, shadowUrl: ombre });
+
+const VUE_FRANCE = { centre: [46.6, 2.4] as [number, number], zoom: 6 };
+const ZOOM_SUR_UN_POINT = 12;
+
+/** Carte Leaflet plein écran (tuiles OSM) pour choisir une coordonnée. */
+export class LeafletSelecteurDeCoordonnee implements SelecteurDeCoordonnee {
+  private carte: L.Map | null = null;
+  private marqueur: L.Marker | null = null;
+  private resoudre: ((coordonnee: Coordonnee | null) => void) | null = null;
+
+  private readonly ecran = document.querySelector<HTMLElement>('#ecran-carte')!;
+  private readonly champLatitude = document.querySelector<HTMLInputElement>('#champ-latitude')!;
+  private readonly champLongitude = document.querySelector<HTMLInputElement>('#champ-longitude')!;
+  private readonly boutonValider =
+    document.querySelector<HTMLButtonElement>('#bouton-valider-carte')!;
+
+  constructor() {
+    document
+      .querySelector<HTMLButtonElement>('#bouton-annuler-carte')!
+      .addEventListener('click', () => this.terminer(null));
+    this.boutonValider.addEventListener('click', () => this.validerLeMarqueur());
+    document
+      .querySelector<HTMLButtonElement>('#bouton-placer-manuel')!
+      .addEventListener('click', () => this.placerDepuisLaSaisie());
+  }
+
+  choisir(coordonneeInitiale: Coordonnee | null): Promise<Coordonnee | null> {
+    this.ecran.hidden = false;
+    const carte = this.carteInitialisee();
+    this.effacerLaSelection();
+    if (coordonneeInitiale === null) {
+      carte.setView(VUE_FRANCE.centre, VUE_FRANCE.zoom, { animate: false });
+    } else {
+      this.poserLeMarqueur(coordonneeInitiale);
+      carte.setView(
+        [coordonneeInitiale.latitude, coordonneeInitiale.longitude],
+        ZOOM_SUR_UN_POINT,
+        { animate: false },
+      );
+    }
+    // La carte vient d'être dévoilée : Leaflet doit remesurer son conteneur.
+    setTimeout(() => carte.invalidateSize(), 0);
+    return new Promise((resolve) => {
+      this.resoudre = resolve;
+    });
+  }
+
+  private carteInitialisee(): L.Map {
+    if (this.carte !== null) {
+      return this.carte;
+    }
+    this.carte = L.map('conteneur-carte');
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(this.carte);
+    this.carte.on('click', (evenement) => {
+      const position = evenement.latlng.wrap();
+      this.poserLeMarqueur(Coordonnee.creer(position.lat, position.lng));
+    });
+    return this.carte;
+  }
+
+  private poserLeMarqueur(coordonnee: Coordonnee): void {
+    const position: [number, number] = [coordonnee.latitude, coordonnee.longitude];
+    if (this.marqueur === null) {
+      this.marqueur = L.marker(position, { draggable: true }).addTo(this.carteInitialisee());
+      this.marqueur.on('dragend', () => this.refleterLeMarqueurDansLaSaisie());
+    } else {
+      this.marqueur.setLatLng(position);
+    }
+    this.refleterLeMarqueurDansLaSaisie();
+  }
+
+  private refleterLeMarqueurDansLaSaisie(): void {
+    const position = this.marqueur!.getLatLng().wrap();
+    this.champLatitude.value = position.lat.toFixed(5);
+    this.champLongitude.value = position.lng.toFixed(5);
+    this.boutonValider.disabled = false;
+  }
+
+  private placerDepuisLaSaisie(): void {
+    try {
+      const coordonnee = Coordonnee.creer(
+        Number.parseFloat(this.champLatitude.value),
+        Number.parseFloat(this.champLongitude.value),
+      );
+      this.poserLeMarqueur(coordonnee);
+      this.carteInitialisee().setView(
+        [coordonnee.latitude, coordonnee.longitude],
+        ZOOM_SUR_UN_POINT,
+        { animate: false },
+      );
+    } catch (erreur) {
+      alert(erreur instanceof Error ? erreur.message : String(erreur));
+    }
+  }
+
+  private validerLeMarqueur(): void {
+    const position = this.marqueur!.getLatLng().wrap();
+    this.terminer(Coordonnee.creer(position.lat, position.lng));
+  }
+
+  private effacerLaSelection(): void {
+    this.marqueur?.remove();
+    this.marqueur = null;
+    this.champLatitude.value = '';
+    this.champLongitude.value = '';
+    this.boutonValider.disabled = true;
+  }
+
+  private terminer(resultat: Coordonnee | null): void {
+    this.ecran.hidden = true;
+    this.resoudre?.(resultat);
+    this.resoudre = null;
+  }
+}

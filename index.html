@@ -18,11 +18,54 @@
       </p>
     </section>
 
-    <section id="ecran-editeur" class="ecran" hidden></section>
+    <section id="ecran-editeur" class="ecran" hidden>
+      <header class="entete">
+        <button id="bouton-retour-liste" type="button" class="secondaire">← Trajets</button>
+        <h2 id="titre-trajet"></h2>
+      </header>
+      <p class="aide">
+        Conseil : placez un point près du bas et du haut de chaque page (même lieu à la jonction de
+        deux pages).
+      </p>
+      <div class="barre-actions">
+        <button id="bouton-ajouter-images" type="button">Ajouter des images</button>
+        <button id="bouton-ajouter-point" type="button">Ajouter un point</button>
+      </div>
+      <input id="input-images" type="file" accept="image/jpeg,image/png" multiple hidden />
+      <p id="consigne-placement" class="bandeau-consigne" hidden>
+        Touchez l'image à la hauteur voulue…
+        <button id="bouton-annuler-placement" type="button" class="secondaire">Annuler</button>
+      </p>
+      <ol id="liste-points" class="liste-points"></ol>
+      <div id="pile-images"></div>
+    </section>
 
     <section id="ecran-suivi" class="ecran" hidden></section>
 
-    <section id="ecran-carte" class="ecran ecran-carte" hidden></section>
+    <section id="ecran-carte" class="ecran ecran-carte" hidden>
+      <div id="conteneur-carte"></div>
+      <div class="barre-carte">
+        <input
+          id="champ-latitude"
+          type="number"
+          step="any"
+          inputmode="decimal"
+          placeholder="Latitude"
+          aria-label="Latitude"
+        />
+        <input
+          id="champ-longitude"
+          type="number"
+          step="any"
+          inputmode="decimal"
+          placeholder="Longitude"
+          aria-label="Longitude"
+        />
+        <button id="bouton-placer-manuel" type="button" class="secondaire">Placer</button>
+        <button id="bouton-annuler-carte" type="button" class="secondaire">Annuler</button>
+        <button id="bouton-valider-carte" type="button" disabled>Valider</button>
+      </div>
+    </section>
 
     <script type="module" src="/src/main.ts"></script>
   </body>
