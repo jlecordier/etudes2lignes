@@ -1,5 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
-import { ajouterUnPoint, choisirUneCoordonneeSurLaCarte, ouvrirUnTrajetAvecUnePage } from './aides';
+import {
+  ajouterUnPoint,
+  attendreLeDefilement,
+  choisirUneCoordonneeSurLaCarte,
+  defilementAttendu,
+  defilementCourant,
+  ouvrirUnTrajetAvecUnePage,
+} from './aides';
 
 /**
  * Prépare un trajet suivi-able : une page, un point au bas (80 %) et un point
@@ -13,29 +20,18 @@ async function ouvrirLeSuiviDUnTrajetGeoreference(page: Page): Promise<void> {
   await expect(page.locator('#ecran-suivi')).toBeVisible();
 }
 
-/** Défilement attendu pour placer une fraction de l'image à 75 % de l'écran. */
-function defilementAttendu(page: Page, fraction: number): Promise<number> {
-  return page.evaluate((f) => {
-    const image = document.querySelector<HTMLImageElement>('#pile-suivi img')!;
-    const cadre = image.getBoundingClientRect();
-    const cible = cadre.top + window.scrollY + f * cadre.height;
-    const defilement = cible - 0.75 * window.innerHeight;
-    const maximum = document.documentElement.scrollHeight - window.innerHeight;
-    return Math.min(Math.max(0, maximum), Math.max(0, defilement));
-  }, fraction);
-}
-
-function defilementCourant(page: Page): Promise<number> {
-  return page.evaluate(() => window.scrollY);
-}
-
 test.describe('Suivi du trajet (position simulée)', () => {
-  test('Étant donné le suivi ouvert, alors l’état signale que le GPS n’est pas disponible', async ({
+  test('Étant donné une permission refusée (défaut Playwright), alors l’état l’explique', async ({
     page,
+    browserName,
   }) => {
+    test.skip(
+      browserName === 'firefox',
+      'Firefox ne délivre aucun callback d’erreur sur refus de permission : l’état reste « En attente ».',
+    );
     await ouvrirLeSuiviDUnTrajetGeoreference(page);
 
-    await expect(page.locator('#etat-suivi')).toContainText('GPS non branché');
+    await expect(page.locator('#etat-suivi')).toContainText('Accès à la position refusé');
   });
 
   test('Étant donné une position simulée sur le premier point, alors la page se cale à 75 % et le bandeau s’affiche', async ({
@@ -47,10 +43,7 @@ test.describe('Suivi du trajet (position simulée)', () => {
     await choisirUneCoordonneeSurLaCarte(page);
 
     await expect(page.locator('#bandeau-simulation')).toBeVisible();
-    const attendu = await defilementAttendu(page, 0.8);
-    await expect
-      .poll(async () => Math.abs((await defilementCourant(page)) - attendu), { timeout: 10_000 })
-      .toBeLessThan(15);
+    await attendreLeDefilement(page, await defilementAttendu(page, 0.8));
   });
 
   test('Étant donné le suivi actif, quand je défile à la main, alors le suivi se coupe et « Reprendre » le rétablit', async ({
@@ -60,9 +53,7 @@ test.describe('Suivi du trajet (position simulée)', () => {
     await page.getByRole('button', { name: 'Simuler', exact: true }).click();
     await choisirUneCoordonneeSurLaCarte(page);
     const attendu = await defilementAttendu(page, 0.8);
-    await expect
-      .poll(async () => Math.abs((await defilementCourant(page)) - attendu), { timeout: 10_000 })
-      .toBeLessThan(15);
+    await attendreLeDefilement(page, attendu);
 
     // Un défilement humain (molette / toucher) coupe le suivi automatique.
     await page.dispatchEvent('body', 'wheel');
@@ -74,9 +65,7 @@ test.describe('Suivi du trajet (position simulée)', () => {
 
     await boutonReprendre.click();
     await expect(boutonReprendre).toBeHidden();
-    await expect
-      .poll(async () => Math.abs((await defilementCourant(page)) - attendu), { timeout: 10_000 })
-      .toBeLessThan(15);
+    await attendreLeDefilement(page, attendu);
   });
 
   test('Étant donné une position simulée très loin de la ligne, alors l’état affiche « Hors trajet »', async ({

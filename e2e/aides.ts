@@ -65,3 +65,28 @@ export async function ajouterUnPoint(
   await cliquerSurLImage(page, fractionDeHauteur);
   await choisirUneCoordonneeSurLaCarte(page, decalageCarteX);
 }
+
+/** Défilement attendu pour placer une fraction de l'image à 75 % de l'écran. */
+export async function defilementAttendu(page: Page, fraction: number): Promise<number> {
+  // L'écran de suivi charge le trajet en asynchrone : attendre la pile d'images.
+  await page.locator('#pile-suivi img').first().waitFor({ state: 'attached' });
+  return page.evaluate((f) => {
+    const image = document.querySelector<HTMLImageElement>('#pile-suivi img')!;
+    const cadre = image.getBoundingClientRect();
+    const cible = cadre.top + window.scrollY + f * cadre.height;
+    const defilement = cible - 0.75 * window.innerHeight;
+    const maximum = document.documentElement.scrollHeight - window.innerHeight;
+    return Math.min(Math.max(0, maximum), Math.max(0, defilement));
+  }, fraction);
+}
+
+export function defilementCourant(page: Page): Promise<number> {
+  return page.evaluate(() => window.scrollY);
+}
+
+/** Attend que le défilement se stabilise sur la valeur attendue (scroll fluide). */
+export async function attendreLeDefilement(page: Page, attendu: number): Promise<void> {
+  await expect
+    .poll(async () => Math.abs((await defilementCourant(page)) - attendu), { timeout: 15_000 })
+    .toBeLessThan(15);
+}
