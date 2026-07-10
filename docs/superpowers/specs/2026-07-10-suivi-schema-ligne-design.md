@@ -8,33 +8,33 @@ Le dossier contient déjà un exemple : `PMP-BX (ERTMS).pdf` (13 Mo, 6 pages) et
 
 ## Décisions validées avec l'utilisateur (questions fermées)
 
-| Sujet | Décision |
-|---|---|
-| Format des documents | **Images uniquement** (JPEG/PNG) ; les PDF sont convertis en amont par l'utilisateur. Pas de pdf.js. |
-| Appareils | iPhone (Safari), Android (Chrome), tablette, ordinateur — tous. |
-| Installation | **Site hébergé + PWA** (GitHub Pages), ouvert une fois en ligne puis 100 % hors ligne (service worker, HTTPS). |
-| Carte | **Leaflet** (confirmé face à OpenLayers) + tuiles OSM avec cache des tuiles vues (utilisables hors ligne ensuite). Leaflet embarqué dans le repo, pas de CDN. |
-| Sens de lecture | **Bas → haut, toujours** (pas de réglage). |
-| Défilement | **Interpolation linéaire** entre les deux points encadrants. |
-| Ancrage à l'écran | Position courante à **1/4 du bas** de l'écran (les 3/4 supérieurs = trajet à venir). |
-| Fréquence GPS | Une position traitée toutes les **~10 s**. |
-| Hors trajet | Bandeau « hors trajet » sans défilement, seuil **adaptatif** : `max(5 km, 20 % de la longueur du segment le plus proche)` (un seuil fixe de 5 km serait dépassé à tort entre deux points éloignés). |
-| GPS muet (tunnel, refus) | On garde la dernière position connue + texte « dernière position il y a X min ». Reprise automatique au retour du signal. |
-| Affichage des points | **Marqueurs superposés sur les images + liste** récapitulative. |
-| Édition d'un point | Redéplacer sur l'image, redéplacer sur la carte, ou supprimer. |
-| Confirmations | **`confirm()` natif partout** : suppression de trajet, d'image et de point. |
-| Réordonner les images | **Boutons ▲/▼** (pas de glisser-déposer). |
-| Simulation | **Carte + saisie manuelle lat/lon** ; bandeau visible tant que la simulation est active. |
-| Transfert entre appareils | **Non** — données locales à chaque appareil (pas d'export/import en v1). |
-| Zoom sur les images | **Non** — pleine largeur, défilement vertical uniquement. |
-| Nom du trajet | **Saisi à la création, renommable** ensuite. |
-| Contraintes code | **Aucun framework UI** (pas de React) mais les bibliothèques sont permises (offline, stockage, carte). **TypeScript**, build **pnpm + Vite**, tests **Vitest** (« tester tout ce qui peut l'être »). Fonctions courtes à responsabilité unique, code lisible par n'importe qui, UI en français. |
-| Architecture | **Hexagonale (ports/adapters)** + **screaming architecture** : dossiers par capacité métier (`trajets/`, `suivi/`, `carte/`), dépendances externes (GPS, IndexedDB, Leaflet, Wake Lock, horloge) derrière des ports, injection manuelle dans `main.ts` (composition root — pas de framework DI). |
-| Nommage | **Mixte** : concepts métier en français (trajets, suivi, carte, point), suffixes techniques standards en anglais (Repository, Port, Adapter). |
-| Modèle du domaine | **DDD avec value objects** : `Coordonnee`, `FractionVerticale`, `NomDeTrajet`, IDs typés ; agrégat `Trajet` qui protège les invariants (un point référence toujours une image du trajet, cascade de suppression = règle du domaine). |
-| Démarche de test | **BDD dans Vitest et Playwright** : comportements spécifiés d'abord, tests nommés Étant donné / Quand / Alors, use-cases testés avec des fakes de ports. Pas de Cucumber/Gherkin (couche de glue inutile ici). |
-| Tests E2E | **Playwright** sur **Chromium + WebKit + Firefox** (+ viewports mobiles émulés), contre le build de prod (`pnpm preview`) pour tester le service worker, avec géolocalisation mockée (`context.setGeolocation`) et mode hors ligne (`context.setOffline`). |
-| Documentation | **Tout documenter** : README, `docs/ARCHITECTURE.md`, et surtout `docs/DEPLOIEMENT.md` (GitHub Pages pas à pas). TSDoc sur les ports et le domaine. |
+| Sujet                     | Décision                                                                                                                                                                                                                                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Format des documents      | **Images uniquement** (JPEG/PNG) ; les PDF sont convertis en amont par l'utilisateur. Pas de pdf.js.                                                                                                                                                                                             |
+| Appareils                 | iPhone (Safari), Android (Chrome), tablette, ordinateur — tous.                                                                                                                                                                                                                                  |
+| Installation              | **Site hébergé + PWA** (GitHub Pages), ouvert une fois en ligne puis 100 % hors ligne (service worker, HTTPS).                                                                                                                                                                                   |
+| Carte                     | **Leaflet** (confirmé face à OpenLayers) + tuiles OSM avec cache des tuiles vues (utilisables hors ligne ensuite). Leaflet embarqué dans le repo, pas de CDN.                                                                                                                                    |
+| Sens de lecture           | **Bas → haut, toujours** (pas de réglage).                                                                                                                                                                                                                                                       |
+| Défilement                | **Interpolation linéaire** entre les deux points encadrants.                                                                                                                                                                                                                                     |
+| Ancrage à l'écran         | Position courante à **1/4 du bas** de l'écran (les 3/4 supérieurs = trajet à venir).                                                                                                                                                                                                             |
+| Fréquence GPS             | Une position traitée toutes les **~10 s**.                                                                                                                                                                                                                                                       |
+| Hors trajet               | Bandeau « hors trajet » sans défilement, seuil **adaptatif** : `max(5 km, 20 % de la longueur du segment le plus proche)` (un seuil fixe de 5 km serait dépassé à tort entre deux points éloignés).                                                                                              |
+| GPS muet (tunnel, refus)  | On garde la dernière position connue + texte « dernière position il y a X min ». Reprise automatique au retour du signal.                                                                                                                                                                        |
+| Affichage des points      | **Marqueurs superposés sur les images + liste** récapitulative.                                                                                                                                                                                                                                  |
+| Édition d'un point        | Redéplacer sur l'image, redéplacer sur la carte, ou supprimer.                                                                                                                                                                                                                                   |
+| Confirmations             | **`confirm()` natif partout** : suppression de trajet, d'image et de point.                                                                                                                                                                                                                      |
+| Réordonner les images     | **Boutons ▲/▼** (pas de glisser-déposer).                                                                                                                                                                                                                                                        |
+| Simulation                | **Carte + saisie manuelle lat/lon** ; bandeau visible tant que la simulation est active.                                                                                                                                                                                                         |
+| Transfert entre appareils | **Non** — données locales à chaque appareil (pas d'export/import en v1).                                                                                                                                                                                                                         |
+| Zoom sur les images       | **Non** — pleine largeur, défilement vertical uniquement.                                                                                                                                                                                                                                        |
+| Nom du trajet             | **Saisi à la création, renommable** ensuite.                                                                                                                                                                                                                                                     |
+| Contraintes code          | **Aucun framework UI** (pas de React) mais les bibliothèques sont permises (offline, stockage, carte). **TypeScript**, build **pnpm + Vite**, tests **Vitest** (« tester tout ce qui peut l'être »). Fonctions courtes à responsabilité unique, code lisible par n'importe qui, UI en français.  |
+| Architecture              | **Hexagonale (ports/adapters)** + **screaming architecture** : dossiers par capacité métier (`trajets/`, `suivi/`, `carte/`), dépendances externes (GPS, IndexedDB, Leaflet, Wake Lock, horloge) derrière des ports, injection manuelle dans `main.ts` (composition root — pas de framework DI). |
+| Nommage                   | **Mixte** : concepts métier en français (trajets, suivi, carte, point), suffixes techniques standards en anglais (Repository, Port, Adapter).                                                                                                                                                    |
+| Modèle du domaine         | **DDD avec value objects** : `Coordonnee`, `FractionVerticale`, `NomDeTrajet`, IDs typés ; agrégat `Trajet` qui protège les invariants (un point référence toujours une image du trajet, cascade de suppression = règle du domaine).                                                             |
+| Démarche de test          | **BDD dans Vitest et Playwright** : comportements spécifiés d'abord, tests nommés Étant donné / Quand / Alors, use-cases testés avec des fakes de ports. Pas de Cucumber/Gherkin (couche de glue inutile ici).                                                                                   |
+| Tests E2E                 | **Playwright** sur **Chromium + WebKit + Firefox** (+ viewports mobiles émulés), contre le build de prod (`pnpm preview`) pour tester le service worker, avec géolocalisation mockée (`context.setGeolocation`) et mode hors ligne (`context.setOffline`).                                       |
+| Documentation             | **Tout documenter** : README, `docs/ARCHITECTURE.md`, et surtout `docs/DEPLOIEMENT.md` (GitHub Pages pas à pas). TSDoc sur les ports et le domaine.                                                                                                                                              |
 
 ## Approche retenue
 
@@ -76,6 +76,7 @@ Le port `TrajetRepository` est simple parce que l'agrégat porte les règles : `
 - `waypoints` : `{id, tripId, imageId, yFraction, lat, lon}`
 
 L'adapter mappe agrégat ↔ enregistrements des stores ; le domaine et le port ne connaissent pas IndexedDB.
+
 - `lastTripId` en `localStorage` : si iOS tue la PWA, on rouvre directement le dernier trajet.
 - `navigator.storage.persist()` au démarrage (une ligne, best effort contre l'éviction).
 

@@ -4,52 +4,52 @@ import { defineConfig } from 'vitest/config';
 // base './' : l'appli est servie sous un sous-chemin sur GitHub Pages
 // (https://<utilisateur>.github.io/<depot>/), les chemins relatifs marchent partout.
 export default defineConfig({
-  base: './',
-  plugins: [
-    VitePWA({
-      registerType: 'autoUpdate',
-      manifest: {
-        name: 'GrosseMadame — Suivi de schémas de ligne',
-        short_name: 'GrosseMadame',
-        description:
-          'Suivi géolocalisé de schémas de ligne ferroviaires, entièrement hors ligne.',
-        lang: 'fr',
-        display: 'standalone',
-        background_color: '#f9fafb',
-        theme_color: '#1d4ed8',
-        icons: [
-          { src: 'icons/icone-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icons/icone-512.png', sizes: '512x512', type: 'image/png' },
-          {
-            src: 'icons/icone-maskable-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable',
-          },
-        ],
-      },
-      workbox: {
-        // L'app shell entier est pré-caché : l'appli démarre hors ligne.
-        globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
-        navigateFallback: 'index.html',
-        runtimeCaching: [
-          {
-            // Les tuiles OSM déjà vues restent disponibles hors ligne.
-            // Conformité à la politique OSMF : seules les tuiles réellement
-            // affichées sont mises en cache, jamais de pré-téléchargement.
-            urlPattern: /^https:\/\/tile\.openstreetmap\.org\//,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'tuiles-osm',
-              expiration: { maxEntries: 2000, maxAgeSeconds: 60 * 60 * 24 * 180 },
-              cacheableResponse: { statuses: [0, 200] },
+    base: './',
+    plugins: [
+        VitePWA({
+            registerType: 'autoUpdate',
+            manifest: {
+                name: 'GrosseMadame — Suivi de schémas de ligne',
+                short_name: 'GrosseMadame',
+                description:
+                    'Suivi géolocalisé de schémas de ligne ferroviaires, entièrement hors ligne.',
+                lang: 'fr',
+                display: 'standalone',
+                background_color: '#f9fafb',
+                theme_color: '#1d4ed8',
+                icons: [
+                    { src: 'icons/icone-192.png', sizes: '192x192', type: 'image/png' },
+                    { src: 'icons/icone-512.png', sizes: '512x512', type: 'image/png' },
+                    {
+                        src: 'icons/icone-maskable-512.png',
+                        sizes: '512x512',
+                        type: 'image/png',
+                        purpose: 'maskable',
+                    },
+                ],
             },
-          },
-        ],
-      },
-    }),
-  ],
-  test: {
-    include: ['src/**/*.test.ts'],
-  },
+            workbox: {
+                // L'app shell entier est pré-caché : l'appli démarre hors ligne.
+                globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
+                navigateFallback: 'index.html',
+                runtimeCaching: [
+                    {
+                        // Les tuiles OSM déjà vues restent disponibles hors ligne.
+                        // Conformité à la politique OSMF : seules les tuiles réellement
+                        // affichées sont mises en cache, jamais de pré-téléchargement.
+                        urlPattern: /^https:\/\/tile\.openstreetmap\.org\//,
+                        handler: 'CacheFirst',
+                        options: {
+                            cacheName: 'tuiles-osm',
+                            expiration: { maxEntries: 2000, maxAgeSeconds: 60 * 60 * 24 * 180 },
+                            cacheableResponse: { statuses: [0, 200] },
+                        },
+                    },
+                ],
+            },
+        }),
+    ],
+    test: {
+        include: ['src/**/*.test.ts'],
+    },
 });

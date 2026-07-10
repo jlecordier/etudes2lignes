@@ -5,6 +5,6 @@
  * silencieusement, l'application fonctionne alors sans verrou d'écran.
  */
 export interface EcranAllume {
-  maintenir(): Promise<void>;
-  relacher(): Promise<void>;
+    maintenir(): Promise<void>;
+    relacher(): Promise<void>;
 }

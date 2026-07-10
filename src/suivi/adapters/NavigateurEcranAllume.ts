@@ -9,37 +9,37 @@ import type { EcranAllume } from '../ports/EcranAllumePort';
  * redemande au retour au premier plan tant que `maintenir` est actif.
  */
 export class NavigateurEcranAllume implements EcranAllume {
-  private verrou: WakeLockSentinel | null = null;
-  private actif = false;
+    private verrou: WakeLockSentinel | null = null;
+    private actif = false;
 
-  private readonly surVisibilite = (): void => {
-    if (document.visibilityState === 'visible' && this.actif) {
-      void this.acquerir();
+    private readonly surVisibilite = (): void => {
+        if (document.visibilityState === 'visible' && this.actif) {
+            void this.acquerir();
+        }
+    };
+
+    async maintenir(): Promise<void> {
+        this.actif = true;
+        document.addEventListener('visibilitychange', this.surVisibilite);
+        await this.acquerir();
     }
-  };
 
-  async maintenir(): Promise<void> {
-    this.actif = true;
-    document.addEventListener('visibilitychange', this.surVisibilite);
-    await this.acquerir();
-  }
-
-  async relacher(): Promise<void> {
-    this.actif = false;
-    document.removeEventListener('visibilitychange', this.surVisibilite);
-    try {
-      await this.verrou?.release();
-    } catch {
-      // Déjà libéré par le système : rien à faire.
+    async relacher(): Promise<void> {
+        this.actif = false;
+        document.removeEventListener('visibilitychange', this.surVisibilite);
+        try {
+            await this.verrou?.release();
+        } catch {
+            // Déjà libéré par le système : rien à faire.
+        }
+        this.verrou = null;
     }
-    this.verrou = null;
-  }
 
-  private async acquerir(): Promise<void> {
-    try {
-      this.verrou = (await navigator.wakeLock?.request('screen')) ?? null;
-    } catch {
-      this.verrou = null;
+    private async acquerir(): Promise<void> {
+        try {
+            this.verrou = (await navigator.wakeLock?.request('screen')) ?? null;
+        } catch {
+            this.verrou = null;
+        }
     }
-  }
 }

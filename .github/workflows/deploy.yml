@@ -3,57 +3,58 @@
 name: Tests et déploiement GitHub Pages
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+    push:
+        branches: [main]
+    workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+    contents: read
+    pages: write
+    id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: true
+    group: pages
+    cancel-in-progress: true
 
 jobs:
-  tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm test
-      - run: pnpm exec playwright install --with-deps chromium webkit firefox
-      - run: pnpm test:e2e
+    tests:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 9
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: pnpm
+            - run: pnpm install --frozen-lockfile
+            - run: pnpm typecheck
+            - run: pnpm lint
+            - run: pnpm test
+            - run: pnpm exec playwright install --with-deps chromium webkit firefox
+            - run: pnpm test:e2e
 
-  deploiement:
-    needs: tests
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-      - id: deployment
-        uses: actions/deploy-pages@v4
+    deploiement:
+        needs: tests
+        runs-on: ubuntu-latest
+        environment:
+            name: github-pages
+            url: ${{ steps.deployment.outputs.page_url }}
+        steps:
+            - uses: actions/checkout@v4
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 9
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: pnpm
+            - run: pnpm install --frozen-lockfile
+            - run: pnpm build
+            - uses: actions/configure-pages@v5
+            - uses: actions/upload-pages-artifact@v3
+              with:
+                  path: dist
+            - id: deployment
+              uses: actions/deploy-pages@v4

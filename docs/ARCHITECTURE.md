@@ -38,12 +38,12 @@ du domaine ; `adapters` et `ui` dépendent des ports et du domaine ; seul
 
 ## Les ports et leurs adapters
 
-| Port | Contrat | Adapters |
-|---|---|---|
-| `TrajetRepository` | `listerResumes` / `charger` / `sauvegarder` (atomique) / `supprimer` | `IdbTrajetRepository` (IndexedDB via idb) |
-| `PositionSource` | `demarrer(surPosition, surErreur)` / `arreter()` | `GeolocationPositionSource` (GPS), `SimulationPositionSource` (position choisie à la main) |
-| `EcranAllume` | `maintenir()` / `relacher()`, best effort | `NavigateurEcranAllume` (wake lock) |
-| `SelecteurDeCoordonnee` | `choisir(initiale) → Coordonnee \| null` | `LeafletSelecteurDeCoordonnee` (Leaflet + OSM) |
+| Port                    | Contrat                                                              | Adapters                                                                                   |
+| ----------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `TrajetRepository`      | `listerResumes` / `charger` / `sauvegarder` (atomique) / `supprimer` | `IdbTrajetRepository` (IndexedDB via idb)                                                  |
+| `PositionSource`        | `demarrer(surPosition, surErreur)` / `arreter()`                     | `GeolocationPositionSource` (GPS), `SimulationPositionSource` (position choisie à la main) |
+| `EcranAllume`           | `maintenir()` / `relacher()`, best effort                            | `NavigateurEcranAllume` (wake lock)                                                        |
+| `SelecteurDeCoordonnee` | `choisir(initiale) → Coordonnee \| null`                             | `LeafletSelecteurDeCoordonnee` (Leaflet + OSM)                                             |
 
 **La simulation est un simple second adapter de `PositionSource`** : l'écran de
 suivi ne fait aucune différence entre le GPS réel et une position simulée. Le
@@ -66,11 +66,11 @@ Exemple : rejouer une trace GPX enregistrée. Créer
   d'intention (`ajouterImage`, `monterImage`, `ajouterPoint`,
   `deplacerPointSurCarte`…), pas de setters.
 - **Invariants protégés par l'agrégat** :
-  - un point référence toujours une image du trajet ;
-  - supprimer une image supprime ses points (la cascade est une règle du
-    domaine, pas un détail de base de données) ;
-  - l'ordre du voyage des points est **calculé** (image croissante, puis
-    fraction décroissante — les pages se lisent de bas en haut), jamais stocké.
+    - un point référence toujours une image du trajet ;
+    - supprimer une image supprime ses points (la cascade est une règle du
+      domaine, pas un détail de base de données) ;
+    - l'ordre du voyage des points est **calculé** (image croissante, puis
+      fraction décroissante — les pages se lisent de bas en haut), jamais stocké.
 
 ## L'algorithme géo → scroll (`suivi/domain/projection.ts`)
 
@@ -81,13 +81,13 @@ Fonctions pures, testées exhaustivement avec des coordonnées réelles :
    toutes les ~10 s et insensible aux rotations d'écran.
 2. La position est projetée sur chaque segment (plan local équirectangulaire,
    suffisant à l'échelle France) ; le segment le plus proche gagne, avec :
-   - **garde-fou segment de longueur nulle** (point de jonction dupliqué entre
-     deux pages) — sinon division par zéro ;
-   - **adhérence anti-oscillation** : un voisin du segment précédent est préféré
-     s'il est presque aussi proche (< 200 m d'écart) — sans ça, le bruit GPS
-     ferait sauter la page aux jonctions (les offsets font des dents de scie).
+    - **garde-fou segment de longueur nulle** (point de jonction dupliqué entre
+      deux pages) — sinon division par zéro ;
+    - **adhérence anti-oscillation** : un voisin du segment précédent est préféré
+      s'il est presque aussi proche (< 200 m d'écart) — sans ça, le bruit GPS
+      ferait sauter la page aux jonctions (les offsets font des dents de scie).
 3. Seuil « hors trajet » **adaptatif** : `max(5 km, 20 % de la longueur du
-   segment)` — entre deux points éloignés, la corde s'écarte de la vraie ligne.
+segment)` — entre deux points éloignés, la corde s'écarte de la vraie ligne.
 4. La cible est interpolée entre les offsets des deux étapes, puis placée aux
    trois quarts de l'écran, bornée aux limites du document.
 

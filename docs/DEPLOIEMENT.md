@@ -77,11 +77,11 @@ pnpm build && pnpm preview
 
 ## 8. Pièges connus
 
-| Piège | Réponse |
-|---|---|
-| Page blanche sous `https://compte.github.io/depot/` | Vérifier que `vite.config.ts` a bien `base: './'` (chemins relatifs). |
-| « Ça ne se met pas à jour » | Le SW sert l'ancienne version pendant qu'il télécharge la nouvelle : rouvrir l'app. Vider les données du site en dernier recours. |
-| Hors ligne cassé à la première visite | La première visite doit rester ouverte quelques secondes (installation du SW) : attendre le message « disponible hors ligne ». |
-| Stockage disparu sur iPhone | L'app doit être installée sur l'écran d'accueil (voir §4) ; l'app demande aussi `storage.persist()` au démarrage. |
-| La carte est grise hors ligne | Normal sur les zones jamais affichées : seules les tuiles déjà vues sont en cache (politique OSM — pas de pré-téléchargement). |
-| Les tests E2E échouent en CI mais pas en local | Regarder le rapport Playwright dans les artefacts du job `tests`. |
+| Piège                                               | Réponse                                                                                                                           |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Page blanche sous `https://compte.github.io/depot/` | Vérifier que `vite.config.ts` a bien `base: './'` (chemins relatifs).                                                             |
+| « Ça ne se met pas à jour »                         | Le SW sert l'ancienne version pendant qu'il télécharge la nouvelle : rouvrir l'app. Vider les données du site en dernier recours. |
+| Hors ligne cassé à la première visite               | La première visite doit rester ouverte quelques secondes (installation du SW) : attendre le message « disponible hors ligne ».    |
+| Stockage disparu sur iPhone                         | L'app doit être installée sur l'écran d'accueil (voir §4) ; l'app demande aussi `storage.persist()` au démarrage.                 |
+| La carte est grise hors ligne                       | Normal sur les zones jamais affichées : seules les tuiles déjà vues sont en cache (politique OSM — pas de pré-téléchargement).    |
+| Les tests E2E échouent en CI mais pas en local      | Regarder le rapport Playwright dans les artefacts du job `tests`.                                                                 |

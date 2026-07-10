@@ -7,29 +7,29 @@ import type { PositionSource } from '../ports/PositionSource';
  * PositionSource, l'écran de suivi ne fait aucune différence.
  */
 export class SimulationPositionSource implements PositionSource {
-  private surPosition: ((position: Coordonnee) => void) | null = null;
-  private derniereSimulation: Coordonnee | null = null;
+    private surPosition: ((position: Coordonnee) => void) | null = null;
+    private derniereSimulation: Coordonnee | null = null;
 
-  demarrer(
-    surPosition: (position: Coordonnee) => void,
-    _surErreur?: (message: string) => void,
-  ): void {
-    this.surPosition = surPosition;
-    if (this.derniereSimulation !== null) {
-      surPosition(this.derniereSimulation);
+    demarrer(
+        surPosition: (position: Coordonnee) => void,
+        _surErreur?: (message: string) => void,
+    ): void {
+        this.surPosition = surPosition;
+        if (this.derniereSimulation !== null) {
+            surPosition(this.derniereSimulation);
+        }
     }
-  }
 
-  arreter(): void {
-    this.surPosition = null;
-  }
+    arreter(): void {
+        this.surPosition = null;
+    }
 
-  simuler(position: Coordonnee): void {
-    this.derniereSimulation = position;
-    this.surPosition?.(position);
-  }
+    simuler(position: Coordonnee): void {
+        this.derniereSimulation = position;
+        this.surPosition?.(position);
+    }
 
-  get dernierePosition(): Coordonnee | null {
-    return this.derniereSimulation;
-  }
+    get dernierePosition(): Coordonnee | null {
+        return this.derniereSimulation;
+    }
 }

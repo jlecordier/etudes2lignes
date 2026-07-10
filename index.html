@@ -1,91 +1,96 @@
 <!doctype html>
 <html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#1d4ed8" />
-    <title>GrosseMadame — Suivi de schémas de ligne</title>
-  </head>
-  <body>
-    <section id="ecran-liste" class="ecran">
-      <header class="entete">
-        <h1>Mes trajets</h1>
-        <button id="bouton-creer-trajet" type="button">Nouveau trajet</button>
-      </header>
-      <ul id="liste-trajets" class="liste-trajets"></ul>
-      <p id="liste-vide" class="message-vide" hidden>
-        Aucun trajet pour l'instant. Créez-en un, puis importez les pages (images) de votre schéma de ligne.
-      </p>
-      <p id="indicateur-hors-ligne" class="indicateur-hors-ligne" hidden>
-        ✓ Application disponible hors ligne
-      </p>
-    </section>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="theme-color" content="#1d4ed8" />
+        <title>GrosseMadame — Suivi de schémas de ligne</title>
+    </head>
+    <body>
+        <section id="ecran-liste" class="ecran">
+            <header class="entete">
+                <h1>Mes trajets</h1>
+                <button id="bouton-creer-trajet" type="button">Nouveau trajet</button>
+            </header>
+            <ul id="liste-trajets" class="liste-trajets"></ul>
+            <p id="liste-vide" class="message-vide" hidden>
+                Aucun trajet pour l'instant. Créez-en un, puis importez les pages (images) de votre
+                schéma de ligne.
+            </p>
+            <p id="indicateur-hors-ligne" class="indicateur-hors-ligne" hidden>
+                ✓ Application disponible hors ligne
+            </p>
+        </section>
 
-    <section id="ecran-editeur" class="ecran" hidden>
-      <header class="entete">
-        <button id="bouton-retour-liste" type="button" class="secondaire">← Trajets</button>
-        <h2 id="titre-trajet"></h2>
-        <button id="bouton-suivre" type="button">Suivre</button>
-      </header>
-      <p class="aide">
-        Conseil : placez un point près du bas et du haut de chaque page (même lieu à la jonction de
-        deux pages).
-      </p>
-      <div class="barre-actions">
-        <button id="bouton-ajouter-images" type="button">Ajouter des images</button>
-        <button id="bouton-ajouter-point" type="button">Ajouter un point</button>
-      </div>
-      <input id="input-images" type="file" accept="image/jpeg,image/png" multiple hidden />
-      <p id="consigne-placement" class="bandeau-consigne" hidden>
-        Touchez l'image à la hauteur voulue…
-        <button id="bouton-annuler-placement" type="button" class="secondaire">Annuler</button>
-      </p>
-      <ol id="liste-points" class="liste-points"></ol>
-      <div id="pile-images"></div>
-    </section>
+        <section id="ecran-editeur" class="ecran" hidden>
+            <header class="entete">
+                <button id="bouton-retour-liste" type="button" class="secondaire">← Trajets</button>
+                <h2 id="titre-trajet"></h2>
+                <button id="bouton-suivre" type="button">Suivre</button>
+            </header>
+            <p class="aide">
+                Conseil : placez un point près du bas et du haut de chaque page (même lieu à la
+                jonction de deux pages).
+            </p>
+            <div class="barre-actions">
+                <button id="bouton-ajouter-images" type="button">Ajouter des images</button>
+                <button id="bouton-ajouter-point" type="button">Ajouter un point</button>
+            </div>
+            <input id="input-images" type="file" accept="image/jpeg,image/png" multiple hidden />
+            <p id="consigne-placement" class="bandeau-consigne" hidden>
+                Touchez l'image à la hauteur voulue…
+                <button id="bouton-annuler-placement" type="button" class="secondaire">
+                    Annuler
+                </button>
+            </p>
+            <ol id="liste-points" class="liste-points"></ol>
+            <div id="pile-images"></div>
+        </section>
 
-    <section id="ecran-suivi" class="ecran ecran-suivi" hidden>
-      <div class="barre-suivi">
-        <button id="bouton-quitter-suivi" type="button" class="secondaire">← Éditer</button>
-        <span id="etat-suivi" class="etat-suivi"></span>
-        <button id="bouton-simuler" type="button" class="secondaire">Simuler</button>
-        <p id="bandeau-simulation" class="bandeau-simulation" hidden>
-          Position simulée —
-          <button id="bouton-quitter-simulation" type="button" class="secondaire">quitter</button>
-        </p>
-      </div>
-      <div id="pile-suivi" class="pile-suivi"></div>
-      <div class="ligne-repere" aria-hidden="true"></div>
-      <button id="bouton-reprendre" type="button" class="bouton-reprendre" hidden>
-        Reprendre le suivi
-      </button>
-    </section>
+        <section id="ecran-suivi" class="ecran ecran-suivi" hidden>
+            <div class="barre-suivi">
+                <button id="bouton-quitter-suivi" type="button" class="secondaire">← Éditer</button>
+                <span id="etat-suivi" class="etat-suivi"></span>
+                <button id="bouton-simuler" type="button" class="secondaire">Simuler</button>
+                <p id="bandeau-simulation" class="bandeau-simulation" hidden>
+                    Position simulée —
+                    <button id="bouton-quitter-simulation" type="button" class="secondaire">
+                        quitter
+                    </button>
+                </p>
+            </div>
+            <div id="pile-suivi" class="pile-suivi"></div>
+            <div class="ligne-repere" aria-hidden="true"></div>
+            <button id="bouton-reprendre" type="button" class="bouton-reprendre" hidden>
+                Reprendre le suivi
+            </button>
+        </section>
 
-    <section id="ecran-carte" class="ecran ecran-carte" hidden>
-      <div id="conteneur-carte"></div>
-      <div class="barre-carte">
-        <input
-          id="champ-latitude"
-          type="number"
-          step="any"
-          inputmode="decimal"
-          placeholder="Latitude"
-          aria-label="Latitude"
-        />
-        <input
-          id="champ-longitude"
-          type="number"
-          step="any"
-          inputmode="decimal"
-          placeholder="Longitude"
-          aria-label="Longitude"
-        />
-        <button id="bouton-placer-manuel" type="button" class="secondaire">Placer</button>
-        <button id="bouton-annuler-carte" type="button" class="secondaire">Annuler</button>
-        <button id="bouton-valider-carte" type="button" disabled>Valider</button>
-      </div>
-    </section>
+        <section id="ecran-carte" class="ecran ecran-carte" hidden>
+            <div id="conteneur-carte"></div>
+            <div class="barre-carte">
+                <input
+                    id="champ-latitude"
+                    type="number"
+                    step="any"
+                    inputmode="decimal"
+                    placeholder="Latitude"
+                    aria-label="Latitude"
+                />
+                <input
+                    id="champ-longitude"
+                    type="number"
+                    step="any"
+                    inputmode="decimal"
+                    placeholder="Longitude"
+                    aria-label="Longitude"
+                />
+                <button id="bouton-placer-manuel" type="button" class="secondaire">Placer</button>
+                <button id="bouton-annuler-carte" type="button" class="secondaire">Annuler</button>
+                <button id="bouton-valider-carte" type="button" disabled>Valider</button>
+            </div>
+        </section>
 
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+        <script type="module" src="/src/main.ts"></script>
+    </body>
 </html>

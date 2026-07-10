@@ -42,10 +42,10 @@ pnpm preview    # sert le build — nécessaire pour essayer le service worker
    image = le début du trajet ; chaque page se lit de bas en haut).
 3. Géo-référencer les points remarquables (gares, raccordements, PK connus).
    Conseils :
-   - placez un point **près du bas et du haut de chaque page** ;
-   - à la jonction de deux pages, placez **le même lieu** en haut de la page N
-     et en bas de la page N+1 (les documents répètent souvent le PK de jonction) ;
-   - plus les points sont denses, plus le défilement est fidèle entre eux.
+    - placez un point **près du bas et du haut de chaque page** ;
+    - à la jonction de deux pages, placez **le même lieu** en haut de la page N
+      et en bas de la page N+1 (les documents répètent souvent le PK de jonction) ;
+    - plus les points sont denses, plus le défilement est fidèle entre eux.
 4. Vérifier avec « Suivre » → « Simuler » avant le vrai voyage.
 
 ## Documentation

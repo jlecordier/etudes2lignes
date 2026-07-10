@@ -5,11 +5,16 @@ import { NomDeTrajet } from './NomDeTrajet';
 import { Trajet } from './Trajet';
 
 function nouveauTrajet(nom = 'Paris → Bordeaux'): Trajet {
-  return Trajet.creer(NomDeTrajet.creer(nom));
+    return Trajet.creer(NomDeTrajet.creer(nom));
 }
 
-function fichierImage(nom = 'page-1.jpg'): { nom: string; blob: Blob; largeur: number; hauteur: number } {
-  return { nom, blob: new Blob(['fausse image']), largeur: 2481, hauteur: 3508 };
+function fichierImage(nom = 'page-1.jpg'): {
+    nom: string;
+    blob: Blob;
+    largeur: number;
+    hauteur: number;
+} {
+    return { nom, blob: new Blob(['fausse image']), largeur: 2481, hauteur: 3508 };
 }
 
 const massy = Coordonnee.creer(48.7266, 2.2617);
@@ -17,250 +22,250 @@ const poitiers = Coordonnee.creer(46.5802, 0.3404);
 const angouleme = Coordonnee.creer(45.6484, 0.1562);
 
 describe('Trajet', () => {
-  describe('Étant donné un nom valide, quand je crée un trajet', () => {
-    it('alors il a ce nom, un identifiant, et ni image ni point', () => {
-      const trajet = nouveauTrajet('Paris → Bordeaux');
+    describe('Étant donné un nom valide, quand je crée un trajet', () => {
+        it('alors il a ce nom, un identifiant, et ni image ni point', () => {
+            const trajet = nouveauTrajet('Paris → Bordeaux');
 
-      expect(trajet.id).toBeTruthy();
-      expect(trajet.nom.valeur).toBe('Paris → Bordeaux');
-      expect(trajet.images).toHaveLength(0);
-      expect(trajet.points).toHaveLength(0);
-    });
-  });
-
-  describe('Étant donné un trajet, quand je le renomme', () => {
-    it('alors son nom change', () => {
-      const trajet = nouveauTrajet();
-
-      trajet.renommer(NomDeTrajet.creer('Bordeaux → Paris'));
-
-      expect(trajet.nom.valeur).toBe('Bordeaux → Paris');
-    });
-  });
-
-  describe('Étant donné un trajet, quand j’ajoute des images', () => {
-    it('alors elles apparaissent dans l’ordre d’ajout (ordre du voyage)', () => {
-      const trajet = nouveauTrajet();
-
-      trajet.ajouterImage(fichierImage('page-1.jpg'));
-      trajet.ajouterImage(fichierImage('page-2.jpg'));
-
-      expect(trajet.images.map((image) => image.nom)).toEqual(['page-1.jpg', 'page-2.jpg']);
+            expect(trajet.id).toBeTruthy();
+            expect(trajet.nom.valeur).toBe('Paris → Bordeaux');
+            expect(trajet.images).toHaveLength(0);
+            expect(trajet.points).toHaveLength(0);
+        });
     });
 
-    it('alors une image aux dimensions invalides est refusée', () => {
-      const trajet = nouveauTrajet();
+    describe('Étant donné un trajet, quand je le renomme', () => {
+        it('alors son nom change', () => {
+            const trajet = nouveauTrajet();
 
-      expect(() => trajet.ajouterImage({ ...fichierImage(), largeur: 0 })).toThrow(
-        'Dimensions d’image invalides',
-      );
-    });
-  });
+            trajet.renommer(NomDeTrajet.creer('Bordeaux → Paris'));
 
-  describe('Étant donné un trajet de trois images', () => {
-    it('quand je monte la troisième, alors elle passe deuxième', () => {
-      const trajet = nouveauTrajet();
-      trajet.ajouterImage(fichierImage('a.jpg'));
-      trajet.ajouterImage(fichierImage('b.jpg'));
-      const idC = trajet.ajouterImage(fichierImage('c.jpg'));
-
-      trajet.monterImage(idC);
-
-      expect(trajet.images.map((image) => image.nom)).toEqual(['a.jpg', 'c.jpg', 'b.jpg']);
+            expect(trajet.nom.valeur).toBe('Bordeaux → Paris');
+        });
     });
 
-    it('quand je monte la première ou descends la dernière, alors rien ne change', () => {
-      const trajet = nouveauTrajet();
-      const idA = trajet.ajouterImage(fichierImage('a.jpg'));
-      trajet.ajouterImage(fichierImage('b.jpg'));
-      const idC = trajet.ajouterImage(fichierImage('c.jpg'));
+    describe('Étant donné un trajet, quand j’ajoute des images', () => {
+        it('alors elles apparaissent dans l’ordre d’ajout (ordre du voyage)', () => {
+            const trajet = nouveauTrajet();
 
-      trajet.monterImage(idA);
-      trajet.descendreImage(idC);
+            trajet.ajouterImage(fichierImage('page-1.jpg'));
+            trajet.ajouterImage(fichierImage('page-2.jpg'));
 
-      expect(trajet.images.map((image) => image.nom)).toEqual(['a.jpg', 'b.jpg', 'c.jpg']);
+            expect(trajet.images.map((image) => image.nom)).toEqual(['page-1.jpg', 'page-2.jpg']);
+        });
+
+        it('alors une image aux dimensions invalides est refusée', () => {
+            const trajet = nouveauTrajet();
+
+            expect(() => trajet.ajouterImage({ ...fichierImage(), largeur: 0 })).toThrow(
+                'Dimensions d’image invalides',
+            );
+        });
     });
 
-    it('quand je supprime la deuxième, alors ses points disparaissent et les autres restent', () => {
-      const trajet = nouveauTrajet();
-      const idA = trajet.ajouterImage(fichierImage('a.jpg'));
-      const idB = trajet.ajouterImage(fichierImage('b.jpg'));
-      const pointSurA = trajet.ajouterPoint({
-        imageId: idA,
-        fraction: FractionVerticale.creer(0.5),
-        coordonnee: massy,
-      });
-      trajet.ajouterPoint({
-        imageId: idB,
-        fraction: FractionVerticale.creer(0.2),
-        coordonnee: poitiers,
-      });
+    describe('Étant donné un trajet de trois images', () => {
+        it('quand je monte la troisième, alors elle passe deuxième', () => {
+            const trajet = nouveauTrajet();
+            trajet.ajouterImage(fichierImage('a.jpg'));
+            trajet.ajouterImage(fichierImage('b.jpg'));
+            const idC = trajet.ajouterImage(fichierImage('c.jpg'));
 
-      trajet.supprimerImage(idB);
+            trajet.monterImage(idC);
 
-      expect(trajet.images.map((image) => image.nom)).toEqual(['a.jpg']);
-      expect(trajet.points.map((point) => point.id)).toEqual([pointSurA]);
-    });
-  });
+            expect(trajet.images.map((image) => image.nom)).toEqual(['a.jpg', 'c.jpg', 'b.jpg']);
+        });
 
-  describe('Étant donné un point visant une image qui n’appartient pas au trajet', () => {
-    it('alors l’ajout est refusé', () => {
-      const autreTrajet = nouveauTrajet('Autre');
-      const imageAilleurs = autreTrajet.ajouterImage(fichierImage());
-      const trajet = nouveauTrajet();
+        it('quand je monte la première ou descends la dernière, alors rien ne change', () => {
+            const trajet = nouveauTrajet();
+            const idA = trajet.ajouterImage(fichierImage('a.jpg'));
+            trajet.ajouterImage(fichierImage('b.jpg'));
+            const idC = trajet.ajouterImage(fichierImage('c.jpg'));
 
-      expect(() =>
-        trajet.ajouterPoint({
-          imageId: imageAilleurs,
-          fraction: FractionVerticale.creer(0.5),
-          coordonnee: massy,
-        }),
-      ).toThrow('Image inconnue');
-    });
-  });
+            trajet.monterImage(idA);
+            trajet.descendreImage(idC);
 
-  describe('Étant donné un trajet avec un point', () => {
-    it('quand je déplace le point sur l’image, alors sa hauteur (et son image) changent', () => {
-      const trajet = nouveauTrajet();
-      const idA = trajet.ajouterImage(fichierImage('a.jpg'));
-      const idB = trajet.ajouterImage(fichierImage('b.jpg'));
-      const pointId = trajet.ajouterPoint({
-        imageId: idA,
-        fraction: FractionVerticale.creer(0.5),
-        coordonnee: massy,
-      });
+            expect(trajet.images.map((image) => image.nom)).toEqual(['a.jpg', 'b.jpg', 'c.jpg']);
+        });
 
-      trajet.deplacerPointSurImage(pointId, idB, FractionVerticale.creer(0.9));
+        it('quand je supprime la deuxième, alors ses points disparaissent et les autres restent', () => {
+            const trajet = nouveauTrajet();
+            const idA = trajet.ajouterImage(fichierImage('a.jpg'));
+            const idB = trajet.ajouterImage(fichierImage('b.jpg'));
+            const pointSurA = trajet.ajouterPoint({
+                imageId: idA,
+                fraction: FractionVerticale.creer(0.5),
+                coordonnee: massy,
+            });
+            trajet.ajouterPoint({
+                imageId: idB,
+                fraction: FractionVerticale.creer(0.2),
+                coordonnee: poitiers,
+            });
 
-      const point = trajet.points[0]!;
-      expect(point.imageId).toBe(idB);
-      expect(point.fraction.valeur).toBe(0.9);
-      expect(point.coordonnee.egale(massy)).toBe(true);
+            trajet.supprimerImage(idB);
+
+            expect(trajet.images.map((image) => image.nom)).toEqual(['a.jpg']);
+            expect(trajet.points.map((point) => point.id)).toEqual([pointSurA]);
+        });
     });
 
-    it('quand je déplace le point sur la carte, alors seule sa coordonnée change', () => {
-      const trajet = nouveauTrajet();
-      const idA = trajet.ajouterImage(fichierImage());
-      const pointId = trajet.ajouterPoint({
-        imageId: idA,
-        fraction: FractionVerticale.creer(0.5),
-        coordonnee: massy,
-      });
+    describe('Étant donné un point visant une image qui n’appartient pas au trajet', () => {
+        it('alors l’ajout est refusé', () => {
+            const autreTrajet = nouveauTrajet('Autre');
+            const imageAilleurs = autreTrajet.ajouterImage(fichierImage());
+            const trajet = nouveauTrajet();
 
-      trajet.deplacerPointSurCarte(pointId, poitiers);
-
-      const point = trajet.points[0]!;
-      expect(point.coordonnee.egale(poitiers)).toBe(true);
-      expect(point.fraction.valeur).toBe(0.5);
+            expect(() =>
+                trajet.ajouterPoint({
+                    imageId: imageAilleurs,
+                    fraction: FractionVerticale.creer(0.5),
+                    coordonnee: massy,
+                }),
+            ).toThrow('Image inconnue');
+        });
     });
 
-    it('quand je supprime le point, alors il disparaît', () => {
-      const trajet = nouveauTrajet();
-      const idA = trajet.ajouterImage(fichierImage());
-      const pointId = trajet.ajouterPoint({
-        imageId: idA,
-        fraction: FractionVerticale.creer(0.5),
-        coordonnee: massy,
-      });
+    describe('Étant donné un trajet avec un point', () => {
+        it('quand je déplace le point sur l’image, alors sa hauteur (et son image) changent', () => {
+            const trajet = nouveauTrajet();
+            const idA = trajet.ajouterImage(fichierImage('a.jpg'));
+            const idB = trajet.ajouterImage(fichierImage('b.jpg'));
+            const pointId = trajet.ajouterPoint({
+                imageId: idA,
+                fraction: FractionVerticale.creer(0.5),
+                coordonnee: massy,
+            });
 
-      trajet.supprimerPoint(pointId);
+            trajet.deplacerPointSurImage(pointId, idB, FractionVerticale.creer(0.9));
 
-      expect(trajet.points).toHaveLength(0);
-    });
-  });
+            const point = trajet.points[0]!;
+            expect(point.imageId).toBe(idB);
+            expect(point.fraction.valeur).toBe(0.9);
+            expect(point.coordonnee.egale(massy)).toBe(true);
+        });
 
-  describe('Étant donné des points répartis sur deux pages lues de bas en haut', () => {
-    it('alors l’ordre du voyage va du bas de la première page au haut de la dernière', () => {
-      const trajet = nouveauTrajet();
-      const page1 = trajet.ajouterImage(fichierImage('page-1.jpg'));
-      const page2 = trajet.ajouterImage(fichierImage('page-2.jpg'));
-      const hautPage1 = trajet.ajouterPoint({
-        imageId: page1,
-        fraction: FractionVerticale.creer(0.1),
-        coordonnee: poitiers,
-      });
-      const basPage1 = trajet.ajouterPoint({
-        imageId: page1,
-        fraction: FractionVerticale.creer(0.9),
-        coordonnee: massy,
-      });
-      const basPage2 = trajet.ajouterPoint({
-        imageId: page2,
-        fraction: FractionVerticale.creer(0.8),
-        coordonnee: angouleme,
-      });
+        it('quand je déplace le point sur la carte, alors seule sa coordonnée change', () => {
+            const trajet = nouveauTrajet();
+            const idA = trajet.ajouterImage(fichierImage());
+            const pointId = trajet.ajouterPoint({
+                imageId: idA,
+                fraction: FractionVerticale.creer(0.5),
+                coordonnee: massy,
+            });
 
-      const ordre = trajet.ordreVoyageDesPoints().map((point) => point.id);
+            trajet.deplacerPointSurCarte(pointId, poitiers);
 
-      expect(ordre).toEqual([basPage1, hautPage1, basPage2]);
-    });
+            const point = trajet.points[0]!;
+            expect(point.coordonnee.egale(poitiers)).toBe(true);
+            expect(point.fraction.valeur).toBe(0.5);
+        });
 
-    it('quand je réordonne les images, alors l’ordre du voyage suit le nouvel ordre', () => {
-      const trajet = nouveauTrajet();
-      const page1 = trajet.ajouterImage(fichierImage('page-1.jpg'));
-      const page2 = trajet.ajouterImage(fichierImage('page-2.jpg'));
-      const pointPage1 = trajet.ajouterPoint({
-        imageId: page1,
-        fraction: FractionVerticale.creer(0.5),
-        coordonnee: massy,
-      });
-      const pointPage2 = trajet.ajouterPoint({
-        imageId: page2,
-        fraction: FractionVerticale.creer(0.5),
-        coordonnee: poitiers,
-      });
+        it('quand je supprime le point, alors il disparaît', () => {
+            const trajet = nouveauTrajet();
+            const idA = trajet.ajouterImage(fichierImage());
+            const pointId = trajet.ajouterPoint({
+                imageId: idA,
+                fraction: FractionVerticale.creer(0.5),
+                coordonnee: massy,
+            });
 
-      trajet.monterImage(page2);
+            trajet.supprimerPoint(pointId);
 
-      expect(trajet.ordreVoyageDesPoints().map((point) => point.id)).toEqual([
-        pointPage2,
-        pointPage1,
-      ]);
-    });
-  });
-
-  describe('Étant donné un trajet sauvegardé, quand je le réhydrate', () => {
-    it('alors il est identique (images, points, ordre)', () => {
-      const original = nouveauTrajet();
-      const idA = original.ajouterImage(fichierImage('a.jpg'));
-      original.ajouterPoint({
-        imageId: idA,
-        fraction: FractionVerticale.creer(0.3),
-        coordonnee: angouleme,
-      });
-
-      const copie = Trajet.rehydrater({
-        id: original.id,
-        nom: original.nom,
-        creeLe: original.creeLe,
-        images: original.images,
-        points: original.points,
-      });
-
-      expect(copie.id).toBe(original.id);
-      expect(copie.nom.valeur).toBe(original.nom.valeur);
-      expect(copie.images).toEqual(original.images);
-      expect(copie.points).toEqual(original.points);
+            expect(trajet.points).toHaveLength(0);
+        });
     });
 
-    it('alors un point orphelin (image absente) est refusé', () => {
-      const original = nouveauTrajet();
-      const idA = original.ajouterImage(fichierImage());
-      original.ajouterPoint({
-        imageId: idA,
-        fraction: FractionVerticale.creer(0.3),
-        coordonnee: massy,
-      });
+    describe('Étant donné des points répartis sur deux pages lues de bas en haut', () => {
+        it('alors l’ordre du voyage va du bas de la première page au haut de la dernière', () => {
+            const trajet = nouveauTrajet();
+            const page1 = trajet.ajouterImage(fichierImage('page-1.jpg'));
+            const page2 = trajet.ajouterImage(fichierImage('page-2.jpg'));
+            const hautPage1 = trajet.ajouterPoint({
+                imageId: page1,
+                fraction: FractionVerticale.creer(0.1),
+                coordonnee: poitiers,
+            });
+            const basPage1 = trajet.ajouterPoint({
+                imageId: page1,
+                fraction: FractionVerticale.creer(0.9),
+                coordonnee: massy,
+            });
+            const basPage2 = trajet.ajouterPoint({
+                imageId: page2,
+                fraction: FractionVerticale.creer(0.8),
+                coordonnee: angouleme,
+            });
 
-      expect(() =>
-        Trajet.rehydrater({
-          id: original.id,
-          nom: original.nom,
-          creeLe: original.creeLe,
-          images: [],
-          points: original.points,
-        }),
-      ).toThrow('Image inconnue');
+            const ordre = trajet.ordreVoyageDesPoints().map((point) => point.id);
+
+            expect(ordre).toEqual([basPage1, hautPage1, basPage2]);
+        });
+
+        it('quand je réordonne les images, alors l’ordre du voyage suit le nouvel ordre', () => {
+            const trajet = nouveauTrajet();
+            const page1 = trajet.ajouterImage(fichierImage('page-1.jpg'));
+            const page2 = trajet.ajouterImage(fichierImage('page-2.jpg'));
+            const pointPage1 = trajet.ajouterPoint({
+                imageId: page1,
+                fraction: FractionVerticale.creer(0.5),
+                coordonnee: massy,
+            });
+            const pointPage2 = trajet.ajouterPoint({
+                imageId: page2,
+                fraction: FractionVerticale.creer(0.5),
+                coordonnee: poitiers,
+            });
+
+            trajet.monterImage(page2);
+
+            expect(trajet.ordreVoyageDesPoints().map((point) => point.id)).toEqual([
+                pointPage2,
+                pointPage1,
+            ]);
+        });
     });
-  });
+
+    describe('Étant donné un trajet sauvegardé, quand je le réhydrate', () => {
+        it('alors il est identique (images, points, ordre)', () => {
+            const original = nouveauTrajet();
+            const idA = original.ajouterImage(fichierImage('a.jpg'));
+            original.ajouterPoint({
+                imageId: idA,
+                fraction: FractionVerticale.creer(0.3),
+                coordonnee: angouleme,
+            });
+
+            const copie = Trajet.rehydrater({
+                id: original.id,
+                nom: original.nom,
+                creeLe: original.creeLe,
+                images: original.images,
+                points: original.points,
+            });
+
+            expect(copie.id).toBe(original.id);
+            expect(copie.nom.valeur).toBe(original.nom.valeur);
+            expect(copie.images).toEqual(original.images);
+            expect(copie.points).toEqual(original.points);
+        });
+
+        it('alors un point orphelin (image absente) est refusé', () => {
+            const original = nouveauTrajet();
+            const idA = original.ajouterImage(fichierImage());
+            original.ajouterPoint({
+                imageId: idA,
+                fraction: FractionVerticale.creer(0.3),
+                coordonnee: massy,
+            });
+
+            expect(() =>
+                Trajet.rehydrater({
+                    id: original.id,
+                    nom: original.nom,
+                    creeLe: original.creeLe,
+                    images: [],
+                    points: original.points,
+                }),
+            ).toThrow('Image inconnue');
+        });
+    });
 });

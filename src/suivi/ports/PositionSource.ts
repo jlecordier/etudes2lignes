@@ -8,9 +8,9 @@ import type { Coordonnee } from '../../trajets/domain/Coordonnee';
  * (permission refusée, signal perdu). `arreter` coupe tout ; redémarrable.
  */
 export interface PositionSource {
-  demarrer(
-    surPosition: (position: Coordonnee) => void,
-    surErreur: (message: string) => void,
-  ): void;
-  arreter(): void;
+    demarrer(
+        surPosition: (position: Coordonnee) => void,
+        surErreur: (message: string) => void,
+    ): void;
+    arreter(): void;
 }

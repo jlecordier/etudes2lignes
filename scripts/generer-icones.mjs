@@ -4,7 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
 
 function dessin(taille, margeMaskable) {
-  return `
+    return `
     const canvas = document.querySelector('canvas');
     const ctx = canvas.getContext('2d');
     const taille = ${taille};
@@ -46,22 +46,22 @@ const page = await navigateur.newPage();
 await mkdir(new URL('../public/icons/', import.meta.url), { recursive: true });
 
 const icones = [
-  { fichier: 'icone-192.png', taille: 192, marge: 0 },
-  { fichier: 'icone-512.png', taille: 512, marge: 0 },
-  { fichier: 'icone-maskable-512.png', taille: 512, marge: 0.12 },
+    { fichier: 'icone-192.png', taille: 192, marge: 0 },
+    { fichier: 'icone-512.png', taille: 512, marge: 0 },
+    { fichier: 'icone-maskable-512.png', taille: 512, marge: 0.12 },
 ];
 
 for (const { fichier, taille, marge } of icones) {
-  await page.setContent(`<canvas width="${taille}" height="${taille}"></canvas>`);
-  await page.evaluate(dessin(taille, marge));
-  const donnees = await page.evaluate(() =>
-    document.querySelector('canvas').toDataURL('image/png').split(',')[1],
-  );
-  await writeFile(
-    new URL(`../public/icons/${fichier}`, import.meta.url),
-    Buffer.from(donnees, 'base64'),
-  );
-  console.log(`✓ public/icons/${fichier}`);
+    await page.setContent(`<canvas width="${taille}" height="${taille}"></canvas>`);
+    await page.evaluate(dessin(taille, marge));
+    const donnees = await page.evaluate(
+        () => document.querySelector('canvas').toDataURL('image/png').split(',')[1],
+    );
+    await writeFile(
+        new URL(`../public/icons/${fichier}`, import.meta.url),
+        Buffer.from(donnees, 'base64'),
+    );
+    console.log(`✓ public/icons/${fichier}`);
 }
 
 await navigateur.close();

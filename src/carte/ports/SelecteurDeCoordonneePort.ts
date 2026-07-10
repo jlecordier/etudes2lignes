@@ -8,5 +8,5 @@ import type { Coordonnee } from '../../trajets/domain/Coordonnee';
  * l'utilisateur annule. Une seule sélection à la fois.
  */
 export interface SelecteurDeCoordonnee {
-  choisir(coordonneeInitiale: Coordonnee | null): Promise<Coordonnee | null>;
+    choisir(coordonneeInitiale: Coordonnee | null): Promise<Coordonnee | null>;
 }

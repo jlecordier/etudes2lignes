@@ -3,11 +3,11 @@ import type { TrajetId } from '../domain/ids';
 
 /** Résumé d'un trajet pour l'écran de liste (sans les images, trop lourdes). */
 export interface ResumeDeTrajet {
-  readonly id: TrajetId;
-  readonly nom: string;
-  readonly creeLe: Date;
-  readonly nombreDImages: number;
-  readonly nombreDePoints: number;
+    readonly id: TrajetId;
+    readonly nom: string;
+    readonly creeLe: Date;
+    readonly nombreDImages: number;
+    readonly nombreDePoints: number;
 }
 
 /**
@@ -20,8 +20,8 @@ export interface ResumeDeTrajet {
  * - `listerResumes` rend les trajets du plus ancien au plus récent.
  */
 export interface TrajetRepository {
-  listerResumes(): Promise<ResumeDeTrajet[]>;
-  charger(id: TrajetId): Promise<Trajet | null>;
-  sauvegarder(trajet: Trajet): Promise<void>;
-  supprimer(id: TrajetId): Promise<void>;
+    listerResumes(): Promise<ResumeDeTrajet[]>;
+    charger(id: TrajetId): Promise<Trajet | null>;
+    sauvegarder(trajet: Trajet): Promise<void>;
+    supprimer(id: TrajetId): Promise<void>;
 }
