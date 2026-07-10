@@ -55,6 +55,11 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
 
   async function afficher(id: TrajetId): Promise<void> {
     trajet = await repository.charger(id);
+    // Trajet supprimé entre-temps (ex. restauration d'un identifiant périmé).
+    if (trajet === null) {
+      surRetour();
+      return;
+    }
     changerDeMode(null);
     rendre();
   }

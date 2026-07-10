@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "icones": "node scripts/generer-icones.mjs"
   },
   "dependencies": {
     "idb": "^8.0.3",
@@ -26,6 +27,7 @@
     "typescript": "^7.0.2",
     "vite": "^8.1.4",
     "vite-plugin-pwa": "^1.3.0",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "workbox-window": "^7.4.1"
   }
 }

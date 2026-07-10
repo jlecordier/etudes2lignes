@@ -48,9 +48,9 @@ test.describe("Éditeur d'un trajet — les images", () => {
     await page.getByRole('button', { name: 'Supprimer page-1.png' }).click();
     await expect(page.locator('.nom-image')).toHaveText(['page-2.png']);
 
-    // La suppression survit à un rechargement (persistance IndexedDB).
+    // La suppression survit à un rechargement (persistance IndexedDB), et
+    // le dernier trajet ouvert est restauré directement dans l'éditeur.
     await page.reload();
-    await page.getByRole('button', { name: 'Paris → Bordeaux' }).click();
     await expect(page.locator('.nom-image')).toHaveText(['page-2.png']);
   });
 

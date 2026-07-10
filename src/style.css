@@ -279,3 +279,8 @@ button.secondaire {
   z-index: 20;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
+
+.indicateur-hors-ligne {
+  color: #047857;
+  font-size: 0.875rem;
+}
