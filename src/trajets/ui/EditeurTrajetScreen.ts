@@ -3,11 +3,13 @@ import { FractionVerticale } from '../domain/FractionVerticale';
 import type { Trajet, ImageDeTrajet, Point } from '../domain/Trajet';
 import type { ImageId, PointId, TrajetId } from '../domain/ids';
 import type { TrajetRepository } from '../ports/TrajetRepository';
+import { elementImagePleineLargeur, revoquerLesUrls } from './elementsDImage';
 
 export interface DependancesEditeurTrajet {
   repository: TrajetRepository;
   selecteurDeCoordonnee: SelecteurDeCoordonnee;
   surRetour: () => void;
+  surSuivi: (id: TrajetId) => void;
 }
 
 type ModeDePlacement = { type: 'ajout' } | { type: 'deplacement'; pointId: PointId } | null;
@@ -16,7 +18,7 @@ type ModeDePlacement = { type: 'ajout' } | { type: 'deplacement'; pointId: Point
 export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet): {
   afficher: (id: TrajetId) => Promise<void>;
 } {
-  const { repository, selecteurDeCoordonnee, surRetour } = dependances;
+  const { repository, selecteurDeCoordonnee, surRetour, surSuivi } = dependances;
   const titre = document.querySelector<HTMLHeadingElement>('#titre-trajet')!;
   const pile = document.querySelector<HTMLDivElement>('#pile-images')!;
   const listePoints = document.querySelector<HTMLOListElement>('#liste-points')!;
@@ -31,12 +33,20 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
 
   let trajet: Trajet | null = null;
   let modeDePlacement: ModeDePlacement = null;
-  let urlsARevoquer: string[] = [];
+  const urlsARevoquer: string[] = [];
 
   boutonRetour.addEventListener('click', () => {
-    revoquerLesUrls();
+    revoquerLesUrls(urlsARevoquer);
     changerDeMode(null);
     surRetour();
+  });
+  document.querySelector<HTMLButtonElement>('#bouton-suivre')!.addEventListener('click', () => {
+    if (trajet === null) {
+      return;
+    }
+    revoquerLesUrls(urlsARevoquer);
+    changerDeMode(null);
+    surSuivi(trajet.id);
   });
   boutonAjouterImages.addEventListener('click', () => champFichiers.click());
   champFichiers.addEventListener('change', () => void importerLesFichiers());
@@ -138,7 +148,7 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
       return;
     }
     titre.textContent = trajet.nom.valeur;
-    revoquerLesUrls();
+    revoquerLesUrls(urlsARevoquer);
     const numeros = numerosDesPoints(trajet);
     pile.replaceChildren(...trajet.images.map((image) => cadreDImage(image, numeros)));
     listePoints.replaceChildren(
@@ -164,7 +174,7 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
 
     const zone = document.createElement('div');
     zone.className = 'zone-image';
-    zone.append(elementImage(image));
+    zone.append(elementImagePleineLargeur(image, urlsARevoquer));
     for (const point of trajet!.points.filter((point) => point.imageId === image.id)) {
       zone.append(marqueurDePoint(point, numeros.get(point.id)!));
     }
@@ -182,21 +192,6 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
   async function descendre(imageId: ImageId): Promise<void> {
     trajet!.descendreImage(imageId);
     await sauvegarderEtRendre();
-  }
-
-  function elementImage(image: ImageDeTrajet): HTMLImageElement {
-    const url = URL.createObjectURL(image.blob);
-    urlsARevoquer.push(url);
-    const element = document.createElement('img');
-    element.src = url;
-    element.alt = image.nom;
-    // Dimensions réservées : la mise en page est figée avant tout décodage,
-    // les hauteurs restent stables même quand les images chargent en différé.
-    element.width = image.largeur;
-    element.height = image.hauteur;
-    element.loading = 'lazy';
-    element.decoding = 'async';
-    return element;
   }
 
   function ligneDePoint(point: Point, numero: number): HTMLLIElement {
@@ -234,13 +229,6 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
     etiquette.textContent = String(numero);
     marqueur.append(etiquette);
     return marqueur;
-  }
-
-  function revoquerLesUrls(): void {
-    for (const url of urlsARevoquer) {
-      URL.revokeObjectURL(url);
-    }
-    urlsARevoquer = [];
   }
 
   return { afficher };

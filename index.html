@@ -22,6 +22,7 @@
       <header class="entete">
         <button id="bouton-retour-liste" type="button" class="secondaire">← Trajets</button>
         <h2 id="titre-trajet"></h2>
+        <button id="bouton-suivre" type="button">Suivre</button>
       </header>
       <p class="aide">
         Conseil : placez un point près du bas et du haut de chaque page (même lieu à la jonction de
@@ -40,7 +41,22 @@
       <div id="pile-images"></div>
     </section>
 
-    <section id="ecran-suivi" class="ecran" hidden></section>
+    <section id="ecran-suivi" class="ecran ecran-suivi" hidden>
+      <div class="barre-suivi">
+        <button id="bouton-quitter-suivi" type="button" class="secondaire">← Éditer</button>
+        <span id="etat-suivi" class="etat-suivi"></span>
+        <button id="bouton-simuler" type="button" class="secondaire">Simuler</button>
+        <p id="bandeau-simulation" class="bandeau-simulation" hidden>
+          Position simulée —
+          <button id="bouton-quitter-simulation" type="button" class="secondaire">quitter</button>
+        </p>
+      </div>
+      <div id="pile-suivi" class="pile-suivi"></div>
+      <div class="ligne-repere" aria-hidden="true"></div>
+      <button id="bouton-reprendre" type="button" class="bouton-reprendre" hidden>
+        Reprendre le suivi
+      </button>
+    </section>
 
     <section id="ecran-carte" class="ecran ecran-carte" hidden>
       <div id="conteneur-carte"></div>

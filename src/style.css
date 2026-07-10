@@ -221,3 +221,61 @@ button.secondaire {
   border-radius: 0.375rem;
   width: 8rem;
 }
+
+/* Écran de suivi */
+.ecran-suivi {
+  padding: 0;
+}
+
+.barre-suivi {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.5rem;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.etat-suivi {
+  flex: 1;
+  min-width: 8rem;
+  font-size: 0.875rem;
+  color: #b45309;
+}
+
+.bandeau-simulation {
+  width: 100%;
+  margin: 0;
+  padding: 0.25rem 0;
+  font-size: 0.875rem;
+  color: #047857;
+}
+
+.pile-suivi img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.ligne-repere {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 75vh;
+  border-top: 2px dashed #2563eb;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.bouton-reprendre {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
