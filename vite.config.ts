@@ -41,8 +41,17 @@ export default defineConfig({
                         handler: 'CacheFirst',
                         options: {
                             cacheName: 'tuiles-osm',
-                            expiration: { maxEntries: 2000, maxAgeSeconds: 60 * 60 * 24 * 180 },
-                            cacheableResponse: { statuses: [0, 200] },
+                            expiration: {
+                                maxEntries: 2000,
+                                maxAgeSeconds: 60 * 60 * 24 * 180,
+                                // Si le quota déborde quand même, on sacrifie les
+                                // tuiles plutôt que de laisser échouer les écritures.
+                                purgeOnQuotaError: true,
+                            },
+                            // Uniquement des réponses CORS complètes (200) : une réponse
+                            // opaque (statut 0) est comptée ~7 Mo dans le quota Chromium
+                            // et mettrait en péril l'IndexedDB des trajets.
+                            cacheableResponse: { statuses: [200] },
                         },
                     },
                 ],
