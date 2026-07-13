@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
-    choisirUneCoordonneeSurLaCarte,
+    choisirUneCoordonneePourUnPoint,
     clicDroitSurLImage,
     cliquerSurLImage,
     fichierPng,
@@ -18,7 +18,7 @@ test.describe('Géoréférencement des points', () => {
             .getByRole('button', { name: 'Ajouter un point' })
             .click();
         await cliquerSurLImage(page, 0.25);
-        await choisirUneCoordonneeSurLaCarte(page);
+        await choisirUneCoordonneePourUnPoint(page);
 
         await expect(page.locator('.description-point')).toHaveCount(1);
         await expect(page.locator('.description-point')).toHaveText(
@@ -36,7 +36,7 @@ test.describe('Géoréférencement des points', () => {
             .getByRole('button', { name: 'Ajouter un point' })
             .click();
         await cliquerSurLImage(page, 0.25);
-        await choisirUneCoordonneeSurLaCarte(page);
+        await choisirUneCoordonneePourUnPoint(page);
 
         await page
             .locator('#liste-points')
@@ -59,7 +59,7 @@ test.describe('Géoréférencement des points', () => {
             .getByRole('button', { name: 'Ajouter un point' })
             .click();
         await cliquerSurLImage(page, 0.25);
-        await choisirUneCoordonneeSurLaCarte(page);
+        await choisirUneCoordonneePourUnPoint(page);
 
         await page
             .locator('.marqueur-point')
@@ -82,14 +82,14 @@ test.describe('Géoréférencement des points', () => {
             .getByRole('button', { name: 'Ajouter un point' })
             .click();
         await cliquerSurLImage(page, 0.25);
-        await choisirUneCoordonneeSurLaCarte(page);
+        await choisirUneCoordonneePourUnPoint(page);
         const avant = (await page.locator('.description-point').textContent()) ?? '';
 
         await page
             .locator('#liste-points')
             .getByRole('button', { name: 'Déplacer le point 1 sur la carte' })
             .click();
-        await choisirUneCoordonneeSurLaCarte(page, 150);
+        await choisirUneCoordonneePourUnPoint(page, 150);
 
         // Assertion qui réessaie : la sauvegarde et le re-rendu sont asynchrones.
         await expect(page.locator('.description-point')).not.toHaveText(avant);
@@ -104,14 +104,14 @@ test.describe('Géoréférencement des points', () => {
             .getByRole('button', { name: 'Ajouter un point' })
             .click();
         await cliquerSurLImage(page, 0.25);
-        await choisirUneCoordonneeSurLaCarte(page);
+        await choisirUneCoordonneePourUnPoint(page);
         const avant = (await page.locator('.description-point').textContent()) ?? '';
 
         await page
             .locator('.marqueur-point')
             .getByRole('button', { name: 'Déplacer le point 1 sur la carte' })
             .click();
-        await choisirUneCoordonneeSurLaCarte(page, 150);
+        await choisirUneCoordonneePourUnPoint(page, 150);
 
         await expect(page.locator('.description-point')).not.toHaveText(avant);
     });
@@ -125,7 +125,7 @@ test.describe('Géoréférencement des points', () => {
             .getByRole('button', { name: 'Ajouter un point' })
             .click();
         await cliquerSurLImage(page, 0.25);
-        await choisirUneCoordonneeSurLaCarte(page);
+        await choisirUneCoordonneePourUnPoint(page);
 
         page.once('dialog', (dialogue) => void dialogue.accept());
         await page
@@ -146,7 +146,7 @@ test.describe('Géoréférencement des points', () => {
             .getByRole('button', { name: 'Ajouter un point' })
             .click();
         await cliquerSurLImage(page, 0.25);
-        await choisirUneCoordonneeSurLaCarte(page);
+        await choisirUneCoordonneePourUnPoint(page);
 
         page.once('dialog', (dialogue) => void dialogue.accept());
         await page
@@ -160,14 +160,13 @@ test.describe('Géoréférencement des points', () => {
         await expect(page.locator('.marqueur-point')).toHaveCount(0);
     });
 
-    test('Étant donné une image, quand je fais un clic droit dessus, alors un point est ajouté directement à cet endroit et la carte s’ouvre pour choisir la coordonnée', async ({
+    test('Étant donné une image, quand je fais un clic droit dessus, alors un point est ajouté directement à cet endroit puis la coordonnée se choisit sur la carte', async ({
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
 
         await clicDroitSurLImage(page, 0.6);
-        await expect(page.locator('#ecran-carte')).toBeVisible();
-        await choisirUneCoordonneeSurLaCarte(page);
+        await choisirUneCoordonneePourUnPoint(page);
 
         await expect(page.locator('.description-point')).toHaveCount(1);
         await expect(page.locator('.description-point')).toHaveText(
@@ -199,7 +198,7 @@ test.describe('Géoréférencement des points', () => {
 
         await boutonFlottant.click();
         await cliquerSurLImage(page, 0.5);
-        await choisirUneCoordonneeSurLaCarte(page);
+        await choisirUneCoordonneePourUnPoint(page);
 
         await expect(page.locator('.description-point')).toHaveCount(1);
         await expect(page.locator('.marqueur-point')).toHaveCount(1);
@@ -208,6 +207,10 @@ test.describe('Géoréférencement des points', () => {
     test('Étant donné le choix sur carte, quand je saisis latitude et longitude à la main, alors le point est créé avec ces valeurs', async ({
         page,
     }) => {
+        test.skip(
+            page.viewportSize()!.width >= 900,
+            'La saisie manuelle lat/lon vit dans la carte plein écran : sur grand écran, la coordonnée se choisit directement sur la carte intégrée.',
+        );
         await ouvrirUnTrajetAvecUnePage(page);
         await page
             .locator('.barre-actions')

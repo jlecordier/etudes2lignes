@@ -41,13 +41,18 @@
             </div>
             <input id="input-images" type="file" accept="image/jpeg,image/png" multiple hidden />
             <p id="consigne-placement" class="bandeau-consigne" hidden>
-                Touchez l'image à la hauteur voulue…
+                <span id="texte-consigne">Touchez l'image à la hauteur voulue…</span>
                 <button id="bouton-annuler-placement" type="button" class="secondaire">
                     ✖️ Annuler
                 </button>
             </p>
-            <ol id="liste-points" class="liste-points"></ol>
-            <div id="pile-images"></div>
+            <div class="corps-editeur">
+                <div id="carte-points" class="carte-points"></div>
+                <div class="colonne-images">
+                    <ol id="liste-points" class="liste-points"></ol>
+                    <div id="pile-images"></div>
+                </div>
+            </div>
             <!-- Toujours accessible sans remonter en haut de la page : indispensable
                  au tactile, où le clic droit n'existe pas. -->
             <button

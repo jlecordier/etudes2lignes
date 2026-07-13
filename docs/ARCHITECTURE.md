@@ -38,13 +38,14 @@ du domaine ; `adapters` et `ui` dépendent des ports et du domaine ; seul
 
 ## Les ports et leurs adapters
 
-| Port                    | Contrat                                                                  | Adapters                                                |
-| ----------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------- |
-| `TrajetRepository`      | `listerResumes` / `charger` / `sauvegarder` (atomique) / `supprimer`     | `IdbTrajetRepository` (IndexedDB via idb)               |
-| `PositionSource`        | `demarrer(surPosition, surErreur)` / `arreter()`                         | `GeolocationPositionSource` (GPS)                       |
-| `SimulateurDePosition`  | un `PositionSource` pilotable : `simuler(position)` + `dernierePosition` | `SimulationPositionSource` (position choisie à la main) |
-| `EcranAllume`           | `maintenir()` / `relacher()`, best effort                                | `NavigateurEcranAllume` (wake lock)                     |
-| `SelecteurDeCoordonnee` | `choisir(initiale) → Coordonnee \| null`                                 | `LeafletSelecteurDeCoordonnee` (Leaflet + OSM)          |
+| Port                    | Contrat                                                                            | Adapters                                                                              |
+| ----------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `TrajetRepository`      | `listerResumes` / `charger` / `sauvegarder` (atomique) / `supprimer`               | `IdbTrajetRepository` (IndexedDB via idb)                                             |
+| `PositionSource`        | `demarrer(surPosition, surErreur)` / `arreter()`                                   | `GeolocationPositionSource` (GPS)                                                     |
+| `SimulateurDePosition`  | un `PositionSource` pilotable : `simuler(position)` + `dernierePosition`           | `SimulationPositionSource` (position choisie à la main)                               |
+| `EcranAllume`           | `maintenir()` / `relacher()`, best effort                                          | `NavigateurEcranAllume` (wake lock)                                                   |
+| `SelecteurDeCoordonnee` | `choisir(initiale) → Coordonnee \| null`                                           | `LeafletSelecteurDeCoordonnee` (Leaflet + OSM, plein écran)                           |
+| `CarteDesPoints`        | `afficher(points, surDeplacement)` / `choisirUneCoordonnee()` / `annulerLeChoix()` | `LeafletCarteDesPoints` (carte intégrée à l'éditeur, marqueurs numérotés déplaçables) |
 
 **La simulation est un simple second adapter de `PositionSource`** : l'écran de
 suivi ne fait aucune différence entre le GPS réel et une position simulée. Le

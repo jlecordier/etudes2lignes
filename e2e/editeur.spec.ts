@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { choisirUneCoordonneeSurLaCarte, clicDroitSurLImage, fichierPng } from './aides';
+import { choisirUneCoordonneePourUnPoint, clicDroitSurLImage, fichierPng } from './aides';
 
 async function ouvrirUnTrajetVierge(page: Page): Promise<void> {
     await page.goto('./');
@@ -48,13 +48,13 @@ test.describe("Éditeur d'un trajet — les images", () => {
 
         // Un point sur la page du haut (fin du voyage)…
         await clicDroitSurLImage(page, 0.5, 0);
-        await choisirUneCoordonneeSurLaCarte(page);
+        await choisirUneCoordonneePourUnPoint(page);
         // La sauvegarde et le re-rendu sont asynchrones : attendre que le
         // point soit affiché avant de recliquer sur la pile (re-rendue).
         await expect(page.locator('.description-point')).toHaveCount(1);
         // …puis un point sur la page du bas (début du voyage).
         await clicDroitSurLImage(page, 0.5, 1);
-        await choisirUneCoordonneeSurLaCarte(page, 150);
+        await choisirUneCoordonneePourUnPoint(page, 150);
 
         // La liste suit l'ordre du voyage…
         await expect(page.locator('.description-point')).toHaveText([

@@ -1,4 +1,6 @@
+import type { CarteDesPoints, PointAffiche } from '../../carte/ports/CarteDesPointsPort';
 import type { SelecteurDeCoordonnee } from '../../carte/ports/SelecteurDeCoordonneePort';
+import type { Coordonnee } from '../domain/Coordonnee';
 import { FractionVerticale } from '../domain/FractionVerticale';
 import type { Trajet, ImageDeTrajet, Point } from '../domain/Trajet';
 import type { ImageId, PointId, TrajetId } from '../domain/ids';
@@ -8,21 +10,26 @@ import { elementImagePleineLargeur, revoquerLesUrls } from './elementsDImage';
 export interface DependancesEditeurTrajet {
     repository: TrajetRepository;
     selecteurDeCoordonnee: SelecteurDeCoordonnee;
+    carteDesPoints: CarteDesPoints;
     surRetour: () => void;
     surSuivi: (id: TrajetId) => void;
 }
 
 type ModeDePlacement = { type: 'ajout' } | { type: 'deplacement'; pointId: PointId } | null;
 
+/** Même seuil que le CSS : iPad paysage = grand écran, iPad portrait = mobile. */
+const GRAND_ECRAN = '(min-width: 900px)';
+
 /** Écran d'édition d'un trajet : ses images et ses points géo-référencés. */
 export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet): {
     afficher: (id: TrajetId) => Promise<void>;
 } {
-    const { repository, selecteurDeCoordonnee, surRetour, surSuivi } = dependances;
+    const { repository, selecteurDeCoordonnee, carteDesPoints, surRetour, surSuivi } = dependances;
     const titre = document.querySelector<HTMLHeadingElement>('#titre-trajet')!;
     const pile = document.querySelector<HTMLDivElement>('#pile-images')!;
     const listePoints = document.querySelector<HTMLOListElement>('#liste-points')!;
     const consigne = document.querySelector<HTMLParagraphElement>('#consigne-placement')!;
+    const texteConsigne = document.querySelector<HTMLSpanElement>('#texte-consigne')!;
     const boutonRetour = document.querySelector<HTMLButtonElement>('#bouton-retour-liste')!;
     const boutonAjouterImages =
         document.querySelector<HTMLButtonElement>('#bouton-ajouter-images')!;
@@ -43,23 +50,30 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
     const urlsARevoquer: string[] = [];
 
     boutonRetour.addEventListener('click', () => {
-        revoquerLesUrls(urlsARevoquer);
-        changerDeMode(null);
+        quitterLEcran();
         surRetour();
     });
     document.querySelector<HTMLButtonElement>('#bouton-suivre')!.addEventListener('click', () => {
         if (trajet === null) {
             return;
         }
-        revoquerLesUrls(urlsARevoquer);
-        changerDeMode(null);
+        quitterLEcran();
         surSuivi(trajet.id);
     });
     boutonAjouterImages.addEventListener('click', () => champFichiers.click());
     champFichiers.addEventListener('change', () => void importerLesFichiers());
     boutonAjouterPoint.addEventListener('click', commencerLAjoutDUnPoint);
     boutonAjouterPointFlottant.addEventListener('click', commencerLAjoutDUnPoint);
-    boutonAnnulerPlacement.addEventListener('click', () => changerDeMode(null));
+    boutonAnnulerPlacement.addEventListener('click', () => {
+        changerDeMode(null);
+        carteDesPoints.annulerLeChoix();
+    });
+
+    function quitterLEcran(): void {
+        revoquerLesUrls(urlsARevoquer);
+        changerDeMode(null);
+        carteDesPoints.annulerLeChoix();
+    }
 
     async function afficher(id: TrajetId): Promise<void> {
         trajet = await repository.charger(id);
@@ -142,12 +156,29 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
         image: ImageDeTrajet,
         fraction: FractionVerticale,
     ): Promise<void> {
-        const coordonnee = await selecteurDeCoordonnee.choisir(null);
+        const coordonnee = await choisirUneCoordonnee(null);
         if (coordonnee === null) {
             return;
         }
         trajet.ajouterPoint({ imageId: image.id, fraction, coordonnee });
         await sauvegarderEtRendre();
+    }
+
+    /**
+     * Sur grand écran (iPad paysage compris), la coordonnée se choisit d'un
+     * clic sur la carte intégrée ; sur mobile, sur la carte plein écran.
+     */
+    async function choisirUneCoordonnee(initiale: Coordonnee | null): Promise<Coordonnee | null> {
+        if (!window.matchMedia(GRAND_ECRAN).matches) {
+            return selecteurDeCoordonnee.choisir(initiale);
+        }
+        texteConsigne.textContent = 'Cliquez la coordonnée sur la carte…';
+        consigne.hidden = false;
+        try {
+            return await carteDesPoints.choisirUneCoordonnee();
+        } finally {
+            consigne.hidden = modeDePlacement === null;
+        }
     }
 
     function fractionDepuisPosition(zone: HTMLElement, clientY: number): FractionVerticale {
@@ -156,7 +187,7 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
     }
 
     async function deplacerPointSurLaCarte(point: Point): Promise<void> {
-        const coordonnee = await selecteurDeCoordonnee.choisir(point.coordonnee);
+        const coordonnee = await choisirUneCoordonnee(point.coordonnee);
         if (coordonnee === null) {
             return;
         }
@@ -178,6 +209,9 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
 
     function changerDeMode(mode: ModeDePlacement): void {
         modeDePlacement = mode;
+        if (mode !== null) {
+            texteConsigne.textContent = "Touchez l'image à la hauteur voulue…";
+        }
         consigne.hidden = mode === null;
         pile.classList.toggle('placement-actif', mode !== null);
     }
@@ -203,6 +237,10 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
         listePoints.replaceChildren(
             ...trajet.ordreVoyageDesPoints().map((point, index) => ligneDePoint(point, index + 1)),
         );
+        carteDesPoints.afficher(pointsAffiches(trajet), (pointId, coordonnee) => {
+            trajet!.deplacerPointSurCarte(pointId, coordonnee);
+            void sauvegarderEtRendre();
+        });
     }
 
     function cadreDImage(image: ImageDeTrajet, numeros: Map<PointId, number>): HTMLElement {
@@ -333,6 +371,12 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
 
 function numerosDesPoints(trajet: Trajet): Map<PointId, number> {
     return new Map(trajet.ordreVoyageDesPoints().map((point, index) => [point.id, index + 1]));
+}
+
+function pointsAffiches(trajet: Trajet): PointAffiche[] {
+    return trajet
+        .ordreVoyageDesPoints()
+        .map((point, index) => ({ id: point.id, numero: index + 1, coordonnee: point.coordonnee }));
 }
 
 function boutonDAction(texte: string, intitule: string, action: () => void): HTMLButtonElement {

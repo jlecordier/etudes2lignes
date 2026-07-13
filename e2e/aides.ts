@@ -79,7 +79,21 @@ export async function choisirUneCoordonneeSurLaCarte(page: Page, decalageX = 0):
     await expect(page.locator('#ecran-carte')).toBeHidden();
 }
 
-/** Ajoute un point : clic sur l'image à la fraction donnée, puis choix sur carte. */
+/**
+ * Choisit la coordonnée d'un point de l'éditeur : sur grand écran (≥ 900 px,
+ * même seuil que le CSS) un simple clic sur la carte intégrée suffit ; sur
+ * mobile, c'est la carte plein écran habituelle.
+ */
+export async function choisirUneCoordonneePourUnPoint(page: Page, decalageX = 0): Promise<void> {
+    if (page.viewportSize()!.width >= 900) {
+        const carte = (await page.locator('#carte-points').boundingBox())!;
+        await page.mouse.click(carte.x + carte.width / 2 + decalageX, carte.y + carte.height / 2);
+        return;
+    }
+    await choisirUneCoordonneeSurLaCarte(page, decalageX);
+}
+
+/** Ajoute un point : clic sur l'image à la fraction donnée, puis choix de la coordonnée. */
 export async function ajouterUnPoint(
     page: Page,
     fractionDeHauteur: number,
@@ -89,7 +103,7 @@ export async function ajouterUnPoint(
     // même intitulé (voir e2e/points.spec.ts pour un test dédié à ce dernier).
     await page.locator('.barre-actions').getByRole('button', { name: 'Ajouter un point' }).click();
     await cliquerSurLImage(page, fractionDeHauteur);
-    await choisirUneCoordonneeSurLaCarte(page, decalageCarteX);
+    await choisirUneCoordonneePourUnPoint(page, decalageCarteX);
 }
 
 /** Défilement attendu pour placer une fraction de l'image à 75 % de l'écran. */

@@ -5,13 +5,13 @@ import icone from 'leaflet/dist/images/marker-icon.png';
 import ombre from 'leaflet/dist/images/marker-shadow.png';
 import { Coordonnee } from '../../trajets/domain/Coordonnee';
 import type { SelecteurDeCoordonnee } from '../ports/SelecteurDeCoordonneePort';
+import { creerCoucheOsm, VUE_FRANCE } from './coucheOsm';
 
 // Leaflet devine l'URL de ses icônes depuis le chemin de son script,
 // ce qu'un bundler casse : on lui fournit les fichiers explicitement.
 delete (L.Icon.Default.prototype as { _getIconUrl?: unknown })._getIconUrl;
 L.Icon.Default.mergeOptions({ iconRetinaUrl: iconeRetina, iconUrl: icone, shadowUrl: ombre });
 
-const VUE_FRANCE = { centre: [46.6, 2.4] as [number, number], zoom: 6 };
 const ZOOM_SUR_UN_POINT = 12;
 
 /** Carte Leaflet plein écran (tuiles OSM) pour choisir une coordonnée. */
@@ -62,15 +62,7 @@ export class LeafletSelecteurDeCoordonnee implements SelecteurDeCoordonnee {
             return this.carte;
         }
         this.carte = L.map('conteneur-carte');
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            // crossOrigin : sans lui, les tuiles arrivent en réponses opaques
-            // que Chromium compte ~7 Mo pièce dans le quota de stockage —
-            // le cache hors ligne ferait alors s'évincer nos propres trajets.
-            crossOrigin: true,
-            attribution:
-                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        }).addTo(this.carte);
+        creerCoucheOsm().addTo(this.carte);
         this.carte.on('click', (evenement) => {
             const position = evenement.latlng.wrap();
             this.poserLeMarqueur(Coordonnee.creer(position.lat, position.lng));

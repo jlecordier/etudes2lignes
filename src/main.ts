@@ -4,6 +4,7 @@
  */
 import './style.css';
 import { registerSW } from 'virtual:pwa-register';
+import { LeafletCarteDesPoints } from './carte/adapters/LeafletCarteDesPoints';
 import { LeafletSelecteurDeCoordonnee } from './carte/adapters/LeafletSelecteurDeCoordonnee';
 import { afficherEcran } from './navigation';
 import { GeolocationPositionSource } from './suivi/adapters/GeolocationPositionSource';
@@ -36,6 +37,7 @@ function demarrer(): void {
     const editeurTrajet = creerEditeurTrajetScreen({
         repository,
         selecteurDeCoordonnee,
+        carteDesPoints: new LeafletCarteDesPoints('carte-points'),
         surRetour: () => {
             localStorage.removeItem(CLE_DERNIER_TRAJET);
             afficherEcran('liste');

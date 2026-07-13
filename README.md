@@ -10,13 +10,18 @@ pour suivre votre position GPS.
 - **Trajets** : créer, renommer, supprimer ; chaque trajet contient des images
   ordonnées (les pages du document, lues de bas en haut) réordonnables ▲/▼.
 - **Géoréférencement** : « Ajouter un point » → toucher l'image à la hauteur
-  voulue → choisir la coordonnée sur une carte de France (OpenStreetMap), ou la
-  saisir à la main. Raccourci souris : clic droit directement sur l'image pour
-  placer un point à cet endroit et passer aussitôt au choix de la coordonnée.
-  Un bouton « Ajouter un point » flottant (bas de l'écran) reste accessible
-  quel que soit le défilement — indispensable au tactile, où le clic droit
-  n'existe pas. Points modifiables (sur l'image, sur la carte, boutons
-  flottants sur chaque marqueur) et supprimables.
+  voulue → choisir la coordonnée sur la carte. Raccourci souris : clic droit
+  directement sur l'image pour placer un point à cet endroit et passer aussitôt
+  au choix de la coordonnée. Un bouton « Ajouter un point » flottant (bas de
+  l'écran) reste accessible quel que soit le défilement — indispensable au
+  tactile, où le clic droit n'existe pas. Points modifiables (sur l'image, sur
+  la carte, boutons flottants sur chaque marqueur) et supprimables.
+- **Carte d'ensemble dans l'éditeur** : tous les points du trajet, numérotés
+  et **déplaçables directement** au doigt ou à la souris. Côte à côte avec les
+  images et épinglée pendant le défilement sur grand écran (iPad en paysage
+  compris) ; au-dessus des images sur mobile et iPad en portrait. Sur grand
+  écran, la coordonnée d'un nouveau point se choisit d'un clic sur cette carte ;
+  sur mobile, sur la carte plein écran (avec saisie lat/lon manuelle).
 - **Suivi** : la position GPS est lue en continu (une position traitée toutes
   les ~10 s) et le document défile pour placer votre position au quart bas de
   l'écran — les trois quarts hauts montrent ce qui arrive. Défilement manuel →
