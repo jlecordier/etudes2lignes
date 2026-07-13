@@ -14,3 +14,4 @@ playwright-report/
 # Documents sources personnels (schémas de ligne), trop lourds pour le dépôt
 *.pdf
 *.zip
+pmpbxenjpeg/

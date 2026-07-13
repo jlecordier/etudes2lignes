@@ -37,7 +37,8 @@ const FRACTION_D_ECRAN_DE_LA_POSITION = 0.75;
  * Trouve où placer le document pour la position donnée : projette la position
  * sur le segment le plus proche du trajet et interpole entre les offsets de
  * ses deux étapes. `precedent` (résultat du tick précédent) sert d'adhérence :
- * sans lui, le bruit GPS ferait osciller la page aux jonctions.
+ * sans lui, le bruit GPS ferait sauter la page quand la ligne repasse près
+ * d'elle-même ou que des points partagent le même lieu.
  */
 export function calculerCibleDeScroll(
     etapes: readonly EtapeDuVoyage[],
@@ -131,12 +132,12 @@ function versPlanLocalEnMetres(origine: Coordonnee, point: Coordonnee): { x: num
 }
 
 /**
- * Retient le segment le plus proche, avec adhérence : à une jonction de pages,
- * le même lieu existe à deux hauteurs du document et plusieurs segments sont
- * presque aussi proches les uns que les autres. Parmi ces quasi-ex-æquo, on
- * retient celui dont la cible de défilement reste la plus proche de la
- * précédente — c'est ce qui empêche la page de sauter à chaque tick de bruit
- * GPS, dans un sens comme dans l'autre.
+ * Retient le segment le plus proche, avec adhérence : quand la ligne repasse
+ * près d'elle-même (raccordements, rebroussements) ou que des points partagent
+ * le même lieu, plusieurs segments sont presque aussi proches les uns que les
+ * autres. Parmi ces quasi-ex-æquo, on retient celui dont la cible de
+ * défilement reste la plus proche de la précédente — c'est ce qui empêche la
+ * page de sauter à chaque tick de bruit GPS, dans un sens comme dans l'autre.
  */
 function choisirLeSegment(
     projections: readonly ProjectionSurSegment[],
