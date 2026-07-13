@@ -266,6 +266,7 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
                 '🗑️ Supprimer',
                 `Supprimer ${image.nom}`,
                 () => void supprimerImage(image),
+                true,
             ),
         );
 
@@ -314,8 +315,8 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
 
         ligne.append(
             description,
-            ...actionsDuPoint(point, numero).map(({ texte, intitule, declencher }) =>
-                boutonDAction(texte, intitule, declencher),
+            ...actionsDuPoint(point, numero).map(({ texte, intitule, declencher, dangereux }) =>
+                boutonDAction(texte, intitule, declencher, dangereux),
             ),
         );
         return ligne;
@@ -335,8 +336,8 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
         const actions = document.createElement('div');
         actions.className = 'actions-point';
         actions.append(
-            ...actionsDuPoint(point, numero).map(({ texte, intitule, declencher }) =>
-                boutonFlottant(texte, intitule, declencher),
+            ...actionsDuPoint(point, numero).map(({ texte, intitule, declencher, dangereux }) =>
+                boutonFlottant(texte, intitule, declencher, dangereux),
             ),
         );
 
@@ -348,7 +349,7 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
     function actionsDuPoint(
         point: Point,
         numero: number,
-    ): Array<{ texte: string; intitule: string; declencher: () => void }> {
+    ): Array<{ texte: string; intitule: string; declencher: () => void; dangereux?: boolean }> {
         return [
             {
                 texte: "🖼️ Sur l'image",
@@ -364,6 +365,7 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
                 texte: '🗑️ Supprimer',
                 intitule: `Supprimer le point ${numero}`,
                 declencher: () => void supprimerPoint(point, numero),
+                dangereux: true,
             },
         ];
     }
@@ -375,10 +377,15 @@ function numerosDesPoints(trajet: Trajet): Map<PointId, number> {
     return new Map(trajet.ordreVoyageDesPoints().map((point, index) => [point.id, index + 1]));
 }
 
-function boutonDAction(texte: string, intitule: string, action: () => void): HTMLButtonElement {
+function boutonDAction(
+    texte: string,
+    intitule: string,
+    action: () => void,
+    dangereux = false,
+): HTMLButtonElement {
     const bouton = document.createElement('button');
     bouton.type = 'button';
-    bouton.className = 'secondaire';
+    bouton.className = dangereux ? 'secondaire danger' : 'secondaire';
     bouton.textContent = texte;
     bouton.setAttribute('aria-label', intitule);
     bouton.addEventListener('click', action);
@@ -386,10 +393,16 @@ function boutonDAction(texte: string, intitule: string, action: () => void): HTM
 }
 
 /** Bouton compact posé sur l'image (voir `.actions-point`) : mêmes actions que `boutonDAction`. */
-function boutonFlottant(texte: string, intitule: string, action: () => void): HTMLButtonElement {
+function boutonFlottant(
+    texte: string,
+    intitule: string,
+    action: () => void,
+    dangereux = false,
+): HTMLButtonElement {
     const bouton = document.createElement('button');
     bouton.type = 'button';
-    bouton.className = 'secondaire bouton-flottant';
+    bouton.className =
+        dangereux ? 'secondaire bouton-flottant danger' : 'secondaire bouton-flottant';
     bouton.textContent = texte;
     bouton.setAttribute('aria-label', intitule);
     bouton.title = intitule;

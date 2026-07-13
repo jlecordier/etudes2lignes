@@ -49,6 +49,13 @@ button.secondaire {
     color: #1d4ed8;
 }
 
+/* Les actions destructrices (suppressions) se repèrent au premier coup d'œil. */
+button.danger {
+    border-color: #dc2626;
+    color: #dc2626;
+    background: white;
+}
+
 .liste-trajets {
     list-style: none;
     margin: 0;

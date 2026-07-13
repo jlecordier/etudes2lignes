@@ -81,7 +81,7 @@ export function creerListeTrajetsScreen(dependances: DependancesListeTrajets): {
 
         const supprimer = document.createElement('button');
         supprimer.type = 'button';
-        supprimer.className = 'secondaire';
+        supprimer.className = 'secondaire danger';
         supprimer.textContent = '🗑️ Supprimer';
         supprimer.addEventListener('click', () => void supprimerUnTrajet(resume));
 
