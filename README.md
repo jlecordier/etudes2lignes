@@ -49,8 +49,11 @@ pnpm preview    # sert le build — nécessaire pour essayer le service worker
    tenant, sans rupture aux changements de page.
 3. Géo-référencer les points remarquables (gares, raccordements, PK connus).
    Conseils :
-    - placez un point **près du bas et du haut de chaque page** ;
-    - plus les points sont denses, plus le défilement est fidèle entre eux.
+    - un point **près du départ et un près de l'arrivée** du trajet (au-delà du
+      premier et du dernier point, la page se borne dessus sans extrapoler) ;
+    - plus les points sont denses, plus le défilement est fidèle entre eux —
+      les frontières entre pages n'ont rien de spécial, l'interpolation les
+      traverse comme n'importe quel endroit de la ligne.
 4. Vérifier avec « Suivre » → « Simuler » avant le vrai voyage.
 
 ## Documentation
