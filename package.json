@@ -18,6 +18,13 @@
         "lint:fix": "eslint --fix .",
         "prepare": "husky"
     },
+    "lint-staged": {
+        "*.{ts,js,mjs,cjs}": [
+            "eslint --fix",
+            "prettier --write"
+        ],
+        "*.{html,css,json,md,yml,yaml}": "prettier --write"
+    },
     "dependencies": {
         "idb": "^8.0.3",
         "leaflet": "^1.9.4"
@@ -34,6 +41,7 @@
         "globals": "^17.7.0",
         "husky": "^9.1.7",
         "jsdom": "^29.1.1",
+        "lint-staged": "^17.0.8",
         "prettier": "^3.9.5",
         "typescript": "npm:@typescript/typescript6@^6.0.2",
         "typescript-eslint": "^8.63.0",

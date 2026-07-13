@@ -1,4 +1,3 @@
-pnpm exec prettier --check .
-pnpm lint
+pnpm exec lint-staged
 pnpm typecheck
 pnpm test
