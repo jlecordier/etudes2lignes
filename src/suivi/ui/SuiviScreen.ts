@@ -8,16 +8,17 @@ import { texteDEtatDuSuivi } from '../domain/presentation';
 import {
     calculerCibleDeScroll,
     calculerDefilement,
+    type AncragePrecedent,
     type EtapeDuVoyage,
 } from '../domain/projection';
 import type { EcranAllume } from '../ports/EcranAllumePort';
 import type { PositionSource } from '../ports/PositionSource';
-import type { SimulationPositionSource } from '../adapters/SimulationPositionSource';
+import type { SimulateurDePosition } from '../ports/SimulateurDePosition';
 
 export interface DependancesSuivi {
     repository: TrajetRepository;
     sourceReelle: PositionSource;
-    simulation: SimulationPositionSource;
+    simulation: SimulateurDePosition;
     selecteurDeCoordonnee: SelecteurDeCoordonnee;
     ecranAllume: EcranAllume;
     surRetour: (id: TrajetId) => void;
@@ -39,8 +40,12 @@ export function creerSuiviScreen(dependances: DependancesSuivi): {
     const boutonReprendre = document.querySelector<HTMLButtonElement>('#bouton-reprendre')!;
 
     let trajet: Trajet | null = null;
+    let idAffiche: TrajetId | null = null;
+    // Incrémenté à chaque affichage et à chaque sortie : un chargement dont le
+    // jeton est périmé (écran quitté entre-temps) ne démarre rien.
+    let jetonDAffichage = 0;
     let dernierePosition: Coordonnee | null = null;
-    let dernierSegment: number | null = null;
+    let ancragePrecedent: AncragePrecedent | null = null;
     let suiviAutomatique = true;
     const urlsARevoquer: string[] = [];
 
@@ -61,9 +66,15 @@ export function creerSuiviScreen(dependances: DependancesSuivi): {
     window.addEventListener('wheel', () => passerEnDefilementManuel(), { passive: true });
 
     async function afficher(id: TrajetId): Promise<void> {
-        trajet = await repository.charger(id);
+        idAffiche = id;
+        const jeton = ++jetonDAffichage;
+        const charge = await repository.charger(id);
+        if (jeton !== jetonDAffichage) {
+            return;
+        }
+        trajet = charge;
         dernierePosition = null;
-        dernierSegment = null;
+        ancragePrecedent = null;
         suiviAutomatique = true;
         boutonReprendre.hidden = true;
         bandeauSimulation.hidden = true;
@@ -74,19 +85,22 @@ export function creerSuiviScreen(dependances: DependancesSuivi): {
     }
 
     function quitter(): void {
+        jetonDAffichage++;
         sourceReelle.arreter();
         simulation.arreter();
         void ecranAllume.relacher();
         revoquerLesUrls(urlsARevoquer);
-        surRetour(trajet!.id);
+        surRetour(idAffiche!);
     }
 
     function rendreLaPile(): void {
         revoquerLesUrls(urlsARevoquer);
+        // La pile s'affiche comme le document se lit (de bas en haut) : la
+        // première page du voyage tout en bas — le voyage remonte l'écran
+        // d'un seul tenant, sans rupture aux changements de page.
+        const imagesDeHautEnBas = [...(trajet?.images ?? [])].reverse();
         pile.replaceChildren(
-            ...(trajet?.images ?? []).map((image) =>
-                elementImagePleineLargeur(image, urlsARevoquer),
-            ),
+            ...imagesDeHautEnBas.map((image) => elementImagePleineLargeur(image, urlsARevoquer)),
         );
     }
 
@@ -105,12 +119,16 @@ export function creerSuiviScreen(dependances: DependancesSuivi): {
         if (trajet === null || dernierePosition === null) {
             return;
         }
-        const resultat = calculerCibleDeScroll(etapesDuVoyage(), dernierePosition, dernierSegment);
+        const resultat = calculerCibleDeScroll(
+            etapesDuVoyage(),
+            dernierePosition,
+            ancragePrecedent,
+        );
         etat.textContent = texteDEtatDuSuivi(resultat);
         if (resultat.etat !== 'sur-trajet') {
             return;
         }
-        dernierSegment = resultat.indexSegment;
+        ancragePrecedent = resultat;
         if (suiviAutomatique) {
             defilerVers(resultat.scrollCible);
         }
@@ -145,7 +163,8 @@ export function creerSuiviScreen(dependances: DependancesSuivi): {
     // --- Défilement manuel -------------------------------------------------------
 
     function passerEnDefilementManuel(): void {
-        if (ecran.hidden || !suiviAutomatique) {
+        const carteOuverte = !document.querySelector<HTMLElement>('#ecran-carte')!.hidden;
+        if (ecran.hidden || carteOuverte || !suiviAutomatique) {
             return;
         }
         suiviAutomatique = false;

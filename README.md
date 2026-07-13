@@ -11,7 +11,12 @@ pour suivre votre position GPS.
   ordonnées (les pages du document, lues de bas en haut) réordonnables ▲/▼.
 - **Géoréférencement** : « Ajouter un point » → toucher l'image à la hauteur
   voulue → choisir la coordonnée sur une carte de France (OpenStreetMap), ou la
-  saisir à la main. Points modifiables (sur l'image, sur la carte) et supprimables.
+  saisir à la main. Raccourci souris : clic droit directement sur l'image pour
+  placer un point à cet endroit et passer aussitôt au choix de la coordonnée.
+  Un bouton « Ajouter un point » flottant (bas de l'écran) reste accessible
+  quel que soit le défilement — indispensable au tactile, où le clic droit
+  n'existe pas. Points modifiables (sur l'image, sur la carte, boutons
+  flottants sur chaque marqueur) et supprimables.
 - **Suivi** : la position GPS est lue en continu (une position traitée toutes
   les ~10 s) et le document défile pour placer votre position au quart bas de
   l'écran — les trois quarts hauts montrent ce qui arrive. Défilement manuel →
@@ -39,12 +44,12 @@ pnpm preview    # sert le build — nécessaire pour essayer le service worker
 1. **Convertir le PDF en images** (JPEG ou PNG), une image par page — par
    exemple avec un convertisseur en ligne ou `pdftoppm -jpeg -r 200 doc.pdf page`.
 2. Créer le trajet, importer les images **dans l'ordre du voyage** (la première
-   image = le début du trajet ; chaque page se lit de bas en haut).
+   image = le début du trajet). Elles s'empilent comme le document se lit : la
+   première page du voyage tout en bas, et tout le trajet se remonte d'un seul
+   tenant, sans rupture aux changements de page.
 3. Géo-référencer les points remarquables (gares, raccordements, PK connus).
    Conseils :
     - placez un point **près du bas et du haut de chaque page** ;
-    - à la jonction de deux pages, placez **le même lieu** en haut de la page N
-      et en bas de la page N+1 (les documents répètent souvent le PK de jonction) ;
     - plus les points sont denses, plus le défilement est fidèle entre eux.
 4. Vérifier avec « Suivre » → « Simuler » avant le vrai voyage.
 

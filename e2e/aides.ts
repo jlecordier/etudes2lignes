@@ -26,9 +26,13 @@ export async function ouvrirUnTrajetAvecUnePage(page: Page): Promise<void> {
     await expect(page.locator('.nom-image')).toHaveText(['page-1.png']);
 }
 
-/** Clique sur l'image de l'éditeur à une fraction de sa hauteur. */
-export async function cliquerSurLImage(page: Page, fractionDeHauteur: number): Promise<void> {
-    const zone = page.locator('.zone-image').first();
+/** Centre la fraction visée de l'image dans le viewport et renvoie ses coordonnées écran. */
+async function positionSurLImage(
+    page: Page,
+    fractionDeHauteur: number,
+    indexVisuel: number,
+): Promise<{ x: number; y: number }> {
+    const zone = page.locator('.zone-image').nth(indexVisuel);
     await zone.scrollIntoViewIfNeeded();
     // L'image de test s'étire en pleine largeur : le point visé peut être sous
     // le pli. On centre la cible dans le viewport avant de cliquer.
@@ -37,7 +41,27 @@ export async function cliquerSurLImage(page: Page, fractionDeHauteur: number): P
     const decalage = cadre.y + cadre.height * fractionDeHauteur - viewport.height / 2;
     await page.evaluate((delta) => window.scrollBy(0, delta), decalage);
     cadre = (await zone.boundingBox())!;
-    await page.mouse.click(cadre.x + cadre.width / 2, cadre.y + cadre.height * fractionDeHauteur);
+    return { x: cadre.x + cadre.width / 2, y: cadre.y + cadre.height * fractionDeHauteur };
+}
+
+/** Clique sur l'image de l'éditeur à une fraction de sa hauteur. */
+export async function cliquerSurLImage(
+    page: Page,
+    fractionDeHauteur: number,
+    indexVisuel = 0,
+): Promise<void> {
+    const { x, y } = await positionSurLImage(page, fractionDeHauteur, indexVisuel);
+    await page.mouse.click(x, y);
+}
+
+/** Clic droit sur l'image de l'éditeur : ajoute un point directement à cette fraction. */
+export async function clicDroitSurLImage(
+    page: Page,
+    fractionDeHauteur: number,
+    indexVisuel = 0,
+): Promise<void> {
+    const { x, y } = await positionSurLImage(page, fractionDeHauteur, indexVisuel);
+    await page.mouse.click(x, y, { button: 'right' });
 }
 
 /** Choisit une coordonnée sur la carte ouverte (clic au centre + décalage). */
@@ -61,7 +85,9 @@ export async function ajouterUnPoint(
     fractionDeHauteur: number,
     decalageCarteX = 0,
 ): Promise<void> {
-    await page.getByRole('button', { name: 'Ajouter un point' }).click();
+    // Scopé à la barre d'actions : le bouton flottant sur l'image partage le
+    // même intitulé (voir e2e/points.spec.ts pour un test dédié à ce dernier).
+    await page.locator('.barre-actions').getByRole('button', { name: 'Ajouter un point' }).click();
     await cliquerSurLImage(page, fractionDeHauteur);
     await choisirUneCoordonneeSurLaCarte(page, decalageCarteX);
 }

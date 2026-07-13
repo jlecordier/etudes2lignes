@@ -27,6 +27,12 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
     const boutonAjouterImages =
         document.querySelector<HTMLButtonElement>('#bouton-ajouter-images')!;
     const boutonAjouterPoint = document.querySelector<HTMLButtonElement>('#bouton-ajouter-point')!;
+    // Même action que `boutonAjouterPoint`, mais toujours à l'écran (position
+    // fixe) : sur tactile, sans clic droit, c'est le seul moyen d'ajouter un
+    // point sans remonter tout en haut de la page.
+    const boutonAjouterPointFlottant = document.querySelector<HTMLButtonElement>(
+        '#bouton-ajouter-point-flottant',
+    )!;
     const boutonAnnulerPlacement = document.querySelector<HTMLButtonElement>(
         '#bouton-annuler-placement',
     )!;
@@ -51,7 +57,8 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
     });
     boutonAjouterImages.addEventListener('click', () => champFichiers.click());
     champFichiers.addEventListener('change', () => void importerLesFichiers());
-    boutonAjouterPoint.addEventListener('click', () => changerDeMode({ type: 'ajout' }));
+    boutonAjouterPoint.addEventListener('click', commencerLAjoutDUnPoint);
+    boutonAjouterPointFlottant.addEventListener('click', commencerLAjoutDUnPoint);
     boutonAnnulerPlacement.addEventListener('click', () => changerDeMode(null));
 
     async function afficher(id: TrajetId): Promise<void> {
@@ -93,15 +100,15 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
 
     // --- Points ---------------------------------------------------------------
 
-    async function surClicSurImage(image: ImageDeTrajet, evenement: MouseEvent): Promise<void> {
+    async function surClicSurImage(
+        image: ImageDeTrajet,
+        zone: HTMLElement,
+        clientY: number,
+    ): Promise<void> {
         if (trajet === null || modeDePlacement === null) {
             return;
         }
-        const zone = evenement.currentTarget as HTMLElement;
-        const cadre = zone.getBoundingClientRect();
-        const fraction = FractionVerticale.creer(
-            borner((evenement.clientY - cadre.top) / cadre.height, 0, 1),
-        );
+        const fraction = fractionDepuisPosition(zone, clientY);
 
         if (modeDePlacement.type === 'deplacement') {
             trajet.deplacerPointSurImage(modeDePlacement.pointId, image.id, fraction);
@@ -111,12 +118,41 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
         }
 
         changerDeMode(null);
+        await ajouterPointALaFraction(trajet, image, fraction);
+    }
+
+    // Clic droit : raccourci qui place directement un point à l'emplacement
+    // visé (sans passer par le bouton « Ajouter un point ») et enchaîne
+    // aussitôt sur le choix de la coordonnée.
+    async function surClicDroitSurImage(
+        image: ImageDeTrajet,
+        zone: HTMLElement,
+        clientY: number,
+    ): Promise<void> {
+        if (trajet === null) {
+            return;
+        }
+        const fraction = fractionDepuisPosition(zone, clientY);
+        changerDeMode(null);
+        await ajouterPointALaFraction(trajet, image, fraction);
+    }
+
+    async function ajouterPointALaFraction(
+        trajet: Trajet,
+        image: ImageDeTrajet,
+        fraction: FractionVerticale,
+    ): Promise<void> {
         const coordonnee = await selecteurDeCoordonnee.choisir(null);
         if (coordonnee === null) {
             return;
         }
         trajet.ajouterPoint({ imageId: image.id, fraction, coordonnee });
         await sauvegarderEtRendre();
+    }
+
+    function fractionDepuisPosition(zone: HTMLElement, clientY: number): FractionVerticale {
+        const cadre = zone.getBoundingClientRect();
+        return FractionVerticale.creer(borner((clientY - cadre.top) / cadre.height, 0, 1));
     }
 
     async function deplacerPointSurLaCarte(point: Point): Promise<void> {
@@ -134,6 +170,10 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
         }
         trajet!.supprimerPoint(point.id);
         await sauvegarderEtRendre();
+    }
+
+    function commencerLAjoutDUnPoint(): void {
+        changerDeMode({ type: 'ajout' });
     }
 
     function changerDeMode(mode: ModeDePlacement): void {
@@ -156,7 +196,10 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
         titre.textContent = trajet.nom.valeur;
         revoquerLesUrls(urlsARevoquer);
         const numeros = numerosDesPoints(trajet);
-        pile.replaceChildren(...trajet.images.map((image) => cadreDImage(image, numeros)));
+        // La pile s'affiche comme le document se lit (de bas en haut) : la
+        // première page du voyage tout en bas, la dernière tout en haut.
+        const imagesDeHautEnBas = [...trajet.images].reverse();
+        pile.replaceChildren(...imagesDeHautEnBas.map((image) => cadreDImage(image, numeros)));
         listePoints.replaceChildren(
             ...trajet.ordreVoyageDesPoints().map((point, index) => ligneDePoint(point, index + 1)),
         );
@@ -173,9 +216,17 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
         nom.textContent = image.nom;
         barre.append(
             nom,
-            boutonDAction('▲', `Monter ${image.nom}`, () => void monter(image.id)),
-            boutonDAction('▼', `Descendre ${image.nom}`, () => void descendre(image.id)),
-            boutonDAction('Supprimer', `Supprimer ${image.nom}`, () => void supprimerImage(image)),
+            boutonDAction('🔼', `Monter ${image.nom}`, () => void monterVisuellement(image.id)),
+            boutonDAction(
+                '🔽',
+                `Descendre ${image.nom}`,
+                () => void descendreVisuellement(image.id),
+            ),
+            boutonDAction(
+                '🗑️ Supprimer',
+                `Supprimer ${image.nom}`,
+                () => void supprimerImage(image),
+            ),
         );
 
         const zone = document.createElement('div');
@@ -184,19 +235,29 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
         for (const point of trajet!.points.filter((point) => point.imageId === image.id)) {
             zone.append(marqueurDePoint(point, numeros.get(point.id)!));
         }
-        zone.addEventListener('click', (evenement) => void surClicSurImage(image, evenement));
+        zone.addEventListener(
+            'click',
+            (evenement) => void surClicSurImage(image, zone, evenement.clientY),
+        );
+        // Le menu contextuel natif du navigateur est remplacé par l'ajout direct du point.
+        zone.addEventListener('contextmenu', (evenement) => {
+            evenement.preventDefault();
+            void surClicDroitSurImage(image, zone, evenement.clientY);
+        });
 
         cadre.append(barre, zone);
         return cadre;
     }
 
-    async function monter(imageId: ImageId): Promise<void> {
-        trajet!.monterImage(imageId);
+    // La pile étant affichée dans l'ordre inverse du voyage (première page en
+    // bas), monter une image à l'écran = la faire avancer dans le voyage.
+    async function monterVisuellement(imageId: ImageId): Promise<void> {
+        trajet!.descendreImage(imageId);
         await sauvegarderEtRendre();
     }
 
-    async function descendre(imageId: ImageId): Promise<void> {
-        trajet!.descendreImage(imageId);
+    async function descendreVisuellement(imageId: ImageId): Promise<void> {
+        trajet!.monterImage(imageId);
         await sauvegarderEtRendre();
     }
 
@@ -213,18 +274,8 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
 
         ligne.append(
             description,
-            boutonDAction("Sur l'image", `Déplacer le point ${numero} sur l'image`, () =>
-                changerDeMode({ type: 'deplacement', pointId: point.id }),
-            ),
-            boutonDAction(
-                'Sur la carte',
-                `Déplacer le point ${numero} sur la carte`,
-                () => void deplacerPointSurLaCarte(point),
-            ),
-            boutonDAction(
-                'Supprimer',
-                `Supprimer le point ${numero}`,
-                () => void supprimerPoint(point, numero),
+            ...actionsDuPoint(point, numero).map(({ texte, intitule, declencher }) =>
+                boutonDAction(texte, intitule, declencher),
             ),
         );
         return ligne;
@@ -234,11 +285,47 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
         const marqueur = document.createElement('div');
         marqueur.className = 'marqueur-point';
         marqueur.style.top = `${point.fraction.valeur * 100}%`;
+
         const etiquette = document.createElement('span');
         etiquette.className = 'numero-point';
         etiquette.textContent = String(numero);
-        marqueur.append(etiquette);
+
+        // Boutons flottants : les mêmes actions que la liste, mais directement sur
+        // l'image, pour ne pas avoir à remonter en haut de la page à chaque point.
+        const actions = document.createElement('div');
+        actions.className = 'actions-point';
+        actions.append(
+            ...actionsDuPoint(point, numero).map(({ texte, intitule, declencher }) =>
+                boutonFlottant(texte, intitule, declencher),
+            ),
+        );
+
+        marqueur.append(etiquette, actions);
         return marqueur;
+    }
+
+    /** Les trois actions possibles sur un point, partagées entre la liste et les boutons flottants. */
+    function actionsDuPoint(
+        point: Point,
+        numero: number,
+    ): Array<{ texte: string; intitule: string; declencher: () => void }> {
+        return [
+            {
+                texte: "🖼️ Sur l'image",
+                intitule: `Déplacer le point ${numero} sur l'image`,
+                declencher: () => changerDeMode({ type: 'deplacement', pointId: point.id }),
+            },
+            {
+                texte: '🗺️ Sur la carte',
+                intitule: `Déplacer le point ${numero} sur la carte`,
+                declencher: () => void deplacerPointSurLaCarte(point),
+            },
+            {
+                texte: '🗑️ Supprimer',
+                intitule: `Supprimer le point ${numero}`,
+                declencher: () => void supprimerPoint(point, numero),
+            },
+        ];
     }
 
     return { afficher };
@@ -255,6 +342,22 @@ function boutonDAction(texte: string, intitule: string, action: () => void): HTM
     bouton.textContent = texte;
     bouton.setAttribute('aria-label', intitule);
     bouton.addEventListener('click', action);
+    return bouton;
+}
+
+/** Bouton compact posé sur l'image (voir `.actions-point`) : mêmes actions que `boutonDAction`. */
+function boutonFlottant(texte: string, intitule: string, action: () => void): HTMLButtonElement {
+    const bouton = document.createElement('button');
+    bouton.type = 'button';
+    bouton.className = 'secondaire bouton-flottant';
+    bouton.textContent = texte;
+    bouton.setAttribute('aria-label', intitule);
+    bouton.title = intitule;
+    bouton.addEventListener('click', (evenement) => {
+        // Empêche le clic de remonter jusqu'à la zone, qui ajouterait/déplacerait un point.
+        evenement.stopPropagation();
+        action();
+    });
     return bouton;
 }
 

@@ -76,13 +76,13 @@ export function creerListeTrajetsScreen(dependances: DependancesListeTrajets): {
         const renommer = document.createElement('button');
         renommer.type = 'button';
         renommer.className = 'secondaire';
-        renommer.textContent = 'Renommer';
+        renommer.textContent = '✏️ Renommer';
         renommer.addEventListener('click', () => void renommerUnTrajet(resume));
 
         const supprimer = document.createElement('button');
         supprimer.type = 'button';
         supprimer.className = 'secondaire';
-        supprimer.textContent = 'Supprimer';
+        supprimer.textContent = '🗑️ Supprimer';
         supprimer.addEventListener('click', () => void supprimerUnTrajet(resume));
 
         ligne.append(ouvrir, details, renommer, supprimer);

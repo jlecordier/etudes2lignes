@@ -30,7 +30,9 @@ test.describe('Suivi du trajet (position simulée)', () => {
         );
         await ouvrirLeSuiviDUnTrajetGeoreference(page);
 
-        await expect(page.locator('#etat-suivi')).toContainText('Accès à la position refusé');
+        await expect(page.locator('#etat-suivi')).toHaveText(
+            'Accès à la position refusé — autorisez la localisation pour ce site puis revenez.',
+        );
     });
 
     test('Étant donné une position simulée sur le premier point, alors la page se cale à 75 % et le bandeau s’affiche', async ({
@@ -38,7 +40,7 @@ test.describe('Suivi du trajet (position simulée)', () => {
     }) => {
         await ouvrirLeSuiviDUnTrajetGeoreference(page);
 
-        await page.getByRole('button', { name: 'Simuler', exact: true }).click();
+        await page.getByRole('button', { name: '🧪 Simuler', exact: true }).click();
         await choisirUneCoordonneeSurLaCarte(page);
 
         await expect(page.locator('#bandeau-simulation')).toBeVisible();
@@ -49,7 +51,7 @@ test.describe('Suivi du trajet (position simulée)', () => {
         page,
     }) => {
         await ouvrirLeSuiviDUnTrajetGeoreference(page);
-        await page.getByRole('button', { name: 'Simuler', exact: true }).click();
+        await page.getByRole('button', { name: '🧪 Simuler', exact: true }).click();
         await choisirUneCoordonneeSurLaCarte(page);
         const attendu = await defilementAttendu(page, 0.8);
         await attendreLeDefilement(page, attendu);
@@ -72,14 +74,16 @@ test.describe('Suivi du trajet (position simulée)', () => {
     }) => {
         await ouvrirLeSuiviDUnTrajetGeoreference(page);
 
-        await page.getByRole('button', { name: 'Simuler', exact: true }).click();
+        await page.getByRole('button', { name: '🧪 Simuler', exact: true }).click();
         await expect(page.locator('#ecran-carte')).toBeVisible();
         const carte = (await page.locator('#conteneur-carte').boundingBox())!;
         // Presque le bord bas de la carte : à des centaines de kilomètres de la ligne.
         await page.mouse.click(carte.x + carte.width / 2, carte.y + carte.height - 20);
         await page.getByRole('button', { name: 'Valider' }).click();
 
-        await expect(page.locator('#etat-suivi')).toContainText('Hors trajet');
+        await expect(page.locator('#etat-suivi')).toHaveText(
+            /^Hors trajet \(à \d+ km de la ligne\)\.$/,
+        );
     });
 
     test('Étant donné un trajet à un seul point, alors l’état réclame au moins deux points', async ({
@@ -89,9 +93,11 @@ test.describe('Suivi du trajet (position simulée)', () => {
         await ajouterUnPoint(page, 0.5, 0);
         await page.getByRole('button', { name: 'Suivre' }).click();
 
-        await page.getByRole('button', { name: 'Simuler', exact: true }).click();
+        await page.getByRole('button', { name: '🧪 Simuler', exact: true }).click();
         await choisirUneCoordonneeSurLaCarte(page);
 
-        await expect(page.locator('#etat-suivi')).toContainText('au moins deux points');
+        await expect(page.locator('#etat-suivi')).toHaveText(
+            'Ajoutez au moins deux points géo-référencés pour activer le suivi.',
+        );
     });
 });

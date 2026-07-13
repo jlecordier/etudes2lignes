@@ -19,11 +19,18 @@ export interface Cadenceur {
 const CODE_PERMISSION_REFUSEE = 1;
 /** Au plus une position traitée par intervalle (ce que l'utilisateur a demandé). */
 const INTERVALLE_ENTRE_POSITIONS_MS = 10_000;
-/** Un fix plus imprécis que ça (démarrage à froid, gare couverte) est ignoré. */
-const PRECISION_MAXIMALE_METRES = 500;
+/**
+ * Un fix approximatif (cellule, Wi-Fi, vitres athermiques d'un train) vaut
+ * mieux que « signal perdu » : le suivi tolère des kilomètres (le seuil
+ * « hors trajet » démarre à 5 km). Au-delà de 3 km d'incertitude en revanche,
+ * caler la page n'a plus de sens.
+ */
+const PRECISION_MAXIMALE_METRES = 3000;
 /** Au-delà de ce silence, on prévient que la position affichée date. */
 const SILENCE_AVANT_ALERTE_MS = 30_000;
 const CADENCE_DU_CHIEN_DE_GARDE_MS = 15_000;
+/** Deux réveils à moins de 5 s d'écart : le second ne redémarre pas le watch. */
+const DELAI_MINIMUM_ENTRE_REDEMARRAGES_MS = 5_000;
 
 const OPTIONS_DE_POSITION: PositionOptions = { enableHighAccuracy: true, maximumAge: 0 };
 
@@ -45,6 +52,10 @@ export class GeolocationPositionSource implements PositionSource {
     private annulerLeChienDeGarde: (() => void) | null = null;
     private dernierTraitementMs: number | null = null;
     private dernierFixMs: number | null = null;
+    /** Dernier signe de vie du GPS, fixes trop imprécis compris. */
+    private dernierSignalMs: number | null = null;
+    private derniereImprecisionMetres: number | null = null;
+    private dernierRedemarrageMs: number | null = null;
 
     private readonly surRetourAuPremierPlan = (): void => this.demanderUnePositionImmediate();
 
@@ -100,7 +111,10 @@ export class GeolocationPositionSource implements PositionSource {
     }
 
     private traiterLeFix(fix: GeolocationPosition): void {
+        this.dernierSignalMs = this.maintenant();
         if (fix.coords.accuracy > PRECISION_MAXIMALE_METRES) {
+            this.derniereImprecisionMetres = fix.coords.accuracy;
+            this.signalerLImprecision();
             return;
         }
         this.dernierFixMs = this.maintenant();
@@ -127,12 +141,26 @@ export class GeolocationPositionSource implements PositionSource {
     }
 
     private verifierLeSilence(): void {
-        if (
-            this.dernierFixMs === null ||
-            this.maintenant() - this.dernierFixMs > SILENCE_AVANT_ALERTE_MS
-        ) {
-            this.signalerLeSilence();
+        if (this.estFrais(this.dernierFixMs)) {
+            return;
         }
+        // Le GPS répond mais trop imprécisément : le dire, plutôt que « perdu ».
+        if (this.estFrais(this.dernierSignalMs)) {
+            this.signalerLImprecision();
+            return;
+        }
+        this.signalerLeSilence();
+    }
+
+    private estFrais(instantMs: number | null): boolean {
+        return instantMs !== null && this.maintenant() - instantMs <= SILENCE_AVANT_ALERTE_MS;
+    }
+
+    private signalerLImprecision(): void {
+        const kilometres = Math.max(1, Math.round((this.derniereImprecisionMetres ?? 0) / 1000));
+        this.surErreur?.(
+            `Position approximative (± ${kilometres} km) — trop imprécise pour caler la page.`,
+        );
     }
 
     private signalerLeSilence(): void {
@@ -148,11 +176,23 @@ export class GeolocationPositionSource implements PositionSource {
      * La page vient d'être dégelée : la surveillance en cours peut être morte
      * (iOS gèle tout). On la redémarre — l'abonnement force un fix rapide —
      * et on lève le throttle pour traiter ce fix immédiatement.
+     * Débouncé : des réveils en rafale (focus, alertes) relanceraient sans
+     * cesse l'acquisition et dégraderaient la précision des fixes.
      */
     private demanderUnePositionImmediate(): void {
         if (this.geolocalisation === null || this.surPosition === null) {
             return;
         }
+        if (document.visibilityState !== 'visible') {
+            return;
+        }
+        if (
+            this.dernierRedemarrageMs !== null &&
+            this.maintenant() - this.dernierRedemarrageMs < DELAI_MINIMUM_ENTRE_REDEMARRAGES_MS
+        ) {
+            return;
+        }
+        this.dernierRedemarrageMs = this.maintenant();
         if (this.idDeSurveillance !== null) {
             this.geolocalisation.clearWatch(this.idDeSurveillance);
         }

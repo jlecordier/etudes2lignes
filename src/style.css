@@ -166,6 +166,35 @@ button.secondaire {
     font-size: 0.75rem;
 }
 
+/* Boutons flottants posés sur chaque ligne : agir sur un point sans remonter
+   à la liste tout en haut de la page. */
+.actions-point {
+    position: absolute;
+    left: 0.25rem;
+    top: -0.75rem;
+    display: flex;
+    gap: 0.25rem;
+    pointer-events: auto;
+}
+
+.bouton-flottant {
+    padding: 0.15rem 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    white-space: nowrap;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+/* Reste à l'écran quel que soit le défilement : sur tactile, seul recours
+   pour ajouter un point sans remonter tout en haut (pas de clic droit). */
+.bouton-ajouter-point-flottant {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 20;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
 .liste-points {
     list-style: none;
     margin: 1rem 0 0;

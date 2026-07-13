@@ -38,12 +38,13 @@ du domaine ; `adapters` et `ui` dépendent des ports et du domaine ; seul
 
 ## Les ports et leurs adapters
 
-| Port                    | Contrat                                                              | Adapters                                                                                   |
-| ----------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `TrajetRepository`      | `listerResumes` / `charger` / `sauvegarder` (atomique) / `supprimer` | `IdbTrajetRepository` (IndexedDB via idb)                                                  |
-| `PositionSource`        | `demarrer(surPosition, surErreur)` / `arreter()`                     | `GeolocationPositionSource` (GPS), `SimulationPositionSource` (position choisie à la main) |
-| `EcranAllume`           | `maintenir()` / `relacher()`, best effort                            | `NavigateurEcranAllume` (wake lock)                                                        |
-| `SelecteurDeCoordonnee` | `choisir(initiale) → Coordonnee \| null`                             | `LeafletSelecteurDeCoordonnee` (Leaflet + OSM)                                             |
+| Port                    | Contrat                                                                  | Adapters                                                |
+| ----------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------- |
+| `TrajetRepository`      | `listerResumes` / `charger` / `sauvegarder` (atomique) / `supprimer`     | `IdbTrajetRepository` (IndexedDB via idb)               |
+| `PositionSource`        | `demarrer(surPosition, surErreur)` / `arreter()`                         | `GeolocationPositionSource` (GPS)                       |
+| `SimulateurDePosition`  | un `PositionSource` pilotable : `simuler(position)` + `dernierePosition` | `SimulationPositionSource` (position choisie à la main) |
+| `EcranAllume`           | `maintenir()` / `relacher()`, best effort                                | `NavigateurEcranAllume` (wake lock)                     |
+| `SelecteurDeCoordonnee` | `choisir(initiale) → Coordonnee \| null`                                 | `LeafletSelecteurDeCoordonnee` (Leaflet + OSM)          |
 
 **La simulation est un simple second adapter de `PositionSource`** : l'écran de
 suivi ne fait aucune différence entre le GPS réel et une position simulée. Le
@@ -81,11 +82,16 @@ Fonctions pures, testées exhaustivement avec des coordonnées réelles :
    toutes les ~10 s et insensible aux rotations d'écran.
 2. La position est projetée sur chaque segment (plan local équirectangulaire,
    suffisant à l'échelle France) ; le segment le plus proche gagne, avec :
-    - **garde-fou segment de longueur nulle** (point de jonction dupliqué entre
-      deux pages) — sinon division par zéro ;
-    - **adhérence anti-oscillation** : un voisin du segment précédent est préféré
-      s'il est presque aussi proche (< 200 m d'écart) — sans ça, le bruit GPS
-      ferait sauter la page aux jonctions (les offsets font des dents de scie).
+    - **garde-fou segment de longueur nulle** (deux points posés au même lieu,
+      ex. le PK répété de part et d'autre d'une jonction de pages) — sinon
+      division par zéro ;
+    - **adhérence anti-oscillation** : parmi les segments quasi ex æquo
+      (< 200 m d'écart), on retient celui dont la cible de défilement bouge le
+      moins — indispensable quand la ligne repasse près d'elle-même ou que des
+      points partagent le même lieu.
+      Les pages étant empilées première-du-voyage en bas, le document se déroule
+      d'un seul tenant et les offsets décroissent au fil du voyage ; l'algorithme
+      ne suppose toutefois aucune monotonie.
 3. Seuil « hors trajet » **adaptatif** : `max(5 km, 20 % de la longueur du
 segment)` — entre deux points éloignés, la corde s'écarte de la vraie ligne.
 4. La cible est interpolée entre les offsets des deux étapes, puis placée aux
@@ -108,10 +114,12 @@ segment)` — entre deux points éloignés, la corde s'écarte de la vraie ligne
 ## Pièges plateforme encodés dans le code
 
 - `GeolocationPositionSource` : `watchPosition` throttlé (pas de
-  `getCurrentPosition` en boucle), fixes `accuracy > 500 m` rejetés, erreurs
-  passagères tolérées tant que le dernier fix est frais (tunnels), redémarrage
-  du watch au retour au premier plan (page gelée par iOS/Android), chien de
-  garde « dernière position il y a X min ».
+  `getCurrentPosition` en boucle) ; les fixes approximatifs (cellule, Wi-Fi,
+  vitres athermiques d'un train) sont utilisés jusqu'à 3 km d'incertitude, et
+  au-delà l'état dit « Position approximative (± X km) » plutôt que « perdu » ;
+  erreurs passagères tolérées tant que le dernier fix est frais (tunnels) ;
+  redémarrage du watch (débouncé) au retour au premier plan (page gelée par
+  iOS/Android) ; chien de garde « dernière position il y a X min ».
 - `NavigateurEcranAllume` : wake lock dans un try/catch, ré-acquis à chaque
   retour au premier plan (le système le libère quand la page est masquée).
 - Images : `width`/`height` réservés avant tout décodage (offsets stables),

@@ -37,7 +37,10 @@ test.describe('Gestion des trajets', () => {
         page.once('dialog', (dialogue) => void dialogue.accept());
         await page.getByRole('button', { name: 'Supprimer' }).click();
 
-        await expect(page.getByText("Aucun trajet pour l'instant", { exact: false })).toBeVisible();
+        await expect(page.locator('#liste-vide')).toBeVisible();
+        await expect(page.locator('#liste-vide')).toHaveText(
+            "Aucun trajet pour l'instant. Créez-en un, puis importez les pages (images) de votre schéma de ligne.",
+        );
         await expect(page.getByRole('button', { name: 'Paris → Bordeaux' })).toBeHidden();
     });
 

@@ -3,9 +3,10 @@ import type { Coordonnee } from '../../trajets/domain/Coordonnee';
 /**
  * Une étape du voyage : un point géo-référencé projeté dans le référentiel
  * du document affiché (offset en pixels depuis le haut du document).
- * Les étapes sont fournies dans l'ordre du voyage ; comme les pages se lisent
- * de bas en haut, les offsets ne sont PAS monotones (dents de scie aux
- * changements de page) — l'algorithme n'en a pas besoin.
+ * Les étapes sont fournies dans l'ordre du voyage ; les pages étant empilées
+ * première-du-voyage en bas, les offsets décroissent au fil du voyage.
+ * L'algorithme ne suppose de toute façon aucune monotonie (il tolère des
+ * documents mal ordonnés et des lignes qui se recroisent).
  */
 export interface EtapeDuVoyage {
     readonly coordonnee: Coordonnee;
@@ -16,6 +17,12 @@ export type ResultatDeSuivi =
     | { etat: 'pas-assez-de-points' }
     | { etat: 'hors-trajet'; distanceMetres: number }
     | { etat: 'sur-trajet'; scrollCible: number; indexSegment: number };
+
+/** L'ancrage du tick précédent (un résultat « sur-trajet »), pour l'adhérence. */
+export interface AncragePrecedent {
+    readonly indexSegment: number;
+    readonly scrollCible: number;
+}
 
 /** En-deçà de cette distance du trajet, on ne s'inquiète jamais. */
 const SEUIL_MINIMUM_METRES = 5000;
@@ -29,20 +36,20 @@ const FRACTION_D_ECRAN_DE_LA_POSITION = 0.75;
 /**
  * Trouve où placer le document pour la position donnée : projette la position
  * sur le segment le plus proche du trajet et interpole entre les offsets de
- * ses deux étapes. `segmentPrecedent` (résultat du tick précédent) sert
- * d'adhérence : sans lui, le bruit GPS ferait osciller la page aux jonctions.
+ * ses deux étapes. `precedent` (résultat du tick précédent) sert d'adhérence :
+ * sans lui, le bruit GPS ferait osciller la page aux jonctions.
  */
 export function calculerCibleDeScroll(
     etapes: readonly EtapeDuVoyage[],
     position: Coordonnee,
-    segmentPrecedent: number | null,
+    precedent: AncragePrecedent | null,
 ): ResultatDeSuivi {
     if (etapes.length < 2) {
         return { etat: 'pas-assez-de-points' };
     }
 
     const projections = projeterSurChaqueSegment(etapes, position);
-    const indexRetenu = choisirLeSegment(projections, segmentPrecedent);
+    const indexRetenu = choisirLeSegment(projections, etapes, precedent);
     const projection = projections[indexRetenu]!;
 
     if (projection.distanceMetres > seuilHorsTrajet(projection.longueurMetres)) {
@@ -101,7 +108,8 @@ function projeterSurSegment(a: Coordonnee, b: Coordonnee, p: Coordonnee): Projec
     const versP = versPlanLocalEnMetres(a, p);
     const longueurCarree = versB.x * versB.x + versB.y * versB.y;
 
-    // Segment de longueur nulle (point de jonction dupliqué entre deux pages) :
+    // Segment de longueur nulle (deux points posés au même endroit, par
+    // exemple le PK répété de part et d'autre d'une jonction de pages) :
     // on le traite comme un point, sinon division par zéro.
     if (longueurCarree < 1) {
         return { t: 0, distanceMetres: Math.hypot(versP.x, versP.y), longueurMetres: 0 };
@@ -123,37 +131,47 @@ function versPlanLocalEnMetres(origine: Coordonnee, point: Coordonnee): { x: num
 }
 
 /**
- * Retient le segment le plus proche, avec adhérence : si un voisin immédiat
- * du segment précédent est presque aussi proche que le meilleur candidat
- * global, on le préfère pour éviter les sauts de page intempestifs.
+ * Retient le segment le plus proche, avec adhérence : à une jonction de pages,
+ * le même lieu existe à deux hauteurs du document et plusieurs segments sont
+ * presque aussi proches les uns que les autres. Parmi ces quasi-ex-æquo, on
+ * retient celui dont la cible de défilement reste la plus proche de la
+ * précédente — c'est ce qui empêche la page de sauter à chaque tick de bruit
+ * GPS, dans un sens comme dans l'autre.
  */
 function choisirLeSegment(
     projections: readonly ProjectionSurSegment[],
-    segmentPrecedent: number | null,
+    etapes: readonly EtapeDuVoyage[],
+    precedent: AncragePrecedent | null,
 ): number {
-    const indexLePlusProche = indexDeLaDistanceMinimale(projections, 0, projections.length - 1);
-    if (segmentPrecedent === null) {
+    const indexLePlusProche = indexDeLaDistanceMinimale(projections);
+    if (precedent === null) {
         return indexLePlusProche;
     }
 
-    const indexDuMeilleurVoisin = indexDeLaDistanceMinimale(
-        projections,
-        Math.max(0, segmentPrecedent - 1),
-        Math.min(projections.length - 1, segmentPrecedent + 1),
-    );
-    const ecart =
-        projections[indexDuMeilleurVoisin]!.distanceMetres -
-        projections[indexLePlusProche]!.distanceMetres;
-    return ecart <= MARGE_D_ADHERENCE_METRES ? indexDuMeilleurVoisin : indexLePlusProche;
+    const distanceMinimale = projections[indexLePlusProche]!.distanceMetres;
+    let indexRetenu = indexLePlusProche;
+    let plusPetitEcartDeCible = Number.POSITIVE_INFINITY;
+    for (let index = 0; index < projections.length; index++) {
+        if (projections[index]!.distanceMetres > distanceMinimale + MARGE_D_ADHERENCE_METRES) {
+            continue;
+        }
+        const cible = interpoler(
+            etapes[index]!.offset,
+            etapes[index + 1]!.offset,
+            projections[index]!.t,
+        );
+        const ecart = Math.abs(cible - precedent.scrollCible);
+        if (ecart < plusPetitEcartDeCible) {
+            plusPetitEcartDeCible = ecart;
+            indexRetenu = index;
+        }
+    }
+    return indexRetenu;
 }
 
-function indexDeLaDistanceMinimale(
-    projections: readonly ProjectionSurSegment[],
-    de: number,
-    a: number,
-): number {
-    let meilleur = de;
-    for (let index = de + 1; index <= a; index++) {
+function indexDeLaDistanceMinimale(projections: readonly ProjectionSurSegment[]): number {
+    let meilleur = 0;
+    for (let index = 1; index < projections.length; index++) {
         if (projections[index]!.distanceMetres < projections[meilleur]!.distanceMetres) {
             meilleur = index;
         }

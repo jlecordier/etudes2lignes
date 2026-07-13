@@ -1,12 +1,12 @@
 import type { Coordonnee } from '../../trajets/domain/Coordonnee';
-import type { PositionSource } from '../ports/PositionSource';
+import type { SimulateurDePosition } from '../ports/SimulateurDePosition';
 
 /**
  * Source de position simulée : rejoue la coordonnée choisie à la main.
- * C'est le mode test de l'application — un simple adapter de plus du port
- * PositionSource, l'écran de suivi ne fait aucune différence.
+ * C'est le mode test de l'application — un simple adapter de plus,
+ * l'écran de suivi ne connaît que le port SimulateurDePosition.
  */
-export class SimulationPositionSource implements PositionSource {
+export class SimulationPositionSource implements SimulateurDePosition {
     private surPosition: ((position: Coordonnee) => void) | null = null;
     private derniereSimulation: Coordonnee | null = null;
 

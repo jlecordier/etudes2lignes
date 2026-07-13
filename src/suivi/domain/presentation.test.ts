@@ -4,7 +4,9 @@ import { texteDEtatDuSuivi } from './presentation';
 describe('texteDEtatDuSuivi', () => {
     describe('Étant donné un trajet sans assez de points', () => {
         it('alors le texte invite à géo-référencer', () => {
-            expect(texteDEtatDuSuivi({ etat: 'pas-assez-de-points' })).toContain('deux points');
+            expect(texteDEtatDuSuivi({ etat: 'pas-assez-de-points' })).toBe(
+                'Ajoutez au moins deux points géo-référencés pour activer le suivi.',
+            );
         });
     });
 

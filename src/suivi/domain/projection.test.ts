@@ -129,15 +129,18 @@ describe('calculerCibleDeScroll', () => {
         });
 
         it('alors du bruit GPS autour de la jonction ne fait pas osciller la page', () => {
-            let segment: number | null = 0;
+            let precedent: { indexSegment: number; scrollCible: number } | null = {
+                indexSegment: 0,
+                scrollCible: 3600,
+            };
             const cibles: number[] = [];
             const bruit = [unPeuAvantPoitiers, unPeuApresPoitiers, unPeuAvantPoitiers, poitiers];
 
             for (const position of bruit) {
-                const resultat = calculerCibleDeScroll(etapesSurDeuxPages, position, segment);
+                const resultat = calculerCibleDeScroll(etapesSurDeuxPages, position, precedent);
                 expect(resultat.etat).toBe('sur-trajet');
                 if (resultat.etat === 'sur-trajet') {
-                    segment = resultat.indexSegment;
+                    precedent = resultat;
                     cibles.push(resultat.scrollCible);
                 }
             }
@@ -148,8 +151,26 @@ describe('calculerCibleDeScroll', () => {
             }
         });
 
+        it('alors, une fois passé en page 2, du bruit GPS juste derrière la jonction ne fait pas resauter la page 1', () => {
+            const dejaSurLaPage2 = { indexSegment: 2, scrollCible: 13000 };
+
+            const resultat = calculerCibleDeScroll(
+                etapesSurDeuxPages,
+                unPeuAvantPoitiers,
+                dejaSurLaPage2,
+            );
+
+            expect(resultat.etat).toBe('sur-trajet');
+            if (resultat.etat === 'sur-trajet') {
+                expect(resultat.scrollCible).toBeGreaterThan(10000);
+            }
+        });
+
         it('alors une fois la jonction nettement passée, la cible bascule en bas de la page 2', () => {
-            const resultat = calculerCibleDeScroll(etapesSurDeuxPages, bienApresPoitiers, 0);
+            const resultat = calculerCibleDeScroll(etapesSurDeuxPages, bienApresPoitiers, {
+                indexSegment: 0,
+                scrollCible: 3600,
+            });
 
             expect(resultat.etat).toBe('sur-trajet');
             if (resultat.etat === 'sur-trajet') {
