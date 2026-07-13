@@ -15,3 +15,8 @@ playwright-report/
 *.pdf
 *.zip
 pmpbxenjpeg/
+
+# Artefacts du serveur MCP Playwright (inspections visuelles)
+.playwright-mcp/
+.playwright/
+--version/
