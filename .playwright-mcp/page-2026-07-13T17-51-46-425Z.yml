@@ -1,0 +1,25 @@
+- generic [ref=e13]:
+      - generic [ref=e14]:
+            - button "🔙 Trajets" [ref=e15] [cursor=pointer]
+            - heading "Paris → Bordeaux (ERTMS)" [level=2] [ref=e16]
+            - button "🧭 Suivre" [ref=e17] [cursor=pointer]
+      - paragraph [ref=e18]: "Les pages s'empilent comme le document se lit : la première du voyage tout en bas. Conseil : un point près du départ et un près de l'arrivée du trajet, puis densifiez là où vous voulez de la précision."
+      - generic [ref=e19]:
+            - button "🖼️ Ajouter des images" [ref=e20] [cursor=pointer]
+            - button "📍 Ajouter un point" [ref=e21] [cursor=pointer]
+      - generic [ref=e22]:
+            - generic [active] [ref=e23]:
+                  - generic:
+                        - generic [ref=e24]:
+                              - button "Zoom in" [ref=e25] [cursor=pointer]: +
+                              - button "Zoom out" [ref=e26] [cursor=pointer]: −
+                        - generic [ref=e27]:
+                              - link "Leaflet" [ref=e28] [cursor=pointer]:
+                                    - /url: https://leafletjs.com
+                              - text: '| ©'
+                              - link "OpenStreetMap" [ref=e33] [cursor=pointer]:
+                                    - /url: https://www.openstreetmap.org/copyright
+                              - text: contributors
+            - generic [ref=e34]:
+                  - list
+      - button "📍 Ajouter un point" [ref=e35] [cursor=pointer]

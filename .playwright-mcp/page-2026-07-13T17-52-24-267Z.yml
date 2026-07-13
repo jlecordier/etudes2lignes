@@ -1,0 +1,43 @@
+- generic [ref=e13]:
+      - generic [ref=e14]:
+            - button "🔙 Trajets" [ref=e15] [cursor=pointer]
+            - heading "Paris → Bordeaux (ERTMS)" [level=2] [ref=e16]
+            - button "🧭 Suivre" [ref=e17] [cursor=pointer]
+      - paragraph [ref=e18]: "Les pages s'empilent comme le document se lit : la première du voyage tout en bas. Conseil : un point près du départ et un près de l'arrivée du trajet, puis densifiez là où vous voulez de la précision."
+      - generic [ref=e19]:
+            - button "🖼️ Ajouter des images" [ref=e20] [cursor=pointer]
+            - button "📍 Ajouter un point" [ref=e21] [cursor=pointer]
+      - paragraph [ref=e53]:
+            - text: Cliquez la coordonnée sur la carte…
+            - button "✖️ Annuler" [ref=e54] [cursor=pointer]
+      - generic [ref=e22]:
+            - generic [ref=e23]:
+                  - generic:
+                        - generic [ref=e24]:
+                              - button "Zoom in" [ref=e25]: +
+                              - button "Zoom out" [ref=e26]: −
+                        - generic [ref=e27]:
+                              - link "Leaflet" [ref=e28]:
+                                    - /url: https://leafletjs.com
+                              - text: '| ©'
+                              - link "OpenStreetMap" [ref=e33]:
+                                    - /url: https://www.openstreetmap.org/copyright
+                              - text: contributors
+            - generic [ref=e34]:
+                  - list
+                  - generic [ref=e36]:
+                        - generic [ref=e37]:
+                              - generic [ref=e38]:
+                                    - generic [ref=e39]: PMP-BX (ERTMS)_page-0003.jpg
+                                    - button "Monter PMP-BX (ERTMS)_page-0003.jpg" [ref=e40] [cursor=pointer]: 🔼
+                                    - button "Descendre PMP-BX (ERTMS)_page-0003.jpg" [ref=e41] [cursor=pointer]: 🔽
+                                    - button "Supprimer PMP-BX (ERTMS)_page-0003.jpg" [ref=e42] [cursor=pointer]: 🗑️ Supprimer
+                              - img "PMP-BX (ERTMS)_page-0003.jpg" [ref=e44]
+                        - generic [ref=e45]:
+                              - generic [ref=e46]:
+                                    - generic [ref=e47]: PMP-BX (ERTMS)_page-0002.jpg
+                                    - button "Monter PMP-BX (ERTMS)_page-0002.jpg" [ref=e48] [cursor=pointer]: 🔼
+                                    - button "Descendre PMP-BX (ERTMS)_page-0002.jpg" [ref=e49] [cursor=pointer]: 🔽
+                                    - button "Supprimer PMP-BX (ERTMS)_page-0002.jpg" [ref=e50] [cursor=pointer]: 🗑️ Supprimer
+                              - img "PMP-BX (ERTMS)_page-0002.jpg" [ref=e52]
+      - button "📍 Ajouter un point" [ref=e35] [cursor=pointer]

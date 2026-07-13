@@ -1,0 +1,6 @@
+- generic [ref=e2]:
+      - generic [ref=e3]:
+            - heading "Mes trajets" [level=1] [ref=e4]
+            - button "🆕 Nouveau trajet" [ref=e5] [cursor=pointer]
+      - list
+      - paragraph [ref=e6]: ✓ Application disponible hors ligne

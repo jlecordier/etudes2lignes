@@ -74,6 +74,9 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
         }
         this.carte = L.map(this.idDuConteneur).setView(VUE_FRANCE.centre, VUE_FRANCE.zoom);
         creerCoucheOsm().addTo(this.carte);
+        // Rotation d'un iPad/téléphone : le conteneur change de taille sans
+        // repasser par afficher() — Leaflet doit se remesurer tout de suite.
+        window.addEventListener('resize', () => this.carte?.invalidateSize());
         this.carte.on('click', (evenement) => {
             const enAttente = this.resoudreLeChoix;
             if (enAttente === null) {

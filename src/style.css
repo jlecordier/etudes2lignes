@@ -206,6 +206,10 @@ button.secondaire {
 }
 
 .carte-points {
+    /* Indispensable : les panneaux Leaflet sont positionnés en absolu ; sans
+       ancêtre positionné, ils échappent au overflow:hidden du conteneur et
+       se dessinent par-dessus toute la page. */
+    position: relative;
     height: 45vh;
     border: 1px solid #e5e7eb;
     border-radius: 0.375rem;
@@ -292,6 +296,8 @@ button.secondaire {
 }
 
 #conteneur-carte {
+    /* Même précaution que .carte-points : ancre les panneaux Leaflet. */
+    position: relative;
     flex: 1;
 }
 
