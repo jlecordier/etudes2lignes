@@ -4,6 +4,7 @@ import { Coordonnee } from '../../trajets/domain/Coordonnee';
 import type { PointId } from '../../trajets/domain/ids';
 import type { CarteDesPoints, PointAffiche } from '../ports/CarteDesPointsPort';
 import { creerCoucheOsm, VUE_FRANCE } from './coucheOsm';
+import { iconeNumerotee } from './iconeNumerotee';
 
 interface MarqueurPose {
     readonly marqueur: L.Marker;
@@ -123,13 +124,4 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
         );
         carte.fitBounds(bornes, { padding: [30, 30], maxZoom: 13, animate: false });
     }
-}
-
-function iconeNumerotee(numero: number): L.DivIcon {
-    return L.divIcon({
-        className: 'marqueur-carte',
-        html: String(numero),
-        iconSize: [26, 26],
-        iconAnchor: [13, 13],
-    });
 }

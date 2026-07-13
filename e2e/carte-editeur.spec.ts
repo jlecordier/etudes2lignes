@@ -22,6 +22,9 @@ test.describe("Carte de l'éditeur (tous les points du trajet)", () => {
         await expect(page.locator('.description-point')).toHaveCount(1);
         const avant = (await page.locator('.description-point').textContent()) ?? '';
 
+        // L'ajout du point a fait défiler la page : ramener la carte à l'écran,
+        // sinon le glisser viserait des coordonnées hors du viewport.
+        await page.locator('#carte-points').scrollIntoViewIfNeeded();
         const marqueur = (await page
             .locator('#carte-points .marqueur-carte')
             .first()

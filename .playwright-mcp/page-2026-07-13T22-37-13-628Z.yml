@@ -1,0 +1,32 @@
+- generic [ref=f2e1]:
+      - generic [ref=f2e2]:
+            - generic [ref=f2e3]:
+                  - button "🔙 Éditer" [ref=f2e4] [cursor=pointer]
+                  - generic [ref=f2e5]: En attente de position…
+                  - button "🧪 Simuler" [active] [ref=f2e6] [cursor=pointer]
+            - generic [ref=f2e7]:
+                  - img "PMP-BX (ERTMS)_page-0003.jpg" [ref=f2e8]
+                  - img "PMP-BX (ERTMS)_page-0002.jpg" [ref=f2e9]
+      - generic [ref=f2e10]:
+            - generic [ref=f2e11]:
+                  - generic:
+                        - generic:
+                              - button "1"
+                              - button "2"
+                  - generic:
+                        - generic [ref=f2e12]:
+                              - button "Zoom in" [ref=f2e13] [cursor=pointer]: +
+                              - button "Zoom out" [ref=f2e14] [cursor=pointer]: −
+                        - generic [ref=f2e15]:
+                              - link "Leaflet" [ref=f2e16] [cursor=pointer]:
+                                    - /url: https://leafletjs.com
+                              - text: '| ©'
+                              - link "OpenStreetMap" [ref=f2e21] [cursor=pointer]:
+                                    - /url: https://www.openstreetmap.org/copyright
+                              - text: contributors
+            - generic [ref=f2e22]:
+                  - spinbutton "Latitude" [ref=f2e23]
+                  - spinbutton "Longitude" [ref=f2e24]
+                  - button "📌 Placer" [ref=f2e25] [cursor=pointer]
+                  - button "✖️ Annuler" [ref=f2e26] [cursor=pointer]
+                  - button "✅ Valider" [disabled] [ref=f2e27] [cursor=pointer]

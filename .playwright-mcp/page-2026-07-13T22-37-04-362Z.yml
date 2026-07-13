@@ -1,0 +1,8 @@
+- generic [ref=f2e2]:
+      - generic [ref=f2e3]:
+            - button "🔙 Éditer" [ref=f2e4] [cursor=pointer]
+            - generic [ref=f2e5]: En attente de position…
+            - button "🧪 Simuler" [ref=f2e6] [cursor=pointer]
+      - generic [ref=f2e7]:
+            - img "PMP-BX (ERTMS)_page-0003.jpg" [ref=f2e8]
+            - img "PMP-BX (ERTMS)_page-0002.jpg" [ref=f2e9]

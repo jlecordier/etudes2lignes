@@ -19,6 +19,23 @@ async function ouvrirLeSuiviDUnTrajetGeoreference(page: Page): Promise<void> {
     await expect(page.locator('#ecran-suivi')).toBeVisible();
 }
 
+/**
+ * Ouvre la carte de simulation et clique le repère du point 1 : un repère
+ * n'est pas interactif, le clic atteint la carte dessous — la position
+ * simulée est donc exactement celle du premier point du voyage.
+ */
+async function simulerSurLePremierRepere(page: Page): Promise<void> {
+    await page.getByRole('button', { name: '🧪 Simuler', exact: true }).click();
+    await expect(page.locator('#ecran-carte')).toBeVisible();
+    const champLongitude = page.getByLabel('Longitude');
+    const valeurAvant = await champLongitude.inputValue();
+    const repere = (await page.locator('#conteneur-carte .marqueur-carte').first().boundingBox())!;
+    await page.mouse.click(repere.x + repere.width / 2, repere.y + repere.height / 2);
+    await expect(champLongitude).not.toHaveValue(valeurAvant);
+    await page.getByRole('button', { name: 'Valider' }).click();
+    await expect(page.locator('#ecran-carte')).toBeHidden();
+}
+
 test.describe('Suivi du trajet (position simulée)', () => {
     test('Étant donné une permission refusée (défaut Playwright), alors l’état l’explique', async ({
         page,
@@ -35,13 +52,23 @@ test.describe('Suivi du trajet (position simulée)', () => {
         );
     });
 
-    test('Étant donné une position simulée sur le premier point, alors la page se cale à 75 % et le bandeau s’affiche', async ({
+    test('Étant donné le suivi, quand j’ouvre la carte de simulation, alors les points du trajet y sont repérés', async ({
         page,
     }) => {
         await ouvrirLeSuiviDUnTrajetGeoreference(page);
 
         await page.getByRole('button', { name: '🧪 Simuler', exact: true }).click();
-        await choisirUneCoordonneeSurLaCarte(page);
+        await expect(page.locator('#ecran-carte')).toBeVisible();
+
+        await expect(page.locator('#conteneur-carte .marqueur-carte')).toHaveText(['1', '2']);
+    });
+
+    test('Étant donné une position simulée sur le premier point, alors la page se cale à 75 % et le bandeau s’affiche', async ({
+        page,
+    }) => {
+        await ouvrirLeSuiviDUnTrajetGeoreference(page);
+
+        await simulerSurLePremierRepere(page);
 
         await expect(page.locator('#bandeau-simulation')).toBeVisible();
         await attendreLeDefilement(page, await defilementAttendu(page, 0.8));
@@ -51,8 +78,7 @@ test.describe('Suivi du trajet (position simulée)', () => {
         page,
     }) => {
         await ouvrirLeSuiviDUnTrajetGeoreference(page);
-        await page.getByRole('button', { name: '🧪 Simuler', exact: true }).click();
-        await choisirUneCoordonneeSurLaCarte(page);
+        await simulerSurLePremierRepere(page);
         const attendu = await defilementAttendu(page, 0.8);
         await attendreLeDefilement(page, attendu);
 
@@ -76,9 +102,10 @@ test.describe('Suivi du trajet (position simulée)', () => {
 
         await page.getByRole('button', { name: '🧪 Simuler', exact: true }).click();
         await expect(page.locator('#ecran-carte')).toBeVisible();
-        const carte = (await page.locator('#conteneur-carte').boundingBox())!;
-        // Presque le bord bas de la carte : à des centaines de kilomètres de la ligne.
-        await page.mouse.click(carte.x + carte.width / 2, carte.y + carte.height - 20);
+        // Marseille, saisie à la main : loin de la ligne quel que soit le zoom.
+        await page.getByLabel('Latitude').fill('43.2965');
+        await page.getByLabel('Longitude').fill('5.3698');
+        await page.getByRole('button', { name: 'Placer' }).click();
         await page.getByRole('button', { name: 'Valider' }).click();
 
         await expect(page.locator('#etat-suivi')).toHaveText(

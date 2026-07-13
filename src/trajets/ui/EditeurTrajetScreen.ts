@@ -1,4 +1,4 @@
-import type { CarteDesPoints, PointAffiche } from '../../carte/ports/CarteDesPointsPort';
+import type { CarteDesPoints } from '../../carte/ports/CarteDesPointsPort';
 import type { SelecteurDeCoordonnee } from '../../carte/ports/SelecteurDeCoordonneePort';
 import type { Coordonnee } from '../domain/Coordonnee';
 import { FractionVerticale } from '../domain/FractionVerticale';
@@ -6,6 +6,7 @@ import type { Trajet, ImageDeTrajet, Point } from '../domain/Trajet';
 import type { ImageId, PointId, TrajetId } from '../domain/ids';
 import type { TrajetRepository } from '../ports/TrajetRepository';
 import { elementImagePleineLargeur, revoquerLesUrls } from './elementsDImage';
+import { pointsAffiches } from './pointsAffiches';
 
 export interface DependancesEditeurTrajet {
     repository: TrajetRepository;
@@ -170,7 +171,8 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
      */
     async function choisirUneCoordonnee(initiale: Coordonnee | null): Promise<Coordonnee | null> {
         if (!window.matchMedia(GRAND_ECRAN).matches) {
-            return selecteurDeCoordonnee.choisir(initiale);
+            const reperes = trajet === null ? [] : pointsAffiches(trajet);
+            return selecteurDeCoordonnee.choisir(initiale, reperes);
         }
         texteConsigne.textContent = 'Cliquez la coordonnée sur la carte…';
         consigne.hidden = false;
@@ -371,12 +373,6 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
 
 function numerosDesPoints(trajet: Trajet): Map<PointId, number> {
     return new Map(trajet.ordreVoyageDesPoints().map((point, index) => [point.id, index + 1]));
-}
-
-function pointsAffiches(trajet: Trajet): PointAffiche[] {
-    return trajet
-        .ordreVoyageDesPoints()
-        .map((point, index) => ({ id: point.id, numero: index + 1, coordonnee: point.coordonnee }));
 }
 
 function boutonDAction(texte: string, intitule: string, action: () => void): HTMLButtonElement {

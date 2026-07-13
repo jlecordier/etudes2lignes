@@ -4,8 +4,10 @@ import iconeRetina from 'leaflet/dist/images/marker-icon-2x.png';
 import icone from 'leaflet/dist/images/marker-icon.png';
 import ombre from 'leaflet/dist/images/marker-shadow.png';
 import { Coordonnee } from '../../trajets/domain/Coordonnee';
+import type { PointAffiche } from '../ports/CarteDesPointsPort';
 import type { SelecteurDeCoordonnee } from '../ports/SelecteurDeCoordonneePort';
 import { creerCoucheOsm, VUE_FRANCE } from './coucheOsm';
+import { iconeNumerotee } from './iconeNumerotee';
 
 // Leaflet devine l'URL de ses icônes depuis le chemin de son script,
 // ce qu'un bundler casse : on lui fournit les fichiers explicitement.
@@ -18,6 +20,7 @@ const ZOOM_SUR_UN_POINT = 12;
 export class LeafletSelecteurDeCoordonnee implements SelecteurDeCoordonnee {
     private carte: L.Map | null = null;
     private marqueur: L.Marker | null = null;
+    private reperes: L.Marker[] = [];
     private resoudre: ((coordonnee: Coordonnee | null) => void) | null = null;
 
     private readonly ecran = document.querySelector<HTMLElement>('#ecran-carte')!;
@@ -36,19 +39,29 @@ export class LeafletSelecteurDeCoordonnee implements SelecteurDeCoordonnee {
             .addEventListener('click', () => this.placerDepuisLaSaisie());
     }
 
-    choisir(coordonneeInitiale: Coordonnee | null): Promise<Coordonnee | null> {
+    choisir(
+        coordonneeInitiale: Coordonnee | null,
+        reperes: readonly PointAffiche[] = [],
+    ): Promise<Coordonnee | null> {
         this.ecran.hidden = false;
         const carte = this.carteInitialisee();
         this.effacerLaSelection();
-        if (coordonneeInitiale === null) {
-            carte.setView(VUE_FRANCE.centre, VUE_FRANCE.zoom, { animate: false });
-        } else {
+        this.poserLesReperes(reperes);
+        if (coordonneeInitiale !== null) {
             this.poserLeMarqueur(coordonneeInitiale);
             carte.setView(
                 [coordonneeInitiale.latitude, coordonneeInitiale.longitude],
                 ZOOM_SUR_UN_POINT,
                 { animate: false },
             );
+        } else if (reperes.length > 0) {
+            // Se situer par rapport au trajet : recadrer sur ses points.
+            const bornes = L.latLngBounds(
+                reperes.map((repere) => [repere.coordonnee.latitude, repere.coordonnee.longitude]),
+            );
+            carte.fitBounds(bornes, { padding: [40, 40], maxZoom: 12, animate: false });
+        } else {
+            carte.setView(VUE_FRANCE.centre, VUE_FRANCE.zoom, { animate: false });
         }
         // La carte vient d'être dévoilée : Leaflet doit remesurer son conteneur.
         setTimeout(() => carte.invalidateSize(), 0);
@@ -108,6 +121,19 @@ export class LeafletSelecteurDeCoordonnee implements SelecteurDeCoordonnee {
     private validerLeMarqueur(): void {
         const position = this.marqueur!.getLatLng().wrap();
         this.terminer(Coordonnee.creer(position.lat, position.lng));
+    }
+
+    private poserLesReperes(reperes: readonly PointAffiche[]): void {
+        for (const repere of this.reperes) {
+            repere.remove();
+        }
+        this.reperes = reperes.map((repere) =>
+            L.marker([repere.coordonnee.latitude, repere.coordonnee.longitude], {
+                icon: iconeNumerotee(repere.numero),
+                // Non interactif : cliquer un repère = cliquer la carte dessous.
+                interactive: false,
+            }).addTo(this.carteInitialisee()),
+        );
     }
 
     private effacerLaSelection(): void {

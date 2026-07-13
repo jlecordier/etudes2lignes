@@ -195,6 +195,16 @@ button.secondaire {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
+/* Les boutons flottants ne doivent jamais masquer la fin du contenu : on
+   réserve leur place tout en bas, pour pouvoir faire défiler au-delà. */
+#ecran-editeur {
+    padding-bottom: 6rem;
+}
+
+.pile-suivi {
+    padding-bottom: 6rem;
+}
+
 /* Carte des points + images : empilées sur mobile (carte au-dessus),
    côte à côte à partir de 900 px — un iPad en paysage passe le seuil,
    en portrait non (même seuil dans EditeurTrajetScreen.ts). */
@@ -240,9 +250,11 @@ button.secondaire {
     }
 }
 
-/* Scopé sous .carte-points : leaflet.css arrive après dans le bundle et son
-   .leaflet-marker-icon { display: block } écraserait le centrage flex. */
-.carte-points .marqueur-carte {
+/* Scopé sous les conteneurs de cartes : leaflet.css arrive après dans le
+   bundle et son .leaflet-marker-icon { display: block } écraserait le
+   centrage flex. */
+.carte-points .marqueur-carte,
+#conteneur-carte .marqueur-carte {
     display: flex;
     align-items: center;
     justify-content: center;

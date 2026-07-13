@@ -4,6 +4,7 @@ import type { Trajet } from '../../trajets/domain/Trajet';
 import type { TrajetId } from '../../trajets/domain/ids';
 import type { TrajetRepository } from '../../trajets/ports/TrajetRepository';
 import { elementImagePleineLargeur, revoquerLesUrls } from '../../trajets/ui/elementsDImage';
+import { pointsAffiches } from '../../trajets/ui/pointsAffiches';
 import { texteDEtatDuSuivi } from '../domain/presentation';
 import {
     calculerCibleDeScroll,
@@ -180,7 +181,12 @@ export function creerSuiviScreen(dependances: DependancesSuivi): {
     // --- Simulation ----------------------------------------------------------------
 
     async function choisirUnePositionSimulee(): Promise<void> {
-        const coordonnee = await selecteurDeCoordonnee.choisir(simulation.dernierePosition);
+        // Les points du trajet servent de repères pour viser une position.
+        const reperes = trajet === null ? [] : pointsAffiches(trajet);
+        const coordonnee = await selecteurDeCoordonnee.choisir(
+            simulation.dernierePosition,
+            reperes,
+        );
         if (coordonnee === null) {
             return;
         }
