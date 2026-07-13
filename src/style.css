@@ -157,7 +157,7 @@ button.secondaire {
 
 .numero-point {
     position: absolute;
-    right: 0.25rem;
+    left: 0.25rem;
     top: -0.75rem;
     background: #dc2626;
     color: white;
@@ -170,7 +170,7 @@ button.secondaire {
    à la liste tout en haut de la page. */
 .actions-point {
     position: absolute;
-    left: 0.25rem;
+    right: 0.25rem;
     top: -0.75rem;
     display: flex;
     gap: 0.25rem;
@@ -240,7 +240,9 @@ button.secondaire {
     }
 }
 
-.marqueur-carte {
+/* Scopé sous .carte-points : leaflet.css arrive après dans le bundle et son
+   .leaflet-marker-icon { display: block } écraserait le centrage flex. */
+.carte-points .marqueur-carte {
     display: flex;
     align-items: center;
     justify-content: center;
