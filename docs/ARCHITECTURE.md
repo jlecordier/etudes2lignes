@@ -74,6 +74,18 @@ Exemple : rejouer une trace GPX enregistrée. Créer
     - l'ordre du voyage des points est **calculé** (image croissante, puis
       fraction décroissante — les pages se lisent de bas en haut), jamais stocké.
 
+## Sérialisation (`trajets/serialisation/trajetJson.ts`)
+
+Fonctions pures d'export/import d'un trajet en JSON autonome : le fichier
+contient tout (nom, images encodées en base64, points). Les points désignent
+leur image par son **index dans le fichier**, jamais par identifiant ; à
+l'import, les identifiants sont régénérés, ce qui crée toujours un nouveau
+trajet (deux imports du même fichier = deux trajets distincts). L'enveloppe
+porte `application` + `version` pour rejeter proprement un fichier étranger ou
+une version future, avec des messages destinés à l'utilisateur. C'est le
+domaine qui reconstruit l'agrégat, donc ses invariants (un point vise une
+image présente) valident aussi les fichiers importés.
+
 ## L'algorithme géo → scroll (`suivi/domain/projection.ts`)
 
 Fonctions pures, testées exhaustivement avec des coordonnées réelles :
