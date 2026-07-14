@@ -11,8 +11,14 @@
         <section id="ecran-liste" class="ecran">
             <header class="entete">
                 <h1>Mes trajets</h1>
-                <button id="bouton-creer-trajet" type="button">🆕 Nouveau trajet</button>
+                <div class="barre-actions">
+                    <button id="bouton-importer-trajet" type="button" class="secondaire">
+                        ⬆️ Importer
+                    </button>
+                    <button id="bouton-creer-trajet" type="button">🆕 Nouveau trajet</button>
+                </div>
             </header>
+            <input id="input-import-trajet" type="file" accept="application/json,.json" hidden />
             <ul id="liste-trajets" class="liste-trajets"></ul>
             <p id="liste-vide" class="message-vide" hidden>
                 Aucun trajet pour l'instant. Créez-en un, puis importez les pages (images) de votre

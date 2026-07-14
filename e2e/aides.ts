@@ -18,7 +18,7 @@ export async function ouvrirUnTrajetAvecUnePage(page: Page): Promise<void> {
     await page.goto('./');
     page.once('dialog', (dialogue) => void dialogue.accept('Paris → Bordeaux'));
     await page.getByRole('button', { name: 'Nouveau trajet' }).click();
-    await page.getByRole('button', { name: 'Paris → Bordeaux' }).click();
+    await page.getByRole('button', { name: 'Paris → Bordeaux', exact: true }).click();
     // L'éditeur charge le trajet en asynchrone : attendre qu'il soit prêt
     // (le titre apparaît en fin de chargement) avant d'importer.
     await expect(page.getByRole('heading', { name: 'Paris → Bordeaux' })).toBeVisible();

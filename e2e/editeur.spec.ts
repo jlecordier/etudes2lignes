@@ -5,7 +5,7 @@ async function ouvrirUnTrajetVierge(page: Page): Promise<void> {
     await page.goto('./');
     page.once('dialog', (dialogue) => void dialogue.accept('Paris → Bordeaux'));
     await page.getByRole('button', { name: 'Nouveau trajet' }).click();
-    await page.getByRole('button', { name: 'Paris → Bordeaux' }).click();
+    await page.getByRole('button', { name: 'Paris → Bordeaux', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Paris → Bordeaux' })).toBeVisible();
 }
 

@@ -9,7 +9,9 @@ test.describe('Gestion des trajets', () => {
 
         await page.getByRole('button', { name: 'Nouveau trajet' }).click();
 
-        await expect(page.getByRole('button', { name: 'Paris → Bordeaux' })).toBeVisible();
+        await expect(
+            page.getByRole('button', { name: 'Paris → Bordeaux', exact: true }),
+        ).toBeVisible();
         await expect(page.getByText('0 image(s) · 0 point(s)')).toBeVisible();
     });
 
@@ -23,7 +25,9 @@ test.describe('Gestion des trajets', () => {
         page.once('dialog', (dialogue) => void dialogue.accept('Bordeaux → Paris'));
         await page.getByRole('button', { name: 'Renommer' }).click();
 
-        await expect(page.getByRole('button', { name: 'Bordeaux → Paris' })).toBeVisible();
+        await expect(
+            page.getByRole('button', { name: 'Bordeaux → Paris', exact: true }),
+        ).toBeVisible();
     });
 
     test('Étant donné un trajet, quand je le supprime et confirme, alors la liste redevient vide', async ({
@@ -32,7 +36,9 @@ test.describe('Gestion des trajets', () => {
         await page.goto('./');
         page.once('dialog', (dialogue) => void dialogue.accept('Paris → Bordeaux'));
         await page.getByRole('button', { name: 'Nouveau trajet' }).click();
-        await expect(page.getByRole('button', { name: 'Paris → Bordeaux' })).toBeVisible();
+        await expect(
+            page.getByRole('button', { name: 'Paris → Bordeaux', exact: true }),
+        ).toBeVisible();
 
         page.once('dialog', (dialogue) => void dialogue.accept());
         await page.getByRole('button', { name: 'Supprimer' }).click();
@@ -41,7 +47,9 @@ test.describe('Gestion des trajets', () => {
         await expect(page.locator('#liste-vide')).toHaveText(
             "Aucun trajet pour l'instant. Créez-en un, puis importez les pages (images) de votre schéma de ligne.",
         );
-        await expect(page.getByRole('button', { name: 'Paris → Bordeaux' })).toBeHidden();
+        await expect(
+            page.getByRole('button', { name: 'Paris → Bordeaux', exact: true }),
+        ).toBeHidden();
     });
 
     test('Étant donné un trajet, quand je refuse la confirmation de suppression, alors il reste', async ({
@@ -54,6 +62,8 @@ test.describe('Gestion des trajets', () => {
         page.once('dialog', (dialogue) => void dialogue.dismiss());
         await page.getByRole('button', { name: 'Supprimer' }).click();
 
-        await expect(page.getByRole('button', { name: 'Paris → Bordeaux' })).toBeVisible();
+        await expect(
+            page.getByRole('button', { name: 'Paris → Bordeaux', exact: true }),
+        ).toBeVisible();
     });
 });

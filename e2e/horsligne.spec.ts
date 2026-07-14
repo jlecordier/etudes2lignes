@@ -21,7 +21,7 @@ test.describe('Hors ligne (service worker)', () => {
 
         page.once('dialog', (dialogue) => void dialogue.accept('Paris → Bordeaux'));
         await page.getByRole('button', { name: 'Nouveau trajet' }).click();
-        await page.getByRole('button', { name: 'Paris → Bordeaux' }).click();
+        await page.getByRole('button', { name: 'Paris → Bordeaux', exact: true }).click();
         await expect(page.getByRole('heading', { name: 'Paris → Bordeaux' })).toBeVisible();
         await page.locator('#input-images').setInputFiles([fichierPng('page-1.png')]);
         await expect(page.locator('.nom-image')).toHaveText(['page-1.png']);

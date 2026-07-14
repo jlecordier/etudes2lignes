@@ -31,6 +31,10 @@ pour suivre votre position GPS.
 - **Hors ligne** : après une première visite en ligne, tout fonctionne sans
   réseau (service worker + IndexedDB). Les tuiles de carte déjà affichées
   restent disponibles hors ligne.
+- **Import / export** : « ⬇️ Exporter » enregistre un trajet complet (nom,
+  images en base64, points) dans un fichier JSON autonome ; « ⬆️ Importer » le
+  recharge sur un autre appareil, créant à chaque fois un nouveau trajet. C'est
+  le moyen de transférer un trajet d'un appareil à l'autre sans réseau.
 
 ## Démarrage
 
@@ -73,4 +77,6 @@ pnpm preview    # sert le build — nécessaire pour essayer le service worker
 - Sur iOS, la permission de localisation est redemandée à chaque session (comportement d'iOS).
 - Un document se lit de bas en haut ; dans le sens inverse du document, le suivi
   fonctionne mais l'ancrage au quart bas montre surtout du « déjà passé ».
-- Les données restent locales à chaque appareil (pas de synchronisation).
+- Les données restent locales à chaque appareil : pas de synchronisation
+  automatique, mais l'import/export JSON permet de transférer un trajet à la
+  demande d'un appareil à l'autre.
