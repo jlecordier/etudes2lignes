@@ -123,5 +123,29 @@ describe('exporterTrajetEnJson / importerTrajetDepuisJson', () => {
                 'Fichier incohérent : un point vise une image absente du fichier.',
             );
         });
+
+        it('alors une image sans données (base64 vide) est refusée plutôt que créée à 0 octet', async () => {
+            const json = JSON.stringify({
+                application: 'etudes2lignes',
+                version: 1,
+                trajet: {
+                    nom: 'Cassé',
+                    images: [
+                        {
+                            nom: 'vide.jpg',
+                            type: 'image/jpeg',
+                            largeur: 100,
+                            hauteur: 200,
+                            donneesBase64: '',
+                        },
+                    ],
+                    points: [],
+                },
+            });
+
+            await expect(importerTrajetDepuisJson(json)).rejects.toThrow(
+                'Fichier incomplet : données d’image manquantes.',
+            );
+        });
     });
 });

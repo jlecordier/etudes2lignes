@@ -59,23 +59,47 @@ export function creerListeTrajetsScreen(dependances: DependancesListeTrajets): {
         if (fichier === undefined) {
             return;
         }
+        // Trois étapes, trois messages français distincts : la lecture du
+        // fichier, la validation (messages précis venus du domaine) et
+        // l'enregistrement (le quota IndexedDB peut déborder sur mobile avec
+        // plusieurs images). Sans ce découpage, une erreur de quota ou de
+        // lecture afficherait le message technique brut du navigateur.
+        let texte: string;
         try {
-            const trajet = await importerTrajetDepuisJson(await fichier.text());
-            await repository.sauvegarder(trajet);
+            texte = await fichier.text();
+        } catch {
+            alert('Fichier illisible : impossible de lire ce fichier.');
+            return;
+        }
+        let trajet: Trajet;
+        try {
+            trajet = await importerTrajetDepuisJson(texte);
         } catch (erreur) {
             alert(erreur instanceof Error ? erreur.message : String(erreur));
+            return;
+        }
+        try {
+            await repository.sauvegarder(trajet);
+        } catch {
+            alert(
+                'Impossible d’enregistrer le trajet importé : l’espace de stockage est peut-être plein.',
+            );
             return;
         }
         await afficher();
     }
 
     async function exporterUnTrajet(resume: ResumeDeTrajet): Promise<void> {
-        const trajet = await repository.charger(resume.id);
-        if (trajet === null) {
-            return;
+        try {
+            const trajet = await repository.charger(resume.id);
+            if (trajet === null) {
+                return;
+            }
+            const json = await exporterTrajetEnJson(trajet);
+            telecharger(json, `${nomDeFichierSur(resume.nom)}.json`);
+        } catch {
+            alert('Impossible d’exporter ce trajet.');
         }
-        const json = await exporterTrajetEnJson(trajet);
-        telecharger(json, `${nomDeFichierSur(resume.nom)}.json`);
     }
 
     async function supprimerUnTrajet(resume: ResumeDeTrajet): Promise<void> {
@@ -129,6 +153,9 @@ export function creerListeTrajetsScreen(dependances: DependancesListeTrajets): {
     return { afficher };
 }
 
+/** Délai avant de libérer l'URL blob d'un téléchargement (une minute). */
+const DELAI_REVOCATION_MS = 60_000;
+
 /** Déclenche le téléchargement d'un fichier texte par le navigateur. */
 function telecharger(contenu: string, nomDeFichier: string): void {
     const url = URL.createObjectURL(new Blob([contenu], { type: 'application/json' }));
@@ -136,7 +163,9 @@ function telecharger(contenu: string, nomDeFichier: string): void {
     lien.href = url;
     lien.download = nomDeFichier;
     lien.click();
-    URL.revokeObjectURL(url);
+    // Révocation différée : Safari/iOS et Firefox lisent le blob après le tick
+    // courant ; le révoquer tout de suite annulerait le téléchargement.
+    setTimeout(() => URL.revokeObjectURL(url), DELAI_REVOCATION_MS);
 }
 
 /** Un nom de trajet peut contenir des caractères interdits dans un nom de fichier. */

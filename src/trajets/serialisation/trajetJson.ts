@@ -65,9 +65,13 @@ export async function importerTrajetDepuisJson(texte: string): Promise<Trajet> {
     const trajet = Trajet.creer(NomDeTrajet.creer(chaine(donnees['nom'], 'nom')));
     const idsDesImages = tableau(donnees['images'], 'images').map((image, index) => {
         const champs = objet(image, `images[${index}]`);
+        const donneesBase64 = chaine(champs['donneesBase64'], 'données d’image');
+        if (donneesBase64 === '') {
+            throw new Error('Fichier incomplet : données d’image manquantes.');
+        }
         return trajet.ajouterImage({
             nom: chaine(champs['nom'], 'nom d’image'),
-            blob: new Blob([depuisBase64(chaine(champs['donneesBase64'], 'données d’image'))], {
+            blob: new Blob([depuisBase64(donneesBase64)], {
                 type: chaine(champs['type'], 'type d’image'),
             }),
             largeur: nombre(champs['largeur'], 'largeur'),
