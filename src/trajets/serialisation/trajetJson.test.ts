@@ -64,6 +64,28 @@ describe('exporterTrajetEnJson / importerTrajetDepuisJson', () => {
             expect(points[1]!.coordonnee.longitude).toBe(0.1562);
         });
 
+        it('alors une image binaire réelle (tous les octets 0 à 255) fait l’aller-retour bit à bit', async () => {
+            // Un vrai JPEG contient des octets ≥ 128 et des 0x00 : le faux blob
+            // « texte » des autres tests ne prouverait pas que l'encodage base64
+            // par tranches ne corrompt pas ces octets.
+            const octets = new Uint8Array(256);
+            for (let valeur = 0; valeur < 256; valeur++) {
+                octets[valeur] = valeur;
+            }
+            const trajet = Trajet.creer(NomDeTrajet.creer('Binaire'));
+            trajet.ajouterImage({
+                nom: 'reelle.jpg',
+                blob: new Blob([octets], { type: 'image/jpeg' }),
+                largeur: 10,
+                hauteur: 10,
+            });
+
+            const copie = await importerTrajetDepuisJson(await exporterTrajetEnJson(trajet));
+
+            const reconstruits = new Uint8Array(await copie.images[0]!.blob.arrayBuffer());
+            expect(Array.from(reconstruits)).toEqual(Array.from(octets));
+        });
+
         it('alors deux imports du même fichier donnent deux trajets aux identifiants distincts', async () => {
             const json = await exporterTrajetEnJson(await trajetComplet());
 
