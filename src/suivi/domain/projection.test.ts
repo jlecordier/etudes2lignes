@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { elementA } from '../../commun/tableau';
 import { Coordonnee } from '../../trajets/domain/Coordonnee';
 import { calculerCibleDeScroll, calculerDefilement, type EtapeDuVoyage } from './projection';
 
@@ -24,7 +25,7 @@ describe('calculerCibleDeScroll', () => {
     describe('Étant donné moins de deux étapes', () => {
         it('alors le suivi est impossible', () => {
             expect(calculerCibleDeScroll([], massy, null)).toEqual({ etat: 'pas-assez-de-points' });
-            expect(calculerCibleDeScroll([etapesSurUnePage[0]!], massy, null)).toEqual({
+            expect(calculerCibleDeScroll([elementA(etapesSurUnePage, 0)], massy, null)).toEqual({
                 etat: 'pas-assez-de-points',
             });
         });

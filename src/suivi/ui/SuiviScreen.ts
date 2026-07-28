@@ -5,6 +5,7 @@ import type { TrajetId } from '../../trajets/domain/ids';
 import type { TrajetRepository } from '../../trajets/ports/TrajetRepository';
 import { elementImagePleineLargeur, revoquerLesUrls } from '../../trajets/ui/elementsDImage';
 import { pointsAffiches } from '../../trajets/ui/pointsAffiches';
+import { requete } from '../../commun/dom';
 import { texteDEtatDuSuivi } from '../domain/presentation';
 import {
     calculerCibleDeScroll,
@@ -34,11 +35,11 @@ export function creerSuiviScreen(dependances: DependancesSuivi): {
 } {
     const { repository, sourceReelle, simulation, selecteurDeCoordonnee, ecranAllume, surRetour } =
         dependances;
-    const ecran = document.querySelector<HTMLElement>('#ecran-suivi')!;
-    const pile = document.querySelector<HTMLDivElement>('#pile-suivi')!;
-    const etat = document.querySelector<HTMLSpanElement>('#etat-suivi')!;
-    const bandeauSimulation = document.querySelector<HTMLElement>('#bandeau-simulation')!;
-    const boutonReprendre = document.querySelector<HTMLButtonElement>('#bouton-reprendre')!;
+    const ecran = requete('#ecran-suivi', HTMLElement);
+    const pile = requete('#pile-suivi', HTMLDivElement);
+    const etat = requete('#etat-suivi', HTMLSpanElement);
+    const bandeauSimulation = requete('#bandeau-simulation', HTMLElement);
+    const boutonReprendre = requete('#bouton-reprendre', HTMLButtonElement);
 
     let trajet: Trajet | null = null;
     let idAffiche: TrajetId | null = null;
@@ -50,21 +51,35 @@ export function creerSuiviScreen(dependances: DependancesSuivi): {
     let suiviAutomatique = true;
     const urlsARevoquer: string[] = [];
 
-    document
-        .querySelector<HTMLButtonElement>('#bouton-quitter-suivi')!
-        .addEventListener('click', () => quitter());
-    document
-        .querySelector<HTMLButtonElement>('#bouton-simuler')!
-        .addEventListener('click', () => void choisirUnePositionSimulee());
-    document
-        .querySelector<HTMLButtonElement>('#bouton-quitter-simulation')!
-        .addEventListener('click', () => quitterLaSimulation());
-    boutonReprendre.addEventListener('click', () => reprendreLeSuivi());
+    requete('#bouton-quitter-suivi', HTMLButtonElement).addEventListener('click', () => {
+        quitter();
+    });
+    requete('#bouton-simuler', HTMLButtonElement).addEventListener('click', () => {
+        void choisirUnePositionSimulee();
+    });
+    requete('#bouton-quitter-simulation', HTMLButtonElement).addEventListener('click', () => {
+        quitterLaSimulation();
+    });
+    boutonReprendre.addEventListener('click', () => {
+        reprendreLeSuivi();
+    });
 
     // Seuls un toucher sur le document ou la molette trahissent un défilement
     // humain ; on n'écoute pas 'scroll' (déclenché aussi par nos scrollTo).
-    pile.addEventListener('touchstart', () => passerEnDefilementManuel(), { passive: true });
-    window.addEventListener('wheel', () => passerEnDefilementManuel(), { passive: true });
+    pile.addEventListener(
+        'touchstart',
+        () => {
+            passerEnDefilementManuel();
+        },
+        { passive: true },
+    );
+    window.addEventListener(
+        'wheel',
+        () => {
+            passerEnDefilementManuel();
+        },
+        { passive: true },
+    );
 
     async function afficher(id: TrajetId): Promise<void> {
         idAffiche = id;
@@ -91,7 +106,9 @@ export function creerSuiviScreen(dependances: DependancesSuivi): {
         simulation.arreter();
         void ecranAllume.relacher();
         revoquerLesUrls(urlsARevoquer);
-        surRetour(idAffiche!);
+        if (idAffiche !== null) {
+            surRetour(idAffiche);
+        }
     }
 
     function rendreLaPile(): void {
@@ -121,7 +138,7 @@ export function creerSuiviScreen(dependances: DependancesSuivi): {
             return;
         }
         const resultat = calculerCibleDeScroll(
-            etapesDuVoyage(),
+            etapesDuVoyage(trajet),
             dernierePosition,
             ancragePrecedent,
         );
@@ -139,11 +156,9 @@ export function creerSuiviScreen(dependances: DependancesSuivi): {
      * Les offsets sont relus à chaque position (jamais mis en cache) :
      * gratuit toutes les ~10 s, et insensible aux rotations d'écran.
      */
-    function etapesDuVoyage(): EtapeDuVoyage[] {
-        return trajet!.ordreVoyageDesPoints().map((point) => {
-            const image = pile.querySelector<HTMLImageElement>(
-                `img[data-image-id="${point.imageId}"]`,
-            )!;
+    function etapesDuVoyage(trajet: Trajet): EtapeDuVoyage[] {
+        return trajet.ordreVoyageDesPoints().map((point) => {
+            const image = requete(`img[data-image-id="${point.imageId}"]`, HTMLImageElement, pile);
             const cadre = image.getBoundingClientRect();
             return {
                 coordonnee: point.coordonnee,
@@ -164,7 +179,7 @@ export function creerSuiviScreen(dependances: DependancesSuivi): {
     // --- Défilement manuel -------------------------------------------------------
 
     function passerEnDefilementManuel(): void {
-        const carteOuverte = !document.querySelector<HTMLElement>('#ecran-carte')!.hidden;
+        const carteOuverte = !requete('#ecran-carte', HTMLElement).hidden;
         if (ecran.hidden || carteOuverte || !suiviAutomatique) {
             return;
         }

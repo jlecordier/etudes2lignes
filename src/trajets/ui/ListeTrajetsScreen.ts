@@ -1,3 +1,4 @@
+import { requete } from '../../commun/dom';
 import { NomDeTrajet } from '../domain/NomDeTrajet';
 import { Trajet } from '../domain/Trajet';
 import type { TrajetId } from '../domain/ids';
@@ -14,14 +15,16 @@ export function creerListeTrajetsScreen(dependances: DependancesListeTrajets): {
     afficher: () => Promise<void>;
 } {
     const { repository, surOuverture } = dependances;
-    const liste = document.querySelector<HTMLUListElement>('#liste-trajets')!;
-    const messageVide = document.querySelector<HTMLParagraphElement>('#liste-vide')!;
-    const boutonCreer = document.querySelector<HTMLButtonElement>('#bouton-creer-trajet')!;
-    const boutonImporter = document.querySelector<HTMLButtonElement>('#bouton-importer-trajet')!;
-    const champFichierImport = document.querySelector<HTMLInputElement>('#input-import-trajet')!;
+    const liste = requete('#liste-trajets', HTMLUListElement);
+    const messageVide = requete('#liste-vide', HTMLParagraphElement);
+    const boutonCreer = requete('#bouton-creer-trajet', HTMLButtonElement);
+    const boutonImporter = requete('#bouton-importer-trajet', HTMLButtonElement);
+    const champFichierImport = requete('#input-import-trajet', HTMLInputElement);
 
     boutonCreer.addEventListener('click', () => void creerUnTrajet());
-    boutonImporter.addEventListener('click', () => champFichierImport.click());
+    boutonImporter.addEventListener('click', () => {
+        champFichierImport.click();
+    });
     champFichierImport.addEventListener('change', () => void importerUnTrajet());
 
     async function afficher(): Promise<void> {
@@ -73,7 +76,7 @@ export function creerListeTrajetsScreen(dependances: DependancesListeTrajets): {
         }
         let trajet: Trajet;
         try {
-            trajet = await importerTrajetDepuisJson(texte);
+            trajet = importerTrajetDepuisJson(texte);
         } catch (erreur) {
             alert(erreur instanceof Error ? erreur.message : String(erreur));
             return;
@@ -121,7 +124,9 @@ export function creerListeTrajetsScreen(dependances: DependancesListeTrajets): {
         ouvrir.type = 'button';
         ouvrir.className = 'nom-trajet';
         ouvrir.textContent = resume.nom;
-        ouvrir.addEventListener('click', () => surOuverture(resume.id));
+        ouvrir.addEventListener('click', () => {
+            surOuverture(resume.id);
+        });
 
         const details = document.createElement('span');
         details.className = 'details-trajet';
@@ -165,7 +170,9 @@ function telecharger(contenu: string, nomDeFichier: string): void {
     lien.click();
     // Révocation différée : Safari/iOS et Firefox lisent le blob après le tick
     // courant ; le révoquer tout de suite annulerait le téléchargement.
-    setTimeout(() => URL.revokeObjectURL(url), DELAI_REVOCATION_MS);
+    setTimeout(() => {
+        URL.revokeObjectURL(url);
+    }, DELAI_REVOCATION_MS);
 }
 
 /** Un nom de trajet peut contenir des caractères interdits dans un nom de fichier. */

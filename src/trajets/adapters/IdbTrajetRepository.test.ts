@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { elementA } from '../../commun/tableau';
 import { Coordonnee } from '../domain/Coordonnee';
 import { FractionVerticale } from '../domain/FractionVerticale';
 import { NomDeTrajet } from '../domain/NomDeTrajet';
@@ -37,14 +38,17 @@ describe('IdbTrajetRepository', () => {
             const charge = await repository.charger(original.id);
 
             expect(charge).not.toBeNull();
-            expect(charge!.nom.valeur).toBe('Paris → Bordeaux');
-            expect(charge!.images).toHaveLength(1);
-            const image = charge!.images[0]!;
+            if (charge === null) {
+                throw new Error('Le trajet sauvegardé devrait être rechargeable.');
+            }
+            expect(charge.nom.valeur).toBe('Paris → Bordeaux');
+            expect(charge.images).toHaveLength(1);
+            const image = elementA(charge.images, 0);
             expect(image.nom).toBe('page-1.jpg');
             expect(image.largeur).toBe(2481);
             expect(image.hauteur).toBe(3508);
             expect(await image.blob.text()).toBe('contenu de la page 1');
-            const point = charge!.points[0]!;
+            const point = elementA(charge.points, 0);
             expect(point.imageId).toBe(image.id);
             expect(point.fraction.valeur).toBe(0.42);
             expect(point.coordonnee.latitude).toBe(46.5802);
@@ -65,13 +69,17 @@ describe('IdbTrajetRepository', () => {
             await repository.sauvegarder(trajet);
 
             trajet.renommer(NomDeTrajet.creer('Bordeaux → Paris'));
-            trajet.supprimerImage(trajet.images[0]!.id);
+            trajet.supprimerImage(elementA(trajet.images, 0).id);
             await repository.sauvegarder(trajet);
 
             const charge = await repository.charger(trajet.id);
-            expect(charge!.nom.valeur).toBe('Bordeaux → Paris');
-            expect(charge!.images).toHaveLength(0);
-            expect(charge!.points).toHaveLength(0);
+            expect(charge).not.toBeNull();
+            if (charge === null) {
+                throw new Error('Le trajet modifié devrait être rechargeable.');
+            }
+            expect(charge.nom.valeur).toBe('Bordeaux → Paris');
+            expect(charge.images).toHaveLength(0);
+            expect(charge.points).toHaveLength(0);
         });
     });
 
@@ -91,9 +99,9 @@ describe('IdbTrajetRepository', () => {
                 'Paris → Bordeaux',
                 'Paris → Marseille',
             ]);
-            expect(resumes[0]!.nombreDImages).toBe(1);
-            expect(resumes[0]!.nombreDePoints).toBe(1);
-            expect(resumes[1]!.nombreDImages).toBe(0);
+            expect(elementA(resumes, 0).nombreDImages).toBe(1);
+            expect(elementA(resumes, 0).nombreDePoints).toBe(1);
+            expect(elementA(resumes, 1).nombreDImages).toBe(0);
         });
 
         it('quand j’en supprime un, alors lui seul disparaît, avec ses images et ses points', async () => {
@@ -106,8 +114,12 @@ describe('IdbTrajetRepository', () => {
 
             expect(await repository.charger(aSupprimer.id)).toBeNull();
             const garde = await repository.charger(aGarder.id);
-            expect(garde!.images).toHaveLength(1);
-            expect(garde!.points).toHaveLength(1);
+            expect(garde).not.toBeNull();
+            if (garde === null) {
+                throw new Error('Le trajet conservé devrait être rechargeable.');
+            }
+            expect(garde.images).toHaveLength(1);
+            expect(garde.points).toHaveLength(1);
             expect(await repository.listerResumes()).toHaveLength(1);
         });
     });

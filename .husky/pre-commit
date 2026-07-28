@@ -1,3 +1,11 @@
+# Échoue dès la première commande qui échoue.
+set -e
+
+# Nettoyage automatique du code mort (exports / dépendances inutilisés), puis
+# on re-indexe ce que fallow a modifié pour l'inclure au commit.
+pnpm exec fallow fix --yes
+git add -u
+
 pnpm exec lint-staged
 pnpm typecheck
 pnpm test

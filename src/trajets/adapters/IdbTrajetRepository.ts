@@ -91,9 +91,9 @@ export class IdbTrajetRepository implements TrajetRepository {
             await db.getAllKeysFromIndex('images', 'parTrajet', trajet.id),
         );
         const nouvellesImages = trajet.images.filter((image) => !dejaStockees.has(image.id));
-        const tampons = new Map<ImageId, ArrayBuffer>();
+        const imagesAvecDonnees: { image: ImageDeTrajet; donnees: ArrayBuffer }[] = [];
         for (const image of nouvellesImages) {
-            tampons.set(image.id, await image.blob.arrayBuffer());
+            imagesAvecDonnees.push({ image, donnees: await image.blob.arrayBuffer() });
         }
 
         const transaction = db.transaction(['trajets', 'images', 'points'], 'readwrite');
@@ -110,12 +110,12 @@ export class IdbTrajetRepository implements TrajetRepository {
                 void transaction.objectStore('images').delete(cle);
             }
         }
-        for (const image of nouvellesImages) {
+        for (const { image, donnees } of imagesAvecDonnees) {
             void transaction.objectStore('images').put({
                 id: image.id,
                 trajetId: trajet.id,
                 nom: image.nom,
-                donnees: tampons.get(image.id)!,
+                donnees,
                 type: image.blob.type,
                 largeur: image.largeur,
                 hauteur: image.hauteur,

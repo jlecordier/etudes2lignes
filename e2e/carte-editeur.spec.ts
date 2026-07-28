@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { ajouterUnPoint, ouvrirUnTrajetAvecUnePage } from './aides';
+import { ajouterUnPoint, mesure, ouvrirUnTrajetAvecUnePage } from './aides';
 
 test.describe("Carte de l'éditeur (tous les points du trajet)", () => {
     test('Étant donné deux points, alors la carte intégrée montre deux marqueurs numérotés', async ({
@@ -25,10 +25,10 @@ test.describe("Carte de l'éditeur (tous les points du trajet)", () => {
         // L'ajout du point a fait défiler la page : ramener la carte à l'écran,
         // sinon le glisser viserait des coordonnées hors du viewport.
         await page.locator('#carte-points').scrollIntoViewIfNeeded();
-        const marqueur = (await page
-            .locator('#carte-points .marqueur-carte')
-            .first()
-            .boundingBox())!;
+        const marqueur = mesure(
+            await page.locator('#carte-points .marqueur-carte').first().boundingBox(),
+            'marqueur de la carte',
+        );
         await page.mouse.move(marqueur.x + marqueur.width / 2, marqueur.y + marqueur.height / 2);
         await page.mouse.down();
         await page.mouse.move(
@@ -46,10 +46,10 @@ test.describe("Carte de l'éditeur (tous les points du trajet)", () => {
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
-        const carte = (await page.locator('#carte-points').boundingBox())!;
-        const pile = (await page.locator('#pile-images').boundingBox())!;
+        const carte = mesure(await page.locator('#carte-points').boundingBox(), 'carte intégrée');
+        const pile = mesure(await page.locator('#pile-images').boundingBox(), 'pile d’images');
 
-        if (page.viewportSize()!.width >= 900) {
+        if (mesure(page.viewportSize(), 'viewport').width >= 900) {
             // Côte à côte : la carte finit avant que les images commencent…
             expect(carte.x + carte.width).toBeLessThanOrEqual(pile.x + 1);
             // …et elles partagent la même rangée.

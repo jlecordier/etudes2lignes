@@ -6,6 +6,7 @@ import './style.css';
 import { registerSW } from 'virtual:pwa-register';
 import { LeafletCarteDesPoints } from './carte/adapters/LeafletCarteDesPoints';
 import { LeafletSelecteurDeCoordonnee } from './carte/adapters/LeafletSelecteurDeCoordonnee';
+import { requete } from './commun/dom';
 import { afficherEcran } from './navigation';
 import { GeolocationPositionSource } from './suivi/adapters/GeolocationPositionSource';
 import { NavigateurEcranAllume } from './suivi/adapters/NavigateurEcranAllume';
@@ -72,12 +73,16 @@ function demarrer(): void {
 function activerLeModeHorsLigne(): void {
     registerSW({
         onOfflineReady() {
-            const indicateur = document.querySelector<HTMLElement>('#indicateur-hors-ligne')!;
+            const indicateur = requete('#indicateur-hors-ligne', HTMLElement);
             indicateur.hidden = false;
         },
     });
     // Best effort : demande au navigateur de ne jamais purger le stockage.
-    void navigator.storage?.persist?.();
+    // navigator.storage est typé comme toujours présent, mais absent de certains
+    // navigateurs (contexte non sécurisé, vieux Safari). On l'annote optionnel pour
+    // exprimer honnêtement cette absence possible (Navigator s'y assigne sans cast).
+    const navigateur: { storage?: { persist?: () => Promise<boolean> } } = navigator;
+    void navigateur.storage?.persist?.();
 }
 
 demarrer();

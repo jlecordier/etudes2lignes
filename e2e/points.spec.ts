@@ -4,6 +4,7 @@ import {
     clicDroitSurLImage,
     cliquerSurLImage,
     fichierPng,
+    mesure,
     ouvrirUnTrajetAvecUnePage,
 } from './aides';
 
@@ -192,7 +193,9 @@ test.describe('Géoréférencement des points', () => {
             'page-1.png',
         ]);
 
-        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        await page.evaluate(() => {
+            window.scrollTo(0, document.body.scrollHeight);
+        });
         const boutonFlottant = page.locator('#bouton-ajouter-point-flottant');
         await expect(boutonFlottant).toBeInViewport();
 
@@ -208,7 +211,7 @@ test.describe('Géoréférencement des points', () => {
         page,
     }) => {
         test.skip(
-            page.viewportSize()!.width >= 900,
+            mesure(page.viewportSize(), 'viewport').width >= 900,
             'La saisie manuelle lat/lon vit dans la carte plein écran : sur grand écran, la coordonnée se choisit directement sur la carte intégrée.',
         );
         await ouvrirUnTrajetAvecUnePage(page);

@@ -1,3 +1,4 @@
+import { elementA } from '../../commun/tableau';
 import type { Coordonnee } from '../../trajets/domain/Coordonnee';
 
 /**
@@ -51,14 +52,14 @@ export function calculerCibleDeScroll(
 
     const projections = projeterSurChaqueSegment(etapes, position);
     const indexRetenu = choisirLeSegment(projections, etapes, precedent);
-    const projection = projections[indexRetenu]!;
+    const projection = elementA(projections, indexRetenu);
 
     if (projection.distanceMetres > seuilHorsTrajet(projection.longueurMetres)) {
         return { etat: 'hors-trajet', distanceMetres: projection.distanceMetres };
     }
 
-    const depart = etapes[indexRetenu]!.offset;
-    const arrivee = etapes[indexRetenu + 1]!.offset;
+    const depart = elementA(etapes, indexRetenu).offset;
+    const arrivee = elementA(etapes, indexRetenu + 1).offset;
     return {
         etat: 'sur-trajet',
         scrollCible: interpoler(depart, arrivee, projection.t),
@@ -93,7 +94,11 @@ function projeterSurChaqueSegment(
     const projections: ProjectionSurSegment[] = [];
     for (let index = 0; index < etapes.length - 1; index++) {
         projections.push(
-            projeterSurSegment(etapes[index]!.coordonnee, etapes[index + 1]!.coordonnee, position),
+            projeterSurSegment(
+                elementA(etapes, index).coordonnee,
+                elementA(etapes, index + 1).coordonnee,
+                position,
+            ),
         );
     }
     return projections;
@@ -149,17 +154,20 @@ function choisirLeSegment(
         return indexLePlusProche;
     }
 
-    const distanceMinimale = projections[indexLePlusProche]!.distanceMetres;
+    const distanceMinimale = elementA(projections, indexLePlusProche).distanceMetres;
     let indexRetenu = indexLePlusProche;
     let plusPetitEcartDeCible = Number.POSITIVE_INFINITY;
     for (let index = 0; index < projections.length; index++) {
-        if (projections[index]!.distanceMetres > distanceMinimale + MARGE_D_ADHERENCE_METRES) {
+        if (
+            elementA(projections, index).distanceMetres >
+            distanceMinimale + MARGE_D_ADHERENCE_METRES
+        ) {
             continue;
         }
         const cible = interpoler(
-            etapes[index]!.offset,
-            etapes[index + 1]!.offset,
-            projections[index]!.t,
+            elementA(etapes, index).offset,
+            elementA(etapes, index + 1).offset,
+            elementA(projections, index).t,
         );
         const ecart = Math.abs(cible - precedent.scrollCible);
         if (ecart < plusPetitEcartDeCible) {
@@ -173,7 +181,10 @@ function choisirLeSegment(
 function indexDeLaDistanceMinimale(projections: readonly ProjectionSurSegment[]): number {
     let meilleur = 0;
     for (let index = 1; index < projections.length; index++) {
-        if (projections[index]!.distanceMetres < projections[meilleur]!.distanceMetres) {
+        if (
+            elementA(projections, index).distanceMetres <
+            elementA(projections, meilleur).distanceMetres
+        ) {
             meilleur = index;
         }
     }

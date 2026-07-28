@@ -36,8 +36,12 @@ export class NavigateurEcranAllume implements EcranAllume {
     }
 
     private async acquerir(): Promise<void> {
+        // navigator.wakeLock est typé comme toujours présent, mais n'existe pas
+        // partout (iOS < 18.4, contexte non sécurisé). On l'annote optionnel pour
+        // l'exprimer (Navigator s'y assigne sans cast).
+        const navigateur: { wakeLock?: WakeLock } = navigator;
         try {
-            this.verrou = (await navigator.wakeLock?.request('screen')) ?? null;
+            this.verrou = (await navigateur.wakeLock?.request('screen')) ?? null;
         } catch {
             this.verrou = null;
         }

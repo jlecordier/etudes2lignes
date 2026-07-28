@@ -57,14 +57,20 @@ export class GeolocationPositionSource implements PositionSource {
     private derniereImprecisionMetres: number | null = null;
     private dernierRedemarrageMs: number | null = null;
 
-    private readonly surRetourAuPremierPlan = (): void => this.demanderUnePositionImmediate();
+    private readonly surRetourAuPremierPlan = (): void => {
+        this.demanderUnePositionImmediate();
+    };
 
     constructor(dependances?: {
         geolocalisation?: FournisseurDeGeolocalisation;
         maintenant?: () => number;
         cadenceur?: Cadenceur;
     }) {
-        this.geolocalisation = dependances?.geolocalisation ?? navigator.geolocation ?? null;
+        // navigator.geolocation est typé comme toujours présent, mais absent en
+        // contexte non sécurisé ou sur de vieux navigateurs. On l'annote optionnel
+        // pour l'exprimer (Navigator s'y assigne sans cast).
+        const navigateur: { geolocation?: Geolocation } = navigator;
+        this.geolocalisation = dependances?.geolocalisation ?? navigateur.geolocation ?? null;
         this.maintenant = dependances?.maintenant ?? (() => Date.now());
         this.cadenceur = dependances?.cadenceur ?? cadenceurParDefaut;
     }
@@ -80,18 +86,25 @@ export class GeolocationPositionSource implements PositionSource {
             return;
         }
         this.demarrerLaSurveillance();
-        this.annulerLeChienDeGarde = this.cadenceur.toutesLes(CADENCE_DU_CHIEN_DE_GARDE_MS, () =>
-            this.verifierLeSilence(),
-        );
+        this.annulerLeChienDeGarde = this.cadenceur.toutesLes(CADENCE_DU_CHIEN_DE_GARDE_MS, () => {
+            this.verifierLeSilence();
+        });
         document.addEventListener('visibilitychange', this.surRetourAuPremierPlan);
         window.addEventListener('pageshow', this.surRetourAuPremierPlan);
         window.addEventListener('focus', this.surRetourAuPremierPlan);
     }
 
     private demarrerLaSurveillance(): void {
-        this.idDeSurveillance = this.geolocalisation!.watchPosition(
-            (fix) => this.traiterLeFix(fix),
-            (erreur) => this.traiterLErreur(erreur),
+        if (this.geolocalisation === null) {
+            return;
+        }
+        this.idDeSurveillance = this.geolocalisation.watchPosition(
+            (fix) => {
+                this.traiterLeFix(fix);
+            },
+            (erreur) => {
+                this.traiterLErreur(erreur);
+            },
             OPTIONS_DE_POSITION,
         );
     }
@@ -204,6 +217,8 @@ export class GeolocationPositionSource implements PositionSource {
 const cadenceurParDefaut: Cadenceur = {
     toutesLes(millisecondes, action) {
         const id = setInterval(action, millisecondes);
-        return () => clearInterval(id);
+        return () => {
+            clearInterval(id);
+        };
     },
 };

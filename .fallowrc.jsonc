@@ -1,0 +1,10 @@
+{
+    "$schema": "./node_modules/fallow/schema.json",
+    // Points d'entrée réels de l'application (le reste des entrées est fourni
+    // automatiquement par les plugins fallow : Vite, PWA, Playwright…).
+    "entry": ["src/main.ts", "scripts/*.mjs"],
+    // @typescript/native fournit le binaire `tsc` (TS 7 natif) des scripts
+    // typecheck/build. fallow ne relie pas les binaires à leur paquet et le croit
+    // inutilisé : on le garde explicitement pour que `fallow fix` n'y touche pas.
+    "ignoreDependencies": ["@typescript/native"],
+}

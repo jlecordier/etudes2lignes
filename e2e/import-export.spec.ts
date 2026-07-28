@@ -28,15 +28,16 @@ test.describe('Import / export JSON', () => {
 
         const fichier = await exporterLePremierTrajet(page);
 
-        const contenu = JSON.parse(await readFile(fichier, 'utf-8'));
-        expect(contenu.application).toBe('etudes2lignes');
-        expect(contenu.version).toBe(1);
-        expect(contenu.trajet.nom).toBe('Paris → Bordeaux');
-        expect(contenu.trajet.images).toHaveLength(1);
-        expect(contenu.trajet.images[0].nom).toBe('page-1.png');
-        expect(contenu.trajet.images[0].donneesBase64.length).toBeGreaterThan(0);
-        expect(contenu.trajet.points).toHaveLength(1);
-        expect(contenu.trajet.points[0].image).toBe(0);
+        const contenu: unknown = JSON.parse(await readFile(fichier, 'utf-8'));
+        expect(contenu).toMatchObject({
+            application: 'etudes2lignes',
+            version: 1,
+            trajet: {
+                nom: 'Paris → Bordeaux',
+                images: [{ nom: 'page-1.png', donneesBase64: expect.stringMatching(/.+/) }],
+                points: [{ image: 0 }],
+            },
+        });
     });
 
     test('Étant donné un fichier exporté, quand je l’importe, alors un nouveau trajet identique apparaît', async ({

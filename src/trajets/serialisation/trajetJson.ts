@@ -41,12 +41,18 @@ export async function exporterTrajetEnJson(trajet: Trajet): Promise<string> {
         });
     }
     const indexParImage = new Map(trajet.images.map((image, index) => [image.id, index]));
-    const points: PointExporte[] = trajet.ordreVoyageDesPoints().map((point) => ({
-        image: indexParImage.get(point.imageId)!,
-        fraction: point.fraction.valeur,
-        latitude: point.coordonnee.latitude,
-        longitude: point.coordonnee.longitude,
-    }));
+    const points: PointExporte[] = trajet.ordreVoyageDesPoints().map((point) => {
+        const image = indexParImage.get(point.imageId);
+        if (image === undefined) {
+            throw new Error('Incohérence interne : un point du trajet vise une image absente.');
+        }
+        return {
+            image,
+            fraction: point.fraction.valeur,
+            latitude: point.coordonnee.latitude,
+            longitude: point.coordonnee.longitude,
+        };
+    });
     return JSON.stringify(
         {
             application: APPLICATION,
@@ -58,7 +64,7 @@ export async function exporterTrajetEnJson(trajet: Trajet): Promise<string> {
     );
 }
 
-export async function importerTrajetDepuisJson(texte: string): Promise<Trajet> {
+export function importerTrajetDepuisJson(texte: string): Trajet {
     const contenu = analyserLeJson(texte);
     const donnees = validerLEnveloppe(contenu);
 

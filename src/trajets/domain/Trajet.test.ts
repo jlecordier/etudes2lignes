@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Coordonnee } from './Coordonnee';
 import { FractionVerticale } from './FractionVerticale';
 import { NomDeTrajet } from './NomDeTrajet';
+import { elementA } from '../../commun/tableau';
 import { Trajet } from './Trajet';
 
 function nouveauTrajet(nom = 'Paris → Bordeaux'): Trajet {
@@ -137,7 +138,7 @@ describe('Trajet', () => {
 
             trajet.deplacerPointSurImage(pointId, idB, FractionVerticale.creer(0.9));
 
-            const point = trajet.points[0]!;
+            const point = elementA(trajet.points, 0);
             expect(point.imageId).toBe(idB);
             expect(point.fraction.valeur).toBe(0.9);
             expect(point.coordonnee.egale(massy)).toBe(true);
@@ -154,7 +155,7 @@ describe('Trajet', () => {
 
             trajet.deplacerPointSurCarte(pointId, poitiers);
 
-            const point = trajet.points[0]!;
+            const point = elementA(trajet.points, 0);
             expect(point.coordonnee.egale(poitiers)).toBe(true);
             expect(point.fraction.valeur).toBe(0.5);
         });

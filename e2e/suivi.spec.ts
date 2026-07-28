@@ -4,6 +4,7 @@ import {
     attendreLeDefilement,
     choisirUneCoordonneeSurLaCarte,
     defilementAttendu,
+    mesure,
     ouvrirUnTrajetAvecUnePage,
 } from './aides';
 
@@ -29,7 +30,10 @@ async function simulerSurLePremierRepere(page: Page): Promise<void> {
     await expect(page.locator('#ecran-carte')).toBeVisible();
     const champLongitude = page.getByLabel('Longitude');
     const valeurAvant = await champLongitude.inputValue();
-    const repere = (await page.locator('#conteneur-carte .marqueur-carte').first().boundingBox())!;
+    const repere = mesure(
+        await page.locator('#conteneur-carte .marqueur-carte').first().boundingBox(),
+        'repère sur la carte',
+    );
     await page.mouse.click(repere.x + repere.width / 2, repere.y + repere.height / 2);
     await expect(champLongitude).not.toHaveValue(valeurAvant);
     await page.getByRole('button', { name: 'Valider' }).click();
@@ -88,7 +92,9 @@ test.describe('Suivi du trajet (position simulée)', () => {
         await expect(boutonReprendre).toBeVisible();
 
         // La page part ailleurs, le suivi coupé ne la ramène pas.
-        await page.evaluate(() => window.scrollTo({ top: 0 }));
+        await page.evaluate(() => {
+            window.scrollTo({ top: 0 });
+        });
 
         await boutonReprendre.click();
         await expect(boutonReprendre).toBeHidden();

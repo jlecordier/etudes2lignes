@@ -16,6 +16,10 @@
         "format": "prettier --write .",
         "lint": "eslint .",
         "lint:fix": "eslint --fix .",
+        "fallow": "fallow",
+        "fallow:fix": "fallow fix --yes",
+        "fallow:check": "fallow fix --dry-run",
+        "quality": "pnpm typecheck && pnpm lint && pnpm test && pnpm exec fallow audit",
         "prepare": "husky"
     },
     "lint-staged": {
@@ -38,6 +42,7 @@
         "eslint": "^10.6.0",
         "eslint-config-prettier": "^10.1.8",
         "fake-indexeddb": "^6.2.5",
+        "fallow": "^3.5.1",
         "globals": "^17.7.0",
         "husky": "^9.1.7",
         "jsdom": "^29.1.1",

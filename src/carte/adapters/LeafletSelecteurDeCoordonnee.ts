@@ -3,6 +3,7 @@ import 'leaflet/dist/leaflet.css';
 import iconeRetina from 'leaflet/dist/images/marker-icon-2x.png';
 import icone from 'leaflet/dist/images/marker-icon.png';
 import ombre from 'leaflet/dist/images/marker-shadow.png';
+import { requete } from '../../commun/dom';
 import { Coordonnee } from '../../trajets/domain/Coordonnee';
 import type { PointAffiche } from '../ports/CarteDesPointsPort';
 import type { SelecteurDeCoordonnee } from '../ports/SelecteurDeCoordonneePort';
@@ -23,20 +24,21 @@ export class LeafletSelecteurDeCoordonnee implements SelecteurDeCoordonnee {
     private reperes: L.Marker[] = [];
     private resoudre: ((coordonnee: Coordonnee | null) => void) | null = null;
 
-    private readonly ecran = document.querySelector<HTMLElement>('#ecran-carte')!;
-    private readonly champLatitude = document.querySelector<HTMLInputElement>('#champ-latitude')!;
-    private readonly champLongitude = document.querySelector<HTMLInputElement>('#champ-longitude')!;
-    private readonly boutonValider =
-        document.querySelector<HTMLButtonElement>('#bouton-valider-carte')!;
+    private readonly ecran = requete('#ecran-carte', HTMLElement);
+    private readonly champLatitude = requete('#champ-latitude', HTMLInputElement);
+    private readonly champLongitude = requete('#champ-longitude', HTMLInputElement);
+    private readonly boutonValider = requete('#bouton-valider-carte', HTMLButtonElement);
 
     constructor() {
-        document
-            .querySelector<HTMLButtonElement>('#bouton-annuler-carte')!
-            .addEventListener('click', () => this.terminer(null));
-        this.boutonValider.addEventListener('click', () => this.validerLeMarqueur());
-        document
-            .querySelector<HTMLButtonElement>('#bouton-placer-manuel')!
-            .addEventListener('click', () => this.placerDepuisLaSaisie());
+        requete('#bouton-annuler-carte', HTMLButtonElement).addEventListener('click', () => {
+            this.terminer(null);
+        });
+        this.boutonValider.addEventListener('click', () => {
+            this.validerLeMarqueur();
+        });
+        requete('#bouton-placer-manuel', HTMLButtonElement).addEventListener('click', () => {
+            this.placerDepuisLaSaisie();
+        });
     }
 
     choisir(
@@ -87,7 +89,9 @@ export class LeafletSelecteurDeCoordonnee implements SelecteurDeCoordonnee {
         const position: [number, number] = [coordonnee.latitude, coordonnee.longitude];
         if (this.marqueur === null) {
             this.marqueur = L.marker(position, { draggable: true }).addTo(this.carteInitialisee());
-            this.marqueur.on('dragend', () => this.refleterLeMarqueurDansLaSaisie());
+            this.marqueur.on('dragend', () => {
+                this.refleterLeMarqueurDansLaSaisie();
+            });
         } else {
             this.marqueur.setLatLng(position);
         }
@@ -95,7 +99,10 @@ export class LeafletSelecteurDeCoordonnee implements SelecteurDeCoordonnee {
     }
 
     private refleterLeMarqueurDansLaSaisie(): void {
-        const position = this.marqueur!.getLatLng().wrap();
+        if (this.marqueur === null) {
+            return;
+        }
+        const position = this.marqueur.getLatLng().wrap();
         this.champLatitude.value = position.lat.toFixed(5);
         this.champLongitude.value = position.lng.toFixed(5);
         this.boutonValider.disabled = false;
@@ -119,7 +126,10 @@ export class LeafletSelecteurDeCoordonnee implements SelecteurDeCoordonnee {
     }
 
     private validerLeMarqueur(): void {
-        const position = this.marqueur!.getLatLng().wrap();
+        if (this.marqueur === null) {
+            return;
+        }
+        const position = this.marqueur.getLatLng().wrap();
         this.terminer(Coordonnee.creer(position.lat, position.lng));
     }
 

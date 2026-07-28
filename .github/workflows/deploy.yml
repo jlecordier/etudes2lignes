@@ -21,6 +21,9 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
+              with:
+                  # Historique complet : `fallow audit` compare aux commits précédents.
+                  fetch-depth: 0
             - uses: pnpm/action-setup@v4
               with:
                   version: 9
@@ -31,6 +34,9 @@ jobs:
             - run: pnpm install --frozen-lockfile
             - run: pnpm typecheck
             - run: pnpm lint
+            # Garde-fou code mort / complexité : bloque si de NOUVEAUX problèmes
+            # apparaissent dans les fichiers modifiés (n'échoue pas sur l'hérité).
+            - run: pnpm exec fallow audit
             - run: pnpm test
             - run: pnpm exec playwright install --with-deps chromium webkit firefox
             - run: pnpm test:e2e

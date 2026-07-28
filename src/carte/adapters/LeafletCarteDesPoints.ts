@@ -73,22 +73,23 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
         if (this.carte !== null) {
             return this.carte;
         }
-        this.carte = L.map(this.idDuConteneur).setView(VUE_FRANCE.centre, VUE_FRANCE.zoom);
-        creerCoucheOsm().addTo(this.carte);
+        const carte = L.map(this.idDuConteneur).setView(VUE_FRANCE.centre, VUE_FRANCE.zoom);
+        this.carte = carte;
+        creerCoucheOsm().addTo(carte);
         // Rotation d'un iPad/téléphone : le conteneur change de taille sans
         // repasser par afficher() — Leaflet doit se remesurer tout de suite.
-        window.addEventListener('resize', () => this.carte?.invalidateSize());
-        this.carte.on('click', (evenement) => {
+        window.addEventListener('resize', () => carte.invalidateSize());
+        carte.on('click', (evenement) => {
             const enAttente = this.resoudreLeChoix;
             if (enAttente === null) {
                 return;
             }
             this.resoudreLeChoix = null;
-            this.carte!.getContainer().classList.remove('attente-clic');
+            carte.getContainer().classList.remove('attente-clic');
             const position = evenement.latlng.wrap();
             enAttente(Coordonnee.creer(position.lat, position.lng));
         });
-        return this.carte;
+        return carte;
     }
 
     private poserOuMettreAJour(point: PointAffiche): void {

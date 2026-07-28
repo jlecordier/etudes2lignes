@@ -1,3 +1,4 @@
+import { elementA } from '../../commun/tableau';
 import type { Coordonnee } from './Coordonnee';
 import type { FractionVerticale } from './FractionVerticale';
 import type { NomDeTrajet } from './NomDeTrajet';
@@ -88,7 +89,7 @@ export class Trajet {
     }
 
     descendreImage(imageId: ImageId): void {
-        this.echangerImages(this.indexImageObligatoire(imageId), +1);
+        this.echangerImages(this.indexImageObligatoire(imageId), 1);
     }
 
     supprimerImage(imageId: ImageId): void {
@@ -111,12 +112,12 @@ export class Trajet {
     deplacerPointSurImage(pointId: PointId, imageId: ImageId, fraction: FractionVerticale): void {
         this.indexImageObligatoire(imageId);
         const index = this.indexPointObligatoire(pointId);
-        this._points[index] = { ...this._points[index]!, imageId, fraction };
+        this._points[index] = { ...elementA(this._points, index), imageId, fraction };
     }
 
     deplacerPointSurCarte(pointId: PointId, coordonnee: Coordonnee): void {
         const index = this.indexPointObligatoire(pointId);
-        this._points[index] = { ...this._points[index]!, coordonnee };
+        this._points[index] = { ...elementA(this._points, index), coordonnee };
     }
 
     supprimerPoint(pointId: PointId): void {
@@ -144,14 +145,14 @@ export class Trajet {
         if (voisin < 0 || voisin >= this._images.length) {
             return;
         }
-        const image = this._images[index]!;
-        this._images[index] = this._images[voisin]!;
+        const image = elementA(this._images, index);
+        this._images[index] = elementA(this._images, voisin);
         this._images[voisin] = image;
     }
 
     private supprimerLesPointsDeLImage(imageId: ImageId): void {
         for (let index = this._points.length - 1; index >= 0; index--) {
-            if (this._points[index]!.imageId === imageId) {
+            if (elementA(this._points, index).imageId === imageId) {
                 this._points.splice(index, 1);
             }
         }

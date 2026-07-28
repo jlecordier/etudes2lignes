@@ -5,11 +5,26 @@
         "moduleResolution": "bundler",
         "lib": ["ES2022", "DOM", "DOM.Iterable"],
         "types": ["vite/client", "vite-plugin-pwa/client", "node"],
+
+        // --- Rigueur de typage ---
         "strict": true,
         "noUncheckedIndexedAccess": true,
         "noImplicitOverride": true,
         "exactOptionalPropertyTypes": true,
+
+        // --- Chasse au code mort / aux oublis ---
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "noPropertyAccessFromIndexSignature": true,
+        "noUncheckedSideEffectImports": true,
+        "allowUnreachableCode": false,
+        "allowUnusedLabels": false,
+
+        // --- Cohérence avec le bundler ---
         "verbatimModuleSyntax": true,
+        "isolatedModules": true,
         "skipLibCheck": true,
         "noEmit": true
     },

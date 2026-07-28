@@ -26,6 +26,14 @@ export async function ouvrirUnTrajetAvecUnePage(page: Page): Promise<void> {
     await expect(page.locator('.nom-image')).toHaveText(['page-1.png']);
 }
 
+/** Renvoie une valeur attendue (cadre, viewport, texte, correspondance…) ou échoue clairement. */
+export function mesure<T>(valeur: T | null | undefined, quoi: string): T {
+    if (valeur === null || valeur === undefined) {
+        throw new Error(`Valeur attendue absente : ${quoi}.`);
+    }
+    return valeur;
+}
+
 /** Centre la fraction visée de l'image dans le viewport et renvoie ses coordonnées écran. */
 async function positionSurLImage(
     page: Page,
@@ -36,11 +44,13 @@ async function positionSurLImage(
     await zone.scrollIntoViewIfNeeded();
     // L'image de test s'étire en pleine largeur : le point visé peut être sous
     // le pli. On centre la cible dans le viewport avant de cliquer.
-    const viewport = page.viewportSize()!;
-    let cadre = (await zone.boundingBox())!;
+    const viewport = mesure(page.viewportSize(), 'viewport');
+    let cadre = mesure(await zone.boundingBox(), 'cadre de la zone');
     const decalage = cadre.y + cadre.height * fractionDeHauteur - viewport.height / 2;
-    await page.evaluate((delta) => window.scrollBy(0, delta), decalage);
-    cadre = (await zone.boundingBox())!;
+    await page.evaluate((delta) => {
+        window.scrollBy(0, delta);
+    }, decalage);
+    cadre = mesure(await zone.boundingBox(), 'cadre de la zone');
     return { x: cadre.x + cadre.width / 2, y: cadre.y + cadre.height * fractionDeHauteur };
 }
 
@@ -70,7 +80,7 @@ export async function choisirUneCoordonneeSurLaCarte(page: Page, decalageX = 0):
     // Le décalage du clic est horizontal : c'est la longitude qui doit changer.
     const champLongitude = page.getByLabel('Longitude');
     const valeurAvant = await champLongitude.inputValue();
-    const carte = (await page.locator('#conteneur-carte').boundingBox())!;
+    const carte = mesure(await page.locator('#conteneur-carte').boundingBox(), 'cadre de la carte');
     await page.mouse.click(carte.x + carte.width / 2 + decalageX, carte.y + carte.height / 2);
     // Le clic n'est pris en compte que lorsque le marqueur a bougé : attendre
     // que la saisie reflète la nouvelle longitude avant de valider.
@@ -85,8 +95,11 @@ export async function choisirUneCoordonneeSurLaCarte(page: Page, decalageX = 0):
  * mobile, c'est la carte plein écran habituelle.
  */
 export async function choisirUneCoordonneePourUnPoint(page: Page, decalageX = 0): Promise<void> {
-    if (page.viewportSize()!.width >= 900) {
-        const carte = (await page.locator('#carte-points').boundingBox())!;
+    if (mesure(page.viewportSize(), 'viewport').width >= 900) {
+        const carte = mesure(
+            await page.locator('#carte-points').boundingBox(),
+            'cadre de la carte intégrée',
+        );
         await page.mouse.click(carte.x + carte.width / 2 + decalageX, carte.y + carte.height / 2);
         return;
     }
@@ -111,7 +124,10 @@ export async function defilementAttendu(page: Page, fraction: number): Promise<n
     // L'écran de suivi charge le trajet en asynchrone : attendre la pile d'images.
     await page.locator('#pile-suivi img').first().waitFor({ state: 'attached' });
     return page.evaluate((f) => {
-        const image = document.querySelector<HTMLImageElement>('#pile-suivi img')!;
+        const image = document.querySelector<HTMLImageElement>('#pile-suivi img');
+        if (image === null) {
+            throw new Error('#pile-suivi img introuvable');
+        }
         const cadre = image.getBoundingClientRect();
         const cible = cadre.top + window.scrollY + f * cadre.height;
         const defilement = cible - 0.75 * window.innerHeight;
