@@ -1,0 +1,61 @@
+# Analyse qualité fallow (code mort, complexité, duplication) sur chaque poussée
+# et chaque pull request. Complète le garde-fou déjà présent dans deploy.yml :
+# ici on publie le rapport (onglet Security + résumé du run) EN PLUS de bloquer.
+name: Analyse fallow
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+
+permissions:
+    contents: read
+    # Nécessaire pour publier le SARIF dans GitHub Code Scanning (onglet Security).
+    security-events: write
+
+concurrency:
+    group: fallow-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    analyse:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  # Historique complet : l'audit compare aux commits/à la base de la PR.
+                  fetch-depth: 0
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 9
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: pnpm
+            - run: pnpm install --frozen-lockfile
+
+            # 1) Rapport SARIF → annotations inline (diff des PR + onglet Security).
+            #    `review` fait la même analyse qu'`audit` mais sort toujours en 0,
+            #    donc le rapport est produit même quand il y a des problèmes.
+            - name: Rapport SARIF
+              run: pnpm exec fallow review --format sarif > fallow.sarif
+            - name: Upload vers Code Scanning
+              if: always()
+              # Non bloquant : sur un dépôt privé sans Advanced Security, Code
+              # Scanning refuse le SARIF — ce n'est pas une raison d'échouer.
+              continue-on-error: true
+              uses: github/codeql-action/upload-sarif@v3
+              with:
+                  sarif_file: fallow.sarif
+                  category: fallow
+
+            # 2) Résumé lisible dans la page du run (tableau des findings).
+            - name: Résumé du run
+              if: always()
+              run: pnpm exec fallow review --format github-summary >> "$GITHUB_STEP_SUMMARY"
+
+            # 3) Garde-fou : bloque si de NOUVEAUX problèmes sont introduits
+            #    (gate new-only par défaut ; l'hérité est signalé mais n'échoue pas).
+            #    Sur les PR, c'est le contrôle qui passe au rouge.
+            - name: Garde-fou (audit)
+              run: pnpm exec fallow audit
