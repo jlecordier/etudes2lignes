@@ -67,9 +67,16 @@ pnpm preview    # sert le build — nécessaire pour essayer le service worker
 
 ## Documentation
 
+Point d'entrée complet : **[docs/INDEX.md](docs/INDEX.md)**.
+
 - [Architecture (hexagone, DDD, BDD)](docs/ARCHITECTURE.md)
+- [Glossaire (langage ubiquitaire)](docs/GLOSSAIRE.md)
+- [Exigences ↔ tests](docs/EXIGENCES.md)
+- [Décisions d'architecture (ADR)](docs/adr/README.md)
 - [Déploiement sur GitHub Pages, pas à pas](docs/DEPLOIEMENT.md)
 - [Spécification d'origine](docs/superpowers/specs/2026-07-10-suivi-schema-ligne-design.md)
+
+Pour les IA / agents : [AGENTS.md](AGENTS.md) (guide canonique), [CLAUDE.md](CLAUDE.md), [llms.txt](llms.txt).
 
 ## Limitations assumées
 
