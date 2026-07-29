@@ -1,0 +1,38 @@
+# Etudes2Lignes
+
+> Offline-first PWA that auto-scrolls a railway line-diagram (imported page
+> images) to follow the user's live GPS position. TypeScript, hexagonal
+> architecture, no UI framework, IndexedDB, Leaflet. The codebase, docs and UI
+> are in French; agent-facing guides (AGENTS.md, CLAUDE.md, this file) are in
+> English.
+
+Start with AGENTS.md for how to work in the repo. Human documentation is under
+docs/ (French); docs/INDEX.md is the full map.
+
+## Agent & contributor guides
+
+- [AGENTS.md](AGENTS.md): canonical operational guide — commands, architecture rules, conventions, toolchain gotchas.
+- [CLAUDE.md](CLAUDE.md): Claude Code specifics (MCP servers: fallow, context7, playwright).
+
+## Product
+
+- [README.md](README.md): what the app does, how to prepare a trajet (route), assumed limitations.
+
+## Architecture & design (French)
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): hexagon + screaming architecture, ports/adapters table, DDD domain, the geo→scroll algorithm, platform pitfalls encoded in the code.
+- [docs/GLOSSAIRE.md](docs/GLOSSAIRE.md): ubiquitous language — domain, architecture and platform terms mapped to the code.
+- [docs/EXIGENCES.md](docs/EXIGENCES.md): requirements per capability, each traced to the test(s) that verify it.
+- [docs/INDEX.md](docs/INDEX.md): full documentation map.
+
+## Decisions
+
+- [docs/adr/README.md](docs/adr/README.md): architecture decision records — hexagon without a UI framework, strict type-aware lint (no `!`/`as`), fallow quality gate, dual TypeScript compiler, IndexedDB with ArrayBuffer.
+
+## Operations
+
+- [docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md): step-by-step GitHub Pages deployment.
+
+## Optional
+
+- [docs/superpowers/specs/2026-07-10-suivi-schema-ligne-design.md](docs/superpowers/specs/2026-07-10-suivi-schema-ligne-design.md): original design specification.
