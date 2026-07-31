@@ -250,6 +250,13 @@ function champ<T>(
     return valeur;
 }
 
+/**
+ * Garde de ceinture, en pratique inatteignable : les trois magasins ont un
+ * `keyPath`, et IndexedDB refuse d'écrire une valeur dont il ne peut pas
+ * extraire la clé — donc tout ce qu'il rend est un objet. Elle existe pour que
+ * la validation des champs, elle, puisse partir d'un socle sûr sans `as`
+ * (ADR 0002). Les tests de mutation la signaleront toujours : c'est attendu.
+ */
 function objetDeLaBase(valeur: unknown, quoi: string): Record<string, unknown> {
     if (!estUnObjet(valeur)) {
         throw new Error(`Trajet illisible : ${quoi} est illisible dans la base.`);

@@ -82,6 +82,16 @@ class BlobRetarde extends Blob {
     }
 }
 
+/** Blob qui compte ses conversions en octets, pour observer ce qui est réécrit. */
+class BlobCompte extends Blob {
+    conversions = 0;
+
+    override arrayBuffer(): Promise<ArrayBuffer> {
+        this.conversions++;
+        return super.arrayBuffer();
+    }
+}
+
 async function chargerObligatoire(id: TrajetId): Promise<Trajet> {
     const trajet = await repository.charger(id);
     if (trajet === null) {
@@ -142,6 +152,10 @@ describe('IdbTrajetRepository', () => {
             expect(image.largeur).toBe(2481);
             expect(image.hauteur).toBe(3508);
             expect(await image.blob.text()).toBe('contenu de la page 1');
+            // Le type est reconstruit à la relecture (les octets sont stockés nus,
+            // cf. ADR 0005) : sans lui, le navigateur devinerait le format de la
+            // page à l'affichage.
+            expect(image.blob.type).toBe('image/jpeg');
             const point = elementA(charge.points, 0);
             expect(point.imageId).toBe(image.id);
             expect(point.fraction.valeur).toBe(0.42);
@@ -154,6 +168,24 @@ describe('IdbTrajetRepository', () => {
             const inexistant = Trajet.creer(NomDeTrajet.creer('Fantôme'));
 
             expect(await repository.charger(inexistant.id)).toBeNull();
+        });
+    });
+
+    describe('Étant donné un trajet déjà en base, quand je le resauvegarde', () => {
+        it('alors les octets des images déjà stockées ne sont pas reconvertis', async () => {
+            const page = new BlobCompte(['contenu de la page 1'], { type: 'image/jpeg' });
+            const trajet = Trajet.creer(NomDeTrajet.creer('Paris → Bordeaux'));
+            trajet.ajouterImage({ nom: 'page-1.jpg', blob: page, largeur: 2481, hauteur: 3508 });
+            await repository.sauvegarder(trajet);
+
+            trajet.renommer(NomDeTrajet.creer('Bordeaux → Paris'));
+            await repository.sauvegarder(trajet);
+
+            // Une page de schéma pèse des dizaines de mégaoctets : la relire à
+            // chaque enregistrement, pour des octets qui n'ont pas changé,
+            // rendrait le moindre déplacement de point pénible sur mobile.
+            expect(page.conversions).toBe(1);
+            expect((await chargerObligatoire(trajet.id)).nom.valeur).toBe('Bordeaux → Paris');
         });
     });
 
@@ -198,6 +230,37 @@ describe('IdbTrajetRepository', () => {
             expect(elementA(resumes, 1).nombreDImages).toBe(0);
         });
 
+        it('alors l’ordre vient des dates, jamais de l’ordre des clés en base', async () => {
+            // `getAll` rend les enregistrements dans l'ordre de leurs clés — des
+            // identifiants aléatoires en production. On pose donc des clés dont
+            // l'ordre ne suit ni les dates ni leur inverse : seul un vrai tri
+            // par date peut alors rendre la liste attendue.
+            await surLaBase(async (db) => {
+                await db.put('trajets', {
+                    id: 'a',
+                    nom: 'Milieu',
+                    creeLe: new Date('2026-07-11T10:00:00Z'),
+                    imageIds: [],
+                });
+                await db.put('trajets', {
+                    id: 'b',
+                    nom: 'Récent',
+                    creeLe: new Date('2026-07-12T10:00:00Z'),
+                    imageIds: [],
+                });
+                await db.put('trajets', {
+                    id: 'c',
+                    nom: 'Ancien',
+                    creeLe: new Date('2026-07-10T10:00:00Z'),
+                    imageIds: [],
+                });
+            });
+
+            const resumes = await repository.listerResumes();
+
+            expect(resumes.map((resume) => resume.nom)).toEqual(['Ancien', 'Milieu', 'Récent']);
+        });
+
         it('quand j’en supprime un, alors lui seul disparaît, avec ses images et ses points', async () => {
             const aSupprimer = trajetAvecImageEtPoint();
             const aGarder = trajetAvecImageEtPoint();
@@ -215,6 +278,33 @@ describe('IdbTrajetRepository', () => {
             expect(garde.images).toHaveLength(1);
             expect(garde.points).toHaveLength(1);
             expect(await repository.listerResumes()).toHaveLength(1);
+        });
+
+        it('quand j’en supprime un, alors ses images et ses points quittent vraiment les magasins', async () => {
+            const aSupprimer = trajetAvecImageEtPoint();
+            const aGarder = trajetAvecImageEtPoint();
+            await repository.sauvegarder(aSupprimer);
+            await repository.sauvegarder(aGarder);
+
+            await repository.supprimer(aSupprimer.id);
+
+            // Un trajet effacé dont les enregistrements restent laisserait des
+            // pages de plusieurs dizaines de mégaoctets sans propriétaire : le
+            // quota déborderait sans que l'utilisateur puisse rien libérer,
+            // puisque le trajet a disparu de sa liste. `charger` rendant `null`
+            // ne le dit pas — il faut regarder les magasins.
+            const restants = await surLaBase(async (db) => ({
+                images: await db.getAllKeysFromIndex('images', 'parTrajet', aSupprimer.id),
+                points: await db.getAllKeysFromIndex('points', 'parTrajet', aSupprimer.id),
+            }));
+
+            expect(restants).toEqual({ images: [], points: [] });
+            const conserves = await surLaBase(async (db) => ({
+                images: await db.getAllKeysFromIndex('images', 'parTrajet', aGarder.id),
+                points: await db.getAllKeysFromIndex('points', 'parTrajet', aGarder.id),
+            }));
+            expect(conserves.images).toHaveLength(1);
+            expect(conserves.points).toHaveLength(1);
         });
     });
 

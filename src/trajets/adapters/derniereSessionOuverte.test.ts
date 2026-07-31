@@ -54,6 +54,17 @@ describe('derniereSessionOuverte', () => {
 
             expect(session.restaurer()).toBe(identifiant);
         });
+
+        it('alors il est rangé sous la clé attendue, que les versions précédentes ont déjà écrite', () => {
+            const stockage = new StockageEnMemoire();
+            const identifiant = nouveauTrajetId();
+
+            creerDerniereSessionOuverte(stockage).memoriser(identifiant);
+
+            // La clé fait partie du contrat avec le passé : en changer perdrait
+            // la session des utilisateurs déjà installés.
+            expect(stockage.lire('dernierTrajetId')).toBe(identifiant);
+        });
     });
 
     describe('Étant donné aucune mémoire, quand je restaure', () => {
