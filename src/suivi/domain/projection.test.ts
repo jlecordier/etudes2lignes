@@ -128,10 +128,29 @@ describe('calculerCibleDeScroll', () => {
         const unPeuApresPoitiers = Coordonnee.creer(46.5786, 0.3394);
         const bienApresPoitiers = Coordonnee.creer(46.49, 0.32);
 
-        it('alors le segment de longueur nulle ne fait pas diviser par zéro', () => {
+        it('alors le segment dégénéré ne fait pas diviser par zéro', () => {
             const resultat = calculerCibleDeScroll(etapesSurDeuxPages, poitiers, null);
 
             expect(resultat.etat).toBe('sur-trajet');
+        });
+
+        /**
+         * Le trajet le plus court que le domaine autorise — deux points — peut
+         * n'avoir qu'un seul segment, et ce segment peut être dégénéré : rien
+         * n'empêche de géo-référencer deux fois le même PK. Ici, aucun segment
+         * voisin ne peut sauver la mise : si la garde tombe, la cible devient
+         * `NaN` et la page reste collée en haut du document pendant tout le
+         * voyage, sans que rien ne le signale.
+         */
+        it('alors un trajet réduit à un segment dégénéré rend quand même une cible chiffrée', () => {
+            const unSeulSegmentDegenere: EtapeDuVoyage[] = [
+                { coordonnee: poitiers, offset: 7000 },
+                { coordonnee: poitiers, offset: 3000 },
+            ];
+
+            const resultat = calculerCibleDeScroll(unSeulSegmentDegenere, poitiers, null);
+
+            expect(resultat).toEqual({ etat: 'sur-trajet', scrollCible: 7000 });
         });
 
         it('alors du bruit GPS autour de la jonction ne fait pas osciller la page', () => {

@@ -51,6 +51,14 @@ interface SurveillanceEnCours {
     dernierSignalMs: number | null;
     derniereImprecisionMetres: number | null;
     dernierRedemarrageMs: number | null;
+    /**
+     * La permission a été refusée. C'est le seul état dont l'utilisateur peut
+     * lui-même sortir, et la consigne est la seule à lui dire comment : le chien
+     * de garde ne doit pas la recouvrir d'une attente muette au bout de 15 s.
+     * Remise à faux quand une nouvelle veille s'ouvre — la permission a
+     * peut-être été accordée entre-temps.
+     */
+    permissionRefusee: boolean;
 }
 
 type Surveillance = { readonly type: 'arretee' } | SurveillanceEnCours;
@@ -138,6 +146,7 @@ export class GeolocationPositionSource implements PositionSource {
             dernierSignalMs: null,
             derniereImprecisionMetres: null,
             dernierRedemarrageMs: null,
+            permissionRefusee: false,
         };
         this.surveillance = surveillance;
         this.ouvrirLaSurveillance(surveillance);
@@ -160,6 +169,8 @@ export class GeolocationPositionSource implements PositionSource {
         if (this.geolocalisation === null) {
             return;
         }
+        // Une veille neuve peut trouver la permission accordée entre-temps.
+        surveillance.permissionRefusee = false;
         surveillance.idDeSurveillance = this.geolocalisation.watchPosition(
             (fix) => {
                 this.traiterLeFix(surveillance, fix);
@@ -208,6 +219,7 @@ export class GeolocationPositionSource implements PositionSource {
             return;
         }
         if (erreur.code === CODE_PERMISSION_REFUSEE) {
+            surveillance.permissionRefusee = true;
             surveillance.surEtat({ etat: 'permission-refusee' });
             return;
         }
@@ -218,7 +230,7 @@ export class GeolocationPositionSource implements PositionSource {
 
     private verifierLeSilence(): void {
         const surveillance = this.surveillance;
-        if (surveillance.type === 'arretee') {
+        if (surveillance.type === 'arretee' || surveillance.permissionRefusee) {
             return;
         }
         if (this.estFrais(surveillance.dernierFixMs)) {

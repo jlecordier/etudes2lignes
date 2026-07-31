@@ -175,6 +175,68 @@ verifierLeContratDePositionSource('GeolocationPositionSource', () => {
 });
 
 describe('GeolocationPositionSource', () => {
+    describe('Étant donné une permission refusée, quand le chien de garde bat plusieurs fois', () => {
+        it('alors la consigne reste affichée : elle seule dit comment en sortir', () => {
+            const { geolocalisation, cadenceur, avancerLeTemps, etats } = banc();
+
+            geolocalisation.emettreUneErreur(1);
+            avancerLeTemps(60_000);
+            cadenceur.battre();
+            cadenceur.battre();
+
+            expect(etats.at(-1)).toEqual({ etat: 'permission-refusee' });
+        });
+    });
+
+    describe('Étant donné une source arrêtée puis redémarrée dans la seconde', () => {
+        it('alors le premier fix de la nouvelle session est transmis : le throttle de la précédente ne le retient pas', () => {
+            const { geolocalisation, source, avancerLeTemps } = sourceNonDemarree();
+            const premiereSession: Coordonnee[] = [];
+            source.demarrer(
+                (position) => premiereSession.push(position),
+                () => undefined,
+            );
+            // Ce fix arme le throttle pour dix secondes.
+            geolocalisation.emettreUnFix(46.0, 0.3);
+            source.arreter();
+
+            // Le geste réel : « Quitter la simulation » arrête puis redémarre la
+            // source dans la même passe, bien avant la fin du throttle.
+            avancerLeTemps(1_000);
+            const secondeSession: Coordonnee[] = [];
+            source.demarrer(
+                (position) => secondeSession.push(position),
+                () => undefined,
+            );
+            geolocalisation.emettreUnFix(46.5, 0.4);
+
+            expect(latitudes(premiereSession)).toEqual([46.0]);
+            expect(latitudes(secondeSession)).toEqual([46.5]);
+        });
+
+        it('alors son chien de garde annonce l’attente, non un silence hérité de la session morte', () => {
+            const { geolocalisation, cadenceur, source, avancerLeTemps } = sourceNonDemarree();
+            source.demarrer(
+                () => undefined,
+                () => undefined,
+            );
+            geolocalisation.emettreUnFix(46.0, 0.3);
+            source.arreter();
+            // Le fix de la session morte est maintenant vieux de bien plus que
+            // le silence toléré.
+            avancerLeTemps(60_000);
+
+            const etats: EtatDeLaSource[] = [];
+            source.demarrer(
+                () => undefined,
+                (etat) => etats.push(etat),
+            );
+            cadenceur.battre();
+
+            expect(etats).toEqual([{ etat: 'attente' }, { etat: 'attente' }]);
+        });
+    });
+
     describe('Étant donné un fix précis, quand il arrive', () => {
         it('alors la position est transmise', () => {
             const { geolocalisation, positions } = banc();

@@ -46,7 +46,11 @@ Légende : `U` = test unitaire (Vitest), `E` = test de bout en bout (Playwright)
 | SU-7  | La cible est placée aux trois quarts hauts, bornée au document                  | `U projection.test.ts` (`calculerDefilement`)                   |
 | SU-8  | Message d'état lisible selon le résultat (attente/approx./perdu/hors-trajet)    | `U presentation.test.ts`, `U GeolocationPositionSource.test.ts` |
 | SU-9  | Défilement humain coupe le suivi auto ; « Reprendre » le rétablit               | `E e2e/suivi.spec.ts`                                           |
-| SU-10 | Fix approximatif toléré jusqu'à 3 km ; erreurs passagères tolérées si fix frais | `U GeolocationPositionSource.test.ts`                           |
+| SU-10 | Fix approximatif toléré jusqu'à 3 km, en-deçà du seuil « hors trajet »          | `U precisionDuFix.test.ts`                                      |
+| SU-11 | Erreurs passagères tolérées tant que le dernier fix est frais (tunnels)         | `U GeolocationPositionSource.test.ts`                           |
+| SU-12 | « Permission refusée » n'est pas recouvert par le chien de garde                | `U GeolocationPositionSource.test.ts`                           |
+| SU-13 | Une source arrêtée puis redémarrée ne traîne ni throttle ni silence hérités     | `U GeolocationPositionSource.test.ts`                           |
+| SU-14 | Un seul verrou d'écran à la fois, et aucun laissé allumé après « relâcher »     | `U NavigateurEcranAllume.test.ts`                               |
 
 ## Simulation
 
