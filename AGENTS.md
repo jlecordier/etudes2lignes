@@ -20,18 +20,19 @@ points into it instead of duplicating it. Claude Code specifics live in
 
 ## Commands
 
-| Intent                        | Command                                                                        |
-| ----------------------------- | ------------------------------------------------------------------------------ |
-| Dev server                    | `pnpm dev`                                                                     |
-| Unit tests (Vitest)           | `pnpm test` — watch: `pnpm test:watch`                                         |
-| End-to-end tests (Playwright) | `pnpm test:e2e`                                                                |
-| Type-check (TS 7 native)      | `pnpm typecheck`                                                               |
-| Lint (type-aware, strict)     | `pnpm lint` — autofix: `pnpm lint:fix`                                         |
-| Format (Prettier)             | `pnpm format`                                                                  |
-| Production build → `dist/`    | `pnpm build`                                                                   |
-| Serve the built PWA           | `pnpm preview` (required to exercise the service worker)                       |
-| Dead-code / quality report    | `pnpm fallow` — autofix: `pnpm fallow:fix` — CI gate: `pnpm exec fallow audit` |
-| **All gates at once**         | `pnpm quality` (typecheck + lint + test + fallow audit)                        |
+| Intent                           | Command                                                                                             |
+| -------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Dev server                       | `pnpm dev`                                                                                          |
+| Unit tests (Vitest)              | `pnpm test` — watch: `pnpm test:watch`                                                              |
+| End-to-end tests (Playwright)    | `pnpm test:e2e`                                                                                     |
+| Type-check (TS 7 native)         | `pnpm typecheck`                                                                                    |
+| Lint (type-aware, strict)        | `pnpm lint` — autofix: `pnpm lint:fix`                                                              |
+| Format (Prettier)                | `pnpm format`                                                                                       |
+| Production build → `dist/`       | `pnpm build`                                                                                        |
+| Serve the built PWA              | `pnpm preview` (required to exercise the service worker)                                            |
+| Dead-code / quality report       | `pnpm fallow` — autofix: `pnpm fallow:fix` — CI gate: `pnpm exec fallow audit`                      |
+| Mutation tests (slow, on demand) | `pnpm mutation` — **not** part of the gate ([ADR 0006](docs/adr/0006-tests-de-mutation-stryker.md)) |
+| **All gates at once**            | `pnpm quality` (typecheck + lint + test + fallow audit)                                             |
 
 ## Architecture rules (hard constraints)
 
@@ -64,6 +65,11 @@ points into it instead of duplicating it. Claude Code specifics live in
   `Étant donné / Quand / Alors`. **No `vi.fn`, no `toHaveBeenCalled`** —
   hand-written fakes injected (fake geolocation, controlled clock, manual
   scheduler, `fake-indexeddb`); assert on produced **values**.
+- **A guard with no witness is not protected.** Before claiming a fix is covered,
+  break it on purpose and watch the test fail — `pnpm mutation` does this in bulk
+  over `domain`/`adapters`/`commun` ([ADR 0006](docs/adr/0006-tests-de-mutation-stryker.md)),
+  but structural regressions still need doing it by hand. Never add an assertion
+  merely to silence a surviving mutant.
 - Value objects validate at construction and are immutable; the `Trajet`
   aggregate exposes **intent methods**, no setters; invariants live in the
   aggregate.

@@ -4,7 +4,19 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-    { ignores: ['dist/', 'coverage/', 'test-results/', 'playwright-report/'] },
+    {
+        // `.stryker-tmp/` est une copie mutée du projet, que Stryker efface en
+        // partant : sans cet ignore, un lint lancé pendant les tests de mutation
+        // analyserait du code volontairement abîmé.
+        ignores: [
+            'dist/',
+            'coverage/',
+            'test-results/',
+            'playwright-report/',
+            '.stryker-tmp/',
+            'reports/',
+        ],
+    },
     js.configs.recommended,
     // Analyse basée sur les types : le socle le plus exigeant.
     ...tseslint.configs.strictTypeChecked,
@@ -40,7 +52,7 @@ export default tseslint.config(
     },
     {
         // Fichiers de conf et scripts Node hors du programme TS : pas de type-checking.
-        files: ['eslint.config.js', 'scripts/**/*.mjs'],
+        files: ['eslint.config.js', 'stryker.config.mjs', 'scripts/**/*.mjs'],
         extends: [tseslint.configs.disableTypeChecked],
         languageOptions: { globals: { ...globals.node, ...globals.browser } },
     },

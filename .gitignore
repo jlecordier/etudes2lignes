@@ -7,6 +7,10 @@ coverage/
 test-results/
 playwright-report/
 
+# Tests de mutation (Stryker) : code muté temporaire et rapport
+.stryker-tmp/
+reports/
+
 # IDE et système
 .idea/
 .DS_Store

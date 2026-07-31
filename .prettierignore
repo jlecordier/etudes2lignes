@@ -3,3 +3,5 @@ coverage/
 test-results/
 playwright-report/
 pnpm-lock.yaml
+.stryker-tmp/
+reports/

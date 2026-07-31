@@ -17,3 +17,4 @@ d'ADR dédié pour éviter la duplication.
 | [0003](0003-fallow-garde-fou-qualite.md)      | fallow comme garde-fou (pre-commit + CI)             | Acceptée |
 | [0004](0004-double-compilateur-typescript.md) | Double compilateur TypeScript (`tsc` natif + `tsc6`) | Acceptée |
 | [0005](0005-indexeddb-arraybuffer.md)         | Persistance IndexedDB, images en `ArrayBuffer`       | Acceptée |
+| [0006](0006-tests-de-mutation-stryker.md)     | Tests de mutation (Stryker), hors du gate            | Acceptée |
