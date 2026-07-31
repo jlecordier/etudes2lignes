@@ -137,6 +137,21 @@ segment)` — entre deux points éloignés, la corde s'écarte de la vraie ligne
 - Le domaine se teste pur ; les adapters avec leurs fakes ; les écrans et le
   service worker en E2E Playwright (Chromium, WebKit, Firefox + viewports
   iPhone/Pixel), contre le **build de production** (`pnpm preview`).
+- **Un garde-fou sans témoin n'est pas protégé.** `pnpm mutation` abîme le code
+  un endroit à la fois et relance les tests : un mutant qui survit désigne une
+  ligne que rien n'éprouve — ce que la couverture, elle, ne dit jamais. C'est
+  ainsi qu'on a découvert que trois correctifs de la refonte n'avaient aucun
+  témoin : désactiver le garde-fou du segment dégénéré laissait la suite
+  entièrement verte, alors qu'un trajet dont les deux seuls points partagent un
+  lieu produit alors une cible `NaN`, donc une page collée en haut du document
+  pendant tout le voyage.
+- Les survivants se **jugent**, ils ne se font pas taire : certains sont
+  équivalents (le `typeof` qu'exige le compilateur, une borne de boucle sans
+  effet observable), d'autres portent sur une garde que les invariants rendent
+  inatteignable — conservée parce que `!` est banni. Ces cas-là sont commentés
+  sur place. Ajouter une assertion pour éteindre un mutant fabrique un test
+  creux : c'est le contraire du but. Hors du gate, car trop lent
+  ([ADR 0006](adr/0006-tests-de-mutation-stryker.md)).
 - Ce qui reste manuel : le vrai GPS dans un vrai train, et les comportements
   PWA propres à iOS (permission redemandée à chaque session, wake lock fiable
   seulement depuis iOS 18.4).

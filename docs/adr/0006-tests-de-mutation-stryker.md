@@ -14,9 +14,10 @@ correctifs dont trois n'avaient **aucun témoin exécutable** : on l'a découver
 abîmant le code à la main et en constatant que la suite restait verte.
 
 - Mettre `LONGUEUR_MINIMALE_DE_SEGMENT_METRES` à `0` — c'est-à-dire supprimer le
-  garde-fou du segment dégénéré — laissait 69 tests sur 69 au vert. Or un trajet
-  dont les deux seuls points partagent un lieu donne alors une cible `NaN`, donc
-  une page collée en haut du document pendant tout le voyage.
+  garde-fou du segment dégénéré — laissait au vert les 69 tests que le module
+  `suivi` comptait alors. Or un trajet dont les deux seuls points partagent un
+  lieu donne alors une cible `NaN`, donc une page collée en haut du document
+  pendant tout le voyage.
 - Faire ignorer « permission refusée » par le chien de garde : vert aussi.
 - Rendre au throttle sa mémoire entre deux sessions : vert aussi.
 

@@ -41,6 +41,18 @@ discussions.
 | **Composition root**       | `src/main.ts` : le **seul** fichier qui instancie les adapters concrets et les injecte (à la main, sans framework).                            |
 | **Règle de dépendance**    | `domain` ne dépend de rien ; `ports` du domaine seul ; `adapters`/`ui` des ports + domaine ; seul `main.ts` connaît le concret.                |
 
+## Tests
+
+| Terme                   | Définition                                                                                                                                                            |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Test par l'état**     | On agit, puis on assère sur les **valeurs produites** — jamais sur les appels reçus. Pas de `vi.fn`, pas de `toHaveBeenCalled`.                                       |
+| **Fake**                | Doublure écrite à la main et injectée (fausse géolocalisation, horloge contrôlée, cadenceur manuel, faux premier plan). Observable par son état, pas par des espions. |
+| **Suite de contrat**    | Batterie de tests d'un **port**, rejouée contre chacun de ses adapters, pour les empêcher de diverger.                                                                |
+| **Test de mutation**    | Abîmer le code un endroit à la fois et relancer les tests (`pnpm mutation`). Répond à « ce test protège-t-il vraiment cette règle ? ».                                |
+| **Mutant survivant**    | Modification du code que la suite ne détecte pas : le signe qu'une ligne n'a pas de témoin.                                                                           |
+| **Mutant équivalent**   | Mutation qui ne change **aucun** comportement observable : impossible à tuer, et ce n'est pas un défaut. On l'explique en commentaire.                                |
+| **Garde inatteignable** | Garde que les invariants rendent impossible à déclencher, conservée seulement parce que `!` est banni. Survivra toujours aux tests de mutation.                       |
+
 ## Plateforme
 
 | Terme                  | Définition                                                                                                          |

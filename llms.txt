@@ -27,7 +27,7 @@ docs/ (French); docs/INDEX.md is the full map.
 
 ## Decisions
 
-- [docs/adr/README.md](docs/adr/README.md): architecture decision records — hexagon without a UI framework, strict type-aware lint (no `!`/`as`), fallow quality gate, dual TypeScript compiler, IndexedDB with ArrayBuffer.
+- [docs/adr/README.md](docs/adr/README.md): architecture decision records — hexagon without a UI framework, strict type-aware lint (no `!`/`as`), fallow quality gate, dual TypeScript compiler, IndexedDB with ArrayBuffer, mutation testing kept outside the gate.
 
 ## Operations
 

@@ -46,6 +46,8 @@ pnpm test:e2e   # tests de bout en bout (Playwright, 5 profils navigateur)
 pnpm typecheck  # vérification TypeScript
 pnpm build      # build de production (génère la PWA dans dist/)
 pnpm preview    # sert le build — nécessaire pour essayer le service worker
+pnpm quality    # tout en un : typecheck + lint + tests + audit fallow
+pnpm mutation   # tests de mutation (lent, à la demande — hors du gate)
 ```
 
 ## Préparer un trajet
