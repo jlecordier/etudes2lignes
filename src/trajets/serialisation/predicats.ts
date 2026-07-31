@@ -25,6 +25,12 @@ export function estUnTableauDeChaines(valeur: unknown): valeur is string[] {
     return estUnTableau(valeur) && valeur.every(estUneChaine);
 }
 
+/**
+ * Le `typeof` paraît redondant — `Number.isFinite` rend déjà `false` pour tout
+ * ce qui n'est pas un nombre, sans conversion — mais il est là pour le
+ * compilateur : `Number.isFinite` n'est pas un prédicat de type, et sans lui
+ * TypeScript refuserait de conclure `valeur is number`. Ne pas le retirer.
+ */
 export function estUnNombreFini(valeur: unknown): valeur is number {
     return typeof valeur === 'number' && Number.isFinite(valeur);
 }

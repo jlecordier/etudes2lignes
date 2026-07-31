@@ -44,6 +44,10 @@ export async function exporterTrajetEnJson(trajet: Trajet): Promise<string> {
     const indexParImage = new Map(trajet.images.map((image, index) => [image.id, index]));
     const points: PointExporte[] = trajet.ordreVoyageDesPoints().map((point) => {
         const image = indexParImage.get(point.imageId);
+        // Inatteignable : l'agrégat garantit qu'un point vise une image du
+        // trajet. La garde n'est là que parce que `!` est banni (ADR 0002) — nul
+        // test ne peut donc l'exercer, et les tests de mutation signaleront
+        // toujours cette ligne comme non couverte. C'est attendu.
         if (image === undefined) {
             throw new Error('Incohérence interne : un point du trajet vise une image absente.');
         }

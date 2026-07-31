@@ -115,7 +115,113 @@ describe('exporterTrajetEnJson / importerTrajetDepuisJson', () => {
         });
     });
 
+    describe('Étant donné un champ mal formé, quand j’importe le fichier', () => {
+        const imageValide = {
+            nom: 'page-1.jpg',
+            type: 'image/jpeg',
+            largeur: 2481,
+            hauteur: 3508,
+            donneesBase64: 'AAAA',
+        };
+        const pointValide = { image: 0, fraction: 0.5, latitude: 46.58, longitude: 0.34 };
+
+        function fichierDont(trajet: unknown): string {
+            return JSON.stringify({ application: 'etudes2lignes', version: 1, trajet });
+        }
+
+        /**
+         * Le message doit dire **quel** champ ne va pas : c'est tout ce que
+         * l'utilisateur a pour réparer son fichier, et il n'a pas le code sous
+         * les yeux. Un libellé perdu en route donnerait « Fichier incomplet :
+         * manquant ou invalide », vrai et inutilisable.
+         */
+        it.each([
+            ['le trajet lui-même', undefined, 'trajet'],
+            ['le nom du trajet', { nom: 42, images: [], points: [] }, 'nom'],
+            ['la liste des images', { nom: 'X', images: 'aucune', points: [] }, 'images'],
+            [
+                'les données d’une image',
+                { nom: 'X', images: [{ ...imageValide, donneesBase64: 42 }], points: [] },
+                'données d’image',
+            ],
+            [
+                'le nom d’une image',
+                { nom: 'X', images: [{ ...imageValide, nom: 42 }], points: [] },
+                'nom d’image',
+            ],
+            [
+                'le type d’une image',
+                { nom: 'X', images: [{ ...imageValide, type: 42 }], points: [] },
+                'type d’image',
+            ],
+            [
+                'la largeur d’une image',
+                { nom: 'X', images: [{ ...imageValide, largeur: 'grand' }], points: [] },
+                'largeur',
+            ],
+            [
+                'la hauteur d’une image',
+                { nom: 'X', images: [{ ...imageValide, hauteur: null }], points: [] },
+                'hauteur',
+            ],
+            ['la liste des points', { nom: 'X', images: [], points: 'aucun' }, 'points'],
+            [
+                'un point qui n’est pas un objet, en le situant',
+                { nom: 'X', images: [imageValide], points: ['pas un objet'] },
+                'points[0]',
+            ],
+            [
+                'l’index d’image d’un point',
+                { nom: 'X', images: [imageValide], points: [{ ...pointValide, image: 'la une' }] },
+                'index d’image',
+            ],
+            [
+                'la fraction d’un point',
+                { nom: 'X', images: [imageValide], points: [{ ...pointValide, fraction: 'mi' }] },
+                'fraction',
+            ],
+            [
+                'la latitude d’un point',
+                { nom: 'X', images: [imageValide], points: [{ ...pointValide, latitude: 'nord' }] },
+                'latitude',
+            ],
+            [
+                'la longitude d’un point',
+                { nom: 'X', images: [imageValide], points: [{ ...pointValide, longitude: null }] },
+                'longitude',
+            ],
+        ])('alors le message nomme %s', (_cas, trajet, champ) => {
+            expect(() => importerTrajetDepuisJson(fichierDont(trajet))).toThrow(
+                `Fichier incomplet : ${champ} manquant ou invalide.`,
+            );
+        });
+    });
+
     describe('Étant donné un fichier invalide, quand je l’importe', () => {
+        it('alors des données d’image qui ne sont pas du base64 sont refusées', () => {
+            const json = JSON.stringify({
+                application: 'etudes2lignes',
+                version: 1,
+                trajet: {
+                    nom: 'Cassé',
+                    images: [
+                        {
+                            nom: 'page-1.jpg',
+                            type: 'image/jpeg',
+                            largeur: 10,
+                            hauteur: 20,
+                            donneesBase64: '!!! pas du base64 !!!',
+                        },
+                    ],
+                    points: [],
+                },
+            });
+
+            expect(() => importerTrajetDepuisJson(json)).toThrow(
+                'Fichier incomplet : données d’image illisibles.',
+            );
+        });
+
         it('alors un texte qui n’est pas du JSON est refusé avec un message clair', () => {
             expect(() => importerTrajetDepuisJson('pas du json')).toThrow(
                 'Fichier illisible : ce n’est pas un fichier JSON.',
