@@ -5,6 +5,15 @@ import { NomDeTrajet } from '../domain/NomDeTrajet';
 import { Trajet, type ImageDeTrajet, type Point } from '../domain/Trajet';
 import type { ImageId, PointId, TrajetId } from '../domain/ids';
 import type { ResumeDeTrajet, TrajetRepository } from '../ports/TrajetRepository';
+import {
+    estUnEntierPositif,
+    estUnNombreFini,
+    estUnObjet,
+    estUnTableauDeChaines,
+    estUnTampon,
+    estUneChaine,
+    estUneDate,
+} from '../serialisation/predicats';
 
 interface EnregistrementTrajet {
     id: string;
@@ -34,10 +43,23 @@ interface EnregistrementPoint {
     longitude: number;
 }
 
+/**
+ * Ce schéma décrit ce que l'adapter **écrit**. Il ne prouve rien sur ce qu'il
+ * **relit** : les enregistrements déjà en base sont des données externes, donc
+ * vérifiés champ par champ à la relecture (cf. `champ`).
+ */
 interface Schema extends DBSchema {
     trajets: { key: string; value: EnregistrementTrajet };
     images: { key: string; value: EnregistrementImage; indexes: { parTrajet: string } };
     points: { key: string; value: EnregistrementPoint; indexes: { parTrajet: string } };
+}
+
+/** Un enregistrement de trajet dont les champs ont été vérifiés à la relecture. */
+interface TrajetLu {
+    id: string;
+    nom: string;
+    creeLe: Date;
+    imageIds: string[];
 }
 
 /** Persistance des trajets dans IndexedDB (via la bibliothèque idb). */
@@ -50,7 +72,7 @@ export class IdbTrajetRepository implements TrajetRepository {
 
     async listerResumes(): Promise<ResumeDeTrajet[]> {
         const db = await this.promesseDb;
-        const enregistrements = await db.getAll('trajets');
+        const enregistrements = (await db.getAll('trajets')).map(versTrajetLu);
         enregistrements.sort((a, b) => a.creeLe.getTime() - b.creeLe.getTime());
 
         const resumes: ResumeDeTrajet[] = [];
@@ -59,7 +81,10 @@ export class IdbTrajetRepository implements TrajetRepository {
                 id: enregistrement.id as TrajetId,
                 nom: enregistrement.nom,
                 creeLe: enregistrement.creeLe,
-                nombreDImages: await db.countFromIndex('images', 'parTrajet', enregistrement.id),
+                // `imageIds` est la seule définition du nombre d'images : c'est la
+                // liste que l'agrégat écrit et relit. Compter les enregistrements
+                // du magasin en donnerait une seconde (et une requête par trajet).
+                nombreDImages: enregistrement.imageIds.length,
                 nombreDePoints: await db.countFromIndex('points', 'parTrajet', enregistrement.id),
             });
         }
@@ -72,13 +97,20 @@ export class IdbTrajetRepository implements TrajetRepository {
         if (enregistrement === undefined) {
             return null;
         }
+        const trajetLu = versTrajetLu(enregistrement);
         const images = await db.getAllFromIndex('images', 'parTrajet', id);
         const points = await db.getAllFromIndex('points', 'parTrajet', id);
+        const imagesParId = indexerParId(images);
         return Trajet.rehydrater({
             id,
-            nom: NomDeTrajet.creer(enregistrement.nom),
-            creeLe: enregistrement.creeLe,
-            images: dansLOrdreDuTrajet(images, enregistrement.imageIds).map(versImageDuDomaine),
+            nom: NomDeTrajet.creer(trajetLu.nom),
+            creeLe: trajetLu.creeLe,
+            // `imageIds` porte l'ordre du voyage. Une image listée mais absente du
+            // magasin fait refuser la lecture (politique déclarée par le port) ;
+            // un enregistrement présent mais non listé n'est pas de l'agrégat.
+            images: trajetLu.imageIds.map((imageId) =>
+                versImageDuDomaine(imageId, imageObligatoire(imagesParId, imageId)),
+            ),
             points: points.map(versPointDuDomaine),
         });
     }
@@ -86,7 +118,8 @@ export class IdbTrajetRepository implements TrajetRepository {
     async sauvegarder(trajet: Trajet): Promise<void> {
         const db = await this.promesseDb;
         // Les blobs sont convertis AVANT d'ouvrir la transaction : attendre une
-        // promesse étrangère à IndexedDB fermerait la transaction en cours.
+        // promesse étrangère à IndexedDB fermerait la transaction en cours
+        // (ADR 0005). Cette pré-lecture ne sert donc qu'à savoir quoi convertir.
         const dejaStockees = new Set(
             await db.getAllKeysFromIndex('images', 'parTrajet', trajet.id),
         );
@@ -105,7 +138,16 @@ export class IdbTrajetRepository implements TrajetRepository {
         });
 
         const idsDImagesActuels = new Set<string>(trajet.images.map((image) => image.id));
-        for (const cle of dejaStockees) {
+        // Les clés sont relues DANS la transaction, comme celles des points : la
+        // pré-lecture ci-dessus est un instantané déjà périmé, et décider une
+        // suppression dessus laisserait deux sauvegardes rapprochées effacer une
+        // image que l'autre vient d'écrire. Le contrat du port promet « tout ou
+        // rien » : la décision doit se prendre là où l'écriture est protégée.
+        const clesDImages = await transaction
+            .objectStore('images')
+            .index('parTrajet')
+            .getAllKeys(trajet.id);
+        for (const cle of clesDImages) {
             if (!idsDImagesActuels.has(cle)) {
                 void transaction.objectStore('images').delete(cle);
             }
@@ -170,29 +212,117 @@ function ouvrirBase(nom: string): Promise<IDBPDatabase<Schema>> {
             db.createObjectStore('images', { keyPath: 'id' }).createIndex('parTrajet', 'trajetId');
             db.createObjectStore('points', { keyPath: 'id' }).createIndex('parTrajet', 'trajetId');
         },
+        // La version est épinglée à 1 : ces deux cas ne surviennent qu'entre deux
+        // fenêtres dont l'une embarque une autre version de l'application. On ne
+        // peut rien réparer ici, mais sans trace l'utilisateur n'aurait qu'un
+        // écran vide, et la promesse d'ouverture rejetterait sans explication.
+        blocked(versionOuverte, versionAttendue) {
+            console.warn(
+                `Base « ${nom} » bloquée : une autre fenêtre garde la version ` +
+                    `${versionOuverte} ouverte, la version ${versionAttendue ?? '?'} attend. ` +
+                    `Fermez les autres onglets d’Etudes2Lignes.`,
+            );
+        },
+        blocking(versionOuverte, versionAttendue) {
+            console.warn(
+                `Cette fenêtre (version ${versionOuverte}) empêche une autre d’ouvrir la ` +
+                    `version ${versionAttendue ?? '?'} de la base « ${nom} » : rechargez la page.`,
+            );
+        },
     });
 }
 
-function dansLOrdreDuTrajet(images: EnregistrementImage[], ordre: string[]): EnregistrementImage[] {
-    const parId = new Map(images.map((image) => [image.id, image]));
-    return ordre.map((id) => parId.get(id)).filter((image) => image !== undefined);
+// --- Relecture : les enregistrements sont des données externes ------------------
+
+/**
+ * Un champ relu de la base, vérifié par un prédicat partagé avec l'import JSON.
+ * Le message est destiné à l'utilisateur : c'est lui que l'écran affiche.
+ */
+function champ<T>(
+    enregistrement: Record<string, unknown>,
+    nom: string,
+    estValide: (valeur: unknown) => valeur is T,
+): T {
+    const valeur = enregistrement[nom];
+    if (!estValide(valeur)) {
+        throw new Error(`Trajet illisible : le champ « ${nom} » est invalide dans la base.`);
+    }
+    return valeur;
 }
 
-function versImageDuDomaine(enregistrement: EnregistrementImage): ImageDeTrajet {
+function objetDeLaBase(valeur: unknown, quoi: string): Record<string, unknown> {
+    if (!estUnObjet(valeur)) {
+        throw new Error(`Trajet illisible : ${quoi} est illisible dans la base.`);
+    }
+    return valeur;
+}
+
+function versTrajetLu(enregistrement: unknown): TrajetLu {
+    const champs = objetDeLaBase(enregistrement, 'l’enregistrement du trajet');
     return {
-        id: enregistrement.id as ImageId,
-        nom: enregistrement.nom,
-        blob: new Blob([enregistrement.donnees], { type: enregistrement.type }),
-        largeur: enregistrement.largeur,
-        hauteur: enregistrement.hauteur,
+        id: champ(champs, 'id', estUneChaine),
+        nom: champ(champs, 'nom', estUneChaine),
+        creeLe: champ(champs, 'creeLe', estUneDate),
+        imageIds: champ(champs, 'imageIds', estUnTableauDeChaines),
     };
 }
 
-function versPointDuDomaine(enregistrement: EnregistrementPoint): Point {
+/**
+ * Indexe les enregistrements d'images par identifiant. Ceux qu'on ne sait pas
+ * identifier sont écartés ici : s'ils appartiennent au trajet, `imageObligatoire`
+ * les déclarera introuvables ; sinon ils ne sont pas de l'agrégat.
+ */
+function indexerParId(enregistrements: unknown[]): Map<string, Record<string, unknown>> {
+    const parId = new Map<string, Record<string, unknown>>();
+    for (const enregistrement of enregistrements) {
+        if (!estUnObjet(enregistrement)) {
+            continue;
+        }
+        const id = enregistrement['id'];
+        if (estUneChaine(id)) {
+            parId.set(id, enregistrement);
+        }
+    }
+    return parId;
+}
+
+function imageObligatoire(
+    imagesParId: Map<string, Record<string, unknown>>,
+    imageId: string,
+): Record<string, unknown> {
+    const enregistrement = imagesParId.get(imageId);
+    if (enregistrement === undefined) {
+        throw new Error(
+            `Trajet illisible : une image de ce trajet est introuvable dans la base (${imageId}).`,
+        );
+    }
+    return enregistrement;
+}
+
+function versImageDuDomaine(
+    imageId: string,
+    enregistrement: Record<string, unknown>,
+): ImageDeTrajet {
     return {
-        id: enregistrement.id as PointId,
-        imageId: enregistrement.imageId as ImageId,
-        fraction: FractionVerticale.creer(enregistrement.fraction),
-        coordonnee: Coordonnee.creer(enregistrement.latitude, enregistrement.longitude),
+        id: imageId as ImageId,
+        nom: champ(enregistrement, 'nom', estUneChaine),
+        blob: new Blob([champ(enregistrement, 'donnees', estUnTampon)], {
+            type: champ(enregistrement, 'type', estUneChaine),
+        }),
+        largeur: champ(enregistrement, 'largeur', estUnEntierPositif),
+        hauteur: champ(enregistrement, 'hauteur', estUnEntierPositif),
+    };
+}
+
+function versPointDuDomaine(enregistrement: unknown): Point {
+    const champs = objetDeLaBase(enregistrement, 'l’enregistrement d’un point');
+    return {
+        id: champ(champs, 'id', estUneChaine) as PointId,
+        imageId: champ(champs, 'imageId', estUneChaine) as ImageId,
+        fraction: FractionVerticale.creer(champ(champs, 'fraction', estUnNombreFini)),
+        coordonnee: Coordonnee.creer(
+            champ(champs, 'latitude', estUnNombreFini),
+            champ(champs, 'longitude', estUnNombreFini),
+        ),
     };
 }

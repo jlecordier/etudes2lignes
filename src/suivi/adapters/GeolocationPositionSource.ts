@@ -1,5 +1,9 @@
 import { Coordonnee } from '../../trajets/domain/Coordonnee';
+import type { EtatDeLaSource } from '../domain/etatDeLaSource';
+import { fixUtilisable } from '../domain/precisionDuFix';
 import type { PositionSource } from '../ports/PositionSource';
+import type { PremierPlan } from '../ports/PremierPlan';
+import { NavigateurPremierPlan } from './NavigateurPremierPlan';
 
 /** Le sous-ensemble de navigator.geolocation dont l'adapter a besoin. */
 export interface FournisseurDeGeolocalisation {
@@ -19,13 +23,6 @@ export interface Cadenceur {
 const CODE_PERMISSION_REFUSEE = 1;
 /** Au plus une position traitée par intervalle (ce que l'utilisateur a demandé). */
 const INTERVALLE_ENTRE_POSITIONS_MS = 10_000;
-/**
- * Un fix approximatif (cellule, Wi-Fi, vitres athermiques d'un train) vaut
- * mieux que « signal perdu » : le suivi tolère des kilomètres (le seuil
- * « hors trajet » démarre à 5 km). Au-delà de 3 km d'incertitude en revanche,
- * caler la page n'a plus de sens.
- */
-const PRECISION_MAXIMALE_METRES = 3000;
 /** Au-delà de ce silence, on prévient que la position affichée date. */
 const SILENCE_AVANT_ALERTE_MS = 30_000;
 const CADENCE_DU_CHIEN_DE_GARDE_MS = 15_000;
@@ -35,117 +32,183 @@ const DELAI_MINIMUM_ENTRE_REDEMARRAGES_MS = 5_000;
 const OPTIONS_DE_POSITION: PositionOptions = { enableHighAccuracy: true, maximumAge: 0 };
 
 /**
+ * Une session de surveillance : les rappels de l'appelant, les poignées à rendre
+ * en partant, et les horodatages de **cette** session. Rien n'y survit à
+ * `arreter` — sinon le premier fix d'une nouvelle session serait avalé par le
+ * throttle de la session morte, et le chien de garde annoncerait un silence
+ * hérité.
+ */
+interface SurveillanceEnCours {
+    readonly type: 'enCours';
+    readonly surPosition: (position: Coordonnee) => void;
+    readonly surEtat: (etat: EtatDeLaSource) => void;
+    readonly annulerLeChienDeGarde: () => void;
+    readonly seDesabonnerDuPremierPlan: () => void;
+    idDeSurveillance: number | null;
+    dernierTraitementMs: number | null;
+    dernierFixMs: number | null;
+    /** Dernier signe de vie du GPS, fixes trop imprécis compris. */
+    dernierSignalMs: number | null;
+    derniereImprecisionMetres: number | null;
+    dernierRedemarrageMs: number | null;
+}
+
+type Surveillance = { readonly type: 'arretee' } | SurveillanceEnCours;
+
+/** Tout ce que la source emprunte à sa plateforme, remplaçable un par un. */
+export interface DependancesDeLaSourceGps {
+    /** `null` dit « pas de géolocalisation sur cet appareil », que la source annonce. */
+    geolocalisation?: FournisseurDeGeolocalisation | null;
+    maintenant?: () => number;
+    cadenceur?: Cadenceur;
+    premierPlan?: PremierPlan;
+}
+
+/**
+ * `navigator.geolocation` est typé comme toujours présent, mais absent en
+ * contexte non sécurisé ou sur de vieux navigateurs. On l'annote optionnel pour
+ * l'exprimer honnêtement (`Navigator` s'y assigne sans cast).
+ */
+function geolocalisationDuNavigateur(): FournisseurDeGeolocalisation | null {
+    const navigateur: { geolocation?: Geolocation } = navigator;
+    return navigateur.geolocation ?? null;
+}
+
+function maintenantSelonLeSysteme(): number {
+    return Date.now();
+}
+
+/**
  * Source de position branchée sur le GPS du navigateur.
  *
  * watchPosition (throttlé) plutôt que getCurrentPosition en boucle : pas de
  * chevauchement de requêtes et la puce GPS reste chaude. Au retour au premier
  * plan (page dégelée par iOS/Android), une position immédiate est demandée.
+ *
+ * L'adapter **mesure** (mètres, millisecondes) et laisse `presentation.ts`
+ * rédiger : il n'écrit aucune phrase destinée à l'utilisateur.
  */
 export class GeolocationPositionSource implements PositionSource {
     private readonly geolocalisation: FournisseurDeGeolocalisation | null;
     private readonly maintenant: () => number;
     private readonly cadenceur: Cadenceur;
+    private readonly premierPlan: PremierPlan;
 
-    private surPosition: ((position: Coordonnee) => void) | null = null;
-    private surErreur: ((message: string) => void) | null = null;
-    private idDeSurveillance: number | null = null;
-    private annulerLeChienDeGarde: (() => void) | null = null;
-    private dernierTraitementMs: number | null = null;
-    private dernierFixMs: number | null = null;
-    /** Dernier signe de vie du GPS, fixes trop imprécis compris. */
-    private dernierSignalMs: number | null = null;
-    private derniereImprecisionMetres: number | null = null;
-    private dernierRedemarrageMs: number | null = null;
+    private surveillance: Surveillance = { type: 'arretee' };
 
-    private readonly surRetourAuPremierPlan = (): void => {
-        this.demanderUnePositionImmediate();
-    };
-
-    constructor(dependances?: {
-        geolocalisation?: FournisseurDeGeolocalisation;
-        maintenant?: () => number;
-        cadenceur?: Cadenceur;
-    }) {
-        // navigator.geolocation est typé comme toujours présent, mais absent en
-        // contexte non sécurisé ou sur de vieux navigateurs. On l'annote optionnel
-        // pour l'exprimer (Navigator s'y assigne sans cast).
-        const navigateur: { geolocation?: Geolocation } = navigator;
-        this.geolocalisation = dependances?.geolocalisation ?? navigateur.geolocation ?? null;
-        this.maintenant = dependances?.maintenant ?? (() => Date.now());
-        this.cadenceur = dependances?.cadenceur ?? cadenceurParDefaut;
+    constructor({
+        geolocalisation = geolocalisationDuNavigateur(),
+        maintenant = maintenantSelonLeSysteme,
+        cadenceur = cadenceurParDefaut,
+        premierPlan = new NavigateurPremierPlan(),
+    }: DependancesDeLaSourceGps = {}) {
+        this.geolocalisation = geolocalisation;
+        this.maintenant = maintenant;
+        this.cadenceur = cadenceur;
+        this.premierPlan = premierPlan;
     }
 
     demarrer(
         surPosition: (position: Coordonnee) => void,
-        surErreur: (message: string) => void,
+        surEtat: (etat: EtatDeLaSource) => void,
     ): void {
-        this.surPosition = surPosition;
-        this.surErreur = surErreur;
+        // Idempotent : une session déjà en cours est refermée d'un bloc, sinon sa
+        // minuterie et sa surveillance tourneraient à vide pour toujours.
+        this.arreter();
         if (this.geolocalisation === null) {
-            surErreur('La géolocalisation n’est pas disponible sur cet appareil.');
+            surEtat({ etat: 'indisponible' });
             return;
         }
-        this.demarrerLaSurveillance();
-        this.annulerLeChienDeGarde = this.cadenceur.toutesLes(CADENCE_DU_CHIEN_DE_GARDE_MS, () => {
+        surEtat({ etat: 'attente' });
+        const annulerLeChienDeGarde = this.cadenceur.toutesLes(CADENCE_DU_CHIEN_DE_GARDE_MS, () => {
             this.verifierLeSilence();
         });
-        document.addEventListener('visibilitychange', this.surRetourAuPremierPlan);
-        window.addEventListener('pageshow', this.surRetourAuPremierPlan);
-        window.addEventListener('focus', this.surRetourAuPremierPlan);
+        const seDesabonnerDuPremierPlan = this.premierPlan.surRetourAuPremierPlan(() => {
+            this.demanderUnePositionImmediate();
+        });
+        const surveillance: SurveillanceEnCours = {
+            type: 'enCours',
+            surPosition,
+            surEtat,
+            annulerLeChienDeGarde,
+            seDesabonnerDuPremierPlan,
+            idDeSurveillance: null,
+            dernierTraitementMs: null,
+            dernierFixMs: null,
+            dernierSignalMs: null,
+            derniereImprecisionMetres: null,
+            dernierRedemarrageMs: null,
+        };
+        this.surveillance = surveillance;
+        this.ouvrirLaSurveillance(surveillance);
     }
 
-    private demarrerLaSurveillance(): void {
+    arreter(): void {
+        const surveillance = this.surveillance;
+        if (surveillance.type === 'arretee') {
+            return;
+        }
+        // La session est abandonnée d'abord : un fix déjà en vol la trouvera
+        // périmée et n'appellera plus les rappels de l'appelant.
+        this.surveillance = { type: 'arretee' };
+        this.fermerLaSurveillance(surveillance);
+        surveillance.annulerLeChienDeGarde();
+        surveillance.seDesabonnerDuPremierPlan();
+    }
+
+    private ouvrirLaSurveillance(surveillance: SurveillanceEnCours): void {
         if (this.geolocalisation === null) {
             return;
         }
-        this.idDeSurveillance = this.geolocalisation.watchPosition(
+        surveillance.idDeSurveillance = this.geolocalisation.watchPosition(
             (fix) => {
-                this.traiterLeFix(fix);
+                this.traiterLeFix(surveillance, fix);
             },
             (erreur) => {
-                this.traiterLErreur(erreur);
+                this.traiterLErreur(surveillance, erreur);
             },
             OPTIONS_DE_POSITION,
         );
     }
 
-    arreter(): void {
-        if (this.geolocalisation !== null && this.idDeSurveillance !== null) {
-            this.geolocalisation.clearWatch(this.idDeSurveillance);
-        }
-        this.idDeSurveillance = null;
-        this.annulerLeChienDeGarde?.();
-        this.annulerLeChienDeGarde = null;
-        document.removeEventListener('visibilitychange', this.surRetourAuPremierPlan);
-        window.removeEventListener('pageshow', this.surRetourAuPremierPlan);
-        window.removeEventListener('focus', this.surRetourAuPremierPlan);
-        this.surPosition = null;
-        this.surErreur = null;
-    }
-
-    private traiterLeFix(fix: GeolocationPosition): void {
-        this.dernierSignalMs = this.maintenant();
-        if (fix.coords.accuracy > PRECISION_MAXIMALE_METRES) {
-            this.derniereImprecisionMetres = fix.coords.accuracy;
-            this.signalerLImprecision();
+    private fermerLaSurveillance(surveillance: SurveillanceEnCours): void {
+        if (this.geolocalisation === null || surveillance.idDeSurveillance === null) {
             return;
         }
-        this.dernierFixMs = this.maintenant();
+        this.geolocalisation.clearWatch(surveillance.idDeSurveillance);
+        surveillance.idDeSurveillance = null;
+    }
+
+    private traiterLeFix(surveillance: SurveillanceEnCours, fix: GeolocationPosition): void {
+        if (this.surveillance !== surveillance) {
+            return;
+        }
+        surveillance.dernierSignalMs = this.maintenant();
+        if (!fixUtilisable(fix.coords.accuracy)) {
+            surveillance.derniereImprecisionMetres = fix.coords.accuracy;
+            this.signalerLImprecision(surveillance);
+            return;
+        }
+        surveillance.dernierFixMs = this.maintenant();
         if (
-            this.dernierTraitementMs !== null &&
-            this.maintenant() - this.dernierTraitementMs < INTERVALLE_ENTRE_POSITIONS_MS
+            surveillance.dernierTraitementMs !== null &&
+            this.maintenant() - surveillance.dernierTraitementMs < INTERVALLE_ENTRE_POSITIONS_MS
         ) {
             return;
         }
-        this.dernierTraitementMs = this.maintenant();
-        this.surPosition?.(Coordonnee.creer(fix.coords.latitude, fix.coords.longitude));
+        surveillance.dernierTraitementMs = this.maintenant();
+        surveillance.surPosition(Coordonnee.creer(fix.coords.latitude, fix.coords.longitude));
     }
 
-    private traiterLErreur(erreur: GeolocationPositionError): void {
+    private traiterLErreur(
+        surveillance: SurveillanceEnCours,
+        erreur: GeolocationPositionError,
+    ): void {
+        if (this.surveillance !== surveillance) {
+            return;
+        }
         if (erreur.code === CODE_PERMISSION_REFUSEE) {
-            this.surErreur?.(
-                'Accès à la position refusé — autorisez la localisation pour ce site puis revenez.',
-            );
+            surveillance.surEtat({ etat: 'permission-refusee' });
             return;
         }
         // Erreur passagère (indisponibilité, timeout) : le GPS réel en émet au
@@ -154,35 +217,47 @@ export class GeolocationPositionSource implements PositionSource {
     }
 
     private verifierLeSilence(): void {
-        if (this.estFrais(this.dernierFixMs)) {
+        const surveillance = this.surveillance;
+        if (surveillance.type === 'arretee') {
+            return;
+        }
+        if (this.estFrais(surveillance.dernierFixMs)) {
             return;
         }
         // Le GPS répond mais trop imprécisément : le dire, plutôt que « perdu ».
-        if (this.estFrais(this.dernierSignalMs)) {
-            this.signalerLImprecision();
+        if (this.estFrais(surveillance.dernierSignalMs)) {
+            this.signalerLImprecision(surveillance);
             return;
         }
-        this.signalerLeSilence();
+        this.signalerLeSilence(surveillance);
     }
 
     private estFrais(instantMs: number | null): boolean {
         return instantMs !== null && this.maintenant() - instantMs <= SILENCE_AVANT_ALERTE_MS;
     }
 
-    private signalerLImprecision(): void {
-        const kilometres = Math.max(1, Math.round((this.derniereImprecisionMetres ?? 0) / 1000));
-        this.surErreur?.(
-            `Position approximative (± ${kilometres} km) — trop imprécise pour caler la page.`,
-        );
-    }
-
-    private signalerLeSilence(): void {
-        if (this.dernierFixMs === null) {
-            this.surErreur?.('En attente du signal GPS…');
+    private signalerLImprecision(surveillance: SurveillanceEnCours): void {
+        const imprecisionMetres = surveillance.derniereImprecisionMetres;
+        // Annoncer une imprécision inconnue reviendrait à en inventer une : le
+        // rédacteur planche à 1 km, l'utilisateur lirait « ± 1 km » sans qu'aucun
+        // fix imprécis ne soit jamais arrivé. On dit alors ce qu'on sait : le
+        // silence.
+        if (imprecisionMetres === null) {
+            this.signalerLeSilence(surveillance);
             return;
         }
-        const minutes = Math.max(1, Math.round((this.maintenant() - this.dernierFixMs) / 60_000));
-        this.surErreur?.(`Signal GPS perdu — dernière position il y a ${minutes} min.`);
+        surveillance.surEtat({ etat: 'imprecise', imprecisionMetres });
+    }
+
+    private signalerLeSilence(surveillance: SurveillanceEnCours): void {
+        if (surveillance.dernierFixMs === null) {
+            surveillance.surEtat({ etat: 'attente' });
+            return;
+        }
+        surveillance.surEtat({
+            etat: 'perdue',
+            ancienneteMs: this.maintenant() - surveillance.dernierFixMs,
+        });
     }
 
     /**
@@ -193,24 +268,24 @@ export class GeolocationPositionSource implements PositionSource {
      * cesse l'acquisition et dégraderaient la précision des fixes.
      */
     private demanderUnePositionImmediate(): void {
-        if (this.geolocalisation === null || this.surPosition === null) {
+        const surveillance = this.surveillance;
+        if (surveillance.type === 'arretee') {
             return;
         }
-        if (document.visibilityState !== 'visible') {
+        if (!this.premierPlan.estAuPremierPlan()) {
             return;
         }
         if (
-            this.dernierRedemarrageMs !== null &&
-            this.maintenant() - this.dernierRedemarrageMs < DELAI_MINIMUM_ENTRE_REDEMARRAGES_MS
+            surveillance.dernierRedemarrageMs !== null &&
+            this.maintenant() - surveillance.dernierRedemarrageMs <
+                DELAI_MINIMUM_ENTRE_REDEMARRAGES_MS
         ) {
             return;
         }
-        this.dernierRedemarrageMs = this.maintenant();
-        if (this.idDeSurveillance !== null) {
-            this.geolocalisation.clearWatch(this.idDeSurveillance);
-        }
-        this.dernierTraitementMs = null;
-        this.demarrerLaSurveillance();
+        surveillance.dernierRedemarrageMs = this.maintenant();
+        this.fermerLaSurveillance(surveillance);
+        surveillance.dernierTraitementMs = null;
+        this.ouvrirLaSurveillance(surveillance);
     }
 }
 

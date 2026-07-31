@@ -92,7 +92,10 @@
             </button>
         </section>
 
-        <section id="ecran-carte" class="ecran ecran-carte" hidden>
+        <!-- Superposition, pas un écran : elle se pose par-dessus l'écran courant,
+             qui reste visible dessous. Elle ne porte donc pas la classe « ecran »
+             et ne peut pas être masquée par la navigation. -->
+        <section id="ecran-carte" class="ecran-carte" hidden>
             <div id="conteneur-carte"></div>
             <div class="barre-carte">
                 <input

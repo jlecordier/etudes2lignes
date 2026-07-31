@@ -7,31 +7,41 @@ import { registerSW } from 'virtual:pwa-register';
 import { LeafletCarteDesPoints } from './carte/adapters/LeafletCarteDesPoints';
 import { LeafletSelecteurDeCoordonnee } from './carte/adapters/LeafletSelecteurDeCoordonnee';
 import { requete } from './commun/dom';
-import { afficherEcran } from './navigation';
+import { lanceurParDefaut } from './commun/lancement';
+import { aller } from './navigation';
 import { GeolocationPositionSource } from './suivi/adapters/GeolocationPositionSource';
 import { NavigateurEcranAllume } from './suivi/adapters/NavigateurEcranAllume';
+import { NavigateurPremierPlan } from './suivi/adapters/NavigateurPremierPlan';
 import { SimulationPositionSource } from './suivi/adapters/SimulationPositionSource';
 import { creerSuiviScreen } from './suivi/ui/SuiviScreen';
 import { IdbTrajetRepository } from './trajets/adapters/IdbTrajetRepository';
-import type { TrajetId } from './trajets/domain/ids';
+import { creerDerniereSessionOuverte } from './trajets/adapters/derniereSessionOuverte';
 import { creerEditeurTrajetScreen } from './trajets/ui/EditeurTrajetScreen';
 import { creerListeTrajetsScreen } from './trajets/ui/ListeTrajetsScreen';
 
-const CLE_DERNIER_TRAJET = 'dernierTrajetId';
-
 function demarrer(): void {
+    // La frontière d'erreur de l'application : tout travail lancé par un geste
+    // de l'utilisateur y passe, pour qu'aucun échec ne reste muet.
+    const lancer = lanceurParDefaut;
     const repository = new IdbTrajetRepository();
     const selecteurDeCoordonnee = new LeafletSelecteurDeCoordonnee();
+    const derniereSession = creerDerniereSessionOuverte();
+    // Un seul jeu d'écouteurs pour tous ceux qui doivent se réveiller quand la
+    // page revient au premier plan (le GPS et le verrou d'écran).
+    const premierPlan = new NavigateurPremierPlan();
 
     const suivi = creerSuiviScreen({
         repository,
-        sourceReelle: new GeolocationPositionSource(),
+        sourceReelle: new GeolocationPositionSource({ premierPlan }),
         simulation: new SimulationPositionSource(),
         selecteurDeCoordonnee,
-        ecranAllume: new NavigateurEcranAllume(),
+        ecranAllume: new NavigateurEcranAllume({ premierPlan }),
+        lancer,
         surRetour: (id) => {
-            afficherEcran('editeur');
-            void editeurTrajet.afficher(id);
+            lancer(
+                aller('editeur', () => editeurTrajet.afficher(id)),
+                'l’ouverture du trajet',
+            );
         },
     });
 
@@ -39,34 +49,46 @@ function demarrer(): void {
         repository,
         selecteurDeCoordonnee,
         carteDesPoints: new LeafletCarteDesPoints('carte-points'),
+        lancer,
         surRetour: () => {
-            localStorage.removeItem(CLE_DERNIER_TRAJET);
-            afficherEcran('liste');
-            void listeTrajets.afficher();
+            derniereSession.oublier();
+            lancer(
+                aller('liste', () => listeTrajets.afficher()),
+                'la lecture de la liste',
+            );
         },
         surSuivi: (id) => {
-            afficherEcran('suivi');
-            void suivi.afficher(id);
+            lancer(
+                aller('suivi', () => suivi.afficher(id)),
+                'l’ouverture du suivi',
+            );
         },
     });
 
     const listeTrajets = creerListeTrajetsScreen({
         repository,
+        lancer,
         surOuverture: (id) => {
-            localStorage.setItem(CLE_DERNIER_TRAJET, id);
-            afficherEcran('editeur');
-            void editeurTrajet.afficher(id);
+            derniereSession.memoriser(id);
+            lancer(
+                aller('editeur', () => editeurTrajet.afficher(id)),
+                'l’ouverture du trajet',
+            );
         },
     });
 
     // Si iOS a tué la PWA en plein voyage, on rouvre directement le dernier trajet.
-    const dernierTrajet = localStorage.getItem(CLE_DERNIER_TRAJET) as TrajetId | null;
+    const dernierTrajet = derniereSession.restaurer();
     if (dernierTrajet !== null) {
-        afficherEcran('editeur');
-        void editeurTrajet.afficher(dernierTrajet);
+        lancer(
+            aller('editeur', () => editeurTrajet.afficher(dernierTrajet)),
+            'l’ouverture du dernier trajet',
+        );
     } else {
-        afficherEcran('liste');
-        void listeTrajets.afficher();
+        lancer(
+            aller('liste', () => listeTrajets.afficher()),
+            'la lecture de la liste',
+        );
     }
 }
 

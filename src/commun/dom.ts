@@ -23,3 +23,25 @@ export function requete<E extends Element>(
     }
     return element;
 }
+
+/**
+ * Le pendant pluriel de `requete`, sur le même principe du constructeur-témoin.
+ *
+ * `querySelectorAll<T>('…')` serait un générique à sens unique : rien ne
+ * garantit à l'exécution que les éléments trouvés sont du type annoncé — c'est
+ * un cast déguisé. Ici chaque élément est réellement vérifié par `instanceof`.
+ */
+export function requeteTous<E extends Element>(
+    selecteur: string,
+    type: new () => E,
+    racine: ParentNode = document,
+): E[] {
+    return Array.from(racine.querySelectorAll(selecteur), (element) => {
+        if (!(element instanceof type)) {
+            throw new TypeError(
+                `« ${selecteur} » a trouvé un ${element.nodeName} au lieu d'un ${type.name}.`,
+            );
+        }
+        return element;
+    });
+}

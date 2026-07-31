@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
+    ajouterUnPoint,
     choisirUneCoordonneePourUnPoint,
     clicDroitSurLImage,
     cliquerSurLImage,
@@ -14,6 +15,8 @@ test.describe('Géoréférencement des points', () => {
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
 
+        // Les trois étapes restent écrites ici : c'est ce test qui spécifie le
+        // parcours d'ajout d'un point. Les autres passent par `ajouterUnPoint`.
         await page
             .locator('.barre-actions')
             .getByRole('button', { name: 'Ajouter un point' })
@@ -32,12 +35,7 @@ test.describe('Géoréférencement des points', () => {
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
-        await page
-            .locator('.barre-actions')
-            .getByRole('button', { name: 'Ajouter un point' })
-            .click();
-        await cliquerSurLImage(page, 0.25);
-        await choisirUneCoordonneePourUnPoint(page);
+        await ajouterUnPoint(page, 0.25);
 
         await page
             .locator('#liste-points')
@@ -55,12 +53,7 @@ test.describe('Géoréférencement des points', () => {
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
-        await page
-            .locator('.barre-actions')
-            .getByRole('button', { name: 'Ajouter un point' })
-            .click();
-        await cliquerSurLImage(page, 0.25);
-        await choisirUneCoordonneePourUnPoint(page);
+        await ajouterUnPoint(page, 0.25);
 
         await page
             .locator('.marqueur-point')
@@ -78,12 +71,7 @@ test.describe('Géoréférencement des points', () => {
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
-        await page
-            .locator('.barre-actions')
-            .getByRole('button', { name: 'Ajouter un point' })
-            .click();
-        await cliquerSurLImage(page, 0.25);
-        await choisirUneCoordonneePourUnPoint(page);
+        await ajouterUnPoint(page, 0.25);
         const avant = (await page.locator('.description-point').textContent()) ?? '';
 
         await page
@@ -100,12 +88,7 @@ test.describe('Géoréférencement des points', () => {
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
-        await page
-            .locator('.barre-actions')
-            .getByRole('button', { name: 'Ajouter un point' })
-            .click();
-        await cliquerSurLImage(page, 0.25);
-        await choisirUneCoordonneePourUnPoint(page);
+        await ajouterUnPoint(page, 0.25);
         const avant = (await page.locator('.description-point').textContent()) ?? '';
 
         await page
@@ -121,12 +104,7 @@ test.describe('Géoréférencement des points', () => {
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
-        await page
-            .locator('.barre-actions')
-            .getByRole('button', { name: 'Ajouter un point' })
-            .click();
-        await cliquerSurLImage(page, 0.25);
-        await choisirUneCoordonneePourUnPoint(page);
+        await ajouterUnPoint(page, 0.25);
 
         page.once('dialog', (dialogue) => void dialogue.accept());
         await page
@@ -142,12 +120,7 @@ test.describe('Géoréférencement des points', () => {
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
-        await page
-            .locator('.barre-actions')
-            .getByRole('button', { name: 'Ajouter un point' })
-            .click();
-        await cliquerSurLImage(page, 0.25);
-        await choisirUneCoordonneePourUnPoint(page);
+        await ajouterUnPoint(page, 0.25);
 
         page.once('dialog', (dialogue) => void dialogue.accept());
         await page

@@ -1,3 +1,4 @@
+import { borner } from '../../commun/nombre';
 import { elementA } from '../../commun/tableau';
 import type { Coordonnee } from '../../trajets/domain/Coordonnee';
 
@@ -17,22 +18,37 @@ export interface EtapeDuVoyage {
 export type ResultatDeSuivi =
     | { etat: 'pas-assez-de-points' }
     | { etat: 'hors-trajet'; distanceMetres: number }
-    | { etat: 'sur-trajet'; scrollCible: number; indexSegment: number };
+    | { etat: 'sur-trajet'; scrollCible: number };
 
-/** L'ancrage du tick précédent (un résultat « sur-trajet »), pour l'adhérence. */
+/**
+ * La cible de défilement retenue au tick précédent, pour l'adhérence : c'est
+ * l'écart de cible — jamais un numéro de segment — qui départage les segments
+ * quasi ex æquo (voir `choisirLeSegment`).
+ */
 export interface AncragePrecedent {
-    readonly indexSegment: number;
     readonly scrollCible: number;
 }
 
 /** En-deçà de cette distance du trajet, on ne s'inquiète jamais. */
-const SEUIL_MINIMUM_METRES = 5000;
+export const SEUIL_MINIMUM_METRES = 5000;
+/**
+ * En-deçà de cette longueur, un segment est traité comme un point : à cette
+ * échelle, l'orientation d'un segment n'a plus de sens (et sa division non plus).
+ */
+const LONGUEUR_MINIMALE_DE_SEGMENT_METRES = 1;
 /** Part de la longueur du segment tolérée en écart (la corde s'éloigne de la vraie ligne). */
 const PART_DE_LA_LONGUEUR_DU_SEGMENT = 0.2;
 /** Marge d'adhérence : un autre segment doit être nettement plus proche pour être retenu. */
 const MARGE_D_ADHERENCE_METRES = 200;
-/** La position courante s'affiche aux trois quarts de l'écran (un quart du bas). */
-const FRACTION_D_ECRAN_DE_LA_POSITION = 0.75;
+/**
+ * La position courante s'affiche aux trois quarts de l'écran (un quart du bas).
+ *
+ * Exportée parce que le repère visuel de l'écran de suivi doit tomber au même
+ * endroit : la valeur était recopiée dans le CSS (`top: 75vh`) et dans les tests
+ * de bout en bout, où elle pouvait diverger sans que rien ne le signale — la
+ * ligne bleue aurait alors menti sur la position réelle.
+ */
+export const FRACTION_D_ECRAN_DE_LA_POSITION = 0.75;
 
 /**
  * Trouve où placer le document pour la position donnée : projette la position
@@ -60,11 +76,7 @@ export function calculerCibleDeScroll(
 
     const depart = elementA(etapes, indexRetenu).offset;
     const arrivee = elementA(etapes, indexRetenu + 1).offset;
-    return {
-        etat: 'sur-trajet',
-        scrollCible: interpoler(depart, arrivee, projection.t),
-        indexSegment: indexRetenu,
-    };
+    return { etat: 'sur-trajet', scrollCible: interpoler(depart, arrivee, projection.t) };
 }
 
 /**
@@ -114,10 +126,10 @@ function projeterSurSegment(a: Coordonnee, b: Coordonnee, p: Coordonnee): Projec
     const versP = versPlanLocalEnMetres(a, p);
     const longueurCarree = versB.x * versB.x + versB.y * versB.y;
 
-    // Segment de longueur nulle (deux points posés au même endroit, par
-    // exemple le PK répété de part et d'autre d'une jonction de pages) :
-    // on le traite comme un point, sinon division par zéro.
-    if (longueurCarree < 1) {
+    // Segment plus court qu'un mètre — en pratique deux points posés au même
+    // endroit, par exemple le PK répété de part et d'autre d'une jonction de
+    // pages : on le traite comme un point, sinon division par (presque) zéro.
+    if (longueurCarree < LONGUEUR_MINIMALE_DE_SEGMENT_METRES ** 2) {
         return { t: 0, distanceMetres: Math.hypot(versP.x, versP.y), longueurMetres: 0 };
     }
 
@@ -197,8 +209,4 @@ function seuilHorsTrajet(longueurDuSegmentMetres: number): number {
 
 function interpoler(depart: number, arrivee: number, t: number): number {
     return depart + (arrivee - depart) * t;
-}
-
-function borner(valeur: number, minimum: number, maximum: number): number {
-    return Math.min(maximum, Math.max(minimum, valeur));
 }

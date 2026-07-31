@@ -1,4 +1,6 @@
 import type { EcranAllume } from '../ports/EcranAllumePort';
+import type { PremierPlan } from '../ports/PremierPlan';
+import { NavigateurPremierPlan } from './NavigateurPremierPlan';
 
 /**
  * Wake lock du navigateur : garde l'écran allumé pendant le suivi.
@@ -6,33 +8,49 @@ import type { EcranAllume } from '../ports/EcranAllumePort';
  * Best effort assumé : sur iOS en PWA installée, l'API n'est fiable que
  * depuis iOS 18.4 — tout échec est avalé, l'appli fonctionne sans verrou.
  * Le verrou est libéré par le système quand la page est masquée : on le
- * redemande au retour au premier plan tant que `maintenir` est actif.
+ * redemande au retour au premier plan tant que `maintenir` est actif — via le
+ * port `PremierPlan`, le seul endroit qui sache reconnaître ce retour.
  */
 export class NavigateurEcranAllume implements EcranAllume {
+    private readonly premierPlan: PremierPlan;
     private verrou: WakeLockSentinel | null = null;
-    private actif = false;
+    /**
+     * Non nul exactement entre `maintenir` et `relacher` : c'est à la fois la
+     * poignée de désabonnement et la marque « le verrou est voulu ».
+     */
+    private seDesabonnerDuPremierPlan: (() => void) | null = null;
 
-    private readonly surVisibilite = (): void => {
-        if (document.visibilityState === 'visible' && this.actif) {
-            void this.acquerir();
-        }
-    };
+    constructor(dependances?: { premierPlan?: PremierPlan }) {
+        this.premierPlan = dependances?.premierPlan ?? new NavigateurPremierPlan();
+    }
 
     async maintenir(): Promise<void> {
-        this.actif = true;
-        document.addEventListener('visibilitychange', this.surVisibilite);
+        // Un second `maintenir` ne doit pas ouvrir un second abonnement.
+        this.seDesabonnerDuPremierPlan ??= this.premierPlan.surRetourAuPremierPlan(() => {
+            this.redemanderAuPremierPlan();
+        });
         await this.acquerir();
     }
 
     async relacher(): Promise<void> {
-        this.actif = false;
-        document.removeEventListener('visibilitychange', this.surVisibilite);
+        this.seDesabonnerDuPremierPlan?.();
+        this.seDesabonnerDuPremierPlan = null;
         try {
             await this.verrou?.release();
         } catch {
             // Déjà libéré par le système : rien à faire.
         }
         this.verrou = null;
+    }
+
+    private redemanderAuPremierPlan(): void {
+        // Un réveil arrive parfois alors que la page est encore masquée :
+        // redemander le verrou échouerait (l'API exige une page visible).
+        if (this.seDesabonnerDuPremierPlan === null || !this.premierPlan.estAuPremierPlan()) {
+            return;
+        }
+        // `acquerir` avale ses propres échecs : rien à rattraper ici.
+        void this.acquerir();
     }
 
     private async acquerir(): Promise<void> {

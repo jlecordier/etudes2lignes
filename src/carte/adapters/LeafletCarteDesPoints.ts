@@ -1,10 +1,13 @@
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Coordonnee } from '../../trajets/domain/Coordonnee';
+import type { Coordonnee } from '../../trajets/domain/Coordonnee';
 import type { PointId } from '../../trajets/domain/ids';
 import type { CarteDesPoints, PointAffiche } from '../ports/CarteDesPointsPort';
+import { configurerLeaflet } from './configurerLeaflet';
+import { versCoordonnee, versLatLng } from './conversion';
 import { creerCoucheOsm, VUE_FRANCE } from './coucheOsm';
 import { iconeNumerotee } from './iconeNumerotee';
+import { centrerSurLaCoordonnee, recadrerSurLesPoints } from './recadrage';
 
 interface MarqueurPose {
     readonly marqueur: L.Marker;
@@ -51,13 +54,19 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
             .join(',');
         if (ids !== this.idsAffiches) {
             this.idsAffiches = ids;
-            this.recadrer(points);
+            recadrerSurLesPoints(carte, points);
         }
     }
 
-    choisirUneCoordonnee(): Promise<Coordonnee | null> {
+    choisirUneCoordonnee(coordonneeInitiale: Coordonnee | null): Promise<Coordonnee | null> {
         this.annulerLeChoix();
-        this.carteInitialisee().getContainer().classList.add('attente-clic');
+        const carte = this.carteInitialisee();
+        carte.getContainer().classList.add('attente-clic');
+        if (coordonneeInitiale !== null) {
+            // Déplacer un point : on part de là où il est, comme la carte plein
+            // écran le fait sur mobile.
+            centrerSurLaCoordonnee(carte, coordonneeInitiale);
+        }
         return new Promise((resolve) => {
             this.resoudreLeChoix = resolve;
         });
@@ -65,14 +74,16 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
 
     annulerLeChoix(): void {
         this.carte?.getContainer().classList.remove('attente-clic');
-        this.resoudreLeChoix?.(null);
+        const enAttente = this.resoudreLeChoix;
         this.resoudreLeChoix = null;
+        enAttente?.(null);
     }
 
     private carteInitialisee(): L.Map {
         if (this.carte !== null) {
             return this.carte;
         }
+        configurerLeaflet();
         const carte = L.map(this.idDuConteneur).setView(VUE_FRANCE.centre, VUE_FRANCE.zoom);
         this.carte = carte;
         creerCoucheOsm().addTo(carte);
@@ -86,14 +97,13 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
             }
             this.resoudreLeChoix = null;
             carte.getContainer().classList.remove('attente-clic');
-            const position = evenement.latlng.wrap();
-            enAttente(Coordonnee.creer(position.lat, position.lng));
+            enAttente(versCoordonnee(evenement.latlng));
         });
         return carte;
     }
 
     private poserOuMettreAJour(point: PointAffiche): void {
-        const position: [number, number] = [point.coordonnee.latitude, point.coordonnee.longitude];
+        const position = versLatLng(point.coordonnee);
         const existant = this.marqueurs.get(point.id);
         if (existant !== undefined) {
             existant.marqueur.setLatLng(position);
@@ -108,21 +118,8 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
             icon: iconeNumerotee(point.numero),
         }).addTo(this.carteInitialisee());
         marqueur.on('dragend', () => {
-            const arrivee = marqueur.getLatLng().wrap();
-            this.surDeplacement?.(point.id, Coordonnee.creer(arrivee.lat, arrivee.lng));
+            this.surDeplacement?.(point.id, versCoordonnee(marqueur.getLatLng()));
         });
         this.marqueurs.set(point.id, { marqueur, numero: point.numero });
-    }
-
-    private recadrer(points: readonly PointAffiche[]): void {
-        const carte = this.carteInitialisee();
-        if (points.length === 0) {
-            carte.setView(VUE_FRANCE.centre, VUE_FRANCE.zoom, { animate: false });
-            return;
-        }
-        const bornes = L.latLngBounds(
-            points.map((point) => [point.coordonnee.latitude, point.coordonnee.longitude]),
-        );
-        carte.fitBounds(bornes, { padding: [30, 30], maxZoom: 13, animate: false });
     }
 }

@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { ajouterUnPoint, ouvrirUnTrajetAvecUnePage } from './aides';
+import { ajouterUnPoint, ouvrirUnTrajetAvecUnePage, preparerLApplication } from './aides';
 
 /** Prépare un trajet géoréférencé et revient à la liste. */
 async function preparerUnTrajetEtRevenirALaListe(page: Page): Promise<void> {
@@ -63,7 +63,7 @@ test.describe('Import / export JSON', () => {
     test('Étant donné un fichier qui n’est pas un export, quand je l’importe, alors un message l’explique et rien n’est créé', async ({
         page,
     }) => {
-        await page.goto('./');
+        await preparerLApplication(page);
         const fichierInvalide = join(tmpdir(), 'pas-un-export.json');
         await writeFile(fichierInvalide, '{"application":"autre"}');
 

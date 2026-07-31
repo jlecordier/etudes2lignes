@@ -4,6 +4,7 @@ import {
     attendreLeDefilement,
     choisirUneCoordonneeSurLaCarte,
     defilementAttendu,
+    defilementCourant,
     mesure,
     ouvrirUnTrajetAvecUnePage,
 } from './aides';
@@ -99,6 +100,34 @@ test.describe('Suivi du trajet (position simulée)', () => {
         await boutonReprendre.click();
         await expect(boutonReprendre).toBeHidden();
         await attendreLeDefilement(page, attendu);
+    });
+
+    test('Étant donné une simulation quittée, quand je reprends le suivi, alors la page ne revient pas sur la position simulée', async ({
+        page,
+    }) => {
+        await ouvrirLeSuiviDUnTrajetGeoreference(page);
+        await simulerSurLePremierRepere(page);
+        await attendreLeDefilement(page, await defilementAttendu(page, 0.8));
+
+        // Retour au GPS réel : la position simulée doit être oubliée. Sans cela,
+        // l'utilisateur lirait une position simulée en la croyant réelle.
+        await page.getByRole('button', { name: '🚪 Quitter' }).click();
+        await expect(page.locator('#bandeau-simulation')).toBeHidden();
+
+        // Il lit ailleurs dans le document, puis redemande le suivi automatique.
+        await page.dispatchEvent('body', 'wheel');
+        await page.evaluate(() => {
+            window.scrollTo({ top: 0 });
+        });
+        const boutonReprendre = page.getByRole('button', { name: 'Reprendre le suivi' });
+        await expect(boutonReprendre).toBeVisible();
+        await boutonReprendre.click();
+
+        // Aucune position réelle n'est arrivée (permission refusée en test) : la
+        // page doit donc rester où elle est. On attend franchement, puisqu'il
+        // s'agit de vérifier qu'un défilement ne se produit PAS.
+        await page.waitForTimeout(1_000);
+        expect(await defilementCourant(page)).toBeLessThan(15);
     });
 
     test('Étant donné une position simulée très loin de la ligne, alors l’état affiche « Hors trajet »', async ({

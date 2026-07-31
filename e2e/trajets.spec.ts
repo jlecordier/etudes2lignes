@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test';
+import { preparerLApplication } from './aides';
 
 test.describe('Gestion des trajets', () => {
     test('Étant donné une appli vierge, quand je crée un trajet, alors il apparaît dans la liste', async ({
         page,
     }) => {
-        await page.goto('./');
+        await preparerLApplication(page);
         page.once('dialog', (dialogue) => void dialogue.accept('Paris → Bordeaux'));
 
         await page.getByRole('button', { name: 'Nouveau trajet' }).click();
@@ -18,7 +19,7 @@ test.describe('Gestion des trajets', () => {
     test('Étant donné un trajet, quand je le renomme, alors la liste montre le nouveau nom', async ({
         page,
     }) => {
-        await page.goto('./');
+        await preparerLApplication(page);
         page.once('dialog', (dialogue) => void dialogue.accept('Paris → Bordeaux'));
         await page.getByRole('button', { name: 'Nouveau trajet' }).click();
 
@@ -33,7 +34,7 @@ test.describe('Gestion des trajets', () => {
     test('Étant donné un trajet, quand je le supprime et confirme, alors la liste redevient vide', async ({
         page,
     }) => {
-        await page.goto('./');
+        await preparerLApplication(page);
         page.once('dialog', (dialogue) => void dialogue.accept('Paris → Bordeaux'));
         await page.getByRole('button', { name: 'Nouveau trajet' }).click();
         await expect(
@@ -55,7 +56,7 @@ test.describe('Gestion des trajets', () => {
     test('Étant donné un trajet, quand je refuse la confirmation de suppression, alors il reste', async ({
         page,
     }) => {
-        await page.goto('./');
+        await preparerLApplication(page);
         page.once('dialog', (dialogue) => void dialogue.accept('Paris → Bordeaux'));
         await page.getByRole('button', { name: 'Nouveau trajet' }).click();
 

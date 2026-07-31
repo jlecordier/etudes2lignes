@@ -38,14 +38,24 @@ du domaine ; `adapters` et `ui` dépendent des ports et du domaine ; seul
 
 ## Les ports et leurs adapters
 
-| Port                    | Contrat                                                                            | Adapters                                                                              |
-| ----------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `TrajetRepository`      | `listerResumes` / `charger` / `sauvegarder` (atomique) / `supprimer`               | `IdbTrajetRepository` (IndexedDB via idb)                                             |
-| `PositionSource`        | `demarrer(surPosition, surErreur)` / `arreter()`                                   | `GeolocationPositionSource` (GPS)                                                     |
-| `SimulateurDePosition`  | un `PositionSource` pilotable : `simuler(position)` + `dernierePosition`           | `SimulationPositionSource` (position choisie à la main)                               |
-| `EcranAllume`           | `maintenir()` / `relacher()`, best effort                                          | `NavigateurEcranAllume` (wake lock)                                                   |
-| `SelecteurDeCoordonnee` | `choisir(initiale) → Coordonnee \| null`                                           | `LeafletSelecteurDeCoordonnee` (Leaflet + OSM, plein écran)                           |
-| `CarteDesPoints`        | `afficher(points, surDeplacement)` / `choisirUneCoordonnee()` / `annulerLeChoix()` | `LeafletCarteDesPoints` (carte intégrée à l'éditeur, marqueurs numérotés déplaçables) |
+| Port                    | Contrat                                                                                                     | Adapters                                                                              |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `TrajetRepository`      | `listerResumes` / `charger` / `sauvegarder` (atomique) / `supprimer` ; **rejette** si la base est illisible | `IdbTrajetRepository` (IndexedDB via idb)                                             |
+| `PositionSource`        | `demarrer(surPosition, surEtat)` / `arreter()` — idempotent, redémarrable                                   | `GeolocationPositionSource` (GPS)                                                     |
+| `SimulateurDePosition`  | un `PositionSource` pilotable : `simuler(position)` + `dernierePosition`                                    | `SimulationPositionSource` (position choisie à la main)                               |
+| `EcranAllume`           | `maintenir()` / `relacher()`, best effort                                                                   | `NavigateurEcranAllume` (wake lock)                                                   |
+| `PremierPlan`           | `surRetourAuPremierPlan(action) → désabonnement` / `estAuPremierPlan()`                                     | `NavigateurPremierPlan` (visibilitychange, pageshow, focus)                           |
+| `SelecteurDeCoordonnee` | `choisir(initiale, reperes) → Coordonnee \| null`                                                           | `LeafletSelecteurDeCoordonnee` (Leaflet + OSM, plein écran)                           |
+| `CarteDesPoints`        | `afficher(points, surDeplacement)` / `choisirUneCoordonnee(initiale)` / `annulerLeChoix()`                  | `LeafletCarteDesPoints` (carte intégrée à l'éditeur, marqueurs numérotés déplaçables) |
+
+Les deux cartes honorent la coordonnée de départ : déplacer un point rouvre la
+carte là où il se trouve, quelle que soit la taille de l'écran.
+
+**Un état mesuré, jamais une phrase** : `surEtat` transporte un `EtatDeLaSource`
+du domaine (mètres, millisecondes) et c'est `suivi/domain/presentation.ts` qui
+rédige. Sans cela, la politique métier (« un fix à plus de 3 km est
+inutilisable ») vivait dans un adapter sortant — invisible au second adapter, et
+intestable sans navigateur.
 
 **La simulation est un simple second adapter de `PositionSource`** : l'écran de
 suivi ne fait aucune différence entre le GPS réel et une position simulée. Le

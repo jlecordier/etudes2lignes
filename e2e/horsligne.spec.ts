@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { fichierPng } from './aides';
+import { fichierPng, preparerLApplication } from './aides';
 
 test.describe('Hors ligne (service worker)', () => {
     test('Étant donné l’appli visitée une fois, quand je recharge hors ligne, alors elle démarre avec mes données', async ({
@@ -12,7 +12,7 @@ test.describe('Hors ligne (service worker)', () => {
             'Service worker + mode hors ligne : fiable uniquement sur Chromium dans Playwright.',
         );
 
-        await page.goto('./');
+        await preparerLApplication(page);
         // Le service worker doit être installé et prêt avant de couper le réseau.
         await page.evaluate(async () => {
             await navigator.serviceWorker.ready;

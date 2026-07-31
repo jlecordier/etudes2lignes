@@ -122,6 +122,27 @@ describe('exporterTrajetEnJson / importerTrajetDepuisJson', () => {
             );
         });
 
+        it('alors un JSON qui n’est pas un objet (tableau, null) est refusé', () => {
+            expect(() => importerTrajetDepuisJson('[]')).toThrow(
+                'Fichier incomplet : fichier manquant ou invalide.',
+            );
+            expect(() => importerTrajetDepuisJson('null')).toThrow(
+                'Fichier incomplet : fichier manquant ou invalide.',
+            );
+        });
+
+        it('alors un trajet dont les images ne sont pas des objets est refusé', () => {
+            const json = JSON.stringify({
+                application: 'etudes2lignes',
+                version: 1,
+                trajet: { nom: 'Cassé', images: ['pas un objet'], points: [] },
+            });
+
+            expect(() => importerTrajetDepuisJson(json)).toThrow(
+                'Fichier incomplet : images[0] manquant ou invalide.',
+            );
+        });
+
         it('alors un JSON d’une autre application est refusé', () => {
             expect(() => importerTrajetDepuisJson('{"application":"autre"}')).toThrow(
                 'Ce fichier ne vient pas d’Etudes2Lignes.',

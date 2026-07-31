@@ -10,18 +10,33 @@ export function fichierPng(nom: string): { name: string; mimeType: string; buffe
     return { name: nom, mimeType: 'image/png', buffer: PNG_1X1 };
 }
 
-/** Crée un trajet, l'ouvre dans l'éditeur et importe une page. */
-export async function ouvrirUnTrajetAvecUnePage(page: Page): Promise<void> {
-    // Les tuiles OSM sont bloquées : la carte reste grise mais fonctionne,
-    // et les tests ne dépendent pas du réseau.
+/**
+ * Ouvre l'application, tuiles OpenStreetMap coupées : la carte reste grise mais
+ * fonctionne, les tests ne dépendent pas du réseau — et n'aillent pas solliciter
+ * les serveurs de l'OSMF à chaque exécution, sur chaque navigateur.
+ *
+ * **Tout** parcours de test passe par ici : une variante recopiée avait perdu ce
+ * blocage, et cinq tests × cinq navigateurs téléchargeaient des tuiles pour rien.
+ */
+export async function preparerLApplication(page: Page): Promise<void> {
     await page.route('https://tile.openstreetmap.org/**', (route) => route.abort());
     await page.goto('./');
+}
+
+/** Crée un trajet et l'ouvre dans l'éditeur, sans page importée. */
+export async function ouvrirUnTrajetVierge(page: Page): Promise<void> {
+    await preparerLApplication(page);
     page.once('dialog', (dialogue) => void dialogue.accept('Paris → Bordeaux'));
     await page.getByRole('button', { name: 'Nouveau trajet' }).click();
     await page.getByRole('button', { name: 'Paris → Bordeaux', exact: true }).click();
     // L'éditeur charge le trajet en asynchrone : attendre qu'il soit prêt
-    // (le titre apparaît en fin de chargement) avant d'importer.
+    // (le titre apparaît en fin de chargement) avant d'agir.
     await expect(page.getByRole('heading', { name: 'Paris → Bordeaux' })).toBeVisible();
+}
+
+/** Crée un trajet, l'ouvre dans l'éditeur et importe une page. */
+export async function ouvrirUnTrajetAvecUnePage(page: Page): Promise<void> {
+    await ouvrirUnTrajetVierge(page);
     await page.locator('#input-images').setInputFiles([fichierPng('page-1.png')]);
     await expect(page.locator('.nom-image')).toHaveText(['page-1.png']);
 }
@@ -89,13 +104,22 @@ export async function choisirUneCoordonneeSurLaCarte(page: Page, decalageX = 0):
     await expect(page.locator('#ecran-carte')).toBeHidden();
 }
 
+/** Le seuil du grand écran n'est écrit qu'une fois, dans la feuille de style. */
+function surGrandEcran(page: Page): Promise<boolean> {
+    return page.evaluate(
+        () =>
+            getComputedStyle(document.documentElement).getPropertyValue('--grand-ecran').trim() ===
+            '1',
+    );
+}
+
 /**
- * Choisit la coordonnée d'un point de l'éditeur : sur grand écran (≥ 900 px,
- * même seuil que le CSS) un simple clic sur la carte intégrée suffit ; sur
- * mobile, c'est la carte plein écran habituelle.
+ * Choisit la coordonnée d'un point de l'éditeur : sur grand écran, un simple
+ * clic sur la carte intégrée suffit ; sur mobile, c'est la carte plein écran
+ * habituelle. C'est le CSS qui dit lequel des deux, comme pour l'application.
  */
 export async function choisirUneCoordonneePourUnPoint(page: Page, decalageX = 0): Promise<void> {
-    if (mesure(page.viewportSize(), 'viewport').width >= 900) {
+    if (await surGrandEcran(page)) {
         const carte = mesure(
             await page.locator('#carte-points').boundingBox(),
             'cadre de la carte intégrée',
@@ -119,21 +143,33 @@ export async function ajouterUnPoint(
     await choisirUneCoordonneePourUnPoint(page, decalageCarteX);
 }
 
-/** Défilement attendu pour placer une fraction de l'image à 75 % de l'écran. */
-export async function defilementAttendu(page: Page, fraction: number): Promise<number> {
+/**
+ * Défilement attendu pour amener une fraction de l'image sur le repère.
+ *
+ * La fraction d'écran visée n'est pas recopiée ici : elle vient du domaine
+ * (`FRACTION_D_ECRAN_DE_LA_POSITION`), que l'écran de suivi pose sur `:root`.
+ * Un test qui répète la règle qu'il vérifie ne vérifie rien.
+ */
+export async function defilementAttendu(page: Page, fractionDeLImage: number): Promise<number> {
     // L'écran de suivi charge le trajet en asynchrone : attendre la pile d'images.
     await page.locator('#pile-suivi img').first().waitFor({ state: 'attached' });
-    return page.evaluate((f) => {
+    return page.evaluate((fraction) => {
         const image = document.querySelector<HTMLImageElement>('#pile-suivi img');
         if (image === null) {
             throw new Error('#pile-suivi img introuvable');
         }
+        const fractionDEcran = Number.parseFloat(
+            getComputedStyle(document.documentElement).getPropertyValue('--fraction-position'),
+        );
+        if (!Number.isFinite(fractionDEcran)) {
+            throw new Error('--fraction-position absente : l’écran de suivi ne l’a pas posée.');
+        }
         const cadre = image.getBoundingClientRect();
-        const cible = cadre.top + window.scrollY + f * cadre.height;
-        const defilement = cible - 0.75 * window.innerHeight;
+        const cible = cadre.top + window.scrollY + fraction * cadre.height;
+        const defilement = cible - fractionDEcran * window.innerHeight;
         const maximum = document.documentElement.scrollHeight - window.innerHeight;
         return Math.min(Math.max(0, maximum), Math.max(0, defilement));
-    }, fraction);
+    }, fractionDeLImage);
 }
 
 export function defilementCourant(page: Page): Promise<number> {

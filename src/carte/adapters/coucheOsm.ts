@@ -13,4 +13,8 @@ export function creerCoucheOsm(): L.TileLayer {
     });
 }
 
-export const VUE_FRANCE = { centre: [46.6, 2.4] as [number, number], zoom: 6 };
+/** La vue par défaut : la France entière, quand on n'a aucun point à montrer. */
+export const VUE_FRANCE: { centre: [number, number]; zoom: number } = {
+    centre: [46.6, 2.4],
+    zoom: 6,
+};

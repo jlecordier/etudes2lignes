@@ -11,13 +11,14 @@ body {
     background: #f9fafb;
 }
 
+:root {
+    /* Passe à 1 dans la requête média du grand écran, plus bas. */
+    --grand-ecran: 0;
+}
+
 .ecran {
     min-height: 100dvh;
     padding: 1rem;
-}
-
-.ecran-carte {
-    padding: 0;
 }
 
 .entete {
@@ -239,6 +240,13 @@ button.danger {
 }
 
 @media (min-width: 900px) {
+    /* Le seuil du grand écran est défini ici, et nulle part ailleurs : le
+       TypeScript et les tests lisent ce drapeau au lieu de recopier 900px, qui
+       pouvait diverger sans que rien ne le signale. */
+    :root {
+        --grand-ecran: 1;
+    }
+
     .corps-editeur {
         flex-direction: row;
         align-items: flex-start;
@@ -381,7 +389,10 @@ button.danger {
     position: fixed;
     left: 0;
     right: 0;
-    top: 75vh;
+    /* La fraction vient du domaine (`FRACTION_D_ECRAN_DE_LA_POSITION`), posée
+       sur :root par l'écran de suivi : le repère ne peut plus mentir sur la
+       position que le défilement vise réellement. */
+    top: calc(var(--fraction-position, 0.75) * 100dvh);
     border-top: 2px dashed #2563eb;
     pointer-events: none;
     z-index: 5;

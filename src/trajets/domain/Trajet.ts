@@ -51,7 +51,10 @@ export class Trajet {
         images: readonly ImageDeTrajet[];
         points: readonly Point[];
     }): Trajet {
-        const trajet = new Trajet(donnees.id, donnees.nom, donnees.creeLe, [...donnees.images], []);
+        const trajet = new Trajet(donnees.id, donnees.nom, donnees.creeLe, [], []);
+        for (const image of donnees.images) {
+            trajet.admettreLImage(image);
+        }
         for (const point of donnees.points) {
             trajet.indexImageObligatoire(point.imageId);
             trajet._points.push(point);
@@ -71,31 +74,45 @@ export class Trajet {
         return [...this._points];
     }
 
+    /**
+     * Les images dans l'ordre où le document se lit : les pages se lisent de bas
+     * en haut, donc la première image du voyage s'affiche tout en bas de la pile
+     * et la dernière tout en haut. C'est exactement l'inverse de l'ordre du voyage.
+     */
+    imagesDansLOrdreDeLecture(): readonly ImageDeTrajet[] {
+        return [...this._images].reverse();
+    }
+
     renommer(nom: NomDeTrajet): void {
         this._nom = nom;
     }
 
     ajouterImage(fichier: { nom: string; blob: Blob; largeur: number; hauteur: number }): ImageId {
-        if (!estUneDimension(fichier.largeur) || !estUneDimension(fichier.hauteur)) {
-            throw new Error(`Dimensions d’image invalides : ${fichier.largeur}×${fichier.hauteur}`);
-        }
         const image: ImageDeTrajet = { id: nouvelImageId(), ...fichier };
-        this._images.push(image);
+        this.admettreLImage(image);
         return image.id;
     }
 
-    monterImage(imageId: ImageId): void {
-        this.echangerImages(this.indexImageObligatoire(imageId), -1);
+    /**
+     * Décale l'image d'un cran vers la fin du voyage : elle est désormais
+     * parcourue après celle qui la suivait. Sans effet sur la dernière image.
+     */
+    avancerImageDansLeVoyage(imageId: ImageId): void {
+        this.echangerImages(this.indexImageObligatoire(imageId), 1);
     }
 
-    descendreImage(imageId: ImageId): void {
-        this.echangerImages(this.indexImageObligatoire(imageId), 1);
+    /**
+     * Décale l'image d'un cran vers le début du voyage : elle est désormais
+     * parcourue avant celle qui la précédait. Sans effet sur la première image.
+     */
+    reculerImageDansLeVoyage(imageId: ImageId): void {
+        this.echangerImages(this.indexImageObligatoire(imageId), -1);
     }
 
     supprimerImage(imageId: ImageId): void {
         const index = this.indexImageObligatoire(imageId);
-        this._images.splice(index, 1);
         this.supprimerLesPointsDeLImage(imageId);
+        this._images.splice(index, 1);
     }
 
     ajouterPoint(donnees: {
@@ -124,20 +141,35 @@ export class Trajet {
         this._points.splice(this.indexPointObligatoire(pointId), 1);
     }
 
+    /** Les points portés par une image du trajet, dans leur ordre d'ajout. */
+    pointsDeLImage(imageId: ImageId): readonly Point[] {
+        this.indexImageObligatoire(imageId);
+        return this._points.filter((point) => point.imageId === imageId);
+    }
+
     /**
      * Les points dans l'ordre du voyage. Les pages se lisent de bas en haut :
      * sur une même image, la fraction la plus grande (plus bas) vient en premier.
      */
     ordreVoyageDesPoints(): Point[] {
-        const rangParImage = new Map(this._images.map((image, index) => [image.id, index]));
-        return [...this._points].sort((a, b) => {
-            const rangA = rangParImage.get(a.imageId) ?? 0;
-            const rangB = rangParImage.get(b.imageId) ?? 0;
-            if (rangA !== rangB) {
-                return rangA - rangB;
-            }
-            return b.fraction.valeur - a.fraction.valeur;
-        });
+        return this._points
+            .map((point) => ({ point, rangDeLImage: this.indexImageObligatoire(point.imageId) }))
+            .sort((a, b) => {
+                if (a.rangDeLImage !== b.rangDeLImage) {
+                    return a.rangDeLImage - b.rangDeLImage;
+                }
+                return b.point.fraction.valeur - a.point.fraction.valeur;
+            })
+            .map(({ point }) => point);
+    }
+
+    /**
+     * Les points dans l'ordre du voyage, numérotés à partir de 1. Le numéro que
+     * l'utilisateur lit — dans la liste, sur les pastilles posées sur les images
+     * et sur les marqueurs de la carte — est produit ici, et nulle part ailleurs.
+     */
+    pointsNumerotesDansLOrdreDuVoyage(): readonly { point: Point; numero: number }[] {
+        return this.ordreVoyageDesPoints().map((point, index) => ({ point, numero: index + 1 }));
     }
 
     private echangerImages(index: number, decalage: -1 | 1): void {
@@ -150,11 +182,20 @@ export class Trajet {
         this._images[voisin] = image;
     }
 
+    /**
+     * Seule porte d'entrée d'une image dans l'agrégat : l'ajout par l'utilisateur
+     * comme la réhydratation depuis la persistance passent par cette garde.
+     */
+    private admettreLImage(image: ImageDeTrajet): void {
+        if (!estUneDimension(image.largeur) || !estUneDimension(image.hauteur)) {
+            throw new Error(`Dimensions d’image invalides : ${image.largeur}×${image.hauteur}`);
+        }
+        this._images.push(image);
+    }
+
     private supprimerLesPointsDeLImage(imageId: ImageId): void {
-        for (let index = this._points.length - 1; index >= 0; index--) {
-            if (elementA(this._points, index).imageId === imageId) {
-                this._points.splice(index, 1);
-            }
+        for (const point of this.pointsDeLImage(imageId)) {
+            this._points.splice(this.indexPointObligatoire(point.id), 1);
         }
     }
 

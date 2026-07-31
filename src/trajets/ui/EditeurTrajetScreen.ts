@@ -1,52 +1,67 @@
-import { requete } from '../../commun/dom';
-import type { CarteDesPoints } from '../../carte/ports/CarteDesPointsPort';
+import type { CarteDesPoints, PointAffiche } from '../../carte/ports/CarteDesPointsPort';
 import type { SelecteurDeCoordonnee } from '../../carte/ports/SelecteurDeCoordonneePort';
+import { requete } from '../../commun/dom';
+import { creerBouton, type Bouton } from '../../commun/elements';
+import { creerFileDAttente } from '../../commun/file';
+import type { Lancer } from '../../commun/lancement';
+import { creerPileDePages, type PageAAfficher } from '../../commun/pileDePages';
 import type { Coordonnee } from '../domain/Coordonnee';
 import { FractionVerticale } from '../domain/FractionVerticale';
-import type { Trajet, ImageDeTrajet, Point } from '../domain/Trajet';
+import type { ImageDeTrajet, Point, Trajet } from '../domain/Trajet';
 import type { ImageId, PointId, TrajetId } from '../domain/ids';
 import type { TrajetRepository } from '../ports/TrajetRepository';
-import { elementImagePleineLargeur, revoquerLesUrls } from './elementsDImage';
-import { pointsAffiches } from './pointsAffiches';
 
 export interface DependancesEditeurTrajet {
     repository: TrajetRepository;
     selecteurDeCoordonnee: SelecteurDeCoordonnee;
     carteDesPoints: CarteDesPoints;
+    lancer: Lancer;
     surRetour: () => void;
     surSuivi: (id: TrajetId) => void;
 }
 
 type ModeDePlacement = { type: 'ajout' } | { type: 'deplacement'; pointId: PointId } | null;
 
-/** Même seuil que le CSS : iPad paysage = grand écran, iPad portrait = mobile. */
-const GRAND_ECRAN = '(min-width: 900px)';
+/**
+ * Le seuil du grand écran (iPad paysage oui, iPad portrait non) est défini par
+ * la feuille de style, seule, qui l'expose par ce drapeau : la valeur était
+ * recopiée ici et dans les tests, où elle pouvait diverger en silence.
+ */
+function surGrandEcran(): boolean {
+    return (
+        getComputedStyle(document.documentElement).getPropertyValue('--grand-ecran').trim() === '1'
+    );
+}
 
 /** Écran d'édition d'un trajet : ses images et ses points géo-référencés. */
 export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet): {
     afficher: (id: TrajetId) => Promise<void>;
 } {
-    const { repository, selecteurDeCoordonnee, carteDesPoints, surRetour, surSuivi } = dependances;
+    const { repository, selecteurDeCoordonnee, carteDesPoints, lancer, surRetour, surSuivi } =
+        dependances;
     const titre = requete('#titre-trajet', HTMLHeadingElement);
-    const pile = requete('#pile-images', HTMLDivElement);
     const listePoints = requete('#liste-points', HTMLOListElement);
     const consigne = requete('#consigne-placement', HTMLParagraphElement);
     const texteConsigne = requete('#texte-consigne', HTMLSpanElement);
-    const boutonRetour = requete('#bouton-retour-liste', HTMLButtonElement);
     const boutonAjouterImages = requete('#bouton-ajouter-images', HTMLButtonElement);
     const boutonAjouterPoint = requete('#bouton-ajouter-point', HTMLButtonElement);
     // Même action que `boutonAjouterPoint`, mais toujours à l'écran (position
     // fixe) : sur tactile, sans clic droit, c'est le seul moyen d'ajouter un
     // point sans remonter tout en haut de la page.
     const boutonAjouterPointFlottant = requete('#bouton-ajouter-point-flottant', HTMLButtonElement);
-    const boutonAnnulerPlacement = requete('#bouton-annuler-placement', HTMLButtonElement);
     const champFichiers = requete('#input-images', HTMLInputElement);
+    const conteneurDesPages = requete('#pile-images', HTMLDivElement);
+    const pile = creerPileDePages(conteneurDesPages);
 
     let trajet: Trajet | null = null;
+    let idAffiche: TrajetId | null = null;
+    // Incrémenté à chaque affichage et à chaque sortie : un chargement dont le
+    // jeton est périmé (autre trajet ouvert entre-temps) n'écrase plus l'écran.
+    let jetonDAffichage = 0;
     let modeDePlacement: ModeDePlacement = null;
-    const urlsARevoquer: string[] = [];
+    const enFileDEnregistrement = creerFileDAttente();
 
-    boutonRetour.addEventListener('click', () => {
+    requete('#bouton-retour-liste', HTMLButtonElement).addEventListener('click', () => {
         quitterLEcran();
         surRetour();
     });
@@ -54,64 +69,155 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
         if (trajet === null) {
             return;
         }
+        const id = trajet.id;
         quitterLEcran();
-        surSuivi(trajet.id);
+        surSuivi(id);
     });
     boutonAjouterImages.addEventListener('click', () => {
         champFichiers.click();
     });
-    champFichiers.addEventListener('change', () => void importerLesFichiers());
+    champFichiers.addEventListener('change', () => {
+        lancer(importerLesFichiers(), 'l’ajout des pages');
+    });
     boutonAjouterPoint.addEventListener('click', commencerLAjoutDUnPoint);
     boutonAjouterPointFlottant.addEventListener('click', commencerLAjoutDUnPoint);
-    boutonAnnulerPlacement.addEventListener('click', () => {
+    requete('#bouton-annuler-placement', HTMLButtonElement).addEventListener('click', () => {
         changerDeMode(null);
         carteDesPoints.annulerLeChoix();
     });
 
     function quitterLEcran(): void {
-        revoquerLesUrls(urlsARevoquer);
+        jetonDAffichage++;
+        pile.detruire();
         changerDeMode(null);
         carteDesPoints.annulerLeChoix();
+        trajet = null;
+        idAffiche = null;
     }
 
     async function afficher(id: TrajetId): Promise<void> {
-        trajet = await repository.charger(id);
+        idAffiche = id;
+        const jeton = ++jetonDAffichage;
+        const charge = await repository.charger(id);
+        if (jeton !== jetonDAffichage) {
+            return;
+        }
         // Trajet supprimé entre-temps (ex. restauration d'un identifiant périmé).
-        if (trajet === null) {
+        if (charge === null) {
             surRetour();
             return;
         }
+        trajet = charge;
         changerDeMode(null);
         rendre();
     }
 
-    // --- Images ---------------------------------------------------------------
+    // --- Le seul chemin d'écriture ---------------------------------------------
 
-    async function importerLesFichiers(): Promise<void> {
-        if (trajet === null || champFichiers.files === null) {
-            return;
-        }
-        for (const fichier of Array.from(champFichiers.files)) {
-            const { largeur, hauteur } = await dimensionsDeLImage(fichier);
-            trajet.ajouterImage({ nom: fichier.name, blob: fichier, largeur, hauteur });
-        }
-        champFichiers.value = '';
-        await sauvegarderEtRendre();
+    /**
+     * Applique une modification à l'agrégat, l'enregistre, puis réaffiche.
+     *
+     * C'est le seul endroit qui écrit, et donc le seul qui porte le chemin
+     * d'échec : si l'enregistrement échoue, l'écran repart de ce qui est
+     * réellement stocké. Sans cette resynchronisation, la mémoire, le stockage
+     * et l'affichage diraient trois choses différentes — et un second geste sur
+     * un objet déjà retiré en mémoire ferait lever le domaine.
+     *
+     * Les modifications sont mises en file : deux gestes rapprochés (un marqueur
+     * glissé pendant qu'une suppression s'écrit) lançaient deux transactions
+     * concurrentes, dont le dépôt ne peut pas garantir l'ordre.
+     */
+    function appliquerAuTrajetEtEnregistrer(modification: (trajet: Trajet) => void): Promise<void> {
+        return enFileDEnregistrement(async () => {
+            const trajetCourant = trajet;
+            if (trajetCourant === null) {
+                return;
+            }
+            modification(trajetCourant);
+            try {
+                await repository.sauvegarder(trajetCourant);
+            } catch (erreur) {
+                await resynchroniser();
+                throw erreur;
+            }
+            rendre();
+        });
     }
 
-    async function supprimerImage(image: ImageDeTrajet): Promise<void> {
+    /** Reprend l'état réellement enregistré, après un échec d'écriture. */
+    async function resynchroniser(): Promise<void> {
+        if (idAffiche === null) {
+            return;
+        }
+        try {
+            const recharge = await repository.charger(idAffiche);
+            if (recharge === null) {
+                surRetour();
+                return;
+            }
+            trajet = recharge;
+            rendre();
+        } catch {
+            // Le dépôt est hors service : l'échec d'origine est déjà signalé, il
+            // ne sert à rien d'en signaler un second pour la même panne.
+        }
+    }
+
+    // --- Images ---------------------------------------------------------------
+
+    /**
+     * Toutes les pages sont préparées **avant** de toucher à l'agrégat : un
+     * fichier illisible au milieu d'une sélection n'en laisse alors aucune
+     * moitié importée.
+     */
+    async function importerLesFichiers(): Promise<void> {
+        const fichiers = champFichiers.files;
+        if (fichiers === null || fichiers.length === 0) {
+            return;
+        }
+        try {
+            const pages = await preparerLesPages(Array.from(fichiers));
+            await appliquerAuTrajetEtEnregistrer((trajetCourant) => {
+                for (const page of pages) {
+                    trajetCourant.ajouterImage(page);
+                }
+            });
+        } finally {
+            // Sans cela, un fichier illisible laisse la sélection en place :
+            // re-choisir les mêmes fichiers n'émettrait plus d'événement
+            // « change », et l'import resterait mort jusqu'au rechargement.
+            champFichiers.value = '';
+        }
+    }
+
+    async function preparerLesPages(
+        fichiers: readonly File[],
+    ): Promise<{ nom: string; blob: Blob; largeur: number; hauteur: number }[]> {
+        const pages = [];
+        for (const fichier of fichiers) {
+            const { largeur, hauteur } = await dimensionsDeLImage(fichier);
+            pages.push({ nom: fichier.name, blob: fichier, largeur, hauteur });
+        }
+        return pages;
+    }
+
+    function supprimerImage(image: ImageDeTrajet): void {
         if (trajet === null) {
             return;
         }
-        const nombreDePoints = trajet.points.filter((point) => point.imageId === image.id).length;
+        const nombreDePoints = trajet.pointsDeLImage(image.id).length;
         const confirme = confirm(
-            `Supprimer « ${image.nom} » ? ${nombreDePoints} point(s) seront supprimés avec elle.`,
+            `Supprimer « ${image.nom} » ? ${String(nombreDePoints)} point(s) seront supprimés avec elle.`,
         );
         if (!confirme) {
             return;
         }
-        trajet.supprimerImage(image.id);
-        await sauvegarderEtRendre();
+        lancer(
+            appliquerAuTrajetEtEnregistrer((trajetCourant) => {
+                trajetCourant.supprimerImage(image.id);
+            }),
+            'la suppression de la page',
+        );
     }
 
     // --- Points ---------------------------------------------------------------
@@ -121,20 +227,20 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
         zone: HTMLElement,
         clientY: number,
     ): Promise<void> {
-        if (trajet === null || modeDePlacement === null) {
+        if (modeDePlacement === null) {
             return;
         }
         const fraction = fractionDepuisPosition(zone, clientY);
+        const mode = modeDePlacement;
+        changerDeMode(null);
 
-        if (modeDePlacement.type === 'deplacement') {
-            trajet.deplacerPointSurImage(modeDePlacement.pointId, image.id, fraction);
-            changerDeMode(null);
-            await sauvegarderEtRendre();
+        if (mode.type === 'deplacement') {
+            await appliquerAuTrajetEtEnregistrer((trajetCourant) => {
+                trajetCourant.deplacerPointSurImage(mode.pointId, image.id, fraction);
+            });
             return;
         }
-
-        changerDeMode(null);
-        await ajouterPointALaFraction(trajet, image, fraction);
+        await ajouterPointALaFraction(image, fraction);
     }
 
     // Clic droit : raccourci qui place directement un point à l'emplacement
@@ -145,16 +251,12 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
         zone: HTMLElement,
         clientY: number,
     ): Promise<void> {
-        if (trajet === null) {
-            return;
-        }
         const fraction = fractionDepuisPosition(zone, clientY);
         changerDeMode(null);
-        await ajouterPointALaFraction(trajet, image, fraction);
+        await ajouterPointALaFraction(image, fraction);
     }
 
     async function ajouterPointALaFraction(
-        trajet: Trajet,
         image: ImageDeTrajet,
         fraction: FractionVerticale,
     ): Promise<void> {
@@ -162,23 +264,28 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
         if (coordonnee === null) {
             return;
         }
-        trajet.ajouterPoint({ imageId: image.id, fraction, coordonnee });
-        await sauvegarderEtRendre();
+        await appliquerAuTrajetEtEnregistrer((trajetCourant) => {
+            trajetCourant.ajouterPoint({ imageId: image.id, fraction, coordonnee });
+        });
     }
 
     /**
      * Sur grand écran (iPad paysage compris), la coordonnée se choisit d'un
-     * clic sur la carte intégrée ; sur mobile, sur la carte plein écran.
+     * clic sur la carte intégrée ; sur mobile, sur la carte plein écran. Les
+     * deux honorent la coordonnée de départ : déplacer un point rouvre la carte
+     * là où il se trouve, quelle que soit la taille de l'écran.
      */
     async function choisirUneCoordonnee(initiale: Coordonnee | null): Promise<Coordonnee | null> {
-        if (!window.matchMedia(GRAND_ECRAN).matches) {
-            const reperes = trajet === null ? [] : pointsAffiches(trajet);
+        const reperes = pointsPourLaCarte(
+            trajet === null ? [] : trajet.pointsNumerotesDansLOrdreDuVoyage(),
+        );
+        if (!surGrandEcran()) {
             return selecteurDeCoordonnee.choisir(initiale, reperes);
         }
         texteConsigne.textContent = 'Cliquez la coordonnée sur la carte…';
         consigne.hidden = false;
         try {
-            return await carteDesPoints.choisirUneCoordonnee();
+            return await carteDesPoints.choisirUneCoordonnee(initiale);
         } finally {
             consigne.hidden = modeDePlacement === null;
         }
@@ -186,7 +293,7 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
 
     function fractionDepuisPosition(zone: HTMLElement, clientY: number): FractionVerticale {
         const cadre = zone.getBoundingClientRect();
-        return FractionVerticale.creer(borner((clientY - cadre.top) / cadre.height, 0, 1));
+        return FractionVerticale.depuisHauteur(clientY - cadre.top, cadre.height);
     }
 
     async function deplacerPointSurLaCarte(point: Point): Promise<void> {
@@ -194,22 +301,21 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
         if (coordonnee === null) {
             return;
         }
-        if (trajet === null) {
-            return;
-        }
-        trajet.deplacerPointSurCarte(point.id, coordonnee);
-        await sauvegarderEtRendre();
+        await appliquerAuTrajetEtEnregistrer((trajetCourant) => {
+            trajetCourant.deplacerPointSurCarte(point.id, coordonnee);
+        });
     }
 
-    async function supprimerPoint(point: Point, numero: number): Promise<void> {
-        if (!confirm(`Supprimer le point ${numero} ?`)) {
+    function supprimerPoint(point: Point, numero: number): void {
+        if (!confirm(`Supprimer le point ${String(numero)} ?`)) {
             return;
         }
-        if (trajet === null) {
-            return;
-        }
-        trajet.supprimerPoint(point.id);
-        await sauvegarderEtRendre();
+        lancer(
+            appliquerAuTrajetEtEnregistrer((trajetCourant) => {
+                trajetCourant.supprimerPoint(point.id);
+            }),
+            'la suppression du point',
+        );
     }
 
     function commencerLAjoutDUnPoint(): void {
@@ -222,56 +328,48 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
             texteConsigne.textContent = "Touchez l'image à la hauteur voulue…";
         }
         consigne.hidden = mode === null;
-        pile.classList.toggle('placement-actif', mode !== null);
+        conteneurDesPages.classList.toggle('placement-actif', mode !== null);
     }
 
     // --- Rendu ----------------------------------------------------------------
 
-    async function sauvegarderEtRendre(): Promise<void> {
-        if (trajet === null) {
-            return;
-        }
-        await repository.sauvegarder(trajet);
-        rendre();
-    }
-
     function rendre(): void {
-        if (trajet === null) {
+        const trajetCourant = trajet;
+        if (trajetCourant === null) {
             return;
         }
-        // Capture le trajet non-null : les closures ci-dessous (map, callback)
-        // perdraient sinon le narrowing de la garde ci-dessus.
-        const trajetCourant = trajet;
         titre.textContent = trajetCourant.nom.valeur;
-        revoquerLesUrls(urlsARevoquer);
-        const numeros = numerosDesPoints(trajetCourant);
+        const numeros = trajetCourant.pointsNumerotesDansLOrdreDuVoyage();
+
         // La pile s'affiche comme le document se lit (de bas en haut) : la
         // première page du voyage tout en bas, la dernière tout en haut.
-        const imagesDeHautEnBas = [...trajetCourant.images].reverse();
-        pile.replaceChildren(
-            ...imagesDeHautEnBas.map((image) => cadreDImage(trajetCourant, image, numeros)),
+        pile.rendre(trajetCourant.imagesDansLOrdreDeLecture(), (page, element) =>
+            cadreDImage(trajetCourant, page, element, numeros),
         );
+
         listePoints.replaceChildren(
-            ...trajetCourant
-                .ordreVoyageDesPoints()
-                .map((point, index) => ligneDePoint(trajetCourant, point, index + 1)),
+            ...numeros.map(({ point, numero }) => ligneDePoint(trajetCourant, point, numero)),
         );
-        carteDesPoints.afficher(pointsAffiches(trajetCourant), (pointId, coordonnee) => {
-            // Ce callback se déclenche plus tard (glisser d'un marqueur) : on
-            // revérifie le trajet courant du module, qui a pu changer entre-temps.
-            if (trajet === null) {
-                return;
-            }
-            trajet.deplacerPointSurCarte(pointId, coordonnee);
-            void sauvegarderEtRendre();
+
+        carteDesPoints.afficher(pointsPourLaCarte(numeros), (pointId, coordonnee) => {
+            // Ce callback se déclenche plus tard (glisser d'un marqueur) : le
+            // trajet courant a pu changer entre-temps, la file s'en assure.
+            lancer(
+                appliquerAuTrajetEtEnregistrer((aModifier) => {
+                    aModifier.deplacerPointSurCarte(pointId, coordonnee);
+                }),
+                'le déplacement du point',
+            );
         });
     }
 
     function cadreDImage(
-        trajet: Trajet,
-        image: ImageDeTrajet,
-        numeros: Map<PointId, number>,
+        trajetCourant: Trajet,
+        page: PageAAfficher,
+        element: HTMLImageElement,
+        numeros: readonly { point: Point; numero: number }[],
     ): HTMLElement {
+        const image = imageDuTrajet(trajetCourant, page.id);
         const cadre = document.createElement('div');
         cadre.className = 'cadre-image';
 
@@ -280,92 +378,94 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
         const nom = document.createElement('span');
         nom.className = 'nom-image';
         nom.textContent = image.nom;
-        barre.append(
-            nom,
-            boutonDAction('🔼', `Monter ${image.nom}`, () => void monterVisuellement(image.id)),
-            boutonDAction(
-                '🔽',
-                `Descendre ${image.nom}`,
-                () => void descendreVisuellement(image.id),
-            ),
-            boutonDAction(
-                '🗑️ Supprimer',
-                `Supprimer ${image.nom}`,
-                () => void supprimerImage(image),
-                true,
-            ),
-        );
+        barre.append(nom, ...boutonsDeLaPage(image).map(creerBouton));
 
         const zone = document.createElement('div');
         zone.className = 'zone-image';
-        zone.append(elementImagePleineLargeur(image, urlsARevoquer));
-        for (const point of trajet.points.filter((point) => point.imageId === image.id)) {
-            const numero = numeros.get(point.id);
-            // Tout point du trajet est numéroté : l'absence ne peut pas arriver.
-            if (numero === undefined) {
-                continue;
+        zone.append(element);
+        for (const { point, numero } of numeros) {
+            if (point.imageId === image.id) {
+                zone.append(marqueurDePoint(point, numero));
             }
-            zone.append(marqueurDePoint(point, numero));
         }
-        zone.addEventListener(
-            'click',
-            (evenement) => void surClicSurImage(image, zone, evenement.clientY),
-        );
+        zone.addEventListener('click', (evenement) => {
+            lancer(surClicSurImage(image, zone, evenement.clientY), 'le placement du point');
+        });
         // Le menu contextuel natif du navigateur est remplacé par l'ajout direct du point.
         zone.addEventListener('contextmenu', (evenement) => {
             evenement.preventDefault();
-            void surClicDroitSurImage(image, zone, evenement.clientY);
+            lancer(surClicDroitSurImage(image, zone, evenement.clientY), 'l’ajout du point');
         });
 
         cadre.append(barre, zone);
         return cadre;
     }
 
-    // La pile étant affichée dans l'ordre inverse du voyage (première page en
-    // bas), monter une image à l'écran = la faire avancer dans le voyage.
-    async function monterVisuellement(imageId: ImageId): Promise<void> {
-        if (trajet === null) {
-            return;
-        }
-        trajet.descendreImage(imageId);
-        await sauvegarderEtRendre();
+    /**
+     * La pile étant affichée dans l'ordre inverse du voyage (première page en
+     * bas), monter une page à l'écran la fait **avancer** dans le voyage. Les
+     * méthodes de l'agrégat portent le nom du voyage, les intitulés celui de
+     * l'écran : l'équivalence est écrite ici, une fois.
+     */
+    function boutonsDeLaPage(image: ImageDeTrajet): Bouton[] {
+        return [
+            {
+                texte: '🔼',
+                intitule: `Monter ${image.nom}`,
+                action: () => {
+                    deplacerLaPage(image.id, 'avancer');
+                },
+            },
+            {
+                texte: '🔽',
+                intitule: `Descendre ${image.nom}`,
+                action: () => {
+                    deplacerLaPage(image.id, 'reculer');
+                },
+            },
+            {
+                texte: '🗑️ Supprimer',
+                intitule: `Supprimer ${image.nom}`,
+                action: () => {
+                    supprimerImage(image);
+                },
+                danger: true,
+            },
+        ];
     }
 
-    async function descendreVisuellement(imageId: ImageId): Promise<void> {
-        if (trajet === null) {
-            return;
-        }
-        trajet.monterImage(imageId);
-        await sauvegarderEtRendre();
+    function deplacerLaPage(imageId: ImageId, sens: 'avancer' | 'reculer'): void {
+        lancer(
+            appliquerAuTrajetEtEnregistrer((trajetCourant) => {
+                if (sens === 'avancer') {
+                    trajetCourant.avancerImageDansLeVoyage(imageId);
+                } else {
+                    trajetCourant.reculerImageDansLeVoyage(imageId);
+                }
+            }),
+            'le déplacement de la page',
+        );
     }
 
-    function ligneDePoint(trajet: Trajet, point: Point, numero: number): HTMLLIElement {
-        const image = trajet.images.find((image) => image.id === point.imageId);
-        if (image === undefined) {
-            throw new Error('Incohérence : un point référence une image absente du trajet.');
-        }
+    function ligneDePoint(trajetCourant: Trajet, point: Point, numero: number): HTMLLIElement {
+        const image = imageDuTrajet(trajetCourant, point.imageId);
         const ligne = document.createElement('li');
         ligne.className = 'ligne-point';
 
         const description = document.createElement('span');
         description.className = 'description-point';
         description.textContent =
-            `Point ${numero} — ${image.nom} à ${Math.round(point.fraction.valeur * 100)} % — ` +
+            `Point ${String(numero)} — ${image.nom} à ${String(Math.round(point.fraction.valeur * 100))} % — ` +
             `${point.coordonnee.latitude.toFixed(4)}, ${point.coordonnee.longitude.toFixed(4)}`;
 
-        ligne.append(
-            description,
-            ...actionsDuPoint(point, numero).map(({ texte, intitule, declencher, dangereux }) =>
-                boutonDAction(texte, intitule, declencher, dangereux),
-            ),
-        );
+        ligne.append(description, ...actionsDuPoint(point, numero).map(creerBouton));
         return ligne;
     }
 
     function marqueurDePoint(point: Point, numero: number): HTMLElement {
         const marqueur = document.createElement('div');
         marqueur.className = 'marqueur-point';
-        marqueur.style.top = `${point.fraction.valeur * 100}%`;
+        marqueur.style.top = `${String(point.fraction.valeur * 100)}%`;
 
         const etiquette = document.createElement('span');
         etiquette.className = 'numero-point';
@@ -376,8 +476,8 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
         const actions = document.createElement('div');
         actions.className = 'actions-point';
         actions.append(
-            ...actionsDuPoint(point, numero).map(({ texte, intitule, declencher, dangereux }) =>
-                boutonFlottant(texte, intitule, declencher, dangereux),
+            ...actionsDuPoint(point, numero).map((action) =>
+                creerBouton({ ...action, variante: 'flottant' }),
             ),
         );
 
@@ -386,28 +486,29 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
     }
 
     /** Les trois actions possibles sur un point, partagées entre la liste et les boutons flottants. */
-    function actionsDuPoint(
-        point: Point,
-        numero: number,
-    ): { texte: string; intitule: string; declencher: () => void; dangereux?: boolean }[] {
+    function actionsDuPoint(point: Point, numero: number): Bouton[] {
         return [
             {
                 texte: "🖼️ Sur l'image",
-                intitule: `Déplacer le point ${numero} sur l'image`,
-                declencher: () => {
+                intitule: `Déplacer le point ${String(numero)} sur l'image`,
+                action: () => {
                     changerDeMode({ type: 'deplacement', pointId: point.id });
                 },
             },
             {
                 texte: '🗺️ Sur la carte',
-                intitule: `Déplacer le point ${numero} sur la carte`,
-                declencher: () => void deplacerPointSurLaCarte(point),
+                intitule: `Déplacer le point ${String(numero)} sur la carte`,
+                action: () => {
+                    lancer(deplacerPointSurLaCarte(point), 'le déplacement du point');
+                },
             },
             {
                 texte: '🗑️ Supprimer',
-                intitule: `Supprimer le point ${numero}`,
-                declencher: () => void supprimerPoint(point, numero),
-                dangereux: true,
+                intitule: `Supprimer le point ${String(numero)}`,
+                action: () => {
+                    supprimerPoint(point, numero);
+                },
+                danger: true,
             },
         ];
     }
@@ -415,54 +516,42 @@ export function creerEditeurTrajetScreen(dependances: DependancesEditeurTrajet):
     return { afficher };
 }
 
-function numerosDesPoints(trajet: Trajet): Map<PointId, number> {
-    return new Map(trajet.ordreVoyageDesPoints().map((point, index) => [point.id, index + 1]));
+/**
+ * Les points numérotés du trajet, tels que la carte les attend. La conversion
+ * vers le port appartient à l'adaptateur entrant : c'est une ligne, et la
+ * partager entre deux capacités obligeait l'écran de suivi à emprunter un module
+ * à l'interface des trajets.
+ */
+function pointsPourLaCarte(numeros: readonly { point: Point; numero: number }[]): PointAffiche[] {
+    return numeros.map(({ point, numero }) => ({
+        id: point.id,
+        numero,
+        coordonnee: point.coordonnee,
+    }));
 }
 
-function boutonDAction(
-    texte: string,
-    intitule: string,
-    action: () => void,
-    dangereux = false,
-): HTMLButtonElement {
-    const bouton = document.createElement('button');
-    bouton.type = 'button';
-    bouton.className = dangereux ? 'secondaire danger' : 'secondaire';
-    bouton.textContent = texte;
-    bouton.setAttribute('aria-label', intitule);
-    bouton.addEventListener('click', action);
-    return bouton;
-}
-
-/** Bouton compact posé sur l'image (voir `.actions-point`) : mêmes actions que `boutonDAction`. */
-function boutonFlottant(
-    texte: string,
-    intitule: string,
-    action: () => void,
-    dangereux = false,
-): HTMLButtonElement {
-    const bouton = document.createElement('button');
-    bouton.type = 'button';
-    bouton.className =
-        dangereux ? 'secondaire bouton-flottant danger' : 'secondaire bouton-flottant';
-    bouton.textContent = texte;
-    bouton.setAttribute('aria-label', intitule);
-    bouton.title = intitule;
-    bouton.addEventListener('click', (evenement) => {
-        // Empêche le clic de remonter jusqu'à la zone, qui ajouterait/déplacerait un point.
-        evenement.stopPropagation();
-        action();
-    });
-    return bouton;
+/**
+ * L'agrégat garantit que toute page affichée est une de ses images : l'absence
+ * ne peut pas arriver, mais elle se dit plutôt que de se taire.
+ */
+function imageDuTrajet(trajet: Trajet, imageId: string): ImageDeTrajet {
+    const image = trajet.images.find((candidate) => candidate.id === imageId);
+    if (image === undefined) {
+        throw new Error(`Incohérence : la page ${imageId} n'appartient pas au trajet.`);
+    }
+    return image;
 }
 
 async function dimensionsDeLImage(fichier: File): Promise<{ largeur: number; hauteur: number }> {
-    const bitmap = await createImageBitmap(fichier);
-    const dimensions = { largeur: bitmap.width, hauteur: bitmap.height };
-    bitmap.close();
-    return dimensions;
-}
-
-function borner(valeur: number, minimum: number, maximum: number): number {
-    return Math.min(maximum, Math.max(minimum, valeur));
+    let bitmap: ImageBitmap;
+    try {
+        bitmap = await createImageBitmap(fichier);
+    } catch {
+        throw new Error(`« ${fichier.name} » n’est pas une image lisible.`);
+    }
+    try {
+        return { largeur: bitmap.width, hauteur: bitmap.height };
+    } finally {
+        bitmap.close();
+    }
 }

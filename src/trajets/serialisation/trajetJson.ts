@@ -2,6 +2,7 @@ import { Coordonnee } from '../domain/Coordonnee';
 import { FractionVerticale } from '../domain/FractionVerticale';
 import { NomDeTrajet } from '../domain/NomDeTrajet';
 import { Trajet } from '../domain/Trajet';
+import { estUnNombreFini, estUnObjet, estUnTableau, estUneChaine } from './predicats';
 
 /**
  * Export/import d'un trajet au format JSON autonome : le fichier contient
@@ -127,28 +128,28 @@ function validerLEnveloppe(contenu: unknown): Record<string, unknown> {
 }
 
 function objet(valeur: unknown, quoi: string): Record<string, unknown> {
-    if (typeof valeur !== 'object' || valeur === null || Array.isArray(valeur)) {
+    if (!estUnObjet(valeur)) {
         throw new Error(`Fichier incomplet : ${quoi} manquant ou invalide.`);
     }
-    return valeur as Record<string, unknown>;
+    return valeur;
 }
 
 function tableau(valeur: unknown, quoi: string): unknown[] {
-    if (!Array.isArray(valeur)) {
+    if (!estUnTableau(valeur)) {
         throw new Error(`Fichier incomplet : ${quoi} manquant ou invalide.`);
     }
     return valeur;
 }
 
 function chaine(valeur: unknown, quoi: string): string {
-    if (typeof valeur !== 'string') {
+    if (!estUneChaine(valeur)) {
         throw new Error(`Fichier incomplet : ${quoi} manquant ou invalide.`);
     }
     return valeur;
 }
 
 function nombre(valeur: unknown, quoi: string): number {
-    if (typeof valeur !== 'number' || !Number.isFinite(valeur)) {
+    if (!estUnNombreFini(valeur)) {
         throw new Error(`Fichier incomplet : ${quoi} manquant ou invalide.`);
     }
     return valeur;

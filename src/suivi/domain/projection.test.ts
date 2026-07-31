@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { elementA } from '../../commun/tableau';
 import { Coordonnee } from '../../trajets/domain/Coordonnee';
-import { calculerCibleDeScroll, calculerDefilement, type EtapeDuVoyage } from './projection';
+import {
+    calculerCibleDeScroll,
+    calculerDefilement,
+    type AncragePrecedent,
+    type EtapeDuVoyage,
+} from './projection';
 
 // Coordonnées réelles (approchées) de la LGV SEA, dans le sens Paris → Bordeaux.
 const massy = Coordonnee.creer(48.7266, 2.2617);
@@ -130,10 +135,7 @@ describe('calculerCibleDeScroll', () => {
         });
 
         it('alors du bruit GPS autour de la jonction ne fait pas osciller la page', () => {
-            let precedent: { indexSegment: number; scrollCible: number } | null = {
-                indexSegment: 0,
-                scrollCible: 3600,
-            };
+            let precedent: AncragePrecedent | null = { scrollCible: 3600 };
             const cibles: number[] = [];
             const bruit = [unPeuAvantPoitiers, unPeuApresPoitiers, unPeuAvantPoitiers, poitiers];
 
@@ -153,7 +155,7 @@ describe('calculerCibleDeScroll', () => {
         });
 
         it('alors, une fois passé en page 2, du bruit GPS juste derrière la jonction ne fait pas resauter la page 1', () => {
-            const dejaSurLaPage2 = { indexSegment: 2, scrollCible: 13000 };
+            const dejaSurLaPage2: AncragePrecedent = { scrollCible: 13000 };
 
             const resultat = calculerCibleDeScroll(
                 etapesSurDeuxPages,
@@ -169,7 +171,6 @@ describe('calculerCibleDeScroll', () => {
 
         it('alors une fois la jonction nettement passée, la cible bascule en bas de la page 2', () => {
             const resultat = calculerCibleDeScroll(etapesSurDeuxPages, bienApresPoitiers, {
-                indexSegment: 0,
                 scrollCible: 3600,
             });
 

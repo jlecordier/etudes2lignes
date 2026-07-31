@@ -1,21 +1,15 @@
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import iconeRetina from 'leaflet/dist/images/marker-icon-2x.png';
-import icone from 'leaflet/dist/images/marker-icon.png';
-import ombre from 'leaflet/dist/images/marker-shadow.png';
 import { requete } from '../../commun/dom';
-import { Coordonnee } from '../../trajets/domain/Coordonnee';
+import type { Coordonnee } from '../../trajets/domain/Coordonnee';
 import type { PointAffiche } from '../ports/CarteDesPointsPort';
 import type { SelecteurDeCoordonnee } from '../ports/SelecteurDeCoordonneePort';
-import { creerCoucheOsm, VUE_FRANCE } from './coucheOsm';
+import { configurerLeaflet } from './configurerLeaflet';
+import { versCoordonnee, versLatLng } from './conversion';
+import { creerCoucheOsm } from './coucheOsm';
 import { iconeNumerotee } from './iconeNumerotee';
-
-// Leaflet devine l'URL de ses icônes depuis le chemin de son script,
-// ce qu'un bundler casse : on lui fournit les fichiers explicitement.
-delete (L.Icon.Default.prototype as { _getIconUrl?: unknown })._getIconUrl;
-L.Icon.Default.mergeOptions({ iconRetinaUrl: iconeRetina, iconUrl: icone, shadowUrl: ombre });
-
-const ZOOM_SUR_UN_POINT = 12;
+import { centrerSurLaCoordonnee, recadrerSurLesPoints } from './recadrage';
+import { CONSIGNE_DE_SAISIE, coordonneeDeLaSaisie } from './saisieDeCoordonnee';
 
 /** Carte Leaflet plein écran (tuiles OSM) pour choisir une coordonnée. */
 export class LeafletSelecteurDeCoordonnee implements SelecteurDeCoordonnee {
@@ -43,27 +37,18 @@ export class LeafletSelecteurDeCoordonnee implements SelecteurDeCoordonnee {
 
     choisir(
         coordonneeInitiale: Coordonnee | null,
-        reperes: readonly PointAffiche[] = [],
+        reperes: readonly PointAffiche[],
     ): Promise<Coordonnee | null> {
         this.ecran.hidden = false;
         const carte = this.carteInitialisee();
         this.effacerLaSelection();
         this.poserLesReperes(reperes);
-        if (coordonneeInitiale !== null) {
-            this.poserLeMarqueur(coordonneeInitiale);
-            carte.setView(
-                [coordonneeInitiale.latitude, coordonneeInitiale.longitude],
-                ZOOM_SUR_UN_POINT,
-                { animate: false },
-            );
-        } else if (reperes.length > 0) {
+        if (coordonneeInitiale === null) {
             // Se situer par rapport au trajet : recadrer sur ses points.
-            const bornes = L.latLngBounds(
-                reperes.map((repere) => [repere.coordonnee.latitude, repere.coordonnee.longitude]),
-            );
-            carte.fitBounds(bornes, { padding: [40, 40], maxZoom: 12, animate: false });
+            recadrerSurLesPoints(carte, reperes);
         } else {
-            carte.setView(VUE_FRANCE.centre, VUE_FRANCE.zoom, { animate: false });
+            this.poserLeMarqueur(coordonneeInitiale);
+            centrerSurLaCoordonnee(carte, coordonneeInitiale);
         }
         // La carte vient d'être dévoilée : Leaflet doit remesurer son conteneur.
         setTimeout(() => carte.invalidateSize(), 0);
@@ -76,17 +61,17 @@ export class LeafletSelecteurDeCoordonnee implements SelecteurDeCoordonnee {
         if (this.carte !== null) {
             return this.carte;
         }
+        configurerLeaflet();
         this.carte = L.map('conteneur-carte');
         creerCoucheOsm().addTo(this.carte);
         this.carte.on('click', (evenement) => {
-            const position = evenement.latlng.wrap();
-            this.poserLeMarqueur(Coordonnee.creer(position.lat, position.lng));
+            this.poserLeMarqueur(versCoordonnee(evenement.latlng));
         });
         return this.carte;
     }
 
     private poserLeMarqueur(coordonnee: Coordonnee): void {
-        const position: [number, number] = [coordonnee.latitude, coordonnee.longitude];
+        const position = versLatLng(coordonnee);
         if (this.marqueur === null) {
             this.marqueur = L.marker(position, { draggable: true }).addTo(this.carteInitialisee());
             this.marqueur.on('dragend', () => {
@@ -102,35 +87,30 @@ export class LeafletSelecteurDeCoordonnee implements SelecteurDeCoordonnee {
         if (this.marqueur === null) {
             return;
         }
-        const position = this.marqueur.getLatLng().wrap();
-        this.champLatitude.value = position.lat.toFixed(5);
-        this.champLongitude.value = position.lng.toFixed(5);
+        const coordonnee = versCoordonnee(this.marqueur.getLatLng());
+        this.champLatitude.value = coordonnee.latitude.toFixed(5);
+        this.champLongitude.value = coordonnee.longitude.toFixed(5);
         this.boutonValider.disabled = false;
     }
 
     private placerDepuisLaSaisie(): void {
-        try {
-            const coordonnee = Coordonnee.creer(
-                Number.parseFloat(this.champLatitude.value),
-                Number.parseFloat(this.champLongitude.value),
-            );
-            this.poserLeMarqueur(coordonnee);
-            this.carteInitialisee().setView(
-                [coordonnee.latitude, coordonnee.longitude],
-                ZOOM_SUR_UN_POINT,
-                { animate: false },
-            );
-        } catch (erreur) {
-            alert(erreur instanceof Error ? erreur.message : String(erreur));
+        const coordonnee = coordonneeDeLaSaisie(
+            this.champLatitude.value,
+            this.champLongitude.value,
+        );
+        if (coordonnee === null) {
+            alert(CONSIGNE_DE_SAISIE);
+            return;
         }
+        this.poserLeMarqueur(coordonnee);
+        centrerSurLaCoordonnee(this.carteInitialisee(), coordonnee);
     }
 
     private validerLeMarqueur(): void {
         if (this.marqueur === null) {
             return;
         }
-        const position = this.marqueur.getLatLng().wrap();
-        this.terminer(Coordonnee.creer(position.lat, position.lng));
+        this.terminer(versCoordonnee(this.marqueur.getLatLng()));
     }
 
     private poserLesReperes(reperes: readonly PointAffiche[]): void {
@@ -138,7 +118,7 @@ export class LeafletSelecteurDeCoordonnee implements SelecteurDeCoordonnee {
             repere.remove();
         }
         this.reperes = reperes.map((repere) =>
-            L.marker([repere.coordonnee.latitude, repere.coordonnee.longitude], {
+            L.marker(versLatLng(repere.coordonnee), {
                 icon: iconeNumerotee(repere.numero),
                 // Non interactif : cliquer un repère = cliquer la carte dessous.
                 interactive: false,
@@ -156,7 +136,8 @@ export class LeafletSelecteurDeCoordonnee implements SelecteurDeCoordonnee {
 
     private terminer(resultat: Coordonnee | null): void {
         this.ecran.hidden = true;
-        this.resoudre?.(resultat);
+        const enAttente = this.resoudre;
         this.resoudre = null;
+        enAttente?.(resultat);
     }
 }
