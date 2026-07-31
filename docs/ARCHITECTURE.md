@@ -75,8 +75,15 @@ Exemple : rejouer une trace GPX enregistrée. Créer
   de l'image), `NomDeTrajet` (non vide), identifiants typés (`TrajetId`,
   `ImageId`, `PointId`).
 - **Agrégat `Trajet`** (racine) : images ordonnées + points, méthodes
-  d'intention (`ajouterImage`, `monterImage`, `ajouterPoint`,
-  `deplacerPointSurCarte`…), pas de setters.
+  d'intention (`ajouterImage`, `avancerImageDansLeVoyage`, `ajouterPoint`,
+  `deplacerPointSurCarte`…), pas de setters. Les déplacements d'image sont
+  nommés dans le langage du **voyage**, jamais dans celui de l'écran : la pile
+  s'affichant à l'envers du voyage, un nom spatial (« monter ») désignerait
+  l'opération inverse selon qu'on parle du document ou de l'affichage.
+- **Requêtes portées par la racine** plutôt que refaites par les appelants :
+  `imagesDansLOrdreDeLecture`, `pointsDeLImage`,
+  `pointsNumerotesDansLOrdreDuVoyage` — le numéro d'un point est un concept
+  visible par l'utilisateur, il n'a qu'un seul producteur.
 - **Invariants protégés par l'agrégat** :
     - un point référence toujours une image du trajet ;
     - supprimer une image supprime ses points (la cascade est une règle du
