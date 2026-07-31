@@ -60,6 +60,16 @@ class FauxFournisseurDeVerrou implements FournisseurDeVerrouDEcran {
     }
 }
 
+/** iOS avant 18.4, contexte non sécurisé : l'API répond, sans verrou à donner. */
+class FournisseurSansVerrou implements FournisseurDeVerrouDEcran {
+    demandes = 0;
+
+    demander(): Promise<VerrouDEcran | null> {
+        this.demandes++;
+        return Promise.resolve(null);
+    }
+}
+
 async function laisserLesDemandesAboutir(): Promise<void> {
     for (let tour = 0; tour < 6; tour++) {
         await Promise.resolve();
@@ -94,6 +104,23 @@ describe('NavigateurEcranAllume', () => {
             await ecranAllume.maintenir();
 
             expect(premierPlan.abonnements()).toBe(1);
+        });
+    });
+
+    describe('Étant donné une plateforme qui n’accorde aucun verrou', () => {
+        it('alors rien n’est tenu et rien ne casse : l’appli marche sans verrou', async () => {
+            const premierPlan = new FauxPremierPlan();
+            const fournisseur = new FournisseurSansVerrou();
+            const ecranAllume = new NavigateurEcranAllume({
+                premierPlan,
+                fournisseurDeVerrou: fournisseur,
+            });
+
+            await ecranAllume.maintenir();
+            await ecranAllume.relacher();
+
+            expect(fournisseur.demandes).toBe(1);
+            expect(premierPlan.abonnements()).toBe(0);
         });
     });
 

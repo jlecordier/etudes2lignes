@@ -24,12 +24,24 @@ class FausseGeolocalisation implements FournisseurDeGeolocalisation {
      */
     private derniereVeille: Veille | null = null;
 
-    watchPosition(succes: PositionCallback, erreur?: PositionErrorCallback | null): number {
+    private dernieresOptions: PositionOptions | null = null;
+
+    watchPosition(
+        succes: PositionCallback,
+        erreur?: PositionErrorCallback | null,
+        options?: PositionOptions,
+    ): number {
         const id = this.prochainId++;
         const veille: Veille = { succes, erreur: erreur ?? null };
         this.veilles.set(id, veille);
         this.derniereVeille = veille;
+        this.dernieresOptions = options ?? null;
         return id;
+    }
+
+    /** Ce que la source a demandé à la plateforme en s'abonnant. */
+    optionsDemandees(): PositionOptions | null {
+        return this.dernieresOptions;
     }
 
     clearWatch(id: number): void {
@@ -53,6 +65,17 @@ class FausseGeolocalisation implements FournisseurDeGeolocalisation {
      */
     emettreUnFixEnRetard(latitude: number, longitude: number): void {
         this.derniereVeille?.succes(fix(latitude, longitude, 10));
+    }
+
+    /** Une erreur livrée elle aussi après la coupure de la surveillance. */
+    emettreUneErreurEnRetard(code: number): void {
+        this.derniereVeille?.erreur?.({
+            code,
+            message: '',
+            PERMISSION_DENIED: 1,
+            POSITION_UNAVAILABLE: 2,
+            TIMEOUT: 3,
+        });
     }
 
     emettreUneErreur(code: number): void {
@@ -237,6 +260,41 @@ describe('GeolocationPositionSource', () => {
         });
     });
 
+    describe('Étant donné une position déjà acquise quand la surveillance est coupée', () => {
+        it('alors ce fix en retard n’atteint plus l’écran', () => {
+            const { geolocalisation, source, positions } = banc();
+            source.arreter();
+
+            // Le système livre au thread principal un fix acquis avant le
+            // `clearWatch` : la session, elle, est morte.
+            geolocalisation.emettreUnFixEnRetard(46.5, 0.4);
+
+            expect(positions).toEqual([]);
+        });
+
+        it('alors une erreur en retard ne dit plus rien non plus', () => {
+            const { geolocalisation, source, etats } = banc();
+            source.arreter();
+
+            geolocalisation.emettreUneErreurEnRetard(1);
+
+            expect(etats).toEqual([{ etat: 'attente' }]);
+        });
+    });
+
+    describe('Étant donné l’abonnement à la plateforme', () => {
+        it('alors la source réclame la haute précision et refuse une position en cache', () => {
+            const { geolocalisation } = banc();
+
+            // Une position en cache placerait la page ailleurs qu'où l'on est, et
+            // sans haute précision le navigateur répondrait par le Wi-Fi.
+            expect(geolocalisation.optionsDemandees()).toEqual({
+                enableHighAccuracy: true,
+                maximumAge: 0,
+            });
+        });
+    });
+
     describe('Étant donné un fix précis, quand il arrive', () => {
         it('alors la position est transmise', () => {
             const { geolocalisation, positions } = banc();
@@ -380,6 +438,28 @@ describe('GeolocationPositionSource', () => {
         });
     });
 
+    describe('Étant donné un fix vieux du silence toléré, à la milliseconde près', () => {
+        it('alors il est encore frais : le chien de garde se taît', () => {
+            const { geolocalisation, cadenceur, avancerLeTemps, etats } = banc();
+            geolocalisation.emettreUnFix(46.0, 0.3);
+
+            avancerLeTemps(30_000);
+            cadenceur.battre();
+
+            expect(etats).toEqual([{ etat: 'attente' }]);
+        });
+
+        it('alors une milliseconde de plus le rend périmé', () => {
+            const { geolocalisation, cadenceur, avancerLeTemps, etats } = banc();
+            geolocalisation.emettreUnFix(46.0, 0.3);
+
+            avancerLeTemps(30_001);
+            cadenceur.battre();
+
+            expect(etats.at(-1)).toEqual({ etat: 'perdue', ancienneteMs: 30_001 });
+        });
+    });
+
     describe('Étant donné une source arrêtée', () => {
         it('alors plus aucune position n’est transmise et rien ne tourne derrière', () => {
             const { geolocalisation, cadenceur, premierPlan, source, positions } = banc();
@@ -431,6 +511,23 @@ describe('GeolocationPositionSource', () => {
             geolocalisation.emettreUnFix(46.2, 0.3);
 
             expect(latitudes(positions)).toEqual([46.0, 46.1]);
+        });
+
+        it('alors un réveil reçu au terme exact du délai de garde redémarre bien', () => {
+            const { geolocalisation, premierPlan, positions, avancerLeTemps } = banc();
+            geolocalisation.emettreUnFix(46.0, 0.1);
+            avancerLeTemps(2_000);
+            premierPlan.revenirAuPremierPlan();
+            geolocalisation.emettreUnFix(46.1, 0.2);
+
+            // Pile le délai de garde après le réveil précédent : il est retombé,
+            // celui-ci doit repartir. Sans quoi une PWA dégelée resterait jusqu'à
+            // dix secondes sans recalage, alors que le train avance.
+            avancerLeTemps(5_000);
+            premierPlan.revenirAuPremierPlan();
+            geolocalisation.emettreUnFix(46.2, 0.3);
+
+            expect(latitudes(positions)).toEqual([46.0, 46.1, 46.2]);
         });
 
         it('alors un réveil reçu page masquée ne redémarre rien : le throttle reste en place', () => {

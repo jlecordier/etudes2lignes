@@ -75,7 +75,9 @@ export class NavigateurEcranAllume implements EcranAllume {
         this.seDesabonnerDuPremierPlan?.();
         this.seDesabonnerDuPremierPlan = null;
         // Une demande en vol se rangerait après nous, et l'écran resterait
-        // allumé sans personne pour l'éteindre : on l'attend d'abord.
+        // allumé sans personne pour l'éteindre : on l'attend d'abord. Le test de
+        // nullité est là pour le lint (`await-thenable`), pas pour la logique —
+        // attendre `null` serait inoffensif.
         const enVol = this.acquisitionEnVol;
         if (enVol !== null) {
             await enVol;
@@ -113,13 +115,11 @@ export class NavigateurEcranAllume implements EcranAllume {
         } catch {
             return;
         }
-        if (obtenu === null) {
-            return;
-        }
-        // Un verrou arrivé après `relacher` n'aurait plus de propriétaire. Il ne
-        // reste pourtant aucune garde ici : `relacher` attend la demande en vol
-        // avant de libérer, donc il trouve toujours ce verrou rangé. Deux
-        // protections pour un seul cas, c'en serait une jamais éprouvée.
+        // `null` — l'appareil n'accorde rien — se range comme le reste : on
+        // n'arrive ici qu'avec un verrou déjà absent ou libéré, donc il n'y a
+        // rien à écraser. Et un verrou arrivé après `relacher` n'a pas besoin de
+        // garde non plus : `relacher` attend la demande en vol avant de libérer,
+        // donc il trouve toujours ce qui vient d'être rangé.
         this.verrou = obtenu;
     }
 

@@ -146,6 +146,8 @@ export class GeolocationPositionSource implements PositionSource {
             dernierSignalMs: null,
             derniereImprecisionMetres: null,
             dernierRedemarrageMs: null,
+            // Valeur de forme : `ouvrirLaSurveillance` la repose juste après,
+            // chaque veille neuve pouvant trouver la permission accordée.
             permissionRefusee: false,
         };
         this.surveillance = surveillance;

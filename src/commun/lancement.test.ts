@@ -63,6 +63,36 @@ describe('lancement', () => {
         });
     });
 
+    describe('Étant donné un message qui se termine déjà par un point', () => {
+        it('alors il n’en reçoit pas un second — le cas de tous les messages du dépôt', async () => {
+            const { messages, lancer } = bancDEssai();
+
+            lancer(
+                Promise.reject(new Error('Trajet illisible : le champ « largeur » est invalide.')),
+                'l’ouverture du trajet',
+            );
+            await laisserLesEchecsRemonter();
+
+            expect(messages).toEqual([
+                'Échec de l’ouverture du trajet : Trajet illisible : le champ « largeur » est invalide.',
+            ]);
+        });
+    });
+
+    describe('Étant donné une panne du navigateur qui n’est pas un débordement de quota', () => {
+        it('alors on ne lui fait pas dire que l’espace de stockage est plein', async () => {
+            const { messages, lancer } = bancDEssai();
+
+            lancer(
+                Promise.reject(new DOMException('magasin absent', 'NotFoundError')),
+                'l’ouverture du trajet',
+            );
+            await laisserLesEchecsRemonter();
+
+            expect(messages).toEqual(['Échec de l’ouverture du trajet : magasin absent.']);
+        });
+    });
+
     describe('Étant donné un rejet sans message lisible, quand je le lance', () => {
         it('alors le signalement nomme au moins l’action qui a échoué', async () => {
             const { messages, lancer } = bancDEssai();
