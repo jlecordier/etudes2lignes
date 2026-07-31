@@ -39,9 +39,7 @@ describe('elementA', () => {
             // l'accès indexé : elle ne sait donc pas distinguer un trou d'une
             // valeur `undefined` légitime. Aucun tableau du projet n'en contient,
             // et le dire ici vaut mieux que de laisser croire le contraire.
-            expect(() => {
-                elementA([undefined], 0);
-            }).toThrow(RangeError);
+            expect(() => elementA([undefined], 0)).toThrow(RangeError);
         });
     });
 });

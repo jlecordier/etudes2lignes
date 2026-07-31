@@ -48,6 +48,19 @@ export default tseslint.config(
             // Interpoler un nombre dans un gabarit est sûr et lisible ; on garde
             // l'interdiction pour les objets, tableaux et valeurs nullish.
             '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
+            // Ce que la règle protège vraiment, c'est le retour trompeur —
+            // `return console.log(x)` dans une fonction censée rendre une valeur.
+            // Une lambda courte qui passe un appel en rappel ne trompe personne :
+            // `expect(() => creer(''))` .toThrow() est l'idiome de test, et
+            // `surRetour: () => quitter()` celui du câblage. Sans cette option,
+            // Prettier déplie chacun de ces cas en trois lignes sans rien gagner
+            // en clarté — c'est la raison que donne la documentation de la règle.
+            // Les autres tolérances (opérateur `void`, fonctions rendant `void`)
+            // restent fermées.
+            '@typescript-eslint/no-confusing-void-expression': [
+                'error',
+                { ignoreArrowShorthand: true },
+            ],
         },
     },
     {
