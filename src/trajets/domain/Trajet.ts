@@ -14,6 +14,9 @@ export interface ImageDeTrajet {
     readonly hauteur: number;
 }
 
+/** Une page telle que l'utilisateur la fournit : l'agrégat lui forge son identifiant. */
+export type ImageFile = Omit<ImageDeTrajet, 'id'>;
+
 /** Un point géo-référencé : une hauteur sur une image ↔ une coordonnée. */
 export interface Point {
     readonly id: PointId;
@@ -53,7 +56,7 @@ export class Trajet {
     }): Trajet {
         const trajet = new Trajet(donnees.id, donnees.nom, donnees.creeLe, [], []);
         for (const image of donnees.images) {
-            trajet.admitImage(image);
+            trajet.admitImage(image, 'voyage-end');
         }
         for (const point of donnees.points) {
             trajet.requireImageIndex(point.imageId);
@@ -87,10 +90,25 @@ export class Trajet {
         this._nom = nom;
     }
 
-    addImage(file: { nom: string; blob: Blob; largeur: number; hauteur: number }): ImageId {
+    addImage(file: ImageFile): ImageId {
         const image: ImageDeTrajet = { id: newImageId(), ...file };
-        this.admitImage(image);
+        this.admitImage(image, 'voyage-end');
         return image.id;
+    }
+
+    /**
+     * Ajoute des pages sous celles déjà présentes, dans l'ordre où le document se
+     * lit — celui de l'explorateur, première page en haut. Le document se lisant
+     * de bas en haut, la dernière page fournie est celle qui se lit le plus bas :
+     * c'est donc elle qui ouvre le voyage.
+     *
+     * Pas de `reverse` ici : insérer chaque page en tête du voyage, dans l'ordre
+     * reçu, *est* l'inversion.
+     */
+    addImagesInReadingOrder(files: readonly ImageFile[]): void {
+        for (const file of files) {
+            this.admitImage({ id: newImageId(), ...file }, 'voyage-start');
+        }
     }
 
     /**
@@ -183,12 +201,17 @@ export class Trajet {
     }
 
     /**
-     * Seule porte d'entrée d'une image dans l'agrégat : l'ajout par l'utilisateur
-     * comme la réhydratation depuis la persistance passent par cette garde.
+     * Seule porte d'entrée d'une image dans l'agrégat : l'ajout par l'utilisateur,
+     * l'import par lot et la réhydratation depuis la persistance passent par cette
+     * garde. Seule l'extrémité d'insertion les distingue.
      */
-    private admitImage(image: ImageDeTrajet): void {
+    private admitImage(image: ImageDeTrajet, place: 'voyage-start' | 'voyage-end'): void {
         if (!isDimension(image.largeur) || !isDimension(image.hauteur)) {
             throw new Error(`Dimensions d’image invalides : ${image.largeur}×${image.hauteur}`);
+        }
+        if (place === 'voyage-start') {
+            this._images.unshift(image);
+            return;
         }
         this._images.push(image);
     }

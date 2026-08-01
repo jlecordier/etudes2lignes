@@ -3,18 +3,13 @@ import { Coordonnee } from './Coordonnee';
 import { FractionVerticale } from './FractionVerticale';
 import { NomDeTrajet } from './NomDeTrajet';
 import { requireElementAt } from '../../shared/array';
-import { Trajet } from './Trajet';
+import { Trajet, type ImageFile } from './Trajet';
 
 function newTrajet(nom = 'Paris → Bordeaux'): Trajet {
     return Trajet.create(NomDeTrajet.create(nom));
 }
 
-function imageFile(nom = 'page-1.jpg'): {
-    nom: string;
-    blob: Blob;
-    largeur: number;
-    hauteur: number;
-} {
+function imageFile(nom = 'page-1.jpg'): ImageFile {
     return { nom, blob: new Blob(['fausse image']), largeur: 2481, hauteur: 3508 };
 }
 
@@ -64,6 +59,64 @@ describe('Trajet', () => {
             expect(() => trajet.addImage({ ...imageFile(), largeur: 0 })).toThrow(
                 'Dimensions d’image invalides',
             );
+        });
+    });
+
+    describe('Étant donné un trajet vierge, quand j’importe un lot de pages', () => {
+        it('alors la pile les lit dans l’ordre du lot, et la dernière ouvre le voyage', () => {
+            const trajet = newTrajet();
+
+            trajet.addImagesInReadingOrder([
+                imageFile('page-1.jpg'),
+                imageFile('page-2.jpg'),
+                imageFile('page-3.jpg'),
+            ]);
+
+            expect(imageNoms(trajet.imagesInReadingOrder())).toEqual([
+                'page-1.jpg',
+                'page-2.jpg',
+                'page-3.jpg',
+            ]);
+            expect(imageNoms(trajet.images)).toEqual(['page-3.jpg', 'page-2.jpg', 'page-1.jpg']);
+        });
+
+        it('alors une page aux dimensions invalides est refusée', () => {
+            const trajet = newTrajet();
+
+            expect(() => trajet.addImagesInReadingOrder([{ ...imageFile(), largeur: 0 }])).toThrow(
+                'Dimensions d’image invalides',
+            );
+        });
+    });
+
+    describe('Étant donné un trajet qui a déjà des pages, quand j’importe un second lot', () => {
+        it('alors il se lit sous les pages existantes, et sa dernière page ouvre le voyage', () => {
+            const trajet = newTrajet();
+            trajet.addImagesInReadingOrder([imageFile('page-1.jpg'), imageFile('page-2.jpg')]);
+
+            trajet.addImagesInReadingOrder([imageFile('page-3.jpg'), imageFile('page-4.jpg')]);
+
+            expect(imageNoms(trajet.imagesInReadingOrder())).toEqual([
+                'page-1.jpg',
+                'page-2.jpg',
+                'page-3.jpg',
+                'page-4.jpg',
+            ]);
+            expect(imageNoms(trajet.images)).toEqual([
+                'page-4.jpg',
+                'page-3.jpg',
+                'page-2.jpg',
+                'page-1.jpg',
+            ]);
+        });
+
+        it('alors un lot vide laisse le trajet inchangé', () => {
+            const trajet = newTrajet();
+            trajet.addImagesInReadingOrder([imageFile('page-1.jpg')]);
+
+            trajet.addImagesInReadingOrder([]);
+
+            expect(imageNoms(trajet.images)).toEqual(['page-1.jpg']);
         });
     });
 
