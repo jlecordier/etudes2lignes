@@ -104,9 +104,24 @@ Make the rule executable rather than remembered — these are local settings, so
 each clone needs them once:
 
 ```sh
-git config merge.ff only    # un merge non fast-forward échoue au lieu de bifurquer
-git config pull.rebase true # se remettre à jour sans fabriquer de merge commit
+git config merge.ff only         # un merge non fast-forward échoue au lieu de bifurquer
+git config pull.rebase true      # se remettre à jour sans fabriquer de merge commit
+git config rebase.autoStash true # rebaser sans avoir à ranger le travail en cours
+git config merge.autoStash true  # idem : ff-only échoue aussi sur un arbre sale
+git config fetch.prune true      # oublier les branches distantes déjà supprimées
 ```
+
+**`pull.rebase = true`, surtout pas `merges`.** La variante `merges` passe
+`--rebase-merges`, dont la doc dit que « the local merge commits **are
+included** in the rebase » : elle _préserve_ les merge commits au lieu de les
+aplatir. Tant qu'il n'y en a aucun les deux se valent, mais le jour où l'un
+apparaît — pull fait avant que la config soit posée, merge depuis l'interface
+GitHub —, `true` le remet à plat et `merges` le protège. `true` répare la règle
+tout seul ; `merges` la sabote poliment.
+
+`autoStash` a un coût à connaître : si la ré-application du stash conflicte
+après un rebase réussi, c'est à toi de trancher. Le stash n'est pas perdu pour
+autant — `git stash list` le retrouve.
 
 ## Toolchain gotchas (read before touching config)
 
