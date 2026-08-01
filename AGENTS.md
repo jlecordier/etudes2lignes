@@ -14,8 +14,11 @@ points into it instead of duplicating it. Claude Code specifics live in
 - **Stack**: TypeScript · Vite · **vanilla DOM (no UI framework)** · Leaflet ·
   IndexedDB (`idb`) · `vite-plugin-pwa`. Package manager: **pnpm**.
 - **Architecture**: hexagonal + screaming — `src/<capability>/{domain,ports,adapters,ui}`.
-- **Language**: everything is **French** — identifiers, comments, commit
-  messages, UI strings, docs. Keep it French.
+- **Language**: **French names the business, English names the plumbing.** An
+  identifier is translated **word by word**: a word stays French if it is in the
+  glossary's [Lexique](docs/GLOSSAIRE.md#lexique), goes to English otherwise
+  ([ADR 0007](docs/adr/0007-langue-du-code-metier-francais-technique-anglais.md)).
+  Prose, UI strings, commit messages and docs stay **French**.
 - **Quality bar is strict** and enforced by pre-commit + CI. Do not lower it.
 
 ## Commands
@@ -48,12 +51,18 @@ points into it instead of duplicating it. Claude Code specifics live in
 
 ## Conventions
 
-- **French ubiquitous language** everywhere — use the terms in
-  [`docs/GLOSSAIRE.md`](docs/GLOSSAIRE.md), and only those.
+- **French ubiquitous language for the domain** — use the terms in
+  [`docs/GLOSSAIRE.md`](docs/GLOSSAIRE.md), and only those. Everything with no
+  business counterpart is English, word by word (ADR 0007): `createQueue`, not
+  `creerFileDAttente`; but `pointMarker`, because `point` is in the glossary.
+  Three things stay French whatever happens — prose (comments, JSDoc, BDD test
+  titles), the e2e scenario steps, and **persisted keys** (IndexedDB
+  stores/indexes, v1 JSON keys, `localStorage`), which are user data, not
+  identifiers.
 - **No non-null assertions (`!`), no shape `as`** — they hide upstream typing
   problems ([ADR 0002](docs/adr/0002-lint-type-aware-strict.md)). Instead:
-    - indexed access → `elementA(tableau, i)` (`src/commun/tableau.ts`);
-    - DOM lookup → `requete('#id', HTMLXxxElement)` (`src/commun/dom.ts`) — it
+    - indexed access → `requireElementAt(array, i)` (`src/shared/array.ts`);
+    - DOM lookup → `query('#id', HTMLXxxElement)` (`src/shared/dom.ts`) — it
       **verifies the element type via `instanceof`**;
     - browser APIs typed as always-present but actually optional
       (`navigator.wakeLock/geolocation/storage`) → annotate an optional local,
@@ -67,7 +76,7 @@ points into it instead of duplicating it. Claude Code specifics live in
   scheduler, `fake-indexeddb`); assert on produced **values**.
 - **A guard with no witness is not protected.** Before claiming a fix is covered,
   break it on purpose and watch the test fail — `pnpm mutation` does this in bulk
-  over `domain`/`adapters`/`commun` ([ADR 0006](docs/adr/0006-tests-de-mutation-stryker.md)),
+  over `domain`/`adapters`/`shared` ([ADR 0006](docs/adr/0006-tests-de-mutation-stryker.md)),
   but structural regressions still need doing it by hand. Never add an assertion
   merely to silence a surviving mutant.
 - Value objects validate at construction and are immutable; the `Trajet`

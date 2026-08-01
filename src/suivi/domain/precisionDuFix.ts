@@ -13,6 +13,6 @@ export const PRECISION_MAXIMALE_METRES = 3000;
  * Ce fix est-il assez précis pour caler la page ? Règle métier : elle vaut pour
  * toute source de position, pas seulement pour le GPS du navigateur.
  */
-export function fixUtilisable(imprecisionMetres: number): boolean {
+export function usableFix(imprecisionMetres: number): boolean {
     return imprecisionMetres <= PRECISION_MAXIMALE_METRES;
 }

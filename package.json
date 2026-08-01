@@ -12,7 +12,7 @@
         "test:watch": "vitest",
         "test:e2e": "playwright test",
         "typecheck": "tsc --noEmit",
-        "icones": "node scripts/generer-icones.mjs",
+        "icons": "node scripts/generate-icons.mjs",
         "format": "prettier --write .",
         "lint": "eslint .",
         "lint:fix": "eslint --fix .",

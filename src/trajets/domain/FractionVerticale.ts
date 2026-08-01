@@ -1,17 +1,17 @@
-import { borner } from '../../commun/nombre';
+import { clamp } from '../../shared/number';
 
 /**
  * Position verticale relative sur une image : 0 = bord haut, 1 = bord bas.
  * Value object : validée à la construction, immuable, égalité par valeur.
  */
 export class FractionVerticale {
-    private constructor(readonly valeur: number) {}
+    private constructor(readonly value: number) {}
 
-    static creer(valeur: number): FractionVerticale {
-        if (!Number.isFinite(valeur) || valeur < 0 || valeur > 1) {
-            throw new Error(`Fraction verticale invalide : ${valeur}`);
+    static create(value: number): FractionVerticale {
+        if (!Number.isFinite(value) || value < 0 || value > 1) {
+            throw new Error(`Fraction verticale invalide : ${value}`);
         }
-        return new FractionVerticale(valeur);
+        return new FractionVerticale(value);
     }
 
     /**
@@ -22,14 +22,14 @@ export class FractionVerticale {
      * Une hauteur nulle ou négative est en revanche refusée : la fraction n'a
      * alors pas de sens.
      */
-    static depuisHauteur(distance: number, hauteur: number): FractionVerticale {
+    static fromHeight(distance: number, hauteur: number): FractionVerticale {
         if (!Number.isFinite(hauteur) || hauteur <= 0) {
             throw new Error(`Hauteur invalide pour une fraction verticale : ${hauteur}`);
         }
-        return FractionVerticale.creer(borner(distance / hauteur, 0, 1));
+        return FractionVerticale.create(clamp(distance / hauteur, 0, 1));
     }
 
-    egale(autre: FractionVerticale): boolean {
-        return this.valeur === autre.valeur;
+    equals(other: FractionVerticale): boolean {
+        return this.value === other.value;
     }
 }

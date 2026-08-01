@@ -2,12 +2,12 @@ import type { Trajet } from '../domain/Trajet';
 import type { TrajetId } from '../domain/ids';
 
 /** Résumé d'un trajet pour l'écran de liste (sans les images, trop lourdes). */
-export interface ResumeDeTrajet {
+export interface TrajetSummary {
     readonly id: TrajetId;
     readonly nom: string;
     readonly creeLe: Date;
-    readonly nombreDImages: number;
-    readonly nombreDePoints: number;
+    readonly imageCount: number;
+    readonly pointCount: number;
 }
 
 /**
@@ -20,7 +20,7 @@ export interface ResumeDeTrajet {
  *   lecture faite avant elle ;
  * - `charger` rend `null` si le trajet n'existe pas ;
  * - `supprimer` efface le trajet, ses images et ses points ;
- * - `listerResumes` rend les trajets du plus ancien au plus récent ; le nombre
+ * - `listSummaries` rend les trajets du plus ancien au plus récent ; le nombre
  *   d'images d'un trajet est la longueur de sa liste d'images, pas un comptage
  *   des enregistrements stockés.
  *
@@ -39,13 +39,13 @@ export interface ResumeDeTrajet {
  * **Les quatre méthodes peuvent rejeter** — stockage refusé ou saturé, base
  * bloquée par un autre onglet, version de base plus récente, enregistrement
  * rompu. Aucune ne rend un résultat dégradé en silence : tout appelant doit
- * attraper le rejet et afficher `erreur.message`, sans quoi l'utilisateur reste
+ * attraper le rejet et afficher `error.message`, sans quoi l'utilisateur reste
  * devant un écran vide. Le message peut venir de l'agrégat (invariant violé) ou
  * de l'adapter (« Trajet illisible : … »).
  */
 export interface TrajetRepository {
-    listerResumes(): Promise<ResumeDeTrajet[]>;
-    charger(id: TrajetId): Promise<Trajet | null>;
-    sauvegarder(trajet: Trajet): Promise<void>;
-    supprimer(id: TrajetId): Promise<void>;
+    listSummaries(): Promise<TrajetSummary[]>;
+    load(id: TrajetId): Promise<Trajet | null>;
+    save(trajet: Trajet): Promise<void>;
+    delete(id: TrajetId): Promise<void>;
 }

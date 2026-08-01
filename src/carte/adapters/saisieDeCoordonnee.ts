@@ -5,7 +5,7 @@ import { Coordonnee } from '../../trajets/domain/Coordonnee';
  * Une consigne, pas un diagnostic : il n'a pas à savoir lequel des deux champs
  * a fâché le domaine, ni ce qu'est un NaN.
  */
-export const CONSIGNE_DE_SAISIE = 'Saisissez une latitude et une longitude valides.';
+export const INPUT_HINT = 'Saisissez une latitude et une longitude valides.';
 
 /**
  * La coordonnée formée par les deux champs de saisie manuelle, ou `null` quand
@@ -14,18 +14,18 @@ export const CONSIGNE_DE_SAISIE = 'Saisissez une latitude et une longitude valid
  * Rendre `null` plutôt que lever : des champs vides sont l'état ordinaire de la
  * barre de saisie (le sélecteur les vide à chaque ouverture), pas un incident.
  */
-export function coordonneeDeLaSaisie(
-    latitudeSaisie: string,
-    longitudeSaisie: string,
+export function coordonneeFromInputs(
+    latitudeText: string,
+    longitudeText: string,
 ): Coordonnee | null {
-    const latitude = Number.parseFloat(latitudeSaisie);
-    const longitude = Number.parseFloat(longitudeSaisie);
+    const latitude = Number.parseFloat(latitudeText);
+    const longitude = Number.parseFloat(longitudeText);
     // Champ vide ou texte : le cas courant se règle ici, sans exception.
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
         return null;
     }
     try {
-        return Coordonnee.creer(latitude, longitude);
+        return Coordonnee.create(latitude, longitude);
     } catch {
         // Reste le cas exotique d'un nombre hors du globe (une longitude de
         // 500°). Le refus vient du domaine, qui seul détient les bornes : les

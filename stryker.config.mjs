@@ -30,11 +30,11 @@ export default {
     mutate: [
         'src/*/domain/**/*.ts',
         'src/*/adapters/**/*.ts',
-        'src/*/serialisation/**/*.ts',
-        'src/commun/**/*.ts',
+        'src/*/serialization/**/*.ts',
+        'src/shared/**/*.ts',
         '!src/**/*.test.ts',
-        '!src/suivi/adapters/contratDePositionSource.ts',
-        '!src/suivi/adapters/fauxPremierPlan.ts',
+        '!src/suivi/adapters/positionSourceContract.ts',
+        '!src/suivi/adapters/fakeForeground.ts',
     ],
 
     /*

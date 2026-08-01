@@ -2,13 +2,13 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { ajouterUnPoint, ouvrirUnTrajetAvecUnePage, preparerLApplication } from './aides';
+import { ajouterUnPoint, ouvrirUnTrajetAvecUnePage, preparerLApplication } from './helpers';
 
 /** Prépare un trajet géoréférencé et revient à la liste. */
 async function preparerUnTrajetEtRevenirALaListe(page: Page): Promise<void> {
     await ouvrirUnTrajetAvecUnePage(page);
     await ajouterUnPoint(page, 0.5, 0);
-    await expect(page.locator('.description-point')).toHaveCount(1);
+    await expect(page.locator('.point-description')).toHaveCount(1);
     await page.getByRole('button', { name: '🔙 Trajets' }).click();
     await expect(page.getByText('1 image(s) · 1 point(s)')).toBeVisible();
 }
@@ -16,8 +16,8 @@ async function preparerUnTrajetEtRevenirALaListe(page: Page): Promise<void> {
 async function exporterLePremierTrajet(page: Page): Promise<string> {
     const telechargement = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Exporter Paris → Bordeaux' }).click();
-    const fichier = await (await telechargement).path();
-    return fichier;
+    const file = await (await telechargement).path();
+    return file;
 }
 
 test.describe('Import / export JSON', () => {
@@ -26,10 +26,10 @@ test.describe('Import / export JSON', () => {
     }) => {
         await preparerUnTrajetEtRevenirALaListe(page);
 
-        const fichier = await exporterLePremierTrajet(page);
+        const file = await exporterLePremierTrajet(page);
 
-        const contenu: unknown = JSON.parse(await readFile(fichier, 'utf-8'));
-        expect(contenu).toMatchObject({
+        const content: unknown = JSON.parse(await readFile(file, 'utf-8'));
+        expect(content).toMatchObject({
             application: 'etudes2lignes',
             version: 1,
             trajet: {
@@ -44,9 +44,9 @@ test.describe('Import / export JSON', () => {
         page,
     }) => {
         await preparerUnTrajetEtRevenirALaListe(page);
-        const fichier = await exporterLePremierTrajet(page);
+        const file = await exporterLePremierTrajet(page);
 
-        await page.locator('#input-import-trajet').setInputFiles(fichier);
+        await page.locator('#input-import-trajet').setInputFiles(file);
 
         // Deux trajets du même nom : l'import crée toujours un nouveau trajet.
         await expect(
@@ -56,25 +56,25 @@ test.describe('Import / export JSON', () => {
 
         // Le trajet importé s'ouvre avec son image et son point.
         await page.getByRole('button', { name: 'Paris → Bordeaux', exact: true }).nth(1).click();
-        await expect(page.locator('.nom-image')).toHaveText(['page-1.png']);
-        await expect(page.locator('.description-point')).toHaveCount(1);
+        await expect(page.locator('.image-name')).toHaveText(['page-1.png']);
+        await expect(page.locator('.point-description')).toHaveCount(1);
     });
 
     test('Étant donné un fichier qui n’est pas un export, quand je l’importe, alors un message l’explique et rien n’est créé', async ({
         page,
     }) => {
         await preparerLApplication(page);
-        const fichierInvalide = join(tmpdir(), 'pas-un-export.json');
-        await writeFile(fichierInvalide, '{"application":"autre"}');
+        const invalidFile = join(tmpdir(), 'pas-un-export.json');
+        await writeFile(invalidFile, '{"application":"autre"}');
 
         const messages: string[] = [];
-        page.once('dialog', (dialogue) => {
-            messages.push(dialogue.message());
-            void dialogue.accept();
+        page.once('dialog', (dialog) => {
+            messages.push(dialog.message());
+            void dialog.accept();
         });
-        await page.locator('#input-import-trajet').setInputFiles(fichierInvalide);
+        await page.locator('#input-import-trajet').setInputFiles(invalidFile);
 
         await expect.poll(() => messages).toEqual(['Ce fichier ne vient pas d’Etudes2Lignes.']);
-        await expect(page.locator('#liste-vide')).toBeVisible();
+        await expect(page.locator('#empty-list')).toBeVisible();
     });
 });

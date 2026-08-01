@@ -2,16 +2,16 @@ import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { Coordonnee } from '../../trajets/domain/Coordonnee';
 import type { PointId } from '../../trajets/domain/ids';
-import type { CarteDesPoints, PointAffiche } from '../ports/CarteDesPointsPort';
-import { configurerLeaflet } from './configurerLeaflet';
-import { versCoordonnee, versLatLng } from './conversion';
-import { creerCoucheOsm, VUE_FRANCE } from './coucheOsm';
-import { iconeNumerotee } from './iconeNumerotee';
-import { centrerSurLaCoordonnee, recadrerSurLesPoints } from './recadrage';
+import type { CarteDesPoints, DisplayedPoint } from '../ports/CarteDesPointsPort';
+import { configureLeaflet } from './configureLeaflet';
+import { toCoordonnee, toLatLng } from './conversion';
+import { createOsmLayer, FRANCE_VIEW } from './osmLayer';
+import { numberedIcon } from './numberedIcon';
+import { centerOnCoordonnee, fitToPoints } from './fitting';
 
-interface MarqueurPose {
-    readonly marqueur: L.Marker;
-    numero: number;
+interface PlacedMarker {
+    readonly marker: L.Marker;
+    number: number;
 }
 
 /**
@@ -20,29 +20,29 @@ interface MarqueurPose {
  */
 export class LeafletCarteDesPoints implements CarteDesPoints {
     private carte: L.Map | null = null;
-    private readonly marqueurs = new Map<PointId, MarqueurPose>();
-    private idsAffiches = '';
-    private surDeplacement: ((id: PointId, coordonnee: Coordonnee) => void) | null = null;
-    private resoudreLeChoix: ((coordonnee: Coordonnee | null) => void) | null = null;
+    private readonly markers = new Map<PointId, PlacedMarker>();
+    private displayedIds = '';
+    private onMove: ((id: PointId, coordonnee: Coordonnee) => void) | null = null;
+    private resolveChoice: ((coordonnee: Coordonnee | null) => void) | null = null;
 
-    constructor(private readonly idDuConteneur: string) {}
+    constructor(private readonly containerId: string) {}
 
-    afficher(
-        points: readonly PointAffiche[],
-        surDeplacement: (id: PointId, coordonnee: Coordonnee) => void,
+    show(
+        points: readonly DisplayedPoint[],
+        onMove: (id: PointId, coordonnee: Coordonnee) => void,
     ): void {
-        this.surDeplacement = surDeplacement;
-        const carte = this.carteInitialisee();
+        this.onMove = onMove;
+        const carte = this.initializedCarte();
 
         const presents = new Set(points.map((point) => point.id));
-        for (const [id, pose] of this.marqueurs) {
+        for (const [id, pose] of this.markers) {
             if (!presents.has(id)) {
-                pose.marqueur.remove();
-                this.marqueurs.delete(id);
+                pose.marker.remove();
+                this.markers.delete(id);
             }
         }
         for (const point of points) {
-            this.poserOuMettreAJour(point);
+            this.placeOrUpdate(point);
         }
 
         // La carte a pu être (dé)masquée avec l'écran : remesurer le conteneur.
@@ -52,74 +52,74 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
             .map((point) => point.id)
             .sort()
             .join(',');
-        if (ids !== this.idsAffiches) {
-            this.idsAffiches = ids;
-            recadrerSurLesPoints(carte, points);
+        if (ids !== this.displayedIds) {
+            this.displayedIds = ids;
+            fitToPoints(carte, points);
         }
     }
 
-    choisirUneCoordonnee(coordonneeInitiale: Coordonnee | null): Promise<Coordonnee | null> {
-        this.annulerLeChoix();
-        const carte = this.carteInitialisee();
-        carte.getContainer().classList.add('attente-clic');
-        if (coordonneeInitiale !== null) {
+    chooseCoordonnee(initialCoordonnee: Coordonnee | null): Promise<Coordonnee | null> {
+        this.cancelChoice();
+        const carte = this.initializedCarte();
+        carte.getContainer().classList.add('awaiting-click');
+        if (initialCoordonnee !== null) {
             // Déplacer un point : on part de là où il est, comme la carte plein
             // écran le fait sur mobile.
-            centrerSurLaCoordonnee(carte, coordonneeInitiale);
+            centerOnCoordonnee(carte, initialCoordonnee);
         }
         return new Promise((resolve) => {
-            this.resoudreLeChoix = resolve;
+            this.resolveChoice = resolve;
         });
     }
 
-    annulerLeChoix(): void {
-        this.carte?.getContainer().classList.remove('attente-clic');
-        const enAttente = this.resoudreLeChoix;
-        this.resoudreLeChoix = null;
-        enAttente?.(null);
+    cancelChoice(): void {
+        this.carte?.getContainer().classList.remove('awaiting-click');
+        const pending = this.resolveChoice;
+        this.resolveChoice = null;
+        pending?.(null);
     }
 
-    private carteInitialisee(): L.Map {
+    private initializedCarte(): L.Map {
         if (this.carte !== null) {
             return this.carte;
         }
-        configurerLeaflet();
-        const carte = L.map(this.idDuConteneur).setView(VUE_FRANCE.centre, VUE_FRANCE.zoom);
+        configureLeaflet();
+        const carte = L.map(this.containerId).setView(FRANCE_VIEW.center, FRANCE_VIEW.zoom);
         this.carte = carte;
-        creerCoucheOsm().addTo(carte);
+        createOsmLayer().addTo(carte);
         // Rotation d'un iPad/téléphone : le conteneur change de taille sans
-        // repasser par afficher() — Leaflet doit se remesurer tout de suite.
+        // repasser par show() — Leaflet doit se remesurer tout de suite.
         window.addEventListener('resize', () => carte.invalidateSize());
-        carte.on('click', (evenement) => {
-            const enAttente = this.resoudreLeChoix;
-            if (enAttente === null) {
+        carte.on('click', (event) => {
+            const pending = this.resolveChoice;
+            if (pending === null) {
                 return;
             }
-            this.resoudreLeChoix = null;
-            carte.getContainer().classList.remove('attente-clic');
-            enAttente(versCoordonnee(evenement.latlng));
+            this.resolveChoice = null;
+            carte.getContainer().classList.remove('awaiting-click');
+            pending(toCoordonnee(event.latlng));
         });
         return carte;
     }
 
-    private poserOuMettreAJour(point: PointAffiche): void {
-        const position = versLatLng(point.coordonnee);
-        const existant = this.marqueurs.get(point.id);
+    private placeOrUpdate(point: DisplayedPoint): void {
+        const position = toLatLng(point.coordonnee);
+        const existant = this.markers.get(point.id);
         if (existant !== undefined) {
-            existant.marqueur.setLatLng(position);
-            if (existant.numero !== point.numero) {
-                existant.marqueur.setIcon(iconeNumerotee(point.numero));
-                existant.numero = point.numero;
+            existant.marker.setLatLng(position);
+            if (existant.number !== point.number) {
+                existant.marker.setIcon(numberedIcon(point.number));
+                existant.number = point.number;
             }
             return;
         }
-        const marqueur = L.marker(position, {
+        const marker = L.marker(position, {
             draggable: true,
-            icon: iconeNumerotee(point.numero),
-        }).addTo(this.carteInitialisee());
-        marqueur.on('dragend', () => {
-            this.surDeplacement?.(point.id, versCoordonnee(marqueur.getLatLng()));
+            icon: numberedIcon(point.number),
+        }).addTo(this.initializedCarte());
+        marker.on('dragend', () => {
+            this.onMove?.(point.id, toCoordonnee(marker.getLatLng()));
         });
-        this.marqueurs.set(point.id, { marqueur, numero: point.numero });
+        this.markers.set(point.id, { marker, number: point.number });
     }
 }

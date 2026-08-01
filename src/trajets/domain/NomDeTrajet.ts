@@ -3,10 +3,10 @@
  * Value object : non vide, débarrassé des espaces superflus.
  */
 export class NomDeTrajet {
-    private constructor(readonly valeur: string) {}
+    private constructor(readonly value: string) {}
 
-    static creer(texte: string): NomDeTrajet {
-        const nettoye = texte.trim();
+    static create(text: string): NomDeTrajet {
+        const nettoye = text.trim();
         if (nettoye === '') {
             throw new Error('Nom de trajet invalide : il ne peut pas être vide');
         }

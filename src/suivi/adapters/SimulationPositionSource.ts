@@ -1,39 +1,39 @@
 import type { Coordonnee } from '../../trajets/domain/Coordonnee';
-import type { EtatDeLaSource } from '../domain/etatDeLaSource';
-import type { SimulateurDePosition } from '../ports/SimulateurDePosition';
+import type { SourceStatus } from '../domain/sourceStatus';
+import type { PositionSimulator } from '../ports/PositionSimulator';
 
 /**
  * Source de position simulée : rejoue la coordonnée choisie à la main.
  * C'est le mode test de l'application — un simple adapter de plus,
- * l'écran de suivi ne connaît que le port SimulateurDePosition.
+ * l'écran de suivi ne connaît que le port PositionSimulator.
  */
-export class SimulationPositionSource implements SimulateurDePosition {
-    private surPosition: ((position: Coordonnee) => void) | null = null;
-    private derniereSimulation: Coordonnee | null = null;
+export class SimulationPositionSource implements PositionSimulator {
+    private onPosition: ((position: Coordonnee) => void) | null = null;
+    private lastSimulation: Coordonnee | null = null;
 
-    demarrer(
-        surPosition: (position: Coordonnee) => void,
-        surEtat: (etat: EtatDeLaSource) => void,
+    start(
+        onPosition: (position: Coordonnee) => void,
+        onStatus: (status: SourceStatus) => void,
     ): void {
-        this.surPosition = surPosition;
+        this.onPosition = onPosition;
         // Le contrat du port vaut aussi en simulation : sans cette annonce, la
         // ligne d'état garderait le dernier état du GPS réel.
-        surEtat({ etat: 'attente' });
-        if (this.derniereSimulation !== null) {
-            surPosition(this.derniereSimulation);
+        onStatus({ kind: 'attente' });
+        if (this.lastSimulation !== null) {
+            onPosition(this.lastSimulation);
         }
     }
 
-    arreter(): void {
-        this.surPosition = null;
+    stop(): void {
+        this.onPosition = null;
     }
 
-    simuler(position: Coordonnee): void {
-        this.derniereSimulation = position;
-        this.surPosition?.(position);
+    simulate(position: Coordonnee): void {
+        this.lastSimulation = position;
+        this.onPosition?.(position);
     }
 
-    get dernierePosition(): Coordonnee | null {
-        return this.derniereSimulation;
+    get lastPosition(): Coordonnee | null {
+        return this.lastSimulation;
     }
 }

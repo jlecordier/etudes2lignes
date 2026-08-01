@@ -3,11 +3,11 @@
  * refuse de mélanger entre elles grâce à une marque de type.
  */
 
-export type TrajetId = string & { readonly __marque: 'TrajetId' };
-export type ImageId = string & { readonly __marque: 'ImageId' };
-export type PointId = string & { readonly __marque: 'PointId' };
+export type TrajetId = string & { readonly __brand: 'TrajetId' };
+export type ImageId = string & { readonly __brand: 'ImageId' };
+export type PointId = string & { readonly __brand: 'PointId' };
 
-export function nouveauTrajetId(): TrajetId {
+export function newTrajetId(): TrajetId {
     return crypto.randomUUID() as TrajetId;
 }
 
@@ -16,24 +16,24 @@ export function nouveauTrajetId(): TrajetId {
  * session, lien partagé). Rend `null` si la chaîne n'en est pas un.
  *
  * C'est la **seule** porte d'entrée : partout ailleurs, un identifiant se
- * fabrique par `nouveauTrajetId`. Sans elle, chaque frontière recopiait un
+ * fabrique par `newTrajetId`. Sans elle, chaque frontière recopiait un
  * `as TrajetId` sur une chaîne que personne n'avait vérifiée — le compilateur
  * croyait alors tenir un identifiant là où il n'y avait qu'un texte.
  *
  * Reconnaître la forme ne dit pas que le trajet existe : c'est au dépôt de le
  * dire, en rendant `null` au chargement.
  */
-export function trajetIdDepuis(texte: string): TrajetId | null {
-    return FORME_D_UUID.test(texte) ? (texte as TrajetId) : null;
+export function trajetIdFrom(text: string): TrajetId | null {
+    return UUID_PATTERN.test(text) ? (text as TrajetId) : null;
 }
 
 /** La forme rendue par `crypto.randomUUID`. */
-const FORME_D_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export function nouvelImageId(): ImageId {
+export function newImageId(): ImageId {
     return crypto.randomUUID() as ImageId;
 }
 
-export function nouveauPointId(): PointId {
+export function newPointId(): PointId {
     return crypto.randomUUID() as PointId;
 }

@@ -1,37 +1,37 @@
 import { describe, expect, it } from 'vitest';
 import { Coordonnee } from '../../trajets/domain/Coordonnee';
-import type { EtatDeLaSource } from '../domain/etatDeLaSource';
-import { verifierLeContratDePositionSource } from './contratDePositionSource';
+import type { SourceStatus } from '../domain/sourceStatus';
+import { verifyPositionSourceContract } from './positionSourceContract';
 import { SimulationPositionSource } from './SimulationPositionSource';
 
-const poitiers = Coordonnee.creer(46.5802, 0.3404);
-const angouleme = Coordonnee.creer(45.6484, 0.1562);
+const poitiers = Coordonnee.create(46.5802, 0.3404);
+const angouleme = Coordonnee.create(45.6484, 0.1562);
 
-interface Abonnement {
+interface Subscription {
     readonly positions: Coordonnee[];
-    readonly etats: EtatDeLaSource[];
+    readonly statuses: SourceStatus[];
 }
 
-function demarrerEtCollecter(source: SimulationPositionSource): Abonnement {
+function startAndCollect(source: SimulationPositionSource): Subscription {
     const positions: Coordonnee[] = [];
-    const etats: EtatDeLaSource[] = [];
-    source.demarrer(
+    const statuses: SourceStatus[] = [];
+    source.start(
         (position) => positions.push(position),
-        (etat) => etats.push(etat),
+        (status) => statuses.push(status),
     );
-    return { positions, etats };
+    return { positions, statuses };
 }
 
-verifierLeContratDePositionSource('SimulationPositionSource', () => {
+verifyPositionSourceContract('SimulationPositionSource', () => {
     const source = new SimulationPositionSource();
     return {
         source,
-        emettreUnePosition: (position) => {
-            source.simuler(position);
+        emitPosition: (position) => {
+            source.simulate(position);
         },
         // Une simulation ne tient aucune ressource de plateforme : ni minuterie,
         // ni surveillance, ni abonnement au premier plan.
-        ressourcesTenues: () => 0,
+        heldResources: () => 0,
     };
 });
 
@@ -39,11 +39,11 @@ describe('SimulationPositionSource', () => {
     describe('Étant donné une source démarrée, quand je simule une position', () => {
         it('alors elle est transmise immédiatement', () => {
             const source = new SimulationPositionSource();
-            const abonnement = demarrerEtCollecter(source);
+            const subscription = startAndCollect(source);
 
-            source.simuler(poitiers);
+            source.simulate(poitiers);
 
-            expect(abonnement.positions).toEqual([poitiers]);
+            expect(subscription.positions).toEqual([poitiers]);
         });
     });
 
@@ -51,47 +51,47 @@ describe('SimulationPositionSource', () => {
         it('alors elle annonce l’attente, comme le GPS réel : la ligne d’état ne garde pas le dernier message', () => {
             const source = new SimulationPositionSource();
 
-            const abonnement = demarrerEtCollecter(source);
+            const subscription = startAndCollect(source);
 
-            expect(abonnement.etats).toEqual([{ etat: 'attente' }]);
+            expect(subscription.statuses).toEqual([{ kind: 'attente' }]);
         });
     });
 
     describe('Étant donné une position déjà simulée, quand la source redémarre', () => {
         it('alors elle annonce l’attente puis rejoue la dernière position', () => {
             const source = new SimulationPositionSource();
-            demarrerEtCollecter(source);
-            source.simuler(angouleme);
-            source.arreter();
+            startAndCollect(source);
+            source.simulate(angouleme);
+            source.stop();
 
-            const abonnement = demarrerEtCollecter(source);
+            const subscription = startAndCollect(source);
 
-            expect(abonnement.etats).toEqual([{ etat: 'attente' }]);
-            expect(abonnement.positions).toEqual([angouleme]);
+            expect(subscription.statuses).toEqual([{ kind: 'attente' }]);
+            expect(subscription.positions).toEqual([angouleme]);
         });
     });
 
     describe('Étant donné une source arrêtée, quand je simule une position', () => {
         it('alors rien n’est transmis', () => {
             const source = new SimulationPositionSource();
-            const abonnement = demarrerEtCollecter(source);
-            source.arreter();
+            const subscription = startAndCollect(source);
+            source.stop();
 
-            source.simuler(poitiers);
+            source.simulate(poitiers);
 
-            expect(abonnement.positions).toEqual([]);
+            expect(subscription.positions).toEqual([]);
         });
     });
 
     describe('Étant donné une position simulée puis la source arrêtée', () => {
         it('alors la dernière position reste mémorisée, pour rouvrir la carte dessus', () => {
             const source = new SimulationPositionSource();
-            demarrerEtCollecter(source);
+            startAndCollect(source);
 
-            source.simuler(angouleme);
-            source.arreter();
+            source.simulate(angouleme);
+            source.stop();
 
-            expect(source.dernierePosition).toEqual(angouleme);
+            expect(source.lastPosition).toEqual(angouleme);
         });
     });
 });

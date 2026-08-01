@@ -13,15 +13,15 @@ body {
 
 :root {
     /* Passe à 1 dans la requête média du grand écran, plus bas. */
-    --grand-ecran: 0;
+    --large-screen: 0;
 }
 
-.ecran {
+.screen {
     min-height: 100dvh;
     padding: 1rem;
 }
 
-.entete {
+.header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -45,7 +45,7 @@ button {
     cursor: pointer;
 }
 
-button.secondaire {
+button.secondary {
     background: white;
     color: #1d4ed8;
 }
@@ -57,7 +57,7 @@ button.danger {
     background: white;
 }
 
-.liste-trajets {
+.trajets-list {
     list-style: none;
     margin: 0;
     padding: 0;
@@ -66,11 +66,11 @@ button.danger {
     gap: 0.5rem;
 }
 
-.message-vide {
+.empty-message {
     color: #6b7280;
 }
 
-.ligne-trajet {
+.trajet-row {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -81,7 +81,7 @@ button.danger {
     border-radius: 0.375rem;
 }
 
-.nom-trajet {
+.trajet-name {
     flex: 1;
     min-width: 10rem;
     text-align: left;
@@ -91,29 +91,29 @@ button.danger {
     font-weight: 600;
 }
 
-.details-trajet {
+.trajet-details {
     color: #6b7280;
     font-size: 0.875rem;
     white-space: nowrap;
 }
 
-.aide {
+.help {
     color: #6b7280;
     font-size: 0.875rem;
 }
 
-.cadre-image {
+.image-frame {
     margin-top: 1rem;
 }
 
-.barre-image {
+.image-bar {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     padding: 0.25rem 0;
 }
 
-.nom-image {
+.image-name {
     flex: 1;
     font-size: 0.875rem;
     color: #6b7280;
@@ -122,7 +122,7 @@ button.danger {
     white-space: nowrap;
 }
 
-.cadre-image img {
+.image-frame img {
     display: block;
     width: 100%;
     height: auto;
@@ -134,28 +134,28 @@ button.danger {
     display: none !important;
 }
 
-.barre-actions {
+.action-bar {
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
 }
 
-.bandeau-consigne {
+.hint-banner {
     background: #fef3c7;
     border: 1px solid #f59e0b;
     border-radius: 0.375rem;
     padding: 0.5rem;
 }
 
-.zone-image {
+.image-area {
     position: relative;
 }
 
-.placement-actif .zone-image {
+.placement-active .image-area {
     cursor: crosshair;
 }
 
-.marqueur-point {
+.point-marker {
     position: absolute;
     left: 0;
     right: 0;
@@ -163,7 +163,7 @@ button.danger {
     pointer-events: none;
 }
 
-.numero-point {
+.point-number {
     position: absolute;
     left: 0.25rem;
     top: -0.75rem;
@@ -176,7 +176,7 @@ button.danger {
 
 /* Boutons flottants posés sur chaque ligne : agir sur un point sans remonter
    à la liste tout en haut de la page. */
-.actions-point {
+.point-actions {
     position: absolute;
     right: 0.25rem;
     top: -0.75rem;
@@ -185,7 +185,7 @@ button.danger {
     pointer-events: auto;
 }
 
-.bouton-flottant {
+.floating-button {
     padding: 0.15rem 0.5rem;
     font-size: 0.75rem;
     line-height: 1.4;
@@ -195,7 +195,7 @@ button.danger {
 
 /* Reste à l'écran quel que soit le défilement : sur tactile, seul recours
    pour ajouter un point sans remonter tout en haut (pas de clic droit). */
-.bouton-ajouter-point-flottant {
+.floating-add-point-button {
     position: fixed;
     right: 1rem;
     bottom: 1rem;
@@ -205,18 +205,18 @@ button.danger {
 
 /* Les boutons flottants ne doivent jamais masquer la fin du contenu : on
    réserve leur place tout en bas, pour pouvoir faire défiler au-delà. */
-#ecran-editeur {
+#screen-editor {
     padding-bottom: 6rem;
 }
 
-.pile-suivi {
+.suivi-stack {
     padding-bottom: 6rem;
 }
 
 /* Carte des points + images : empilées sur mobile (carte au-dessus),
    côte à côte à partir de 900 px — un iPad en paysage passe le seuil,
    en portrait non (même seuil dans EditeurTrajetScreen.ts). */
-.corps-editeur {
+.editor-body {
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -235,7 +235,7 @@ button.danger {
     z-index: 0;
 }
 
-.colonne-images {
+.images-column {
     min-width: 0;
 }
 
@@ -244,10 +244,10 @@ button.danger {
        TypeScript et les tests lisent ce drapeau au lieu de recopier 900px, qui
        pouvait diverger sans que rien ne le signale. */
     :root {
-        --grand-ecran: 1;
+        --large-screen: 1;
     }
 
-    .corps-editeur {
+    .editor-body {
         flex-direction: row;
         align-items: flex-start;
     }
@@ -260,7 +260,7 @@ button.danger {
         flex: 1;
     }
 
-    .colonne-images {
+    .images-column {
         flex: 1;
     }
 }
@@ -268,8 +268,8 @@ button.danger {
 /* Scopé sous les conteneurs de cartes : leaflet.css arrive après dans le
    bundle et son .leaflet-marker-icon { display: block } écraserait le
    centrage flex. */
-.carte-points .marqueur-carte,
-#conteneur-carte .marqueur-carte {
+.carte-points .carte-marker,
+#carte-container .carte-marker {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -283,12 +283,12 @@ button.danger {
     cursor: grab;
 }
 
-.attente-clic,
-.attente-clic * {
+.awaiting-click,
+.awaiting-click * {
     cursor: crosshair !important;
 }
 
-.liste-points {
+.points-list {
     list-style: none;
     margin: 1rem 0 0;
     padding: 0;
@@ -297,7 +297,7 @@ button.danger {
     gap: 0.5rem;
 }
 
-.ligne-point {
+.point-row {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -308,14 +308,14 @@ button.danger {
     border-radius: 0.375rem;
 }
 
-.description-point {
+.point-description {
     flex: 1;
     font-size: 0.875rem;
     min-width: 12rem;
 }
 
 /* Sélecteur de coordonnée : carte plein écran par-dessus l'écran courant. */
-.ecran-carte {
+.screen-carte {
     position: fixed;
     inset: 0;
     z-index: 1000;
@@ -324,13 +324,13 @@ button.danger {
     background: white;
 }
 
-#conteneur-carte {
+#carte-container {
     /* Même précaution que .carte-points : ancre les panneaux Leaflet. */
     position: relative;
     flex: 1;
 }
 
-.barre-carte {
+.carte-bar {
     display: flex;
     gap: 0.5rem;
     padding: 0.5rem;
@@ -338,7 +338,7 @@ button.danger {
     align-items: center;
 }
 
-.barre-carte input {
+.carte-bar input {
     font: inherit;
     padding: 0.5rem;
     border: 1px solid #d1d5db;
@@ -347,11 +347,11 @@ button.danger {
 }
 
 /* Écran de suivi */
-.ecran-suivi {
+.screen-suivi {
     padding: 0;
 }
 
-.barre-suivi {
+.suivi-bar {
     position: sticky;
     top: 0;
     z-index: 10;
@@ -364,14 +364,14 @@ button.danger {
     border-bottom: 1px solid #e5e7eb;
 }
 
-.etat-suivi {
+.suivi-status {
     flex: 1;
     min-width: 8rem;
     font-size: 0.875rem;
     color: #b45309;
 }
 
-.bandeau-simulation {
+.simulation-banner {
     width: 100%;
     margin: 0;
     padding: 0.25rem 0;
@@ -379,13 +379,13 @@ button.danger {
     color: #047857;
 }
 
-.pile-suivi img {
+.suivi-stack img {
     display: block;
     width: 100%;
     height: auto;
 }
 
-.ligne-repere {
+.guide-line {
     position: fixed;
     left: 0;
     right: 0;
@@ -398,7 +398,7 @@ button.danger {
     z-index: 5;
 }
 
-.bouton-reprendre {
+.resume-button {
     position: fixed;
     bottom: 1rem;
     left: 50%;
@@ -407,7 +407,7 @@ button.danger {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.indicateur-hors-ligne {
+.offline-indicator {
     color: #047857;
     font-size: 0.875rem;
 }

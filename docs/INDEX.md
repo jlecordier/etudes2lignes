@@ -1,7 +1,9 @@
 # Index de la documentation
 
 Le point d'entrée : où trouver quoi. Les docs humaines sont en **français** ; les
-guides destinés aux IA/agents sont en **anglais**.
+guides destinés aux IA/agents sont en **anglais**. Dans le code, le français
+nomme le métier et l'anglais la technique
+([ADR 0007](adr/0007-langue-du-code-metier-francais-technique-anglais.md)).
 
 ## Comprendre le produit
 
@@ -12,7 +14,8 @@ guides destinés aux IA/agents sont en **anglais**.
 
 - [ARCHITECTURE](ARCHITECTURE.md) — hexagone + screaming, table des ports/adapters,
   domaine (DDD), l'algorithme géo → défilement, pièges plateforme.
-- [GLOSSAIRE](GLOSSAIRE.md) — langage ubiquitaire (métier, architecture, plateforme).
+- [GLOSSAIRE](GLOSSAIRE.md) — langage ubiquitaire (métier, architecture, plateforme)
+  et le [lexique](GLOSSAIRE.md#lexique) qui tranche français/anglais mot à mot.
 - [EXIGENCES](EXIGENCES.md) — exigences par capacité, reliées aux tests qui les vérifient.
 - [adr/](adr/README.md) — décisions d'architecture (le « pourquoi »).
 

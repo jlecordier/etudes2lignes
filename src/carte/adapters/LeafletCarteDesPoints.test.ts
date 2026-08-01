@@ -2,73 +2,73 @@
 import * as L from 'leaflet';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { Coordonnee } from '../../trajets/domain/Coordonnee';
-import { nouveauPointId, type PointId } from '../../trajets/domain/ids';
-import type { PointAffiche } from '../ports/CarteDesPointsPort';
+import { newPointId, type PointId } from '../../trajets/domain/ids';
+import type { DisplayedPoint } from '../ports/CarteDesPointsPort';
 import { LeafletCarteDesPoints } from './LeafletCarteDesPoints';
 
-const PARIS = Coordonnee.creer(48.8566, 2.3522);
-const BORDEAUX = Coordonnee.creer(44.8378, -0.5792);
+const PARIS = Coordonnee.create(48.8566, 2.3522);
+const BORDEAUX = Coordonnee.create(44.8378, -0.5792);
 
 /**
  * Les cartes Leaflet créées depuis le début du fichier. L'adapter garde la
  * sienne pour lui — c'est très bien — donc le test l'observe par le seul point
  * d'accroche public de Leaflet.
  */
-const cartesCreees: L.Map[] = [];
+const createdCartes: L.Map[] = [];
 L.Map.addInitHook(function (this: L.Map) {
-    cartesCreees.push(this);
+    createdCartes.push(this);
 });
 
-interface Banc {
+interface TestBed {
     carteDesPoints: LeafletCarteDesPoints;
-    conteneur: HTMLElement;
+    container: HTMLElement;
     /** Les déplacements de marqueur rapportés par l'adapter. */
-    deplacements: { id: PointId; coordonnee: Coordonnee }[];
-    afficher: (points: readonly PointAffiche[]) => void;
+    moves: { id: PointId; coordonnee: Coordonnee }[];
+    show: (points: readonly DisplayedPoint[]) => void;
     /** La carte Leaflet de l'adapter (créée à son premier usage). */
     carte: () => L.Map;
 }
 
-function banc(): Banc {
-    const conteneur = document.createElement('div');
-    conteneur.id = 'carte-de-test';
+function testBed(): TestBed {
+    const container = document.createElement('div');
+    container.id = 'test-carte';
     // jsdom ne calcule aucune mise en page : sans ces mesures, Leaflet croit sa
     // carte de taille nulle et ne sait calculer aucun zoom.
-    Object.defineProperty(conteneur, 'clientWidth', { value: 600 });
-    Object.defineProperty(conteneur, 'clientHeight', { value: 600 });
-    document.body.replaceChildren(conteneur);
+    Object.defineProperty(container, 'clientWidth', { value: 600 });
+    Object.defineProperty(container, 'clientHeight', { value: 600 });
+    document.body.replaceChildren(container);
 
-    const carteDesPoints = new LeafletCarteDesPoints('carte-de-test');
-    const deplacements: { id: PointId; coordonnee: Coordonnee }[] = [];
+    const carteDesPoints = new LeafletCarteDesPoints('test-carte');
+    const moves: { id: PointId; coordonnee: Coordonnee }[] = [];
     return {
         carteDesPoints,
-        conteneur,
-        deplacements,
-        afficher: (points) => {
-            carteDesPoints.afficher(points, (id, coordonnee) => {
-                deplacements.push({ id, coordonnee });
+        container,
+        moves,
+        show: (points) => {
+            carteDesPoints.show(points, (id, coordonnee) => {
+                moves.push({ id, coordonnee });
             });
         },
         carte: () => {
-            const derniere = cartesCreees.at(-1);
-            if (derniere === undefined) {
+            const last = createdCartes.at(-1);
+            if (last === undefined) {
                 throw new Error('Aucune carte Leaflet créée : l’adapter n’a pas été sollicité.');
             }
-            return derniere;
+            return last;
         },
     };
 }
 
-function point(numero: number, coordonnee: Coordonnee): PointAffiche {
-    return { id: nouveauPointId(), numero, coordonnee };
+function point(number: number, coordonnee: Coordonnee): DisplayedPoint {
+    return { id: newPointId(), number, coordonnee };
 }
 
 /** Un clic de l'utilisateur sur la carte, à la coordonnée voulue. */
-function cliquerLaCarte(carte: L.Map, latitude: number, longitude: number): void {
+function clickCarte(carte: L.Map, latitude: number, longitude: number): void {
     carte.fire('click', { latlng: L.latLng(latitude, longitude) });
 }
 
-function marqueurs(carte: L.Map): L.Marker[] {
+function markers(carte: L.Map): L.Marker[] {
     const trouves: L.Marker[] = [];
     carte.eachLayer((couche) => {
         if (couche instanceof L.Marker) {
@@ -79,17 +79,17 @@ function marqueurs(carte: L.Map): L.Marker[] {
 }
 
 beforeEach(() => {
-    cartesCreees.length = 0;
+    createdCartes.length = 0;
 });
 
 describe('Carte des points de l’éditeur', () => {
     describe('Étant donné les points d’un trajet à afficher', () => {
         it('alors chacun a son marqueur, à sa coordonnée', () => {
-            const { afficher, carte } = banc();
+            const { show, carte } = testBed();
 
-            afficher([point(1, PARIS), point(2, BORDEAUX)]);
+            show([point(1, PARIS), point(2, BORDEAUX)]);
 
-            expect(marqueurs(carte()).map((marqueur) => marqueur.getLatLng().lat)).toEqual([
+            expect(markers(carte()).map((marker) => marker.getLatLng().lat)).toEqual([
                 PARIS.latitude,
                 BORDEAUX.latitude,
             ]);
@@ -98,13 +98,13 @@ describe('Carte des points de l’éditeur', () => {
 
     describe('Étant donné un point supprimé du trajet', () => {
         it('alors son marqueur disparaît de la carte', () => {
-            const { afficher, carte } = banc();
+            const { show, carte } = testBed();
             const restant = point(1, PARIS);
-            afficher([restant, point(2, BORDEAUX)]);
+            show([restant, point(2, BORDEAUX)]);
 
-            afficher([restant]);
+            show([restant]);
 
-            expect(marqueurs(carte()).map((marqueur) => marqueur.getLatLng().lng)).toEqual([
+            expect(markers(carte()).map((marker) => marker.getLatLng().lng)).toEqual([
                 PARIS.longitude,
             ]);
         });
@@ -112,12 +112,12 @@ describe('Carte des points de l’éditeur', () => {
 
     describe('Étant donné une carte que l’utilisateur a lui-même cadrée', () => {
         it('alors réafficher les mêmes points ne lui vole pas son zoom', () => {
-            const { afficher, carte } = banc();
-            const unPoint = point(1, PARIS);
-            afficher([unPoint]);
+            const { show, carte } = testBed();
+            const aPoint = point(1, PARIS);
+            show([aPoint]);
             carte().setView([0, 0], 3, { animate: false });
 
-            afficher([{ ...unPoint, coordonnee: BORDEAUX }]);
+            show([{ ...aPoint, coordonnee: BORDEAUX }]);
 
             expect(carte().getZoom()).toBe(3);
             expect([carte().getCenter().lat, carte().getCenter().lng]).toEqual([0, 0]);
@@ -126,120 +126,120 @@ describe('Carte des points de l’éditeur', () => {
 
     describe('Étant donné un point existant, quand j’arme le choix avec sa position', () => {
         it('alors la carte est centrée sur elle', async () => {
-            const { carteDesPoints, afficher, carte } = banc();
-            afficher([point(1, PARIS), point(2, BORDEAUX)]);
+            const { carteDesPoints, show, carte } = testBed();
+            show([point(1, PARIS), point(2, BORDEAUX)]);
 
-            const choix = carteDesPoints.choisirUneCoordonnee(BORDEAUX);
+            const choice = carteDesPoints.chooseCoordonnee(BORDEAUX);
 
             expect(carte().getCenter().lat).toBeCloseTo(BORDEAUX.latitude, 6);
             expect(carte().getCenter().lng).toBeCloseTo(BORDEAUX.longitude, 6);
             expect(carte().getZoom()).toBe(12);
-            carteDesPoints.annulerLeChoix();
-            expect(await choix).toBeNull();
+            carteDesPoints.cancelChoice();
+            expect(await choice).toBeNull();
         });
     });
 
     describe('Étant donné un nouveau point à placer (aucune position de départ)', () => {
         it('alors le cadrage d’ensemble est conservé, et le clic est attendu', async () => {
-            const { carteDesPoints, afficher, carte, conteneur } = banc();
-            afficher([point(1, PARIS), point(2, BORDEAUX)]);
-            const cadrage = { centre: carte().getCenter(), zoom: carte().getZoom() };
+            const { carteDesPoints, show, carte, container } = testBed();
+            show([point(1, PARIS), point(2, BORDEAUX)]);
+            const cadrage = { center: carte().getCenter(), zoom: carte().getZoom() };
 
-            const choix = carteDesPoints.choisirUneCoordonnee(null);
+            const choice = carteDesPoints.chooseCoordonnee(null);
 
-            expect(carte().getCenter()).toEqual(cadrage.centre);
+            expect(carte().getCenter()).toEqual(cadrage.center);
             expect(carte().getZoom()).toBe(cadrage.zoom);
-            expect(conteneur.classList.contains('attente-clic')).toBe(true);
-            carteDesPoints.annulerLeChoix();
-            expect(await choix).toBeNull();
+            expect(container.classList.contains('awaiting-click')).toBe(true);
+            carteDesPoints.cancelChoice();
+            expect(await choice).toBeNull();
         });
     });
 
     describe('Étant donné un choix armé, quand l’utilisateur clique la carte', () => {
         it('alors le choix rend la coordonnée cliquée et n’attend plus rien', async () => {
-            const { carteDesPoints, afficher, carte, conteneur } = banc();
-            afficher([]);
+            const { carteDesPoints, show, carte, container } = testBed();
+            show([]);
 
-            const choix = carteDesPoints.choisirUneCoordonnee(null);
-            cliquerLaCarte(carte(), 48.8566, 2.3522);
+            const choice = carteDesPoints.chooseCoordonnee(null);
+            clickCarte(carte(), 48.8566, 2.3522);
 
-            const coordonnee = await choix;
+            const coordonnee = await choice;
             expect(coordonnee?.latitude).toBe(48.8566);
             expect(coordonnee?.longitude).toBe(2.3522);
-            expect(conteneur.classList.contains('attente-clic')).toBe(false);
+            expect(container.classList.contains('awaiting-click')).toBe(false);
         });
     });
 
     describe('Étant donné un clic à un tour du monde de la France (Leaflet défile en boucle)', () => {
         it('alors la coordonnée rendue est ramenée dans les bornes du globe', async () => {
-            const { carteDesPoints, afficher, carte } = banc();
-            afficher([]);
+            const { carteDesPoints, show, carte } = testBed();
+            show([]);
 
-            const choix = carteDesPoints.choisirUneCoordonnee(null);
-            cliquerLaCarte(carte(), 48.8566, 2.3522 + 360);
+            const choice = carteDesPoints.chooseCoordonnee(null);
+            clickCarte(carte(), 48.8566, 2.3522 + 360);
 
-            const coordonnee = await choix;
+            const coordonnee = await choice;
             expect(coordonnee?.longitude).toBeCloseTo(2.3522, 9);
         });
     });
 
     describe('Étant donné un choix armé, puis abandonné', () => {
         it('alors il rend null, et le clic qui arrive trop tard est perdu', async () => {
-            const { carteDesPoints, afficher, carte, conteneur } = banc();
-            afficher([]);
-            const abandonne = carteDesPoints.choisirUneCoordonnee(null);
+            const { carteDesPoints, show, carte, container } = testBed();
+            show([]);
+            const abandonne = carteDesPoints.chooseCoordonnee(null);
 
-            carteDesPoints.annulerLeChoix();
+            carteDesPoints.cancelChoice();
 
             expect(await abandonne).toBeNull();
-            expect(conteneur.classList.contains('attente-clic')).toBe(false);
+            expect(container.classList.contains('awaiting-click')).toBe(false);
             // Le clic tardif ne relance rien : le choix suivant reçoit le sien.
-            cliquerLaCarte(carte(), 0, 0);
-            const suivant = carteDesPoints.choisirUneCoordonnee(null);
-            cliquerLaCarte(carte(), 44.8378, -0.5792);
-            expect((await suivant)?.latitude).toBe(44.8378);
+            clickCarte(carte(), 0, 0);
+            const next = carteDesPoints.chooseCoordonnee(null);
+            clickCarte(carte(), 44.8378, -0.5792);
+            expect((await next)?.latitude).toBe(44.8378);
         });
     });
 
     describe('Étant donné un choix déjà armé, quand un second est armé par-dessus', () => {
         it('alors le premier est abandonné et le clic ne sert qu’au second', async () => {
-            const { carteDesPoints, afficher, carte } = banc();
-            afficher([]);
+            const { carteDesPoints, show, carte } = testBed();
+            show([]);
 
-            const premier = carteDesPoints.choisirUneCoordonnee(null);
-            const second = carteDesPoints.choisirUneCoordonnee(null);
-            cliquerLaCarte(carte(), 48.8566, 2.3522);
+            const first = carteDesPoints.chooseCoordonnee(null);
+            const second = carteDesPoints.chooseCoordonnee(null);
+            clickCarte(carte(), 48.8566, 2.3522);
 
-            expect(await premier).toBeNull();
+            expect(await first).toBeNull();
             expect((await second)?.latitude).toBe(48.8566);
         });
     });
 
     describe('Étant donné un choix abandonné alors qu’aucun n’était armé', () => {
         it('alors rien ne se passe : la carte reste utilisable', async () => {
-            const { carteDesPoints, afficher, carte } = banc();
-            afficher([]);
+            const { carteDesPoints, show, carte } = testBed();
+            show([]);
 
-            carteDesPoints.annulerLeChoix();
+            carteDesPoints.cancelChoice();
 
-            const choix = carteDesPoints.choisirUneCoordonnee(null);
-            cliquerLaCarte(carte(), 44.8378, -0.5792);
-            expect((await choix)?.longitude).toBe(-0.5792);
+            const choice = carteDesPoints.chooseCoordonnee(null);
+            clickCarte(carte(), 44.8378, -0.5792);
+            expect((await choice)?.longitude).toBe(-0.5792);
         });
     });
 
     describe('Étant donné un marqueur que l’utilisateur fait glisser', () => {
         it('alors le déplacement est rapporté avec la coordonnée d’arrivée', () => {
-            const { afficher, carte, deplacements } = banc();
-            const unPoint = point(1, PARIS);
-            afficher([unPoint]);
+            const { show, carte, moves } = testBed();
+            const aPoint = point(1, PARIS);
+            show([aPoint]);
 
-            const marqueur = marqueurs(carte()).at(0);
-            marqueur?.setLatLng([BORDEAUX.latitude, BORDEAUX.longitude]);
-            marqueur?.fire('dragend');
+            const marker = markers(carte()).at(0);
+            marker?.setLatLng([BORDEAUX.latitude, BORDEAUX.longitude]);
+            marker?.fire('dragend');
 
-            expect(deplacements.map(({ id, coordonnee }) => [id, coordonnee.longitude])).toEqual([
-                [unPoint.id, BORDEAUX.longitude],
+            expect(moves.map(({ id, coordonnee }) => [id, coordonnee.longitude])).toEqual([
+                [aPoint.id, BORDEAUX.longitude],
             ]);
         });
     });

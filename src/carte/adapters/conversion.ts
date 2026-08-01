@@ -19,13 +19,13 @@ import { Coordonnee } from '../../trajets/domain/Coordonnee';
  * quand elle était déjà bonne. Sur le chemin ordinaire (un clic, un marqueur
  * déplacé) la coordonnée reste ainsi exacte.
  */
-export function versCoordonnee(latLng: L.LatLng): Coordonnee {
-    const dansLeGlobe = latLng.lng >= -180 && latLng.lng <= 180;
-    const ramenee = dansLeGlobe ? latLng : latLng.wrap();
-    return Coordonnee.creer(ramenee.lat, ramenee.lng);
+export function toCoordonnee(latLng: L.LatLng): Coordonnee {
+    const insideGlobe = latLng.lng >= -180 && latLng.lng <= 180;
+    const ramenee = insideGlobe ? latLng : latLng.wrap();
+    return Coordonnee.create(ramenee.lat, ramenee.lng);
 }
 
 /** Le couple `[latitude, longitude]` attendu par les API de Leaflet. */
-export function versLatLng(coordonnee: Coordonnee): [number, number] {
+export function toLatLng(coordonnee: Coordonnee): [number, number] {
     return [coordonnee.latitude, coordonnee.longitude];
 }

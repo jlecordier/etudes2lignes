@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { preparerLApplication } from './aides';
+import { preparerLApplication } from './helpers';
 
 test.describe('Gestion des trajets', () => {
     test('Étant donné une appli vierge, quand je crée un trajet, alors il apparaît dans la liste', async ({
         page,
     }) => {
         await preparerLApplication(page);
-        page.once('dialog', (dialogue) => void dialogue.accept('Paris → Bordeaux'));
+        page.once('dialog', (dialog) => void dialog.accept('Paris → Bordeaux'));
 
         await page.getByRole('button', { name: 'Nouveau trajet' }).click();
 
@@ -20,10 +20,10 @@ test.describe('Gestion des trajets', () => {
         page,
     }) => {
         await preparerLApplication(page);
-        page.once('dialog', (dialogue) => void dialogue.accept('Paris → Bordeaux'));
+        page.once('dialog', (dialog) => void dialog.accept('Paris → Bordeaux'));
         await page.getByRole('button', { name: 'Nouveau trajet' }).click();
 
-        page.once('dialog', (dialogue) => void dialogue.accept('Bordeaux → Paris'));
+        page.once('dialog', (dialog) => void dialog.accept('Bordeaux → Paris'));
         await page.getByRole('button', { name: 'Renommer' }).click();
 
         await expect(
@@ -35,17 +35,17 @@ test.describe('Gestion des trajets', () => {
         page,
     }) => {
         await preparerLApplication(page);
-        page.once('dialog', (dialogue) => void dialogue.accept('Paris → Bordeaux'));
+        page.once('dialog', (dialog) => void dialog.accept('Paris → Bordeaux'));
         await page.getByRole('button', { name: 'Nouveau trajet' }).click();
         await expect(
             page.getByRole('button', { name: 'Paris → Bordeaux', exact: true }),
         ).toBeVisible();
 
-        page.once('dialog', (dialogue) => void dialogue.accept());
+        page.once('dialog', (dialog) => void dialog.accept());
         await page.getByRole('button', { name: 'Supprimer' }).click();
 
-        await expect(page.locator('#liste-vide')).toBeVisible();
-        await expect(page.locator('#liste-vide')).toHaveText(
+        await expect(page.locator('#empty-list')).toBeVisible();
+        await expect(page.locator('#empty-list')).toHaveText(
             "Aucun trajet pour l'instant. Créez-en un, puis importez les pages (images) de votre schéma de ligne.",
         );
         await expect(
@@ -57,10 +57,10 @@ test.describe('Gestion des trajets', () => {
         page,
     }) => {
         await preparerLApplication(page);
-        page.once('dialog', (dialogue) => void dialogue.accept('Paris → Bordeaux'));
+        page.once('dialog', (dialog) => void dialog.accept('Paris → Bordeaux'));
         await page.getByRole('button', { name: 'Nouveau trajet' }).click();
 
-        page.once('dialog', (dialogue) => void dialogue.dismiss());
+        page.once('dialog', (dialog) => void dialog.dismiss());
         await page.getByRole('button', { name: 'Supprimer' }).click();
 
         await expect(

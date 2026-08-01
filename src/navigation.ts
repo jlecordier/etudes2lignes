@@ -1,4 +1,4 @@
-import { requeteTous } from './commun/dom';
+import { queryAll } from './shared/dom';
 
 /**
  * Navigation entre les écrans de l'application.
@@ -9,7 +9,13 @@ import { requeteTous } from './commun/dom';
  * écran et n'a pas à figurer ici.
  */
 
-export type NomEcran = 'liste' | 'editeur' | 'suivi';
+/**
+ * Le nom d'un écran **est** son id dans le document, au préfixe près : le
+ * gabarit de `showScreen` les relie. Renommer un membre de cette union sans
+ * renommer l'id correspondant dans `index.html` éteint l'écran en silence —
+ * aucun compilateur ne relit une chaîne.
+ */
+export type ScreenName = 'list' | 'editor' | 'suivi';
 
 /**
  * Va sur un écran et y charge son contenu.
@@ -19,13 +25,13 @@ export type NomEcran = 'liste' | 'editeur' | 'suivi';
  * avant la fin du chargement, à dessein — attendre laisserait l'écran précédent
  * figé, sans retour visuel au geste de l'utilisateur.
  */
-export async function aller(nom: NomEcran, chargement: () => Promise<void>): Promise<void> {
-    afficherEcran(nom);
-    await chargement();
+export async function goTo(name: ScreenName, load: () => Promise<void>): Promise<void> {
+    showScreen(name);
+    await load();
 }
 
-function afficherEcran(nom: NomEcran): void {
-    for (const ecran of requeteTous('.ecran', HTMLElement)) {
-        ecran.hidden = ecran.id !== `ecran-${nom}`;
+function showScreen(name: ScreenName): void {
+    for (const screen of queryAll('.screen', HTMLElement)) {
+        screen.hidden = screen.id !== `screen-${name}`;
     }
 }

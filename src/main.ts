@@ -5,97 +5,97 @@
 import './style.css';
 import { registerSW } from 'virtual:pwa-register';
 import { LeafletCarteDesPoints } from './carte/adapters/LeafletCarteDesPoints';
-import { LeafletSelecteurDeCoordonnee } from './carte/adapters/LeafletSelecteurDeCoordonnee';
-import { requete } from './commun/dom';
-import { lanceurParDefaut } from './commun/lancement';
-import { aller } from './navigation';
+import { LeafletCoordonneeSelector } from './carte/adapters/LeafletCoordonneeSelector';
+import { query } from './shared/dom';
+import { defaultRunner } from './shared/runner';
+import { goTo } from './navigation';
 import { GeolocationPositionSource } from './suivi/adapters/GeolocationPositionSource';
-import { NavigateurEcranAllume } from './suivi/adapters/NavigateurEcranAllume';
-import { NavigateurPremierPlan } from './suivi/adapters/NavigateurPremierPlan';
+import { BrowserScreenWakeLock } from './suivi/adapters/BrowserScreenWakeLock';
+import { BrowserForeground } from './suivi/adapters/BrowserForeground';
 import { SimulationPositionSource } from './suivi/adapters/SimulationPositionSource';
-import { creerSuiviScreen } from './suivi/ui/SuiviScreen';
+import { createSuiviScreen } from './suivi/ui/SuiviScreen';
 import { IdbTrajetRepository } from './trajets/adapters/IdbTrajetRepository';
-import { creerDerniereSessionOuverte } from './trajets/adapters/derniereSessionOuverte';
-import { creerEditeurTrajetScreen } from './trajets/ui/EditeurTrajetScreen';
-import { creerListeTrajetsScreen } from './trajets/ui/ListeTrajetsScreen';
+import { createLastOpenedSession } from './trajets/adapters/lastOpenedSession';
+import { createTrajetEditorScreen } from './trajets/ui/TrajetEditorScreen';
+import { createTrajetsListScreen } from './trajets/ui/TrajetsListScreen';
 
-function demarrer(): void {
+function start(): void {
     // La frontière d'erreur de l'application : tout travail lancé par un geste
     // de l'utilisateur y passe, pour qu'aucun échec ne reste muet.
-    const lancer = lanceurParDefaut;
+    const run = defaultRunner;
     const repository = new IdbTrajetRepository();
-    const selecteurDeCoordonnee = new LeafletSelecteurDeCoordonnee();
-    const derniereSession = creerDerniereSessionOuverte();
+    const coordonneeSelector = new LeafletCoordonneeSelector();
+    const lastOpenedSession = createLastOpenedSession();
     // Un seul jeu d'écouteurs pour tous ceux qui doivent se réveiller quand la
     // page revient au premier plan (le GPS et le verrou d'écran).
-    const premierPlan = new NavigateurPremierPlan();
+    const foreground = new BrowserForeground();
 
-    const suivi = creerSuiviScreen({
+    const suivi = createSuiviScreen({
         repository,
-        sourceReelle: new GeolocationPositionSource({ premierPlan }),
+        realSource: new GeolocationPositionSource({ foreground }),
         simulation: new SimulationPositionSource(),
-        selecteurDeCoordonnee,
-        ecranAllume: new NavigateurEcranAllume({ premierPlan }),
-        lancer,
-        surRetour: (id) => {
-            lancer(
-                aller('editeur', () => editeurTrajet.afficher(id)),
+        coordonneeSelector,
+        screenWakeLock: new BrowserScreenWakeLock({ foreground }),
+        run,
+        onBack: (id) => {
+            run(
+                goTo('editor', () => trajetEditor.show(id)),
                 'l’ouverture du trajet',
             );
         },
     });
 
-    const editeurTrajet = creerEditeurTrajetScreen({
+    const trajetEditor = createTrajetEditorScreen({
         repository,
-        selecteurDeCoordonnee,
+        coordonneeSelector,
         carteDesPoints: new LeafletCarteDesPoints('carte-points'),
-        lancer,
-        surRetour: () => {
-            derniereSession.oublier();
-            lancer(
-                aller('liste', () => listeTrajets.afficher()),
+        run,
+        onBack: () => {
+            lastOpenedSession.forget();
+            run(
+                goTo('list', () => trajetsListScreen.show()),
                 'la lecture de la liste',
             );
         },
-        surSuivi: (id) => {
-            lancer(
-                aller('suivi', () => suivi.afficher(id)),
+        onSuivi: (id) => {
+            run(
+                goTo('suivi', () => suivi.show(id)),
                 'l’ouverture du suivi',
             );
         },
     });
 
-    const listeTrajets = creerListeTrajetsScreen({
+    const trajetsListScreen = createTrajetsListScreen({
         repository,
-        lancer,
-        surOuverture: (id) => {
-            derniereSession.memoriser(id);
-            lancer(
-                aller('editeur', () => editeurTrajet.afficher(id)),
+        run,
+        onOpen: (id) => {
+            lastOpenedSession.remember(id);
+            run(
+                goTo('editor', () => trajetEditor.show(id)),
                 'l’ouverture du trajet',
             );
         },
     });
 
     // Si iOS a tué la PWA en plein voyage, on rouvre directement le dernier trajet.
-    const dernierTrajet = derniereSession.restaurer();
-    if (dernierTrajet !== null) {
-        lancer(
-            aller('editeur', () => editeurTrajet.afficher(dernierTrajet)),
+    const lastTrajet = lastOpenedSession.restore();
+    if (lastTrajet !== null) {
+        run(
+            goTo('editor', () => trajetEditor.show(lastTrajet)),
             'l’ouverture du dernier trajet',
         );
     } else {
-        lancer(
-            aller('liste', () => listeTrajets.afficher()),
+        run(
+            goTo('list', () => trajetsListScreen.show()),
             'la lecture de la liste',
         );
     }
 }
 
-function activerLeModeHorsLigne(): void {
+function enableOfflineMode(): void {
     registerSW({
         onOfflineReady() {
-            const indicateur = requete('#indicateur-hors-ligne', HTMLElement);
+            const indicateur = query('#offline-indicator', HTMLElement);
             indicateur.hidden = false;
         },
     });
@@ -107,5 +107,5 @@ function activerLeModeHorsLigne(): void {
     void navigateur.storage?.persist?.();
 }
 
-demarrer();
-activerLeModeHorsLigne();
+start();
+enableOfflineMode();

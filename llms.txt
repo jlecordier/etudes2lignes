@@ -2,9 +2,10 @@
 
 > Offline-first PWA that auto-scrolls a railway line-diagram (imported page
 > images) to follow the user's live GPS position. TypeScript, hexagonal
-> architecture, no UI framework, IndexedDB, Leaflet. The codebase, docs and UI
-> are in French; agent-facing guides (AGENTS.md, CLAUDE.md, this file) are in
-> English.
+> architecture, no UI framework, IndexedDB, Leaflet. Docs and UI are in French.
+> In the code, **French names the business and English names the plumbing**,
+> word by word (ADR 0007); prose and comments stay French. Agent-facing guides
+> (AGENTS.md, CLAUDE.md, this file) are in English.
 
 Start with AGENTS.md for how to work in the repo. Human documentation is under
 docs/ (French); docs/INDEX.md is the full map.
@@ -27,7 +28,7 @@ docs/ (French); docs/INDEX.md is the full map.
 
 ## Decisions
 
-- [docs/adr/README.md](docs/adr/README.md): architecture decision records — hexagon without a UI framework, strict type-aware lint (no `!`/`as`), fallow quality gate, dual TypeScript compiler, IndexedDB with ArrayBuffer, mutation testing kept outside the gate.
+- [docs/adr/README.md](docs/adr/README.md): architecture decision records — hexagon without a UI framework, strict type-aware lint (no `!`/`as`), fallow quality gate, dual TypeScript compiler, IndexedDB with ArrayBuffer, mutation testing kept outside the gate, code language (French domain / English plumbing).
 
 ## Operations
 

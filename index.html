@@ -4,90 +4,82 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="theme-color" content="#1d4ed8" />
-        <link rel="icon" href="./icons/icone-192.png" />
+        <link rel="icon" href="./icons/icon-192.png" />
         <title>Etudes2Lignes — Suivi de schémas de ligne</title>
     </head>
     <body>
-        <section id="ecran-liste" class="ecran">
-            <header class="entete">
+        <section id="screen-list" class="screen">
+            <header class="header">
                 <h1>Mes trajets</h1>
-                <div class="barre-actions">
-                    <button id="bouton-importer-trajet" type="button" class="secondaire">
+                <div class="action-bar">
+                    <button id="import-trajet-button" type="button" class="secondary">
                         ⬆️ Importer
                     </button>
-                    <button id="bouton-creer-trajet" type="button">🆕 Nouveau trajet</button>
+                    <button id="create-trajet-button" type="button">🆕 Nouveau trajet</button>
                 </div>
             </header>
             <input id="input-import-trajet" type="file" accept="application/json,.json" hidden />
-            <ul id="liste-trajets" class="liste-trajets"></ul>
-            <p id="liste-vide" class="message-vide" hidden>
+            <ul id="trajets-list" class="trajets-list"></ul>
+            <p id="empty-list" class="empty-message" hidden>
                 Aucun trajet pour l'instant. Créez-en un, puis importez les pages (images) de votre
                 schéma de ligne.
             </p>
-            <p id="indicateur-hors-ligne" class="indicateur-hors-ligne" hidden>
+            <p id="offline-indicator" class="offline-indicator" hidden>
                 ✓ Application disponible hors ligne
             </p>
         </section>
 
-        <section id="ecran-editeur" class="ecran" hidden>
-            <header class="entete">
-                <button id="bouton-retour-liste" type="button" class="secondaire">
-                    🔙 Trajets
-                </button>
-                <h2 id="titre-trajet"></h2>
-                <button id="bouton-suivre" type="button">🧭 Suivre</button>
+        <section id="screen-editor" class="screen" hidden>
+            <header class="header">
+                <button id="back-to-list-button" type="button" class="secondary">🔙 Trajets</button>
+                <h2 id="trajet-title"></h2>
+                <button id="suivre-button" type="button">🧭 Suivre</button>
             </header>
-            <p class="aide">
+            <p class="help">
                 Les pages s'empilent comme le document se lit : la première du voyage tout en bas.
                 Conseil : un point près du départ et un près de l'arrivée du trajet, puis densifiez
                 là où vous voulez de la précision.
             </p>
-            <div class="barre-actions">
-                <button id="bouton-ajouter-images" type="button">🖼️ Ajouter des images</button>
-                <button id="bouton-ajouter-point" type="button">📍 Ajouter un point</button>
+            <div class="action-bar">
+                <button id="add-images-button" type="button">🖼️ Ajouter des images</button>
+                <button id="add-point-button" type="button">📍 Ajouter un point</button>
             </div>
             <input id="input-images" type="file" accept="image/jpeg,image/png" multiple hidden />
-            <p id="consigne-placement" class="bandeau-consigne" hidden>
-                <span id="texte-consigne">Touchez l'image à la hauteur voulue…</span>
-                <button id="bouton-annuler-placement" type="button" class="secondaire">
+            <p id="placement-hint" class="hint-banner" hidden>
+                <span id="hint-text">Touchez l'image à la hauteur voulue…</span>
+                <button id="cancel-placement-button" type="button" class="secondary">
                     ✖️ Annuler
                 </button>
             </p>
-            <div class="corps-editeur">
+            <div class="editor-body">
                 <div id="carte-points" class="carte-points"></div>
-                <div class="colonne-images">
-                    <ol id="liste-points" class="liste-points"></ol>
-                    <div id="pile-images"></div>
+                <div class="images-column">
+                    <ol id="points-list" class="points-list"></ol>
+                    <div id="images-stack"></div>
                 </div>
             </div>
             <!-- Toujours accessible sans remonter en haut de la page : indispensable
                  au tactile, où le clic droit n'existe pas. -->
-            <button
-                id="bouton-ajouter-point-flottant"
-                type="button"
-                class="bouton-ajouter-point-flottant"
-            >
+            <button id="floating-add-point-button" type="button" class="floating-add-point-button">
                 📍 Ajouter un point
             </button>
         </section>
 
-        <section id="ecran-suivi" class="ecran ecran-suivi" hidden>
-            <div class="barre-suivi">
-                <button id="bouton-quitter-suivi" type="button" class="secondaire">
-                    🔙 Éditer
-                </button>
-                <span id="etat-suivi" class="etat-suivi"></span>
-                <button id="bouton-simuler" type="button" class="secondaire">🧪 Simuler</button>
-                <p id="bandeau-simulation" class="bandeau-simulation" hidden>
+        <section id="screen-suivi" class="screen screen-suivi" hidden>
+            <div class="suivi-bar">
+                <button id="leave-suivi-button" type="button" class="secondary">🔙 Éditer</button>
+                <span id="suivi-status" class="suivi-status"></span>
+                <button id="simuler-button" type="button" class="secondary">🧪 Simuler</button>
+                <p id="simulation-banner" class="simulation-banner" hidden>
                     Position simulée —
-                    <button id="bouton-quitter-simulation" type="button" class="secondaire">
+                    <button id="leave-simulation-button" type="button" class="secondary">
                         🚪 Quitter
                     </button>
                 </p>
             </div>
-            <div id="pile-suivi" class="pile-suivi"></div>
-            <div class="ligne-repere" aria-hidden="true"></div>
-            <button id="bouton-reprendre" type="button" class="bouton-reprendre" hidden>
+            <div id="suivi-stack" class="suivi-stack"></div>
+            <div class="guide-line" aria-hidden="true"></div>
+            <button id="resume-button" type="button" class="resume-button" hidden>
                 ▶️ Reprendre le suivi
             </button>
         </section>
@@ -95,11 +87,11 @@
         <!-- Superposition, pas un écran : elle se pose par-dessus l'écran courant,
              qui reste visible dessous. Elle ne porte donc pas la classe « ecran »
              et ne peut pas être masquée par la navigation. -->
-        <section id="ecran-carte" class="ecran-carte" hidden>
-            <div id="conteneur-carte"></div>
-            <div class="barre-carte">
+        <section id="screen-carte" class="screen-carte" hidden>
+            <div id="carte-container"></div>
+            <div class="carte-bar">
                 <input
-                    id="champ-latitude"
+                    id="latitude-input"
                     type="number"
                     step="any"
                     inputmode="decimal"
@@ -107,20 +99,16 @@
                     aria-label="Latitude"
                 />
                 <input
-                    id="champ-longitude"
+                    id="longitude-input"
                     type="number"
                     step="any"
                     inputmode="decimal"
                     placeholder="Longitude"
                     aria-label="Longitude"
                 />
-                <button id="bouton-placer-manuel" type="button" class="secondaire">
-                    📌 Placer
-                </button>
-                <button id="bouton-annuler-carte" type="button" class="secondaire">
-                    ✖️ Annuler
-                </button>
-                <button id="bouton-valider-carte" type="button" disabled>✅ Valider</button>
+                <button id="manual-place-button" type="button" class="secondary">📌 Placer</button>
+                <button id="cancel-carte-button" type="button" class="secondary">✖️ Annuler</button>
+                <button id="confirm-carte-button" type="button" disabled>✅ Valider</button>
             </div>
         </section>
 

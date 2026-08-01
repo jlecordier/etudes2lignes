@@ -1,13 +1,13 @@
-import type { EtatDeLaSource } from './etatDeLaSource';
-import type { ResultatDeSuivi } from './projection';
+import type { SourceStatus } from './sourceStatus';
+import type { SuiviResult } from './projection';
 
 /** Texte d'état à afficher pour un résultat de suivi (vide si tout va bien). */
-export function texteDEtatDuSuivi(resultat: ResultatDeSuivi): string {
-    switch (resultat.etat) {
+export function suiviStatusText(result: SuiviResult): string {
+    switch (result.kind) {
         case 'pas-assez-de-points':
             return 'Ajoutez au moins deux points géo-référencés pour activer le suivi.';
         case 'hors-trajet':
-            return `Hors trajet (à ${Math.round(resultat.distanceMetres / 1000)} km de la ligne).`;
+            return `Hors trajet (à ${Math.round(result.distanceMetres / 1000)} km de la ligne).`;
         case 'sur-trajet':
             return '';
     }
@@ -20,16 +20,16 @@ export function texteDEtatDuSuivi(resultat: ResultatDeSuivi): string {
  * (mètres, millisecondes), la présentation formule. Les arrondis ont un
  * plancher à 1 — annoncer « ± 0 km » ou « il y a 0 min » ne veut rien dire.
  */
-export function texteDEtatDeLaSource(etat: EtatDeLaSource): string {
-    switch (etat.etat) {
+export function sourceStatusText(status: SourceStatus): string {
+    switch (status.kind) {
         case 'attente':
             return 'En attente du signal GPS…';
         case 'imprecise': {
-            const kilometres = Math.max(1, Math.round(etat.imprecisionMetres / 1000));
+            const kilometres = Math.max(1, Math.round(status.imprecisionMetres / 1000));
             return `Position approximative (± ${kilometres} km) — trop imprécise pour caler la page.`;
         }
         case 'perdue': {
-            const minutes = Math.max(1, Math.round(etat.ancienneteMs / 60_000));
+            const minutes = Math.max(1, Math.round(status.ageMs / 60_000));
             return `Signal GPS perdu — dernière position il y a ${minutes} min.`;
         }
         case 'permission-refusee':

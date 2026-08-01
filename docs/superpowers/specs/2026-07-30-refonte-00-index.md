@@ -7,6 +7,13 @@ constat passé devant un relecteur adverse : 39 soumis, 3 réfutés, 12 requalif
 défauts sérieux sont dans la même bande — **entre les écrans et les ports**,
 là où le projet n'a pas de couche.
 
+> **Note de lecture (2026-08-01)** — ces specs décrivent un chantier **achevé**,
+> avec les noms d'identifiants et de fichiers **d'avant l'[ADR 0007](../../adr/0007-langue-du-code-metier-francais-technique-anglais.md)**
+> (`src/commun/`, `elementA`, `EditeurTrajetScreen.ts`…). On ne réécrit pas
+> l'histoire : pour les noms actuels, se référer au code et au
+> [lexique](../../GLOSSAIRE.md#lexique). Seules les « règles communes » ci-dessous
+> sont normatives et à jour.
+
 ## Les six lots
 
 | Lot                                                                          | Périmètre de fichiers (strict)                                                                        | Vague |
@@ -28,11 +35,14 @@ tous les appelants.
 Non négociables (voir [AGENTS.md](../../../AGENTS.md) et les
 [ADR](../../adr/README.md)) :
 
-- **Langue française** partout : identifiants, commentaires, chaînes d'interface,
-  noms de tests. Vocabulaire du [glossaire](../../GLOSSAIRE.md) uniquement.
+- **Français pour le métier, anglais pour la technique** : un identifiant se
+  traduit mot à mot selon le [lexique](../../GLOSSAIRE.md#lexique)
+  ([ADR 0007](../../adr/0007-langue-du-code-metier-francais-technique-anglais.md)).
+  Restent français quoi qu'il arrive : la prose (commentaires, chaînes
+  d'interface, noms de tests) et les pas de scénario e2e.
 - **Aucun framework UI**, aucun conteneur d'injection, aucune dépendance nouvelle
   (ADR 0001). DOM natif.
-- **Aucun `!`, aucun `as` de forme** (ADR 0002). Utiliser `elementA`, `requete`,
+- **Aucun `!`, aucun `as` de forme** (ADR 0002). Utiliser `requireElementAt`, `query`,
   ou valider un `unknown` par un prédicat de type.
 - **Ne jamais désactiver une règle de lint.** Corriger le code.
 - **Tests BDD par l'état** : nommés `Étant donné / Quand / Alors`, pas de `vi.fn`,

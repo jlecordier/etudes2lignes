@@ -1,15 +1,15 @@
 import type { Coordonnee } from '../../trajets/domain/Coordonnee';
-import type { EtatDeLaSource } from '../domain/etatDeLaSource';
+import type { SourceStatus } from '../domain/sourceStatus';
 
 /**
  * Port : fournir des positions au fil de l'eau (GPS réel, simulation…).
  *
  * Contrat :
- * - `demarrer` appelle `surPosition` à chaque position retenue et `surEtat` à
+ * - `demarrer` appelle `onPosition` à chaque position retenue et `onStatus` à
  *   chaque changement d'état de la source — un **état mesuré** du domaine
- *   (mètres, millisecondes), jamais une phrase : c'est `texteDEtatDeLaSource`
+ *   (mètres, millisecondes), jamais une phrase : c'est `sourceStatusText`
  *   qui rédige le texte de l'interface.
- * - `demarrer` annonce `{ etat: 'attente' }` avant d'avoir la moindre position,
+ * - `demarrer` annonce `{ kind: 'attente' }` avant d'avoir la moindre position,
  *   et il est **idempotent** : un second appel referme la session précédente
  *   (ni double abonnement, ni minuterie orpheline, ni horodatage hérité) et
  *   n'alimente plus que les derniers rappels reçus.
@@ -20,9 +20,6 @@ import type { EtatDeLaSource } from '../domain/etatDeLaSource';
  * chaque adapter.
  */
 export interface PositionSource {
-    demarrer(
-        surPosition: (position: Coordonnee) => void,
-        surEtat: (etat: EtatDeLaSource) => void,
-    ): void;
-    arreter(): void;
+    start(onPosition: (position: Coordonnee) => void, onStatus: (kind: SourceStatus) => void): void;
+    stop(): void;
 }

@@ -2,14 +2,14 @@
 
 ## Vue d'ensemble : hexagone + screaming architecture
 
-Le premier niveau de `src/` crie le métier, pas la technique :
+Le first niveau de `src/` crie le métier, pas la technique :
 
 ```
 src/
   trajets/   — gérer les trajets, leurs images et leurs points géo-référencés
   suivi/     — faire défiler le document selon la position
   carte/     — choisir une coordonnée sur une carte de France
-  main.ts    — composition root (le seul fichier qui connaît les adapters concrets)
+  main.ts    — composition root (le seul file qui connaît les adapters concrets)
 ```
 
 Chaque capacité est un petit hexagone : `domain/` (logique pure), `ports/`
@@ -33,25 +33,25 @@ du domaine ; `adapters` et `ui` dépendent des ports et du domaine ; seul
               │ ports (interfaces TypeScript)
               │
    IdbTrajetRepository · GeolocationPositionSource · SimulationPositionSource
-   LeafletSelecteurDeCoordonnee · NavigateurEcranAllume     adapters sortants
+   LeafletCoordonneeSelector · BrowserScreenWakeLock     adapters sortants
 ```
 
 ## Les ports et leurs adapters
 
-| Port                    | Contrat                                                                                                     | Adapters                                                                              |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `TrajetRepository`      | `listerResumes` / `charger` / `sauvegarder` (atomique) / `supprimer` ; **rejette** si la base est illisible | `IdbTrajetRepository` (IndexedDB via idb)                                             |
-| `PositionSource`        | `demarrer(surPosition, surEtat)` / `arreter()` — idempotent, redémarrable                                   | `GeolocationPositionSource` (GPS)                                                     |
-| `SimulateurDePosition`  | un `PositionSource` pilotable : `simuler(position)` + `dernierePosition`                                    | `SimulationPositionSource` (position choisie à la main)                               |
-| `EcranAllume`           | `maintenir()` / `relacher()`, best effort                                                                   | `NavigateurEcranAllume` (wake lock)                                                   |
-| `PremierPlan`           | `surRetourAuPremierPlan(action) → désabonnement` / `estAuPremierPlan()`                                     | `NavigateurPremierPlan` (visibilitychange, pageshow, focus)                           |
-| `SelecteurDeCoordonnee` | `choisir(initiale, reperes) → Coordonnee \| null`                                                           | `LeafletSelecteurDeCoordonnee` (Leaflet + OSM, plein écran)                           |
-| `CarteDesPoints`        | `afficher(points, surDeplacement)` / `choisirUneCoordonnee(initiale)` / `annulerLeChoix()`                  | `LeafletCarteDesPoints` (carte intégrée à l'éditeur, marqueurs numérotés déplaçables) |
+| Port                 | Contrat                                                                                                     | Adapters                                                                            |
+| -------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `TrajetRepository`   | `listSummaries` / `charger` / `sauvegarder` (atomique) / `supprimer` ; **rejette** si la base est illisible | `IdbTrajetRepository` (IndexedDB via idb)                                           |
+| `PositionSource`     | `demarrer(onPosition, onStatus)` / `arreter()` — idempotent, redémarrable                                   | `GeolocationPositionSource` (GPS)                                                   |
+| `PositionSimulator`  | un `PositionSource` pilotable : `simuler(position)` + `lastPosition`                                        | `SimulationPositionSource` (position choisie à la main)                             |
+| `ScreenWakeLock`     | `maintenir()` / `relacher()`, best effort                                                                   | `BrowserScreenWakeLock` (wake lock)                                                 |
+| `Foreground`         | `onReturnToForeground(action) → désabonnement` / `isInForeground()`                                         | `BrowserForeground` (visibilitychange, pageshow, focus)                             |
+| `CoordonneeSelector` | `choisir(initial, reperes) → Coordonnee \| null`                                                            | `LeafletCoordonneeSelector` (Leaflet + OSM, plein écran)                            |
+| `CarteDesPoints`     | `afficher(points, onMove)` / `choisirUneCoordonnee(initial)` / `annulerLeChoix()`                           | `LeafletCarteDesPoints` (carte intégrée à l'éditeur, markers numérotés déplaçables) |
 
 Les deux cartes honorent la coordonnée de départ : déplacer un point rouvre la
 carte là où il se trouve, quelle que soit la taille de l'écran.
 
-**Un état mesuré, jamais une phrase** : `surEtat` transporte un `EtatDeLaSource`
+**Un état mesuré, jamais une phrase** : `onStatus` transporte un `SourceStatus`
 du domaine (mètres, millisecondes) et c'est `suivi/domain/presentation.ts` qui
 rédige. Sans cela, la politique métier (« un fix à plus de 3 km est
 inutilisable ») vivait dans un adapter sortant — invisible au second adapter, et
@@ -66,7 +66,7 @@ mode test de l'application tombe gratuitement de l'architecture.
 Exemple : rejouer une trace GPX enregistrée. Créer
 `src/suivi/adapters/GpxPositionSource.ts` qui implémente `PositionSource`
 (émettre les points de la trace au rythme voulu), puis l'injecter dans
-`main.ts` à la place (ou en plus) de la source réelle. Rien d'autre ne change.
+`main.ts` à la place (ou en plus) de la source réelle. Rien d'other ne change.
 
 ## Le domaine (DDD)
 
@@ -77,7 +77,7 @@ Exemple : rejouer une trace GPX enregistrée. Créer
 - **Agrégat `Trajet`** (racine) : images ordonnées + points, méthodes
   d'intention (`ajouterImage`, `avancerImageDansLeVoyage`, `ajouterPoint`,
   `deplacerPointSurCarte`…), pas de setters. Les déplacements d'image sont
-  nommés dans le langage du **voyage**, jamais dans celui de l'écran : la pile
+  nommés dans le langage du **voyage**, jamais dans celui de l'écran : la stack
   s'affichant à l'envers du voyage, un nom spatial (« monter ») désignerait
   l'opération inverse selon qu'on parle du document ou de l'affichage.
 - **Requêtes portées par la racine** plutôt que refaites par les appelants :
@@ -91,17 +91,17 @@ Exemple : rejouer une trace GPX enregistrée. Créer
     - l'ordre du voyage des points est **calculé** (image croissante, puis
       fraction décroissante — les pages se lisent de bas en haut), jamais stocké.
 
-## Sérialisation (`trajets/serialisation/trajetJson.ts`)
+## Sérialisation (`trajets/serialization/trajetJson.ts`)
 
-Fonctions pures d'export/import d'un trajet en JSON autonome : le fichier
+Fonctions pures d'export/import d'un trajet en JSON autonome : le file
 contient tout (nom, images encodées en base64, points). Les points désignent
-leur image par son **index dans le fichier**, jamais par identifiant ; à
+leur image par son **index dans le file**, jamais par identifier ; à
 l'import, les identifiants sont régénérés, ce qui crée toujours un nouveau
-trajet (deux imports du même fichier = deux trajets distincts). L'enveloppe
-porte `application` + `version` pour rejeter proprement un fichier étranger ou
+trajet (deux imports du même file = deux trajets distincts). L'enveloppe
+porte `application` + `version` pour rejeter proprement un file étranger ou
 une version future, avec des messages destinés à l'utilisateur. C'est le
 domaine qui reconstruit l'agrégat, donc ses invariants (un point vise une
-image présente) valident aussi les fichiers importés.
+image présente) valident aussi les files importés.
 
 ## L'algorithme géo → scroll (`suivi/domain/projection.ts`)
 
@@ -112,19 +112,19 @@ Fonctions pures, testées exhaustivement avec des coordonnées réelles :
    toutes les ~10 s et insensible aux rotations d'écran.
 2. La position est projetée sur chaque segment (plan local équirectangulaire,
    suffisant à l'échelle France) ; le segment le plus proche gagne, avec :
-    - **garde-fou segment de longueur nulle** (deux points posés au même lieu,
-      ex. le PK répété de part et d'autre d'une jonction de pages) — sinon
+    - **garde-fou segment de length nulle** (deux points posés au même lieu,
+      ex. le PK répété de part et d'other d'une jonction de pages) — sinon
       division par zéro ;
     - **adhérence anti-oscillation** : parmi les segments quasi ex æquo
-      (< 200 m d'écart), on retient celui dont la cible de défilement bouge le
+      (< 200 m d'écart), on retient celui dont la target de défilement bouge le
       moins — indispensable quand la ligne repasse près d'elle-même ou que des
       points partagent le même lieu.
       Les pages étant empilées première-du-voyage en bas, le document se déroule
       d'un seul tenant et les offsets décroissent au fil du voyage ; l'algorithme
       ne suppose toutefois aucune monotonie.
-3. Seuil « hors trajet » **adaptatif** : `max(5 km, 20 % de la longueur du
+3. Seuil « hors trajet » **adaptatif** : `max(5 km, 20 % de la length du
 segment)` — entre deux points éloignés, la corde s'écarte de la vraie ligne.
-4. La cible est interpolée entre les offsets des deux étapes, puis placée aux
+4. La target est interpolée entre les offsets des deux étapes, puis placée aux
    trois quarts de l'écran, bornée aux limites du document.
 
 ## Démarche de test (BDD, par l'état)
@@ -132,8 +132,8 @@ segment)` — entre deux points éloignés, la corde s'écarte de la vraie ligne
 - Comportements spécifiés **avant** le code, nommés Étant donné / Quand / Alors.
 - **Tests par l'état, jamais par les interactions** : pas de `vi.fn`, pas de
   `toHaveBeenCalled`. Les fakes sont écrits à la main et injectés (fausse
-  géolocalisation, horloge contrôlée, cadenceur manuel, fake-indexeddb) ; les
-  assertions portent sur les valeurs produites.
+  géolocalisation, horloge contrôlée, scheduler manuel, fake-indexeddb) ; les
+  assertions portent sur les values produites.
 - Le domaine se teste pur ; les adapters avec leurs fakes ; les écrans et le
   service worker en E2E Playwright (Chromium, WebKit, Firefox + viewports
   iPhone/Pixel), contre le **build de production** (`pnpm preview`).
@@ -143,11 +143,11 @@ segment)` — entre deux points éloignés, la corde s'écarte de la vraie ligne
   ainsi qu'on a découvert que trois correctifs de la refonte n'avaient aucun
   témoin : désactiver le garde-fou du segment dégénéré laissait la suite
   entièrement verte, alors qu'un trajet dont les deux seuls points partagent un
-  lieu produit alors une cible `NaN`, donc une page collée en haut du document
+  lieu produit alors une target `NaN`, donc une page collée en haut du document
   pendant tout le voyage.
 - Les survivants se **jugent**, ils ne se font pas taire : certains sont
   équivalents (le `typeof` qu'exige le compilateur, une borne de boucle sans
-  effet observable), d'autres portent sur une garde que les invariants rendent
+  effet observable), d'others portent sur une garde que les invariants rendent
   inatteignable — conservée parce que `!` est banni. Ces cas-là sont commentés
   sur place. Ajouter une assertion pour éteindre un mutant fabrique un test
   creux : c'est le contraire du but. Hors du gate, car trop lent
@@ -162,11 +162,11 @@ segment)` — entre deux points éloignés, la corde s'écarte de la vraie ligne
   `getCurrentPosition` en boucle) ; les fixes approximatifs (cellule, Wi-Fi,
   vitres athermiques d'un train) sont utilisés jusqu'à 3 km d'incertitude, et
   au-delà l'état dit « Position approximative (± X km) » plutôt que « perdu » ;
-  erreurs passagères tolérées tant que le dernier fix est frais (tunnels) ;
-  redémarrage du watch (débouncé) au retour au premier plan (page gelée par
+  errors passagères tolérées tant que le last fix est frais (tunnels) ;
+  redémarrage du watch (débouncé) au retour au first plan (page gelée par
   iOS/Android) ; chien de garde « dernière position il y a X min ».
-- `NavigateurEcranAllume` : wake lock dans un try/catch, ré-acquis à chaque
-  retour au premier plan (le système le libère quand la page est masquée).
+- `BrowserScreenWakeLock` : wake lock dans un try/catch, ré-acquis à chaque
+  retour au first plan (le système le libère quand la page est masquée).
 - Images : `width`/`height` réservés avant tout décodage (offsets stables),
   `loading="lazy"` (une page décodée ≈ 35 Mo de mémoire), object URLs révoquées.
 - IndexedDB : blobs stockés en `ArrayBuffer` (clonage de Blob fragile sur

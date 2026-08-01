@@ -8,7 +8,7 @@ export class Coordonnee {
         readonly longitude: number,
     ) {}
 
-    static creer(latitude: number, longitude: number): Coordonnee {
+    static create(latitude: number, longitude: number): Coordonnee {
         if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
             throw new Error(`Latitude invalide : ${latitude}`);
         }
@@ -18,7 +18,7 @@ export class Coordonnee {
         return new Coordonnee(latitude, longitude);
     }
 
-    egale(autre: Coordonnee): boolean {
-        return this.latitude === autre.latitude && this.longitude === autre.longitude;
+    equals(other: Coordonnee): boolean {
+        return this.latitude === other.latitude && this.longitude === other.longitude;
     }
 }
