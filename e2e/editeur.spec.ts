@@ -10,9 +10,9 @@ async function importerDeuxPages(page: Page): Promise<void> {
     await page
         .locator('#input-images')
         .setInputFiles([pngFile('page-1.png'), pngFile('page-2.png')]);
-    // La pile s'affiche comme le document se lit (de bas en haut) : la
-    // première page du voyage tout en bas, la suivante au-dessus.
-    await expect(page.locator('.image-name')).toHaveText(['page-2.png', 'page-1.png']);
+    // Les pages s'importent de haut en bas, dans l'ordre de l'explorateur. Le
+    // document se lisant de bas en haut, la dernière ouvre donc le voyage.
+    await expect(page.locator('.image-name')).toHaveText(['page-1.png', 'page-2.png']);
 }
 
 test.describe("Éditeur d'un trajet — les images", () => {
@@ -32,9 +32,9 @@ test.describe("Éditeur d'un trajet — les images", () => {
         await ouvrirUnTrajetVierge(page);
         await importerDeuxPages(page);
 
-        await page.getByRole('button', { name: 'Monter page-1.png' }).click();
+        await page.getByRole('button', { name: 'Monter page-2.png' }).click();
 
-        await expect(page.locator('.image-name')).toHaveText(['page-1.png', 'page-2.png']);
+        await expect(page.locator('.image-name')).toHaveText(['page-2.png', 'page-1.png']);
     });
 
     test('Étant donné un point sur chaque page, alors les numéros croissent en remontant la pile, comme les PK', async ({
@@ -55,8 +55,8 @@ test.describe("Éditeur d'un trajet — les images", () => {
 
         // La liste suit l'ordre du voyage…
         await expect(page.locator('.point-description')).toHaveText([
-            /^Point 1 — page-1\.png à \d+ % — -?\d+\.\d{4}, -?\d+\.\d{4}$/,
-            /^Point 2 — page-2\.png à \d+ % — -?\d+\.\d{4}, -?\d+\.\d{4}$/,
+            /^Point 1 — page-2\.png à \d+ % — -?\d+\.\d{4}, -?\d+\.\d{4}$/,
+            /^Point 2 — page-1\.png à \d+ % — -?\d+\.\d{4}, -?\d+\.\d{4}$/,
         ]);
         // …et à l'écran, de haut en bas, on lit « 2 » puis « 1 » : continu en
         // remontant, fini le zigzag « 2 1 / 4 3 » d'un empilement à l'envers.

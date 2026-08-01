@@ -155,12 +155,12 @@ test.describe('Géoréférencement des points', () => {
         await page
             .locator('#input-images')
             .setInputFiles([pngFile('page-2.png'), pngFile('page-3.png')]);
-        // La pile s'affiche comme le document se lit (de bas en haut) : la
-        // première page du voyage tout en bas, la dernière tout en haut.
+        // Le lot importé se pose sous les pages déjà présentes, dans l'ordre de
+        // l'explorateur : le document se lit d'une traite, page-1 tout en haut.
         await expect(page.locator('.image-name')).toHaveText([
-            'page-3.png',
-            'page-2.png',
             'page-1.png',
+            'page-2.png',
+            'page-3.png',
         ]);
 
         await page.evaluate(() => {

@@ -7,7 +7,7 @@ import type { Run } from '../../shared/runner';
 import { createPageStack, type DisplayablePage } from '../../shared/pageStack';
 import type { Coordonnee } from '../domain/Coordonnee';
 import { FractionVerticale } from '../domain/FractionVerticale';
-import type { ImageDeTrajet, Point, Trajet } from '../domain/Trajet';
+import type { ImageDeTrajet, ImageFile, Point, Trajet } from '../domain/Trajet';
 import type { ImageId, PointId, TrajetId } from '../domain/ids';
 import type { TrajetRepository } from '../ports/TrajetRepository';
 
@@ -177,9 +177,7 @@ export function createTrajetEditorScreen(dependencies: TrajetEditorDependencies)
         try {
             const pages = await preparePages(Array.from(files));
             await applyToTrajetAndSave((currentTrajet) => {
-                for (const page of pages) {
-                    currentTrajet.addImage(page);
-                }
+                currentTrajet.addImagesInReadingOrder(pages);
             });
         } finally {
             // Sans cela, un fichier illisible laisse la sélection en place :
@@ -189,10 +187,8 @@ export function createTrajetEditorScreen(dependencies: TrajetEditorDependencies)
         }
     }
 
-    async function preparePages(
-        files: readonly File[],
-    ): Promise<{ nom: string; blob: Blob; largeur: number; hauteur: number }[]> {
-        const pages = [];
+    async function preparePages(files: readonly File[]): Promise<ImageFile[]> {
+        const pages: ImageFile[] = [];
         for (const file of files) {
             const { largeur, hauteur } = await imageDimensions(file);
             pages.push({ nom: file.name, blob: file, largeur, hauteur });
