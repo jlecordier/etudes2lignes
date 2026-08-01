@@ -85,6 +85,29 @@ points into it instead of duplicating it. Claude Code specifics live in
 - Prettier for formatting; ESLint runs `strictTypeChecked` +
   `stylisticTypeChecked` and must report **0**.
 
+## Git
+
+- **Linear history, always.** `main` only ever moves forward:
+  `git merge --ff-only`. No merge commits, no squash that erases the steps of a
+  branch. If the branch has fallen behind, **rebase it onto `main` first**, then
+  fast-forward — never merge `main` into the branch to catch up.
+- Anything beyond a one-line fix goes on a branch, then fast-forwards `main`
+  onto it. `git log --oneline` must read as one straight line of intent.
+- **Rename with `git mv`**, not delete-then-create: git only detects a rename
+  when the content survives, and a detected rename is what keeps `--follow` and
+  `git blame` working across the move.
+- **Commit messages in French**, like the docs and the UI. Say _why_: the
+  pre-commit hook already proves _what_ compiles and passes, so the message is
+  the only place the reason gets recorded.
+
+Make the rule executable rather than remembered — these are local settings, so
+each clone needs them once:
+
+```sh
+git config merge.ff only    # un merge non fast-forward échoue au lieu de bifurquer
+git config pull.rebase true # se remettre à jour sans fabriquer de merge commit
+```
+
 ## Toolchain gotchas (read before touching config)
 
 - **Two TypeScript compilers** ([ADR 0004](docs/adr/0004-double-compilateur-typescript.md)):
