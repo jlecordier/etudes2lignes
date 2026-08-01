@@ -5,7 +5,7 @@
 ## Contexte
 
 Une PWA hors ligne doit persister les trajets localement, images comprises
-(plusieurs Mo). Le storage doit survivre à la fermeture de l'app et rester
+(plusieurs Mo). Le stockage doit survivre à la fermeture de l'app et rester
 fiable sur tous les navigateurs cibles, y compris d'anciens Safari.
 
 ## Décision

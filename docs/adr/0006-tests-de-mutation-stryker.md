@@ -16,7 +16,7 @@ abîmant le code à la main et en constatant que la suite restait verte.
 - Mettre `MINIMUM_SEGMENT_LENGTH_METRES` à `0` — c'est-à-dire supprimer le
   garde-fou du segment dégénéré — laissait au vert les 69 tests que le module
   `suivi` comptait alors. Or un trajet dont les deux seuls points partagent un
-  lieu donne alors une target `NaN`, donc une page collée en haut du document
+  lieu donne alors une cible `NaN`, donc une page collée en haut du document
   pendant tout le voyage.
 - Faire ignorer « permission refusée » par le chien de garde : vert aussi.
 - Rendre au throttle sa mémoire entre deux sessions : vert aussi.
@@ -30,7 +30,7 @@ Ajouter [Stryker](https://stryker-mutator.io) (`pnpm mutation`), avec le runner
 Vitest et le vérificateur de types, configuré dans
 [`stryker.config.mjs`](../../stryker.config.mjs).
 
-Trois choice de cadrage, tous justifiés dans le file de configuration :
+Trois choix de cadrage, tous justifiés dans le fichier de configuration :
 
 1. **Hors de `pnpm quality`.** Stryker relance la suite une fois par mutant : la
    commande se compte en dizaines de minutes, quand le gate doit rester tenable
@@ -63,5 +63,5 @@ Trois choice de cadrage, tous justifiés dans le file de configuration :
   structurelles, et c'est elle qui a trouvé les plus intéressantes.
 - Le vérificateur de types s'appuie sur le paquet `typescript` (TS 6, celui de
   typescript-eslint), pas sur `@typescript/native`
-  ([ADR 0004](0004-double-compilateur-typescript.md)) : c'est le first endroit
+  ([ADR 0004](0004-double-compilateur-typescript.md)) : c'est le premier endroit
   où regarder si les mutants échouent tous à la compilation.

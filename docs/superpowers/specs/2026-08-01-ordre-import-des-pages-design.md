@@ -178,8 +178,5 @@ JSON : inchangées.
 1. `pnpm quality` (typecheck + lint + test + audit fallow).
 2. `pnpm test:e2e` sur `editeur` et `points`.
 3. Contrôle visuel au MCP Playwright : importer les six pages de `pmpbxenjpeg/`
-et lire la pile. Une géométrie (ordi 1280) suffit — la mise en page ne change
-pas, seul l'ordre change.
-  </content>
-
-</invoke>
+   et lire la pile. Une géométrie (ordi 1280) suffit — la mise en page ne change
+   pas, seul l'ordre change.

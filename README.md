@@ -10,31 +10,31 @@ pour suivre votre position GPS.
 - **Trajets** : créer, renommer, supprimer ; chaque trajet contient des images
   ordonnées (les pages du document, lues de bas en haut) réordonnables ▲/▼.
 - **Géoréférencement** : « Ajouter un point » → toucher l'image à la hauteur
-  voulue → choisir la coordonnée sur la carte. Raccourci souris : click droit
+  voulue → choisir la coordonnée sur la carte. Raccourci souris : clic droit
   directement sur l'image pour placer un point à cet endroit et passer aussitôt
-  au choice de la coordonnée. Un button « Ajouter un point » flottant (bas de
+  au choix de la coordonnée. Un bouton « Ajouter un point » flottant (bas de
   l'écran) reste accessible quel que soit le défilement — indispensable au
-  tactile, où le click droit n'existe pas. Points modifiables (sur l'image, sur
-  la carte, buttons flottants sur chaque marker) et supprimables.
+  tactile, où le clic droit n'existe pas. Points modifiables (sur l'image, sur
+  la carte, boutons flottants sur chaque marqueur) et supprimables.
 - **Carte d'ensemble dans l'éditeur** : tous les points du trajet, numérotés
   et **déplaçables directement** au doigt ou à la souris. Côte à côte avec les
   images et épinglée pendant le défilement sur grand écran (iPad en paysage
   compris) ; au-dessus des images sur mobile et iPad en portrait. Sur grand
-  écran, la coordonnée d'un nouveau point se choisit d'un click sur cette carte ;
+  écran, la coordonnée d'un nouveau point se choisit d'un clic sur cette carte ;
   sur mobile, sur la carte plein écran (avec saisie lat/lon manuelle).
 - **Suivi** : la position GPS est lue en continu (une position traitée toutes
   les ~10 s) et le document défile pour placer votre position au quart bas de
   l'écran — les trois quarts hauts montrent ce qui arrive. Défilement manuel →
-  button « Reprendre le suivi ». L'écran reste allumé (wake lock).
+  bouton « Reprendre le suivi ». L'écran reste allumé (wake lock).
 - **Simulation** : choisissez une position fictive sur la carte pour vérifier
   votre géoréférencement sans bouger de chez vous.
 - **Hors ligne** : après une première visite en ligne, tout fonctionne sans
   réseau (service worker + IndexedDB). Les tuiles de carte déjà affichées
   restent disponibles hors ligne.
 - **Import / export** : « ⬇️ Exporter » enregistre un trajet complet (nom,
-  images en base64, points) dans un file JSON autonome ; « ⬆️ Importer » le
-  recharge sur un other appareil, créant à chaque fois un nouveau trajet. C'est
-  le moyen de transférer un trajet d'un appareil à l'other sans réseau.
+  images en base64, points) dans un fichier JSON autonome ; « ⬆️ Importer » le
+  recharge sur un autre appareil, créant à chaque fois un nouveau trajet. C'est
+  le moyen de transférer un trajet d'un appareil à l'autre sans réseau.
 
 ## Démarrage
 
@@ -47,7 +47,7 @@ pnpm typecheck  # vérification TypeScript
 pnpm build      # build de production (génère la PWA dans dist/)
 pnpm preview    # sert le build — nécessaire pour essayer le service worker
 pnpm quality    # tout en un : typecheck + lint + tests + audit fallow
-pnpm mutation   # tests de mutation (lent, à la request — hors du gate)
+pnpm mutation   # tests de mutation (lent, à la demande — hors du gate)
 ```
 
 ## Préparer un trajet
@@ -64,7 +64,7 @@ pnpm mutation   # tests de mutation (lent, à la request — hors du gate)
 3. Géo-référencer les points remarquables (gares, raccordements, PK connus).
    Conseils :
     - un point **près du départ et un près de l'arrivée** du trajet (au-delà du
-      first et du last point, la page se borne dessus sans extrapoler) ;
+      premier et du dernier point, la page se borne dessus sans extrapoler) ;
     - plus les points sont denses, plus le défilement est fidèle entre eux —
       les frontières entre pages n'ont rien de spécial, l'interpolation les
       traverse comme n'importe quel endroit de la ligne.
@@ -91,4 +91,4 @@ Pour les IA / agents : [AGENTS.md](AGENTS.md) (guide canonique), [CLAUDE.md](CLA
   fonctionne mais l'ancrage au quart bas montre surtout du « déjà passé ».
 - Les données restent locales à chaque appareil : pas de synchronisation
   automatique, mais l'import/export JSON permet de transférer un trajet à la
-  request d'un appareil à l'other.
+  demande d'un appareil à l'autre.

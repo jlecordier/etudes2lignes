@@ -39,8 +39,8 @@ L'URL publiée apparaît dans l'onglet **Actions**, sur le job de déploiement
 Ouvrir l'URL **une fois avec internet**, attendre le petit message
 « ✓ Application disponible hors ligne », puis :
 
-- **iPhone / iPad (Safari)** : button Partager → **« Sur l'écran d'accueil »**.
-  Important : c'est cette installation qui protège le storage de l'éviction
+- **iPhone / iPad (Safari)** : bouton Partager → **« Sur l'écran d'accueil »**.
+  Important : c'est cette installation qui protège le stockage de l'éviction
   automatique de Safari (règle des 7 jours sans visite).
 - **Android (Chrome)** : menu ⋮ → **« Installer l'application »** (ou la
   bannière d'installation).
@@ -49,7 +49,7 @@ Ensuite l'application se lance depuis son icône et fonctionne sans réseau.
 
 ## 5. La localisation
 
-Au first suivi, le navigateur request l'autorisation de localisation.
+Au premier suivi, le navigateur demande l'autorisation de localisation.
 
 - **iOS** : la permission est **redemandée à chaque session** de la PWA — c'est
   le comportement normal d'iOS, pas un bug. Vérifier aussi Réglages →
@@ -62,7 +62,7 @@ Au first suivi, le navigateur request l'autorisation de localisation.
 ## 6. Mettre à jour l'application
 
 Pousser sur `main` suffit. Le service worker est en `autoUpdate` : à l'ouverture
-next de l'application (avec réseau), la nouvelle version se télécharge et
+suivante de l'application (avec réseau), la nouvelle version se télécharge et
 s'active toute seule. En cas de doute, fermer complètement l'app et la rouvrir.
 
 ## 7. Tester le build en local
@@ -77,11 +77,11 @@ pnpm build && pnpm preview
 
 ## 8. Pièges connus
 
-| Piège                                               | Réponse                                                                                                                        |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Page blanche sous `https://compte.github.io/depot/` | Vérifier que `vite.config.ts` a bien `base: './'` (chemins relatifs).                                                          |
-| « Ça ne se met pas à jour »                         | Le SW sert l'ancienne version pendant qu'il télécharge la nouvelle : rouvrir l'app. Vider les données du site en last recours. |
-| Hors ligne cassé à la première visite               | La première visite doit rester ouverte quelques secondes (installation du SW) : attendre le message « disponible hors ligne ». |
-| Stockage disparu sur iPhone                         | L'app doit être installée sur l'écran d'accueil (voir §4) ; l'app request aussi `storage.persist()` au démarrage.              |
-| La carte est grise hors ligne                       | Normal sur les zones jamais affichées : seules les tuiles déjà vues sont en cache (politique OSM — pas de pré-téléchargement). |
-| Les tests E2E échouent en CI mais pas en local      | Regarder le rapport Playwright dans les artefacts du job `tests`.                                                              |
+| Piège                                               | Réponse                                                                                                                           |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Page blanche sous `https://compte.github.io/depot/` | Vérifier que `vite.config.ts` a bien `base: './'` (chemins relatifs).                                                             |
+| « Ça ne se met pas à jour »                         | Le SW sert l'ancienne version pendant qu'il télécharge la nouvelle : rouvrir l'app. Vider les données du site en dernier recours. |
+| Hors ligne cassé à la première visite               | La première visite doit rester ouverte quelques secondes (installation du SW) : attendre le message « disponible hors ligne ».    |
+| Stockage disparu sur iPhone                         | L'app doit être installée sur l'écran d'accueil (voir §4) ; l'app demande aussi `storage.persist()` au démarrage.                 |
+| La carte est grise hors ligne                       | Normal sur les zones jamais affichées : seules les tuiles déjà vues sont en cache (politique OSM — pas de pré-téléchargement).    |
+| Les tests E2E échouent en CI mais pas en local      | Regarder le rapport Playwright dans les artefacts du job `tests`.                                                                 |
