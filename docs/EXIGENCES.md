@@ -11,14 +11,15 @@ Légende : `U` = test unitaire (Vitest), `E` = test de bout en bout (Playwright)
 
 ## Trajets
 
-| #    | Exigence                                                                | Vérifié par                                 |
-| ---- | ----------------------------------------------------------------------- | ------------------------------------------- |
-| TR-1 | Créer, renommer, supprimer un trajet                                    | `E e2e/trajets.spec.ts`                     |
-| TR-2 | Un nom de trajet est non vide (sinon rejet)                             | `U NomDeTrajet.test.ts`                     |
-| TR-3 | Les images sont ordonnées et réordonnables (▲/▼)                        | `U Trajet.test.ts`, `E e2e/editeur.spec.ts` |
-| TR-4 | Charger restitue nom, images (ordre, dimensions, content) et points     | `U IdbTrajetRepository.test.ts`             |
-| TR-5 | Un identifier inconnu au chargement rend `null`                         | `U IdbTrajetRepository.test.ts`             |
-| TR-6 | Les résumés sont rendus du plus ancien au plus récent, avec les comptes | `U IdbTrajetRepository.test.ts`             |
+| #    | Exigence                                                                       | Vérifié par                                 |
+| ---- | ------------------------------------------------------------------------------ | ------------------------------------------- |
+| TR-1 | Créer, renommer, supprimer un trajet                                           | `E e2e/trajets.spec.ts`                     |
+| TR-2 | Un nom de trajet est non vide (sinon rejet)                                    | `U NomDeTrajet.test.ts`                     |
+| TR-3 | Les images sont ordonnées et réordonnables (▲/▼)                               | `U Trajet.test.ts`, `E e2e/editeur.spec.ts` |
+| TR-4 | Charger restitue nom, images (ordre, dimensions, content) et points            | `U IdbTrajetRepository.test.ts`             |
+| TR-5 | Un identifier inconnu au chargement rend `null`                                | `U IdbTrajetRepository.test.ts`             |
+| TR-6 | Les résumés sont rendus du plus ancien au plus récent, avec les comptes        | `U IdbTrajetRepository.test.ts`             |
+| TR-7 | Un lot importé se lit sous les pages existantes, dans l'ordre de l'explorateur | `U Trajet.test.ts`, `E e2e/editeur.spec.ts` |
 
 ## Géoréférencement
 

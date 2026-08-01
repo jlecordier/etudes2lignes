@@ -54,10 +54,13 @@ pnpm mutation   # tests de mutation (lent, à la request — hors du gate)
 
 1. **Convertir le PDF en images** (JPEG ou PNG), une image par page — par
    exemple avec un convertisseur en ligne ou `pdftoppm -jpeg -r 200 doc.pdf page`.
-2. Créer le trajet, importer les images **dans l'ordre du voyage** (la première
-   image = le début du trajet). Elles s'empilent comme le document se lit : la
-   première page du voyage tout en bas, et tout le trajet se remonte d'un seul
-   tenant, sans rupture aux changements de page.
+2. Créer le trajet, importer les images **dans l'ordre du document** : la
+   première sélectionnée se place en haut de la pile, les suivantes dessous, et
+   un second lot se pose sous le premier. Le document se lisant de bas en haut,
+   c'est la **dernière** page qui ouvre le voyage, et tout le trajet se remonte
+   d'un seul tenant, sans rupture aux changements de page. Si votre livret
+   commence par sa page 1, sélectionnez les fichiers en ordre inverse — ou
+   réordonnez ensuite avec ▲/▼.
 3. Géo-référencer les points remarquables (gares, raccordements, PK connus).
    Conseils :
     - un point **près du départ et un près de l'arrivée** du trajet (au-delà du
