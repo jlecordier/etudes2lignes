@@ -11,6 +11,7 @@
  */
 import type { FractionVerticale } from '../domain/FractionVerticale';
 import type { ImageId, PointId } from '../domain/ids';
+import type { TrajetSummary } from '../ports/TrajetRepository';
 
 /** Un point visé par une action. Le numéro sert aux intitulés accessibles. */
 export interface PointIntent {
@@ -40,8 +41,20 @@ export interface PageAimIntent extends PageIntent {
     readonly fraction: FractionVerticale;
 }
 
+/**
+ * Un trajet visé depuis la liste, avec de quoi le nommer sans le recharger. Pas
+ * exporté : l'écran le lit par la carte des événements, sans le nommer.
+ */
+interface TrajetIntent {
+    readonly summary: TrajetSummary;
+}
+
 declare global {
     interface HTMLElementEventMap {
+        'open-trajet': CustomEvent<TrajetIntent>;
+        'rename-trajet': CustomEvent<TrajetIntent>;
+        'export-trajet': CustomEvent<TrajetIntent>;
+        'delete-trajet': CustomEvent<TrajetIntent>;
         'move-point-on-image': CustomEvent<PointIntent>;
         'move-point-on-carte': CustomEvent<PointIntent>;
         'delete-point': CustomEvent<PointIntent>;

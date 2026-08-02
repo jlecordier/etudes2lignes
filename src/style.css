@@ -18,9 +18,11 @@ body {
 
 /* Un custom element est `inline` par défaut : les écrans-éléments doivent le
    dire, là où les <section> l'avaient d'office. */
-.screen,
-suivi-screen,
-trajet-editor-screen {
+/* Un custom element est `inline` par défaut : les écrans doivent le dire, là où
+   les <section> l'avaient d'office. */
+trajets-list-screen,
+trajet-editor-screen,
+suivi-screen {
     display: block;
     min-height: 100dvh;
     padding: 1rem;
@@ -75,7 +77,8 @@ button.danger {
     color: #6b7280;
 }
 
-.trajet-row {
+trajet-row,
+.list-error {
     display: flex;
     align-items: center;
     gap: 0.5rem;

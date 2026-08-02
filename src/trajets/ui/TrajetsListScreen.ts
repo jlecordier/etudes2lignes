@@ -1,11 +1,13 @@
 import { query } from '../../shared/dom';
-import { createButton } from '../../shared/elements';
 import type { Run } from '../../shared/runner';
+import { defineScreen } from '../../shared/screen';
 import { NomDeTrajet } from '../domain/NomDeTrajet';
 import { Trajet } from '../domain/Trajet';
 import type { TrajetId } from '../domain/ids';
 import type { TrajetSummary, TrajetRepository } from '../ports/TrajetRepository';
 import { exportTrajetToJson, importTrajetFromJson } from '../serialization/trajetJson';
+import { createTrajetRow } from './TrajetRow';
+import html from './TrajetsListScreen.html?raw';
 
 export interface TrajetsListDependencies {
     repository: TrajetRepository;
@@ -14,37 +16,106 @@ export interface TrajetsListDependencies {
 }
 
 /** Écran d'accueil : la liste des trajets (créer, renommer, supprimer, ouvrir). */
-export function createTrajetsListScreen(dependencies: TrajetsListDependencies): {
-    show: () => Promise<void>;
-} {
-    const { repository, run, onOpen } = dependencies;
-    const liste = query('#trajets-list', HTMLUListElement);
-    const emptyMessage = query('#empty-list', HTMLParagraphElement);
-    const createTrajetButton = query('#create-trajet-button', HTMLButtonElement);
-    const importButton = query('#import-trajet-button', HTMLButtonElement);
-    const importFileInput = query('#input-import-trajet', HTMLInputElement);
+export const createTrajetsListScreen = defineScreen<TrajetsListDependencies>(
+    'trajets-list-screen',
+    html,
+    mount,
+);
 
-    createTrajetButton.addEventListener('click', () => {
-        run(createTrajet(), 'la création du trajet');
-    });
-    importButton.addEventListener('click', () => {
-        importFileInput.click();
-    });
-    importFileInput.addEventListener('change', () => {
-        run(importTrajet(), 'l’import du trajet');
-    });
+function mount(
+    root: HTMLElement,
+    dependencies: TrajetsListDependencies,
+    signal: AbortSignal,
+): void {
+    const { repository, run, onOpen } = dependencies;
+    const liste = query('#trajets-list', HTMLDivElement, root);
+    const emptyMessage = query('#empty-list', HTMLParagraphElement, root);
+    const errorBanner = query('#list-error', HTMLParagraphElement, root);
+    const errorText = query('#list-error-text', HTMLSpanElement, root);
+    const importFileInput = query('#input-import-trajet', HTMLInputElement, root);
+
+    query('#create-trajet-button', HTMLButtonElement, root).addEventListener(
+        'click',
+        () => {
+            run(createTrajet(), 'la création du trajet');
+        },
+        { signal },
+    );
+    query('#import-trajet-button', HTMLButtonElement, root).addEventListener(
+        'click',
+        () => {
+            importFileInput.click();
+        },
+        { signal },
+    );
+    importFileInput.addEventListener(
+        'change',
+        () => {
+            run(importTrajet(), 'l’import du trajet');
+        },
+        { signal },
+    );
+    query('#retry-list-button', HTMLButtonElement, root).addEventListener(
+        'click',
+        () => {
+            run(show(), 'la lecture de la liste');
+        },
+        { signal },
+    );
+
+    // Les lignes annoncent, l'écran décide : un seul jeu d'écouteurs, quel que
+    // soit le nombre de trajets affichés.
+    root.addEventListener(
+        'open-trajet',
+        (event) => {
+            onOpen(event.detail.summary.id);
+        },
+        { signal },
+    );
+    root.addEventListener(
+        'rename-trajet',
+        (event) => {
+            run(renameTrajet(event.detail.summary), 'le renommage du trajet');
+        },
+        { signal },
+    );
+    root.addEventListener(
+        'export-trajet',
+        (event) => {
+            run(exportTrajet(event.detail.summary), 'l’export du trajet');
+        },
+        { signal },
+    );
+    root.addEventListener(
+        'delete-trajet',
+        (event) => {
+            run(deleteTrajet(event.detail.summary), 'la suppression du trajet');
+        },
+        { signal },
+    );
+
+    run(show(), 'la lecture de la liste');
 
     async function show(): Promise<void> {
         try {
             const summaries = await repository.listSummaries();
-            liste.replaceChildren(...summaries.map(trajetRow));
+            if (signal.aborted) {
+                return;
+            }
+            liste.replaceChildren(...summaries.map((summary) => createTrajetRow(summary)));
             emptyMessage.hidden = summaries.length > 0;
+            errorBanner.hidden = true;
         } catch (error) {
+            if (signal.aborted) {
+                return;
+            }
             // La liste est la porte d'entrée de l'application : si elle ne
             // s'ouvre pas, l'utilisateur n'a plus aucune prise. On lui dit ce
             // qui se passe et on lui laisse de quoi réessayer.
+            liste.replaceChildren();
             emptyMessage.hidden = true;
-            liste.replaceChildren(errorRow(error));
+            errorText.textContent = `Impossible de lire la liste des trajets. ${readableMessage(error)}`;
+            errorBanner.hidden = false;
         }
     }
 
@@ -88,29 +159,6 @@ export function createTrajetsListScreen(dependencies: TrajetsListDependencies): 
         await show();
     }
 
-    /**
-     * Lit un fichier de trajet, ou explique précisément ce qui ne va pas.
-     *
-     * La lecture et la validation portent des messages distincts, et ceux de la
-     * validation viennent du domaine : sans ce découpage, un fichier étranger
-     * afficherait le message technique brut du navigateur.
-     */
-    async function readTrajetFile(file: File): Promise<Trajet | null> {
-        let text: string;
-        try {
-            text = await file.text();
-        } catch {
-            alert('Fichier illisible : impossible de lire ce fichier.');
-            return null;
-        }
-        try {
-            return importTrajetFromJson(text);
-        } catch (error) {
-            alert(readableMessage(error));
-            return null;
-        }
-    }
-
     async function exportTrajet(summary: TrajetSummary): Promise<void> {
         const trajet = await repository.load(summary.id);
         if (trajet === null) {
@@ -130,77 +178,29 @@ export function createTrajetsListScreen(dependencies: TrajetsListDependencies): 
         await repository.delete(summary.id);
         await show();
     }
+}
 
-    function trajetRow(summary: TrajetSummary): HTMLLIElement {
-        const ligne = document.createElement('li');
-        ligne.className = 'trajet-row';
-
-        // Le nom du trajet est le titre cliquable de la ligne, pas une action
-        // secondaire : son nom accessible est le nom du trajet, tout court.
-        const openButton = document.createElement('button');
-        openButton.type = 'button';
-        openButton.className = 'trajet-name';
-        openButton.textContent = summary.nom;
-        openButton.addEventListener('click', () => {
-            onOpen(summary.id);
-        });
-
-        const details = document.createElement('span');
-        details.className = 'trajet-details';
-        details.textContent = `${String(summary.imageCount)} image(s) · ${String(summary.pointCount)} point(s)`;
-
-        ligne.append(
-            openButton,
-            details,
-            createButton({
-                text: '✏️ Renommer',
-                ariaLabel: `Renommer ${summary.nom}`,
-                action: () => {
-                    run(renameTrajet(summary), 'le renommage du trajet');
-                },
-            }),
-            createButton({
-                text: '⬇️ Exporter',
-                ariaLabel: `Exporter ${summary.nom}`,
-                action: () => {
-                    run(exportTrajet(summary), 'l’export du trajet');
-                },
-            }),
-            createButton({
-                text: '🗑️ Supprimer',
-                ariaLabel: `Supprimer ${summary.nom}`,
-                action: () => {
-                    run(deleteTrajet(summary), 'la suppression du trajet');
-                },
-                danger: true,
-            }),
-        );
-        return ligne;
+/**
+ * Lit un fichier de trajet, ou explique précisément ce qui ne va pas.
+ *
+ * La lecture et la validation portent des messages distincts, et ceux de la
+ * validation viennent du domaine : sans ce découpage, un fichier étranger
+ * afficherait le message technique brut du navigateur.
+ */
+async function readTrajetFile(file: File): Promise<Trajet | null> {
+    let text: string;
+    try {
+        text = await file.text();
+    } catch {
+        alert('Fichier illisible : impossible de lire ce fichier.');
+        return null;
     }
-
-    /** La liste n'a pas pu être lue : dire quoi, et laisser réessayer. */
-    function errorRow(error: unknown): HTMLLIElement {
-        const ligne = document.createElement('li');
-        ligne.className = 'trajet-row';
-
-        const explication = document.createElement('span');
-        explication.className = 'point-description';
-        explication.textContent = `Impossible de lire la liste des trajets. ${readableMessage(error)}`;
-
-        ligne.append(
-            explication,
-            createButton({
-                text: '🔄 Réessayer',
-                ariaLabel: 'Réessayer de lire la liste des trajets',
-                action: () => {
-                    run(show(), 'la lecture de la liste');
-                },
-            }),
-        );
-        return ligne;
+    try {
+        return importTrajetFromJson(text);
+    } catch (error) {
+        alert(readableMessage(error));
+        return null;
     }
-
-    return { show };
 }
 
 /** Délai avant de libérer l'URL blob d'un téléchargement (une minute). */

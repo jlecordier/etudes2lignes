@@ -8,31 +8,17 @@
         <title>Etudes2Lignes — Suivi de schémas de ligne</title>
     </head>
     <body>
-        <!-- Les écrans-éléments se montent ici : en attacher un détache le
-             précédent, ce qui suffit à le ranger. Les <section> ci-dessous sont
-             les écrans pas encore convertis. -->
+        <!-- Les écrans se montent ici : en attacher un détache le précédent, ce
+             qui suffit à le ranger. Leur balisage vit dans le fichier .html de
+             chaque écran, à côté de son .ts. -->
         <main id="app"></main>
 
-        <section id="screen-list" class="screen">
-            <header class="header">
-                <h1>Mes trajets</h1>
-                <div class="action-bar">
-                    <button id="import-trajet-button" type="button" class="secondary">
-                        ⬆️ Importer
-                    </button>
-                    <button id="create-trajet-button" type="button">🆕 Nouveau trajet</button>
-                </div>
-            </header>
-            <input id="input-import-trajet" type="file" accept="application/json,.json" hidden />
-            <ul id="trajets-list" class="trajets-list"></ul>
-            <p id="empty-list" class="empty-message" hidden>
-                Aucun trajet pour l'instant. Créez-en un, puis importez les pages (images) de votre
-                schéma de ligne.
-            </p>
-            <p id="offline-indicator" class="offline-indicator" hidden>
-                ✓ Application disponible hors ligne
-            </p>
-        </section>
+        <!-- L'indicateur parle de l'application, pas d'un écran : il reste donc
+             dans la coquille, où le service worker peut l'allumer quel que soit
+             l'écran monté à ce moment-là. -->
+        <p id="offline-indicator" class="offline-indicator" hidden>
+            ✓ Application disponible hors ligne
+        </p>
 
         <!-- Superposition, pas un écran : elle se pose par-dessus l'écran courant,
              qui reste visible dessous. Elle ne porte donc pas la classe « ecran »

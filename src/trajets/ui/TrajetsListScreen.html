@@ -1,0 +1,21 @@
+<header class="header">
+    <h1>Mes trajets</h1>
+    <div class="action-bar">
+        <button id="import-trajet-button" type="button" class="secondary">⬆️ Importer</button>
+        <button id="create-trajet-button" type="button">🆕 Nouveau trajet</button>
+    </div>
+</header>
+<input id="input-import-trajet" type="file" accept="application/json,.json" hidden />
+<!-- `role="list"` : ses lignes sont des custom elements, qui ne peuvent pas
+     être des <li>. Même raison que la liste des points de l'éditeur. -->
+<div id="trajets-list" class="trajets-list" role="list"></div>
+<p id="empty-list" class="empty-message" hidden>
+    Aucun trajet pour l'instant. Créez-en un, puis importez les pages (images) de votre schéma de
+    ligne.
+</p>
+<!-- La liste est la porte d'entrée de l'application : si elle ne s'ouvre pas,
+     on dit ce qui se passe et on laisse de quoi réessayer. -->
+<p id="list-error" class="list-error" hidden>
+    <span id="list-error-text"></span>
+    <button id="retry-list-button" type="button" class="secondary">🔄 Réessayer</button>
+</p>

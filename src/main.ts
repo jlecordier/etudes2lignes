@@ -8,7 +8,7 @@ import { LeafletCarteDesPoints } from './carte/adapters/LeafletCarteDesPoints';
 import { LeafletCoordonneeSelector } from './carte/adapters/LeafletCoordonneeSelector';
 import { query } from './shared/dom';
 import { defaultRunner } from './shared/runner';
-import { goTo, goToScreen } from './navigation';
+import { goToScreen } from './navigation';
 import { GeolocationPositionSource } from './suivi/adapters/GeolocationPositionSource';
 import { BrowserScreenWakeLock } from './suivi/adapters/BrowserScreenWakeLock';
 import { BrowserForeground } from './suivi/adapters/BrowserForeground';
@@ -36,15 +36,6 @@ function start(): void {
     const realSource = new GeolocationPositionSource({ foreground });
     const simulation = new SimulationPositionSource();
     const screenWakeLock = new BrowserScreenWakeLock({ foreground });
-
-    const trajetsListScreen = createTrajetsListScreen({
-        repository,
-        run,
-        onOpen: (id) => {
-            lastOpenedSession.remember(id);
-            openEditor(id);
-        },
-    });
 
     function openEditor(id: TrajetId): void {
         goToScreen(
@@ -83,9 +74,15 @@ function start(): void {
     }
 
     function openList(): void {
-        run(
-            goTo('list', () => trajetsListScreen.show()),
-            'la lecture de la liste',
+        goToScreen(
+            createTrajetsListScreen({
+                repository,
+                run,
+                onOpen: (id) => {
+                    lastOpenedSession.remember(id);
+                    openEditor(id);
+                },
+            }),
         );
     }
 
