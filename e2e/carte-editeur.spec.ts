@@ -40,6 +40,25 @@ test.describe("Carte de l'éditeur (tous les points du trajet)", () => {
         await expect(page.locator('.point-description')).not.toHaveText(before);
     });
 
+    test('Étant donné un aller-retour par le suivi, quand je rouvre l’éditeur, alors sa carte est toujours vivante', async ({
+        page,
+    }) => {
+        await ouvrirUnTrajetAvecUnePage(page);
+        await ajouterUnPoint(page, 0.8, 0);
+        await ajouterUnPoint(page, 0.2, 150);
+        await expect(page.locator('#carte-points .carte-marker')).toHaveText(['1', '2']);
+
+        await page.getByRole('button', { name: 'Suivre' }).click();
+        await expect(page.locator('suivi-screen')).toBeVisible();
+        await page.getByRole('button', { name: 'Éditer' }).click();
+
+        // L'écran d'édition est reconstruit à chaque ouverture, donc son
+        // conteneur de carte est un élément neuf : une carte mémorisée d'une
+        // visite à l'autre resterait accrochée au conteneur précédent, et
+        // celui-ci serait vide.
+        await expect(page.locator('#carte-points .carte-marker')).toHaveText(['1', '2']);
+    });
+
     test('Étant donné l’éditeur, alors la carte est à côté des images sur grand écran et au-dessus sur mobile', async ({
         page,
     }) => {

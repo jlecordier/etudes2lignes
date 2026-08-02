@@ -24,15 +24,57 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
     private displayedIds = '';
     private onMove: ((id: PointId, coordonnee: Coordonnee) => void) | null = null;
     private resolveChoice: ((coordonnee: Coordonnee | null) => void) | null = null;
+    private teardown: AbortController | null = null;
 
-    constructor(private readonly containerId: string) {}
+    /**
+     * Monte la carte dans le conteneur que l'écran vient de créer.
+     *
+     * La carte n'est plus mémorisée d'une visite à l'autre : l'écran d'édition
+     * naît et meurt à chaque ouverture, et son conteneur avec lui.
+     */
+    mount(container: HTMLElement): void {
+        this.unmount();
+        configureLeaflet();
+        const carte = L.map(container).setView(FRANCE_VIEW.center, FRANCE_VIEW.zoom);
+        const teardown = new AbortController();
+        this.carte = carte;
+        this.teardown = teardown;
+        createOsmLayer().addTo(carte);
+        // Rotation d'un iPad/téléphone : le conteneur change de taille sans
+        // repasser par show() — Leaflet doit se remesurer tout de suite. Posé
+        // sur `window`, cet écouteur ne partirait pas avec la carte sans le signal.
+        window.addEventListener('resize', () => carte.invalidateSize(), {
+            signal: teardown.signal,
+        });
+        carte.on('click', (event) => {
+            const pending = this.resolveChoice;
+            if (pending === null) {
+                return;
+            }
+            this.resolveChoice = null;
+            carte.getContainer().classList.remove('awaiting-click');
+            pending(toCoordonnee(event.latlng));
+        });
+    }
+
+    /** Rend tout ce que la carte tenait. Se rappeler sans dommage. */
+    unmount(): void {
+        this.cancelChoice();
+        this.teardown?.abort();
+        this.teardown = null;
+        this.markers.clear();
+        this.displayedIds = '';
+        this.onMove = null;
+        this.carte?.remove();
+        this.carte = null;
+    }
 
     show(
         points: readonly DisplayedPoint[],
         onMove: (id: PointId, coordonnee: Coordonnee) => void,
     ): void {
         this.onMove = onMove;
-        const carte = this.initializedCarte();
+        const carte = this.mountedCarte();
 
         const presents = new Set(points.map((point) => point.id));
         for (const [id, pose] of this.markers) {
@@ -60,7 +102,7 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
 
     chooseCoordonnee(initialCoordonnee: Coordonnee | null): Promise<Coordonnee | null> {
         this.cancelChoice();
-        const carte = this.initializedCarte();
+        const carte = this.mountedCarte();
         carte.getContainer().classList.add('awaiting-click');
         if (initialCoordonnee !== null) {
             // Déplacer un point : on part de là où il est, comme la carte plein
@@ -79,26 +121,13 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
         pending?.(null);
     }
 
-    private initializedCarte(): L.Map {
-        if (this.carte !== null) {
-            return this.carte;
+    private mountedCarte(): L.Map {
+        const carte = this.carte;
+        if (carte === null) {
+            throw new Error(
+                'La carte des points n’est pas montée : l’écran doit la monter avant de s’en servir.',
+            );
         }
-        configureLeaflet();
-        const carte = L.map(this.containerId).setView(FRANCE_VIEW.center, FRANCE_VIEW.zoom);
-        this.carte = carte;
-        createOsmLayer().addTo(carte);
-        // Rotation d'un iPad/téléphone : le conteneur change de taille sans
-        // repasser par show() — Leaflet doit se remesurer tout de suite.
-        window.addEventListener('resize', () => carte.invalidateSize());
-        carte.on('click', (event) => {
-            const pending = this.resolveChoice;
-            if (pending === null) {
-                return;
-            }
-            this.resolveChoice = null;
-            carte.getContainer().classList.remove('awaiting-click');
-            pending(toCoordonnee(event.latlng));
-        });
         return carte;
     }
 
@@ -116,7 +145,7 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
         const marker = L.marker(position, {
             draggable: true,
             icon: numberedIcon(point.number),
-        }).addTo(this.initializedCarte());
+        }).addTo(this.mountedCarte());
         marker.on('dragend', () => {
             this.onMove?.(point.id, toCoordonnee(marker.getLatLng()));
         });

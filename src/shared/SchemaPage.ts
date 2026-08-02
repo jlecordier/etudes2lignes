@@ -34,16 +34,7 @@ const browserUrls: ObjectUrls = {
     },
 };
 
-let template: HTMLTemplateElement | null = null;
-
-/**
- * Le gabarit est compilé à la première page affichée, pas au chargement du
- * module : un `document` touché à l'import casserait tout test hors jsdom.
- */
-function content(): Node {
-    template ??= createTemplate(html);
-    return template.content.cloneNode(true);
-}
+const content = createTemplate(html);
 
 export class SchemaPageElement extends HTMLElement {
     #page: DisplayablePage | null = null;

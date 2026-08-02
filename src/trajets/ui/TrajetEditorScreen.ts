@@ -5,19 +5,23 @@ import { createButton, type Button } from '../../shared/elements';
 import { createQueue } from '../../shared/queue';
 import type { Run } from '../../shared/runner';
 import { createSchemaPage } from '../../shared/SchemaPage';
+import { defineScreen } from '../../shared/screen';
 import type { Coordonnee } from '../domain/Coordonnee';
 import { FractionVerticale } from '../domain/FractionVerticale';
 import type { ImageDeTrajet, ImageFile, Point, Trajet } from '../domain/Trajet';
 import type { ImageId, PointId, TrajetId } from '../domain/ids';
 import type { TrajetRepository } from '../ports/TrajetRepository';
+import html from './TrajetEditorScreen.html?raw';
 
 export interface TrajetEditorDependencies {
     repository: TrajetRepository;
     coordonneeSelector: CoordonneeSelector;
     carteDesPoints: CarteDesPoints;
     run: Run;
+    /** L'écran est fabriqué **pour** un trajet : il n'a pas de vie sans lui. */
+    trajetId: TrajetId;
     onBack: () => void;
-    onSuivi: (id: TrajetId) => void;
+    onSuivi: () => void;
 }
 
 type PlacementMode = { type: 'ajout' } | { type: 'deplacement'; pointId: PointId } | null;
@@ -33,73 +37,99 @@ function isLargeScreen(): boolean {
     );
 }
 
-/** Écran d'édition d'un trajet : ses images et ses points géo-référencés. */
-export function createTrajetEditorScreen(dependencies: TrajetEditorDependencies): {
-    show: (id: TrajetId) => Promise<void>;
-} {
-    const { repository, coordonneeSelector, carteDesPoints, run, onBack, onSuivi } = dependencies;
-    const title = query('#trajet-title', HTMLHeadingElement);
-    const pointsList = query('#points-list', HTMLOListElement);
-    const hintBanner = query('#placement-hint', HTMLParagraphElement);
-    const hintText = query('#hint-text', HTMLSpanElement);
-    const addImagesButton = query('#add-images-button', HTMLButtonElement);
-    const addPointButton = query('#add-point-button', HTMLButtonElement);
+/**
+ * Écran d'édition d'un trajet : ses images et ses points géo-référencés.
+ *
+ * L'écran vit le temps de son attachement au document. Le détachement avorte le
+ * signal, ce qui retire tous les écouteurs et démonte la carte — laquelle ne
+ * peut pas survivre à son conteneur.
+ */
+export const createTrajetEditorScreen = defineScreen<TrajetEditorDependencies>(
+    'trajet-editor-screen',
+    html,
+    mount,
+);
+
+function mount(
+    root: HTMLElement,
+    dependencies: TrajetEditorDependencies,
+    signal: AbortSignal,
+): void {
+    const { repository, coordonneeSelector, carteDesPoints, run, trajetId, onBack, onSuivi } =
+        dependencies;
+    const title = query('#trajet-title', HTMLHeadingElement, root);
+    const pointsList = query('#points-list', HTMLOListElement, root);
+    const hintBanner = query('#placement-hint', HTMLParagraphElement, root);
+    const hintText = query('#hint-text', HTMLSpanElement, root);
+    const addImagesButton = query('#add-images-button', HTMLButtonElement, root);
+    const addPointButton = query('#add-point-button', HTMLButtonElement, root);
     // Même action que `addPointButton`, mais toujours à l'écran (position
     // fixe) : sur tactile, sans clic droit, c'est le seul moyen d'ajouter un
     // point sans remonter tout en haut de la page.
-    const floatingAddPointButton = query('#floating-add-point-button', HTMLButtonElement);
-    const fileInput = query('#input-images', HTMLInputElement);
-    const pagesContainer = query('#images-stack', HTMLDivElement);
+    const floatingAddPointButton = query('#floating-add-point-button', HTMLButtonElement, root);
+    const fileInput = query('#input-images', HTMLInputElement, root);
+    const pagesContainer = query('#images-stack', HTMLDivElement, root);
 
     let trajet: Trajet | null = null;
-    let displayedId: TrajetId | null = null;
-    // Incrémenté à chaque affichage et à chaque sortie : un chargement dont le
-    // jeton est périmé (autre trajet ouvert entre-temps) n'écrase plus l'écran.
-    let displayToken = 0;
     let placementMode: PlacementMode = null;
     const saveQueue = createQueue();
 
-    query('#back-to-list-button', HTMLButtonElement).addEventListener('click', () => {
-        leaveScreen();
-        onBack();
+    // La carte se monte sur le conteneur que cet écran vient de créer : elle ne
+    // peut pas être mémorisée d'une visite à l'autre, son conteneur non plus.
+    carteDesPoints.mount(query('#carte-points', HTMLElement, root));
+
+    query('#back-to-list-button', HTMLButtonElement, root).addEventListener('click', onBack, {
+        signal,
     });
-    query('#suivre-button', HTMLButtonElement).addEventListener('click', () => {
-        if (trajet === null) {
-            return;
-        }
-        const id = trajet.id;
-        leaveScreen();
-        onSuivi(id);
-    });
-    addImagesButton.addEventListener('click', () => {
-        fileInput.click();
-    });
-    fileInput.addEventListener('change', () => {
-        run(importFiles(), 'l’ajout des pages');
-    });
-    addPointButton.addEventListener('click', startAddingPoint);
-    floatingAddPointButton.addEventListener('click', startAddingPoint);
-    query('#cancel-placement-button', HTMLButtonElement).addEventListener('click', () => {
-        changeMode(null);
-        carteDesPoints.cancelChoice();
+    query('#suivre-button', HTMLButtonElement, root).addEventListener(
+        'click',
+        () => {
+            if (trajet === null) {
+                return;
+            }
+            onSuivi();
+        },
+        { signal },
+    );
+    addImagesButton.addEventListener(
+        'click',
+        () => {
+            fileInput.click();
+        },
+        { signal },
+    );
+    fileInput.addEventListener(
+        'change',
+        () => {
+            run(importFiles(), 'l’ajout des pages');
+        },
+        { signal },
+    );
+    addPointButton.addEventListener('click', startAddingPoint, { signal });
+    floatingAddPointButton.addEventListener('click', startAddingPoint, { signal });
+    query('#cancel-placement-button', HTMLButtonElement, root).addEventListener(
+        'click',
+        () => {
+            changeMode(null);
+            carteDesPoints.cancelChoice();
+        },
+        { signal },
+    );
+
+    /**
+     * Quitter l'écran, c'est le détacher — et tout le rangement tient ici. Les
+     * pages libèrent leurs URL d'objet toutes seules en partant avec lui ;
+     * `unmount` abandonne au passage un choix de coordonnée encore armé.
+     */
+    signal.addEventListener('abort', () => {
+        carteDesPoints.unmount();
     });
 
-    function leaveScreen(): void {
-        displayToken++;
-        // Détacher les pages, c'est libérer leurs URL d'objet : chaque
-        // `<schema-page>` s'en charge en partant.
-        pagesContainer.replaceChildren();
-        changeMode(null);
-        carteDesPoints.cancelChoice();
-        trajet = null;
-        displayedId = null;
-    }
+    run(charger(), 'l’ouverture du trajet');
 
-    async function show(id: TrajetId): Promise<void> {
-        displayedId = id;
-        const jeton = ++displayToken;
-        const loaded = await repository.load(id);
-        if (jeton !== displayToken) {
+    async function charger(): Promise<void> {
+        const loaded = await repository.load(trajetId);
+        if (signal.aborted) {
             return;
         }
         // Trajet supprimé entre-temps (ex. restauration d'un identifiant périmé).
@@ -140,17 +170,20 @@ export function createTrajetEditorScreen(dependencies: TrajetEditorDependencies)
                 await resynchroniser();
                 throw error;
             }
+            if (signal.aborted) {
+                return;
+            }
             render();
         });
     }
 
     /** Reprend l'état réellement enregistré, après un échec d'écriture. */
     async function resynchroniser(): Promise<void> {
-        if (displayedId === null) {
-            return;
-        }
         try {
-            const recharge = await repository.load(displayedId);
+            const recharge = await repository.load(trajetId);
+            if (signal.aborted) {
+                return;
+            }
             if (recharge === null) {
                 onBack();
                 return;
@@ -505,8 +538,6 @@ export function createTrajetEditorScreen(dependencies: TrajetEditorDependencies)
             },
         ];
     }
-
-    return { show };
 }
 
 /**

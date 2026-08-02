@@ -29,16 +29,21 @@ interface TestBed {
     carte: () => L.Map;
 }
 
-function testBed(): TestBed {
+/** Un conteneur mesuré : jsdom ne calcule aucune mise en page, et Leaflet
+ * croirait sa carte de taille nulle, incapable de calculer un zoom. */
+function conteneurMesure(): HTMLElement {
     const container = document.createElement('div');
-    container.id = 'test-carte';
-    // jsdom ne calcule aucune mise en page : sans ces mesures, Leaflet croit sa
-    // carte de taille nulle et ne sait calculer aucun zoom.
     Object.defineProperty(container, 'clientWidth', { value: 600 });
     Object.defineProperty(container, 'clientHeight', { value: 600 });
+    return container;
+}
+
+function testBed(): TestBed {
+    const container = conteneurMesure();
     document.body.replaceChildren(container);
 
-    const carteDesPoints = new LeafletCarteDesPoints('test-carte');
+    const carteDesPoints = new LeafletCarteDesPoints();
+    carteDesPoints.mount(container);
     const moves: { id: PointId; coordonnee: Coordonnee }[] = [];
     return {
         carteDesPoints,
@@ -225,6 +230,38 @@ describe('Carte des points de l’éditeur', () => {
             const choice = carteDesPoints.chooseCoordonnee(null);
             clickCarte(carte(), 44.8378, -0.5792);
             expect((await choice)?.longitude).toBe(-0.5792);
+        });
+    });
+
+    describe('Étant donné une carte démontée, quand l’écran la remonte ailleurs', () => {
+        it('alors elle repart dans le nouveau conteneur, et lâche l’ancien', () => {
+            const { carteDesPoints, container, show, carte } = testBed();
+            show([point(1, PARIS)]);
+
+            carteDesPoints.unmount();
+            const nouveau = conteneurMesure();
+            document.body.replaceChildren(nouveau);
+            carteDesPoints.mount(nouveau);
+            show([point(1, BORDEAUX)]);
+
+            // La régression que ce cycle de vie existe pour éviter : l'écran
+            // d'édition étant recréé à chaque ouverture, une carte mémorisée
+            // resterait accrochée au conteneur de la visite précédente.
+            expect(container.querySelector('.leaflet-map-pane')).toBeNull();
+            expect(nouveau.querySelector('.leaflet-map-pane')).not.toBeNull();
+            expect(markers(carte()).map((marker) => marker.getLatLng().lat)).toEqual([
+                BORDEAUX.latitude,
+            ]);
+        });
+
+        it('alors se servir d’une carte démontée est refusé, en le disant', () => {
+            const { carteDesPoints, show } = testBed();
+
+            carteDesPoints.unmount();
+
+            expect(() => {
+                show([point(1, PARIS)]);
+            }).toThrow('n’est pas montée');
         });
     });
 

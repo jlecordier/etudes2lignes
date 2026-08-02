@@ -26,27 +26,16 @@ function start(): void {
     const run = defaultRunner;
     const repository = new IdbTrajetRepository();
     const coordonneeSelector = new LeafletCoordonneeSelector();
+    const carteDesPoints = new LeafletCarteDesPoints();
     const lastOpenedSession = createLastOpenedSession();
     // Un seul jeu d'écouteurs pour tous ceux qui doivent se réveiller quand la
     // page revient au premier plan (le GPS et le verrou d'écran).
     const foreground = new BrowserForeground();
-    // Les sources et le verrou vivent plus longtemps que l'écran de suivi, qui
-    // naît et meurt à chaque visite : leur contrat les dit redémarrables.
+    // Les adapters vivent plus longtemps que les écrans, qui naissent et meurent
+    // à chaque visite : leurs contrats les disent redémarrables et remontables.
     const realSource = new GeolocationPositionSource({ foreground });
     const simulation = new SimulationPositionSource();
     const screenWakeLock = new BrowserScreenWakeLock({ foreground });
-
-    const trajetEditor = createTrajetEditorScreen({
-        repository,
-        coordonneeSelector,
-        carteDesPoints: new LeafletCarteDesPoints('carte-points'),
-        run,
-        onBack: () => {
-            lastOpenedSession.forget();
-            openList();
-        },
-        onSuivi: openSuivi,
-    });
 
     const trajetsListScreen = createTrajetsListScreen({
         repository,
@@ -57,8 +46,26 @@ function start(): void {
         },
     });
 
+    function openEditor(id: TrajetId): void {
+        goToScreen(
+            createTrajetEditorScreen({
+                repository,
+                coordonneeSelector,
+                carteDesPoints,
+                run,
+                trajetId: id,
+                onBack: () => {
+                    lastOpenedSession.forget();
+                    openList();
+                },
+                onSuivi: () => {
+                    openSuivi(id);
+                },
+            }),
+        );
+    }
+
     function openSuivi(id: TrajetId): void {
-        // Un écran neuf par visite : il se range tout seul en étant détaché.
         goToScreen(
             createSuiviScreen({
                 repository,
@@ -72,13 +79,6 @@ function start(): void {
                     openEditor(id);
                 },
             }),
-        );
-    }
-
-    function openEditor(id: TrajetId): void {
-        run(
-            goTo('editor', () => trajetEditor.show(id)),
-            'l’ouverture du trajet',
         );
     }
 

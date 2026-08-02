@@ -25,8 +25,16 @@ export interface DisplayedPoint {
  *   choix annule le précédent (null).
  * - `annulerLeChoix` résout le choix en attente avec null (sans objet sinon) :
  *   un choix armé n'attend jamais indéfiniment, l'écran peut l'abandonner.
+ * - `monter`/`demonter` encadrent la vie de la carte. L'écran d'édition est
+ *   fabriqué et détruit à chaque visite : son conteneur est un élément neuf à
+ *   chaque fois, et une carte mémorisée d'une visite à l'autre pointerait sur un
+ *   conteneur détaché — la deuxième ouverture n'afficherait plus rien. Toute
+ *   autre méthode exige d'avoir été montée ; `demonter` rend tout ce que la
+ *   carte tenait et peut se rappeler sans dommage.
  */
 export interface CarteDesPoints {
+    mount(container: HTMLElement): void;
+    unmount(): void;
     show(
         points: readonly DisplayedPoint[],
         onMove: (id: PointId, coordonnee: Coordonnee) => void,

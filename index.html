@@ -34,43 +34,6 @@
             </p>
         </section>
 
-        <section id="screen-editor" class="screen" hidden>
-            <header class="header">
-                <button id="back-to-list-button" type="button" class="secondary">🔙 Trajets</button>
-                <h2 id="trajet-title"></h2>
-                <button id="suivre-button" type="button">🧭 Suivre</button>
-            </header>
-            <p class="help">
-                Les pages s'importent de haut en bas, dans l'ordre où vous les sélectionnez, et un
-                nouveau lot se pose dessous. Le document se lisant de bas en haut, c'est la dernière
-                page qui ouvre le voyage. Conseil : un point près du départ et un près de l'arrivée
-                du trajet, puis densifiez là où vous voulez de la précision.
-            </p>
-            <div class="action-bar">
-                <button id="add-images-button" type="button">🖼️ Ajouter des images</button>
-                <button id="add-point-button" type="button">📍 Ajouter un point</button>
-            </div>
-            <input id="input-images" type="file" accept="image/jpeg,image/png" multiple hidden />
-            <p id="placement-hint" class="hint-banner" hidden>
-                <span id="hint-text">Touchez l'image à la hauteur voulue…</span>
-                <button id="cancel-placement-button" type="button" class="secondary">
-                    ✖️ Annuler
-                </button>
-            </p>
-            <div class="editor-body">
-                <div id="carte-points" class="carte-points"></div>
-                <div class="images-column">
-                    <ol id="points-list" class="points-list"></ol>
-                    <div id="images-stack"></div>
-                </div>
-            </div>
-            <!-- Toujours accessible sans remonter en haut de la page : indispensable
-                 au tactile, où le clic droit n'existe pas. -->
-            <button id="floating-add-point-button" type="button" class="floating-add-point-button">
-                📍 Ajouter un point
-            </button>
-        </section>
-
         <!-- Superposition, pas un écran : elle se pose par-dessus l'écran courant,
              qui reste visible dessous. Elle ne porte donc pas la classe « ecran »
              et ne peut pas être masquée par la navigation. -->

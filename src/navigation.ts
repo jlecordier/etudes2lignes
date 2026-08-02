@@ -29,7 +29,7 @@ export function goToScreen(screen: HTMLElement): void {
  * soudés à `index.html`. Cette union, `goTo` et les `<section>` correspondantes
  * disparaissent quand le dernier devient un élément.
  */
-export type ScreenName = 'list' | 'editor';
+export type ScreenName = 'list';
 
 /**
  * Va sur un écran encore statique et y charge son contenu.

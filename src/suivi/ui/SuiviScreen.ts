@@ -1,9 +1,9 @@
 import type { DisplayedPoint } from '../../carte/ports/CarteDesPointsPort';
 import type { CoordonneeSelector } from '../../carte/ports/CoordonneeSelectorPort';
-import { query, queryAll, requireConfiguration } from '../../shared/dom';
+import { query, queryAll } from '../../shared/dom';
 import type { Run } from '../../shared/runner';
 import { SchemaPageElement, createSchemaPage } from '../../shared/SchemaPage';
-import { createTemplate } from '../../shared/template';
+import { defineScreen } from '../../shared/screen';
 import type { Coordonnee } from '../../trajets/domain/Coordonnee';
 import type { Trajet } from '../../trajets/domain/Trajet';
 import type { TrajetId } from '../../trajets/domain/ids';
@@ -37,13 +37,6 @@ export interface SuiviDependencies {
 /** Où la position vient-elle ? Le mode n'est plus deviné d'un attribut du DOM. */
 type SuiviMode = 'gps' | 'simulation';
 
-let template: HTMLTemplateElement | null = null;
-
-function content(): Node {
-    template ??= createTemplate(html);
-    return template.content.cloneNode(true);
-}
-
 /**
  * Écran de suivi : les pages du trajet empilées, et le document qui défile
  * tout seul pour placer la position courante aux trois quarts de l'écran.
@@ -53,39 +46,7 @@ function content(): Node {
  * penser à appeler : le détachement avorte le signal, ce qui retire tous les
  * écouteurs d'un coup et déclenche le rangement.
  */
-class SuiviScreenElement extends HTMLElement {
-    #dependencies: SuiviDependencies | null = null;
-    #abort: AbortController | null = null;
-
-    set dependencies(value: SuiviDependencies) {
-        this.#dependencies = value;
-    }
-
-    connectedCallback(): void {
-        const dependencies = requireConfiguration(this.#dependencies, this);
-        const abort = new AbortController();
-        this.#abort = abort;
-        this.replaceChildren(content());
-        mount(this, dependencies, abort.signal);
-    }
-
-    disconnectedCallback(): void {
-        this.#abort?.abort();
-        this.#abort = null;
-    }
-}
-
-customElements.define('suivi-screen', SuiviScreenElement);
-
-/**
- * La seule porte : les dépendances sont posées **avant** l'attachement, donc
- * `connectedCallback` les trouve toujours.
- */
-export function createSuiviScreen(dependencies: SuiviDependencies): HTMLElement {
-    const element = new SuiviScreenElement();
-    element.dependencies = dependencies;
-    return element;
-}
+export const createSuiviScreen = defineScreen<SuiviDependencies>('suivi-screen', html, mount);
 
 function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: AbortSignal): void {
     const {
