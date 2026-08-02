@@ -23,7 +23,7 @@ test.describe("Éditeur d'un trajet — les images", () => {
 
         await importerDeuxPages(page);
 
-        await expect(page.locator('#images-stack img')).toHaveCount(2);
+        await expect(page.locator('#images-stack schema-page')).toHaveCount(2);
     });
 
     test('Étant donné deux images, quand je monte visuellement celle du bas, alors elle devient la fin du voyage', async ({

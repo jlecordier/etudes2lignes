@@ -155,11 +155,15 @@ export async function ajouterUnPoint(
  */
 export async function expectedScroll(page: Page, imageFraction: number): Promise<number> {
     // L'écran de suivi charge le trajet en asynchrone : attendre la pile d'images.
-    await page.locator('#suivi-stack img').first().waitFor({ state: 'attached' });
+    await page.locator('#suivi-stack schema-page').first().waitFor({ state: 'attached' });
     return page.evaluate((fraction) => {
-        const image = document.querySelector<HTMLImageElement>('#suivi-stack img');
+        // On mesure la page, pas l'image qu'elle contient : celle-ci vit dans un
+        // shadow root, que `querySelector` ne traverse pas. Les deux boîtes sont
+        // la même (l'hôte est en `display: block`, l'image le remplit), et c'est
+        // bien la page que l'écran de suivi mesure lui aussi.
+        const image = document.querySelector('#suivi-stack schema-page');
         if (image === null) {
-            throw new Error('#suivi-stack img introuvable');
+            throw new Error('#suivi-stack schema-page introuvable');
         }
         const screenFraction = Number.parseFloat(
             getComputedStyle(document.documentElement).getPropertyValue('--fraction-position'),

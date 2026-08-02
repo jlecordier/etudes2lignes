@@ -4,7 +4,7 @@ import { query } from '../../shared/dom';
 import { createButton, type Button } from '../../shared/elements';
 import { createQueue } from '../../shared/queue';
 import type { Run } from '../../shared/runner';
-import { createPageStack, type DisplayablePage } from '../../shared/pageStack';
+import { createSchemaPage } from '../../shared/SchemaPage';
 import type { Coordonnee } from '../domain/Coordonnee';
 import { FractionVerticale } from '../domain/FractionVerticale';
 import type { ImageDeTrajet, ImageFile, Point, Trajet } from '../domain/Trajet';
@@ -50,7 +50,6 @@ export function createTrajetEditorScreen(dependencies: TrajetEditorDependencies)
     const floatingAddPointButton = query('#floating-add-point-button', HTMLButtonElement);
     const fileInput = query('#input-images', HTMLInputElement);
     const pagesContainer = query('#images-stack', HTMLDivElement);
-    const stack = createPageStack(pagesContainer);
 
     let trajet: Trajet | null = null;
     let displayedId: TrajetId | null = null;
@@ -87,7 +86,9 @@ export function createTrajetEditorScreen(dependencies: TrajetEditorDependencies)
 
     function leaveScreen(): void {
         displayToken++;
-        stack.destroy();
+        // Détacher les pages, c'est libérer leurs URL d'objet : chaque
+        // `<schema-page>` s'en charge en partant.
+        pagesContainer.replaceChildren();
         changeMode(null);
         carteDesPoints.cancelChoice();
         trajet = null;
@@ -338,8 +339,8 @@ export function createTrajetEditorScreen(dependencies: TrajetEditorDependencies)
 
         // La pile s'affiche comme le document se lit (de bas en haut) : la
         // première page du voyage tout en bas, la dernière tout en haut.
-        stack.render(currentTrajet.imagesInReadingOrder(), (page, element) =>
-            imageFrame(currentTrajet, page, element, numbers),
+        pagesContainer.replaceChildren(
+            ...currentTrajet.imagesInReadingOrder().map((image) => imageFrame(image, numbers)),
         );
 
         pointsList.replaceChildren(
@@ -359,12 +360,9 @@ export function createTrajetEditorScreen(dependencies: TrajetEditorDependencies)
     }
 
     function imageFrame(
-        currentTrajet: Trajet,
-        page: DisplayablePage,
-        element: HTMLImageElement,
+        image: ImageDeTrajet,
         numbers: readonly { point: Point; number: number }[],
     ): HTMLElement {
-        const image = trajetImage(currentTrajet, page.id);
         const frame = document.createElement('div');
         frame.className = 'image-frame';
 
@@ -377,7 +375,7 @@ export function createTrajetEditorScreen(dependencies: TrajetEditorDependencies)
 
         const area = document.createElement('div');
         area.className = 'image-area';
-        area.append(element);
+        area.append(createSchemaPage(image));
         for (const { point, number } of numbers) {
             if (point.imageId === image.id) {
                 area.append(pointMarker(point, number));

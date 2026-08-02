@@ -1,0 +1,17 @@
+<style>
+    /* Un custom element est `inline` par défaut. Sans ce `block`, la boîte
+       mesurée par l'écran de suivi ne serait pas celle de l'image, et tous les
+       offsets du défilement seraient faux. */
+    :host {
+        display: block;
+    }
+
+    /* La décoration (bordure de l'éditeur) reste dehors, sur l'hôte : ici vit
+       la seule géométrie, que les deux écrans partagent. */
+    img {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+</style>
+<img alt="" loading="lazy" decoding="async" />

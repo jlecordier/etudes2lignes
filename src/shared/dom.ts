@@ -45,3 +45,22 @@ export function queryAll<E extends Element>(
         return element;
     });
 }
+
+/**
+ * Ce qu'un custom element a reçu avant d'être attaché, ou l'échec de le dire.
+ *
+ * Le navigateur construit lui-même les custom elements : on ne peut rien leur
+ * passer par le constructeur, donc leur configuration arrive par propriété. Sa
+ * fabrique étant le seul moyen d'en obtenir un, et posant la propriété avant de
+ * rendre l'élément, cette garde est **inatteignable** — elle n'existe que parce
+ * que `!` est banni ([ADR 0002](../../docs/adr/0002-lint-type-aware-strict.md)),
+ * et elle survivra donc toujours aux tests de mutation.
+ */
+export function requireConfiguration<T>(value: T | null, element: HTMLElement): T {
+    if (value === null) {
+        throw new Error(
+            `« ${element.localName} » a été utilisé sans sa configuration : sa fabrique est le seul moyen d'en obtenir un.`,
+        );
+    }
+    return value;
+}

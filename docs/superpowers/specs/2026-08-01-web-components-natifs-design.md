@@ -133,7 +133,7 @@ connaît appartient à sa capacité.
 
 | Élément                  | Fichier                                | Connaît           | DOM    |
 | ------------------------ | -------------------------------------- | ----------------- | ------ |
-| `<schema-page>`          | `src/shared/ui/SchemaPage.ts`          | `DisplayablePage` | shadow |
+| `<schema-page>`          | `src/shared/SchemaPage.ts`             | `DisplayablePage` | shadow |
 | `<image-frame>`          | `src/trajets/ui/ImageFrame.ts`         | `ImageDeTrajet`   | light  |
 | `<point-marker>`         | `src/trajets/ui/PointMarker.ts`        | `Point`           | light  |
 | `<point-row>`            | `src/trajets/ui/PointRow.ts`           | `Point`           | light  |
@@ -215,7 +215,7 @@ export function createTrajetEditorScreen(
 
 L'élément n'est jamais attaché sans ses dépendances, parce que la fabrique est
 le seul moyen d'en obtenir un et qu'elle les pose avant de rendre l'élément.
-`requireConfiguration` (`src/shared/ui/requireConfiguration.ts`) est donc une
+`requireConfiguration` (`src/shared/dom.ts`, aux côtés de `query`) est donc une
 **garde inatteignable** au sens du glossaire : conservée uniquement parce que
 `!` est banni, elle survivra aux tests de mutation, et c'est commenté sur place.
 Elle a la même forme que `requireElementAt` et `requireDefined`.
@@ -263,7 +263,7 @@ Un fichier `.html` par élément, à côté de son `.ts`, importé en `?raw` :
 
 ```ts
 import html from './TrajetEditorScreen.html?raw';
-import { createTemplate } from '../../shared/ui/gabarit';
+import { createTemplate } from '../../shared/template';
 
 let template: HTMLTemplateElement | null = null;
 function gabarit(): Node {
@@ -377,7 +377,8 @@ Chaque lot est gardé par ses tests et laisse le dépôt vert. L'ordre va du plu
 isolé au plus emmêlé.
 
 **Lot 1 — `<schema-page>` remplace `pageStack`.**
-L'élément, son gabarit, `createTemplate`, `requireConfiguration`. Les deux écrans
+L'élément, son gabarit, `createTemplate` (`shared/template.ts` — « gabarit »
+n'étant pas au lexique, le nom passe à l'anglais), `requireConfiguration`. Les deux écrans
 créent des `<schema-page>` au lieu d'appeler `stack.render`. `pageStack.ts` et
 son test sont supprimés. Aucun écran n'est encore un élément.
 _Preuve_ : tests unitaires jsdom sur la vie de l'URL (créée à l'attachement,

@@ -1,8 +1,8 @@
 import type { DisplayedPoint } from '../../carte/ports/CarteDesPointsPort';
 import type { CoordonneeSelector } from '../../carte/ports/CoordonneeSelectorPort';
-import { query } from '../../shared/dom';
+import { query, queryAll } from '../../shared/dom';
 import type { Run } from '../../shared/runner';
-import { createPageStack } from '../../shared/pageStack';
+import { SchemaPageElement, createSchemaPage } from '../../shared/SchemaPage';
 import type { Coordonnee } from '../../trajets/domain/Coordonnee';
 import type { Trajet } from '../../trajets/domain/Trajet';
 import type { TrajetId } from '../../trajets/domain/ids';
@@ -47,7 +47,6 @@ export function createSuiviScreen(dependencies: SuiviDependencies): {
     const simulationBanner = query('#simulation-banner', HTMLElement);
     const resumeButton = query('#resume-button', HTMLButtonElement);
     const pagesContainer = query('#suivi-stack', HTMLDivElement);
-    const stack = createPageStack(pagesContainer);
 
     // Le repère visuel doit tomber là où le défilement vise : une seule valeur,
     // celle du domaine, que le CSS lit.
@@ -116,7 +115,9 @@ export function createSuiviScreen(dependencies: SuiviDependencies): {
         realSource.stop();
         simulation.stop();
         void screenWakeLock.release();
-        stack.destroy();
+        // Détacher les pages, c'est libérer leurs URL d'objet : chaque
+        // `<schema-page>` s'en charge en partant.
+        pagesContainer.replaceChildren();
         trajet = null;
         if (displayedId !== null) {
             onBack(displayedId);
@@ -153,7 +154,8 @@ export function createSuiviScreen(dependencies: SuiviDependencies): {
         // La pile s'affiche comme le document se lit (de bas en haut) : la
         // première page du voyage tout en bas — le voyage remonte l'écran
         // d'un seul tenant, sans rupture aux changements de page.
-        stack.render(trajet === null ? [] : trajet.imagesInReadingOrder());
+        const pages = trajet === null ? [] : trajet.imagesInReadingOrder();
+        pagesContainer.replaceChildren(...pages.map((page) => createSchemaPage(page)));
     }
 
     // --- Position → défilement --------------------------------------------------
@@ -206,15 +208,32 @@ export function createSuiviScreen(dependencies: SuiviDependencies): {
      * gratuit toutes les ~10 s, et insensible aux rotations d'écran.
      */
     function voyageEtapes(currentTrajet: Trajet): EtapeDuVoyage[] {
+        const pages = displayedPages();
         return currentTrajet.pointsInOrdreDuVoyage().map((point) => {
-            // La pile connaît l'image qu'elle a posée pour chaque page : plus
-            // besoin de la retrouver par un sélecteur sur un attribut de données.
-            const frame = stack.pageElement(point.imageId).getBoundingClientRect();
+            const affichee = pages.get(point.imageId);
+            if (affichee === undefined) {
+                throw new Error(`Page absente de la pile affichée : ${point.imageId}`);
+            }
+            const frame = affichee.getBoundingClientRect();
             return {
                 coordonnee: point.coordonnee,
                 offset: frame.top + window.scrollY + point.fraction.value * frame.height,
             };
         });
+    }
+
+    /**
+     * Les pages montées, par identifiant. La pile est relue à chaque position
+     * comme les offsets le sont : rien n'est mis en cache, donc rien ne peut
+     * mentir après un rendu.
+     */
+    function displayedPages(): Map<string, SchemaPageElement> {
+        return new Map(
+            queryAll('schema-page', SchemaPageElement, pagesContainer).map((page) => [
+                page.pageId,
+                page,
+            ]),
+        );
     }
 
     // --- Défilement manuel -------------------------------------------------------

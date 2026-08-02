@@ -122,10 +122,9 @@ button.danger {
     white-space: nowrap;
 }
 
-.image-frame img {
-    display: block;
-    width: 100%;
-    height: auto;
+/* La géométrie de l'image vit dans le shadow root de `schema-page` ; l'éditeur
+   n'ajoute que sa décoration, sur l'hôte. */
+.image-frame schema-page {
     border: 1px solid #e5e7eb;
 }
 
@@ -377,12 +376,6 @@ button.danger {
     padding: 0.25rem 0;
     font-size: 0.875rem;
     color: #047857;
-}
-
-.suivi-stack img {
-    display: block;
-    width: 100%;
-    height: auto;
 }
 
 .guide-line {
