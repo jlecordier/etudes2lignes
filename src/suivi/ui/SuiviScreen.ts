@@ -1,8 +1,9 @@
 import type { DisplayedPoint } from '../../carte/ports/CarteDesPointsPort';
 import type { CoordonneeSelector } from '../../carte/ports/CoordonneeSelectorPort';
-import { query, queryAll } from '../../shared/dom';
+import { query, queryAll, requireConfiguration } from '../../shared/dom';
 import type { Run } from '../../shared/runner';
 import { SchemaPageElement, createSchemaPage } from '../../shared/SchemaPage';
+import { createTemplate } from '../../shared/template';
 import type { Coordonnee } from '../../trajets/domain/Coordonnee';
 import type { Trajet } from '../../trajets/domain/Trajet';
 import type { TrajetId } from '../../trajets/domain/ids';
@@ -19,6 +20,7 @@ import type { SourceStatus } from '../domain/sourceStatus';
 import type { ScreenWakeLock } from '../ports/ScreenWakeLockPort';
 import type { PositionSource } from '../ports/PositionSource';
 import type { PositionSimulator } from '../ports/PositionSimulator';
+import html from './SuiviScreen.html?raw';
 
 export interface SuiviDependencies {
     repository: TrajetRepository;
@@ -27,26 +29,79 @@ export interface SuiviDependencies {
     coordonneeSelector: CoordonneeSelector;
     screenWakeLock: ScreenWakeLock;
     run: Run;
-    onBack: (id: TrajetId) => void;
+    /** L'écran est fabriqué **pour** un trajet : il n'a pas de vie sans lui. */
+    trajetId: TrajetId;
+    onBack: () => void;
 }
 
 /** Où la position vient-elle ? Le mode n'est plus deviné d'un attribut du DOM. */
 type SuiviMode = 'gps' | 'simulation';
 
+let template: HTMLTemplateElement | null = null;
+
+function content(): Node {
+    template ??= createTemplate(html);
+    return template.content.cloneNode(true);
+}
+
 /**
  * Écran de suivi : les pages du trajet empilées, et le document qui défile
  * tout seul pour placer la position courante aux trois quarts de l'écran.
+ *
+ * L'écran vit exactement le temps de son attachement au document. Il n'a donc
+ * ni jeton d'affichage à comparer après chaque `await`, ni méthode de sortie à
+ * penser à appeler : le détachement avorte le signal, ce qui retire tous les
+ * écouteurs d'un coup et déclenche le rangement.
  */
-export function createSuiviScreen(dependencies: SuiviDependencies): {
-    show: (id: TrajetId) => Promise<void>;
-} {
-    const { repository, realSource, simulation, coordonneeSelector, screenWakeLock, run, onBack } =
-        dependencies;
-    const screen = query('#screen-suivi', HTMLElement);
-    const statusElement = query('#suivi-status', HTMLSpanElement);
-    const simulationBanner = query('#simulation-banner', HTMLElement);
-    const resumeButton = query('#resume-button', HTMLButtonElement);
-    const pagesContainer = query('#suivi-stack', HTMLDivElement);
+class SuiviScreenElement extends HTMLElement {
+    #dependencies: SuiviDependencies | null = null;
+    #abort: AbortController | null = null;
+
+    set dependencies(value: SuiviDependencies) {
+        this.#dependencies = value;
+    }
+
+    connectedCallback(): void {
+        const dependencies = requireConfiguration(this.#dependencies, this);
+        const abort = new AbortController();
+        this.#abort = abort;
+        this.replaceChildren(content());
+        mount(this, dependencies, abort.signal);
+    }
+
+    disconnectedCallback(): void {
+        this.#abort?.abort();
+        this.#abort = null;
+    }
+}
+
+customElements.define('suivi-screen', SuiviScreenElement);
+
+/**
+ * La seule porte : les dépendances sont posées **avant** l'attachement, donc
+ * `connectedCallback` les trouve toujours.
+ */
+export function createSuiviScreen(dependencies: SuiviDependencies): HTMLElement {
+    const element = new SuiviScreenElement();
+    element.dependencies = dependencies;
+    return element;
+}
+
+function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: AbortSignal): void {
+    const {
+        repository,
+        realSource,
+        simulation,
+        coordonneeSelector,
+        screenWakeLock,
+        run,
+        trajetId,
+        onBack,
+    } = dependencies;
+    const statusElement = query('#suivi-status', HTMLSpanElement, root);
+    const simulationBanner = query('#simulation-banner', HTMLElement, root);
+    const resumeButton = query('#resume-button', HTMLButtonElement, root);
+    const pagesContainer = query('#suivi-stack', HTMLDivElement, root);
 
     // Le repère visuel doit tomber là où le défilement vise : une seule valeur,
     // celle du domaine, que le CSS lit.
@@ -56,10 +111,6 @@ export function createSuiviScreen(dependencies: SuiviDependencies): {
     );
 
     let trajet: Trajet | null = null;
-    let displayedId: TrajetId | null = null;
-    // Incrémenté à chaque affichage et à chaque sortie : un chargement dont le
-    // jeton est périmé (écran quitté entre-temps) ne démarre rien.
-    let displayToken = 0;
     let lastPosition: Coordonnee | null = null;
     let ancragePrecedent: AncragePrecedent | null = null;
     let suiviAutomatique = true;
@@ -67,18 +118,34 @@ export function createSuiviScreen(dependencies: SuiviDependencies): {
     // de l'attribut `hidden` d'un écran appartenant à une autre capacité.
     let activeCoordonneeChoice = false;
 
-    query('#leave-suivi-button', HTMLButtonElement).addEventListener('click', () => {
-        quitter();
-    });
-    query('#simuler-button', HTMLButtonElement).addEventListener('click', () => {
-        run(chooseSimulatedPosition(), 'le choix de la position simulée');
-    });
-    query('#leave-simulation-button', HTMLButtonElement).addEventListener('click', () => {
-        switchTo('gps');
-    });
-    resumeButton.addEventListener('click', () => {
-        resumeSuivi();
-    });
+    query('#leave-suivi-button', HTMLButtonElement, root).addEventListener(
+        'click',
+        () => {
+            onBack();
+        },
+        { signal },
+    );
+    query('#simuler-button', HTMLButtonElement, root).addEventListener(
+        'click',
+        () => {
+            run(chooseSimulatedPosition(), 'le choix de la position simulée');
+        },
+        { signal },
+    );
+    query('#leave-simulation-button', HTMLButtonElement, root).addEventListener(
+        'click',
+        () => {
+            switchTo('gps');
+        },
+        { signal },
+    );
+    resumeButton.addEventListener(
+        'click',
+        () => {
+            resumeSuivi();
+        },
+        { signal },
+    );
 
     // Seuls un toucher sur le document ou la molette trahissent un défilement
     // humain ; on n'écoute pas 'scroll' (déclenché aussi par nos scrollTo).
@@ -87,41 +154,42 @@ export function createSuiviScreen(dependencies: SuiviDependencies): {
         () => {
             switchToManualScroll();
         },
-        { passive: true },
+        { passive: true, signal },
     );
+    // Posé sur `window`, donc hors de l'écran : sans ce signal, il survivrait à
+    // la sortie et s'ajouterait une fois de plus à chaque visite.
     window.addEventListener(
         'wheel',
         () => {
             switchToManualScroll();
         },
-        { passive: true },
+        { passive: true, signal },
     );
 
-    async function show(id: TrajetId): Promise<void> {
-        displayedId = id;
-        const jeton = ++displayToken;
-        const loaded = await repository.load(id);
-        if (jeton !== displayToken) {
+    /**
+     * Quitter l'écran, c'est le détacher — et tout le rangement tient ici.
+     * Les pages, elles, libèrent leurs URL d'objet toutes seules en quittant
+     * le document avec l'écran.
+     */
+    signal.addEventListener('abort', () => {
+        realSource.stop();
+        simulation.stop();
+        void screenWakeLock.release();
+    });
+
+    run(charger(), 'l’ouverture du suivi');
+
+    async function charger(): Promise<void> {
+        const loaded = await repository.load(trajetId);
+        // L'écran a pu être quitté pendant la lecture : il ne démarre alors
+        // rien, et surtout ne demande pas un verrou que plus personne ne rendra.
+        if (signal.aborted) {
             return;
         }
         trajet = loaded;
         renderStack();
         void screenWakeLock.acquire();
         switchTo('gps');
-    }
-
-    function quitter(): void {
-        displayToken++;
-        realSource.stop();
-        simulation.stop();
-        void screenWakeLock.release();
-        // Détacher les pages, c'est libérer leurs URL d'objet : chaque
-        // `<schema-page>` s'en charge en partant.
-        pagesContainer.replaceChildren();
-        trajet = null;
-        if (displayedId !== null) {
-            onBack(displayedId);
-        }
     }
 
     /**
@@ -239,7 +307,7 @@ export function createSuiviScreen(dependencies: SuiviDependencies): {
     // --- Défilement manuel -------------------------------------------------------
 
     function switchToManualScroll(): void {
-        if (screen.hidden || activeCoordonneeChoice || !suiviAutomatique) {
+        if (activeCoordonneeChoice || !suiviAutomatique) {
             return;
         }
         suiviAutomatique = false;
@@ -263,7 +331,7 @@ export function createSuiviScreen(dependencies: SuiviDependencies): {
         } finally {
             activeCoordonneeChoice = false;
         }
-        if (coordonnee === null) {
+        if (coordonnee === null || signal.aborted) {
             return;
         }
         switchTo('simulation');
@@ -278,6 +346,4 @@ export function createSuiviScreen(dependencies: SuiviDependencies): {
             .numberedPointsInOrdreDuVoyage()
             .map(({ point, number }) => ({ id: point.id, number, coordonnee: point.coordonnee }));
     }
-
-    return { show };
 }

@@ -18,7 +18,7 @@ async function ouvrirLeSuiviDUnTrajetGeoreference(page: Page): Promise<void> {
     await ajouterUnPoint(page, 0.8, 0);
     await ajouterUnPoint(page, 0.2, 150);
     await page.getByRole('button', { name: 'Suivre' }).click();
-    await expect(page.locator('#screen-suivi')).toBeVisible();
+    await expect(page.locator('suivi-screen')).toBeVisible();
 }
 
 /**

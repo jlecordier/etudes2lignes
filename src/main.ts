@@ -8,7 +8,7 @@ import { LeafletCarteDesPoints } from './carte/adapters/LeafletCarteDesPoints';
 import { LeafletCoordonneeSelector } from './carte/adapters/LeafletCoordonneeSelector';
 import { query } from './shared/dom';
 import { defaultRunner } from './shared/runner';
-import { goTo } from './navigation';
+import { goTo, goToScreen } from './navigation';
 import { GeolocationPositionSource } from './suivi/adapters/GeolocationPositionSource';
 import { BrowserScreenWakeLock } from './suivi/adapters/BrowserScreenWakeLock';
 import { BrowserForeground } from './suivi/adapters/BrowserForeground';
@@ -16,6 +16,7 @@ import { SimulationPositionSource } from './suivi/adapters/SimulationPositionSou
 import { createSuiviScreen } from './suivi/ui/SuiviScreen';
 import { IdbTrajetRepository } from './trajets/adapters/IdbTrajetRepository';
 import { createLastOpenedSession } from './trajets/adapters/lastOpenedSession';
+import type { TrajetId } from './trajets/domain/ids';
 import { createTrajetEditorScreen } from './trajets/ui/TrajetEditorScreen';
 import { createTrajetsListScreen } from './trajets/ui/TrajetsListScreen';
 
@@ -29,21 +30,11 @@ function start(): void {
     // Un seul jeu d'écouteurs pour tous ceux qui doivent se réveiller quand la
     // page revient au premier plan (le GPS et le verrou d'écran).
     const foreground = new BrowserForeground();
-
-    const suivi = createSuiviScreen({
-        repository,
-        realSource: new GeolocationPositionSource({ foreground }),
-        simulation: new SimulationPositionSource(),
-        coordonneeSelector,
-        screenWakeLock: new BrowserScreenWakeLock({ foreground }),
-        run,
-        onBack: (id) => {
-            run(
-                goTo('editor', () => trajetEditor.show(id)),
-                'l’ouverture du trajet',
-            );
-        },
-    });
+    // Les sources et le verrou vivent plus longtemps que l'écran de suivi, qui
+    // naît et meurt à chaque visite : leur contrat les dit redémarrables.
+    const realSource = new GeolocationPositionSource({ foreground });
+    const simulation = new SimulationPositionSource();
+    const screenWakeLock = new BrowserScreenWakeLock({ foreground });
 
     const trajetEditor = createTrajetEditorScreen({
         repository,
@@ -52,17 +43,9 @@ function start(): void {
         run,
         onBack: () => {
             lastOpenedSession.forget();
-            run(
-                goTo('list', () => trajetsListScreen.show()),
-                'la lecture de la liste',
-            );
+            openList();
         },
-        onSuivi: (id) => {
-            run(
-                goTo('suivi', () => suivi.show(id)),
-                'l’ouverture du suivi',
-            );
-        },
+        onSuivi: openSuivi,
     });
 
     const trajetsListScreen = createTrajetsListScreen({
@@ -70,25 +53,48 @@ function start(): void {
         run,
         onOpen: (id) => {
             lastOpenedSession.remember(id);
-            run(
-                goTo('editor', () => trajetEditor.show(id)),
-                'l’ouverture du trajet',
-            );
+            openEditor(id);
         },
     });
 
-    // Si iOS a tué la PWA en plein voyage, on rouvre directement le dernier trajet.
-    const lastTrajet = lastOpenedSession.restore();
-    if (lastTrajet !== null) {
-        run(
-            goTo('editor', () => trajetEditor.show(lastTrajet)),
-            'l’ouverture du dernier trajet',
+    function openSuivi(id: TrajetId): void {
+        // Un écran neuf par visite : il se range tout seul en étant détaché.
+        goToScreen(
+            createSuiviScreen({
+                repository,
+                realSource,
+                simulation,
+                coordonneeSelector,
+                screenWakeLock,
+                run,
+                trajetId: id,
+                onBack: () => {
+                    openEditor(id);
+                },
+            }),
         );
-    } else {
+    }
+
+    function openEditor(id: TrajetId): void {
+        run(
+            goTo('editor', () => trajetEditor.show(id)),
+            'l’ouverture du trajet',
+        );
+    }
+
+    function openList(): void {
         run(
             goTo('list', () => trajetsListScreen.show()),
             'la lecture de la liste',
         );
+    }
+
+    // Si iOS a tué la PWA en plein voyage, on rouvre directement le dernier trajet.
+    const lastTrajet = lastOpenedSession.restore();
+    if (lastTrajet !== null) {
+        openEditor(lastTrajet);
+    } else {
+        openList();
     }
 }
 

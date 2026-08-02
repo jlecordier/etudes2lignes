@@ -8,6 +8,11 @@
         <title>Etudes2Lignes — Suivi de schémas de ligne</title>
     </head>
     <body>
+        <!-- Les écrans-éléments se montent ici : en attacher un détache le
+             précédent, ce qui suffit à le ranger. Les <section> ci-dessous sont
+             les écrans pas encore convertis. -->
+        <main id="app"></main>
+
         <section id="screen-list" class="screen">
             <header class="header">
                 <h1>Mes trajets</h1>
@@ -63,25 +68,6 @@
                  au tactile, où le clic droit n'existe pas. -->
             <button id="floating-add-point-button" type="button" class="floating-add-point-button">
                 📍 Ajouter un point
-            </button>
-        </section>
-
-        <section id="screen-suivi" class="screen screen-suivi" hidden>
-            <div class="suivi-bar">
-                <button id="leave-suivi-button" type="button" class="secondary">🔙 Éditer</button>
-                <span id="suivi-status" class="suivi-status"></span>
-                <button id="simuler-button" type="button" class="secondary">🧪 Simuler</button>
-                <p id="simulation-banner" class="simulation-banner" hidden>
-                    Position simulée —
-                    <button id="leave-simulation-button" type="button" class="secondary">
-                        🚪 Quitter
-                    </button>
-                </p>
-            </div>
-            <div id="suivi-stack" class="suivi-stack"></div>
-            <div class="guide-line" aria-hidden="true"></div>
-            <button id="resume-button" type="button" class="resume-button" hidden>
-                ▶️ Reprendre le suivi
             </button>
         </section>
 
