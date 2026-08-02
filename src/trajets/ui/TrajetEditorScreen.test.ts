@@ -197,7 +197,7 @@ describe('trajet-editor-screen', () => {
             // Le document se lit de bas en haut : la dernière page du voyage
             // s'affiche en haut de la pile.
             expect(pagesAffichees(element)).toEqual(['p3.png', 'p2.png', 'p1.png']);
-            expect(element.querySelectorAll('.point-row')).toHaveLength(1);
+            expect(element.querySelectorAll('point-row')).toHaveLength(1);
         });
 
         it('alors la carte est montée sur le conteneur que l’écran vient de créer', async () => {

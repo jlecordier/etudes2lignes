@@ -25,7 +25,7 @@ test.describe('Géoréférencement des points', () => {
         await expect(page.locator('.point-description')).toHaveText(
             /^Point 1 — page-1\.png à 2[4-6] % — -?\d+\.\d{4}, -?\d+\.\d{4}$/,
         );
-        await expect(page.locator('.point-marker')).toHaveCount(1);
+        await expect(page.locator('point-marker')).toHaveCount(1);
     });
 
     test('Étant donné un point, quand je le déplace sur l’image, alors sa hauteur change sans ouvrir la carte', async ({
@@ -53,7 +53,7 @@ test.describe('Géoréférencement des points', () => {
         await ajouterUnPoint(page, 0.25);
 
         await page
-            .locator('.point-marker')
+            .locator('point-marker')
             .getByRole('button', { name: "Déplacer le point 1 sur l'image" })
             .click();
         await cliquerSurLImage(page, 0.75);
@@ -89,7 +89,7 @@ test.describe('Géoréférencement des points', () => {
         const before = (await page.locator('.point-description').textContent()) ?? '';
 
         await page
-            .locator('.point-marker')
+            .locator('point-marker')
             .getByRole('button', { name: 'Déplacer le point 1 sur la carte' })
             .click();
         await choisirUneCoordonneePourUnPoint(page, 150);
@@ -110,7 +110,7 @@ test.describe('Géoréférencement des points', () => {
             .click();
 
         await expect(page.locator('.point-description')).toHaveCount(0);
-        await expect(page.locator('.point-marker')).toHaveCount(0);
+        await expect(page.locator('point-marker')).toHaveCount(0);
     });
 
     test('Étant donné un point, quand je le supprime via le bouton flottant sur le marqueur, alors liste et marqueur disparaissent sans point parasite ajouté', async ({
@@ -121,14 +121,14 @@ test.describe('Géoréférencement des points', () => {
 
         page.once('dialog', (dialog) => void dialog.accept());
         await page
-            .locator('.point-marker')
+            .locator('point-marker')
             .getByRole('button', { name: 'Supprimer le point 1' })
             .click();
 
         // Le bouton flottant est posé sur la zone cliquable de l'image : sans
         // stopPropagation, ce clic remonterait et ajouterait un point parasite.
         await expect(page.locator('.point-description')).toHaveCount(0);
-        await expect(page.locator('.point-marker')).toHaveCount(0);
+        await expect(page.locator('point-marker')).toHaveCount(0);
     });
 
     test('Étant donné une image, quand je fais un clic droit dessus, alors un point est ajouté directement à cet endroit puis la coordonnée se choisit sur la carte', async ({
@@ -143,7 +143,7 @@ test.describe('Géoréférencement des points', () => {
         await expect(page.locator('.point-description')).toHaveText(
             /^Point 1 — page-1\.png à (5[8-9]|6[0-2]) % — -?\d+\.\d{4}, -?\d+\.\d{4}$/,
         );
-        await expect(page.locator('.point-marker')).toHaveCount(1);
+        await expect(page.locator('point-marker')).toHaveCount(1);
     });
 
     test('Étant donné un long défilement dans la page, quand j’ajoute un point via le bouton flottant, alors il reste accessible sans remonter en haut et le point est créé', async ({
@@ -174,7 +174,7 @@ test.describe('Géoréférencement des points', () => {
         await choisirUneCoordonneePourUnPoint(page);
 
         await expect(page.locator('.point-description')).toHaveCount(1);
-        await expect(page.locator('.point-marker')).toHaveCount(1);
+        await expect(page.locator('point-marker')).toHaveCount(1);
     });
 
     test('Étant donné le choix sur carte, quand je saisis latitude et longitude à la main, alors le point est créé avec ces valeurs', async ({

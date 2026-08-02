@@ -107,7 +107,8 @@ button.danger {
     font-size: 0.875rem;
 }
 
-.image-frame {
+image-frame {
+    display: block;
     margin-top: 1rem;
 }
 
@@ -129,7 +130,7 @@ button.danger {
 
 /* La géométrie de l'image vit dans le shadow root de `schema-page` ; l'éditeur
    n'ajoute que sa décoration, sur l'hôte. */
-.image-frame schema-page {
+image-frame schema-page {
     border: 1px solid #e5e7eb;
 }
 
@@ -159,7 +160,8 @@ button.danger {
     cursor: crosshair;
 }
 
-.point-marker {
+point-marker {
+    display: block;
     position: absolute;
     left: 0;
     right: 0;
@@ -301,7 +303,7 @@ trajet-editor-screen {
     gap: 0.5rem;
 }
 
-.point-row {
+point-row {
     display: flex;
     align-items: center;
     gap: 0.5rem;

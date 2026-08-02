@@ -1,16 +1,17 @@
 import type { CarteDesPoints, DisplayedPoint } from '../../carte/ports/CarteDesPointsPort';
 import type { CoordonneeSelector } from '../../carte/ports/CoordonneeSelectorPort';
 import { query } from '../../shared/dom';
-import { createButton, type Button } from '../../shared/elements';
 import { createQueue } from '../../shared/queue';
 import type { Run } from '../../shared/runner';
-import { createSchemaPage } from '../../shared/SchemaPage';
 import { defineScreen } from '../../shared/screen';
 import type { Coordonnee } from '../domain/Coordonnee';
-import { FractionVerticale } from '../domain/FractionVerticale';
+import type { FractionVerticale } from '../domain/FractionVerticale';
 import type { ImageDeTrajet, ImageFile, Point, Trajet } from '../domain/Trajet';
 import type { ImageId, PointId, TrajetId } from '../domain/ids';
 import type { TrajetRepository } from '../ports/TrajetRepository';
+import { createImageFrame } from './ImageFrame';
+import type { PageAimIntent } from './intents';
+import { createPointRow } from './PointRow';
 import html from './TrajetEditorScreen.html?raw';
 
 export interface TrajetEditorDependencies {
@@ -58,7 +59,7 @@ function mount(
     const { repository, coordonneeSelector, carteDesPoints, run, trajetId, onBack, onSuivi } =
         dependencies;
     const title = query('#trajet-title', HTMLHeadingElement, root);
-    const pointsList = query('#points-list', HTMLOListElement, root);
+    const pointsList = query('#points-list', HTMLDivElement, root);
     const hintBanner = query('#placement-hint', HTMLParagraphElement, root);
     const hintText = query('#hint-text', HTMLSpanElement, root);
     const addImagesButton = query('#add-images-button', HTMLButtonElement, root);
@@ -112,6 +113,59 @@ function mount(
         () => {
             changeMode(null);
             carteDesPoints.cancelChoice();
+        },
+        { signal },
+    );
+
+    // Les fragments de l'écran annoncent, l'écran décide. Un seul jeu
+    // d'écouteurs, posé sur la racine : les intentions y remontent, quel que
+    // soit le nombre de pages et de points affichés.
+    root.addEventListener(
+        'click-page',
+        (event) => {
+            run(onImageClick(event.detail), 'le placement du point');
+        },
+        { signal },
+    );
+    root.addEventListener(
+        'right-click-page',
+        (event) => {
+            run(onImageRightClick(event.detail), 'l’ajout du point');
+        },
+        { signal },
+    );
+    root.addEventListener(
+        'move-image',
+        (event) => {
+            movePage(event.detail.imageId, event.detail.direction);
+        },
+        { signal },
+    );
+    root.addEventListener(
+        'delete-image',
+        (event) => {
+            deleteImage(event.detail.imageId);
+        },
+        { signal },
+    );
+    root.addEventListener(
+        'move-point-on-image',
+        (event) => {
+            changeMode({ type: 'deplacement', pointId: event.detail.pointId });
+        },
+        { signal },
+    );
+    root.addEventListener(
+        'move-point-on-carte',
+        (event) => {
+            run(movePointOnCarte(event.detail.pointId), 'le déplacement du point');
+        },
+        { signal },
+    );
+    root.addEventListener(
+        'delete-point',
+        (event) => {
+            deletePoint(event.detail.pointId, event.detail.number);
         },
         { signal },
     );
@@ -230,11 +284,13 @@ function mount(
         return pages;
     }
 
-    function deleteImage(image: ImageDeTrajet): void {
-        if (trajet === null) {
+    function deleteImage(imageId: ImageId): void {
+        const currentTrajet = trajet;
+        if (currentTrajet === null) {
             return;
         }
-        const pointCount = trajet.pointsOfImage(image.id).length;
+        const image = trajetImage(currentTrajet, imageId);
+        const pointCount = currentTrajet.pointsOfImage(imageId).length;
         const confirme = confirm(
             `Supprimer « ${image.nom} » ? ${String(pointCount)} point(s) seront supprimés avec elle.`,
         );
@@ -242,8 +298,8 @@ function mount(
             return;
         }
         run(
-            applyToTrajetAndSave((currentTrajet) => {
-                currentTrajet.deleteImage(image.id);
+            applyToTrajetAndSave((trajetToUpdate) => {
+                trajetToUpdate.deleteImage(imageId);
             }),
             'la suppression de la page',
         );
@@ -251,42 +307,32 @@ function mount(
 
     // --- Points ---------------------------------------------------------------
 
-    async function onImageClick(
-        image: ImageDeTrajet,
-        area: HTMLElement,
-        clientY: number,
-    ): Promise<void> {
+    async function onImageClick({ imageId, fraction }: PageAimIntent): Promise<void> {
         if (placementMode === null) {
             return;
         }
-        const fraction = fractionFromPosition(area, clientY);
         const mode = placementMode;
         changeMode(null);
 
         if (mode.type === 'deplacement') {
             await applyToTrajetAndSave((currentTrajet) => {
-                currentTrajet.movePointOnImage(mode.pointId, image.id, fraction);
+                currentTrajet.movePointOnImage(mode.pointId, imageId, fraction);
             });
             return;
         }
-        await addPointAtFraction(image, fraction);
+        await addPointAtFraction(imageId, fraction);
     }
 
     // Clic droit : raccourci qui place directement un point à l'emplacement
     // visé (sans passer par le bouton « Ajouter un point ») et enchaîne
     // aussitôt sur le choix de la coordonnée.
-    async function onImageRightClick(
-        image: ImageDeTrajet,
-        area: HTMLElement,
-        clientY: number,
-    ): Promise<void> {
-        const fraction = fractionFromPosition(area, clientY);
+    async function onImageRightClick({ imageId, fraction }: PageAimIntent): Promise<void> {
         changeMode(null);
-        await addPointAtFraction(image, fraction);
+        await addPointAtFraction(imageId, fraction);
     }
 
     async function addPointAtFraction(
-        image: ImageDeTrajet,
+        imageId: ImageId,
         fraction: FractionVerticale,
     ): Promise<void> {
         const coordonnee = await chooseCoordonnee(null);
@@ -294,7 +340,7 @@ function mount(
             return;
         }
         await applyToTrajetAndSave((currentTrajet) => {
-            currentTrajet.addPoint({ imageId: image.id, fraction, coordonnee });
+            currentTrajet.addPoint({ imageId, fraction, coordonnee });
         });
     }
 
@@ -320,28 +366,27 @@ function mount(
         }
     }
 
-    function fractionFromPosition(area: HTMLElement, clientY: number): FractionVerticale {
-        const frame = area.getBoundingClientRect();
-        return FractionVerticale.fromHeight(clientY - frame.top, frame.height);
-    }
-
-    async function movePointOnCarte(point: Point): Promise<void> {
-        const coordonnee = await chooseCoordonnee(point.coordonnee);
+    async function movePointOnCarte(pointId: PointId): Promise<void> {
+        const currentTrajet = trajet;
+        if (currentTrajet === null) {
+            return;
+        }
+        const coordonnee = await chooseCoordonnee(trajetPoint(currentTrajet, pointId).coordonnee);
         if (coordonnee === null) {
             return;
         }
-        await applyToTrajetAndSave((currentTrajet) => {
-            currentTrajet.movePointOnCarte(point.id, coordonnee);
+        await applyToTrajetAndSave((trajetToUpdate) => {
+            trajetToUpdate.movePointOnCarte(pointId, coordonnee);
         });
     }
 
-    function deletePoint(point: Point, number: number): void {
+    function deletePoint(pointId: PointId, number: number): void {
         if (!confirm(`Supprimer le point ${String(number)} ?`)) {
             return;
         }
         run(
             applyToTrajetAndSave((currentTrajet) => {
-                currentTrajet.deletePoint(point.id);
+                currentTrajet.deletePoint(pointId);
             }),
             'la suppression du point',
         );
@@ -373,11 +418,29 @@ function mount(
         // La pile s'affiche comme le document se lit (de bas en haut) : la
         // première page du voyage tout en bas, la dernière tout en haut.
         pagesContainer.replaceChildren(
-            ...currentTrajet.imagesInReadingOrder().map((image) => imageFrame(image, numbers)),
+            ...currentTrajet.imagesInReadingOrder().map((image) =>
+                createImageFrame({
+                    page: image,
+                    imageId: image.id,
+                    markers: numbers
+                        .filter(({ point }) => point.imageId === image.id)
+                        .map(({ point, number }) => ({
+                            pointId: point.id,
+                            number,
+                            fraction: point.fraction.value,
+                        })),
+                }),
+            ),
         );
 
         pointsList.replaceChildren(
-            ...numbers.map(({ point, number }) => pointRow(currentTrajet, point, number)),
+            ...numbers.map(({ point, number }) =>
+                createPointRow({
+                    pointId: point.id,
+                    number,
+                    description: pointDescription(currentTrajet, point, number),
+                }),
+            ),
         );
 
         carteDesPoints.show(pointsForCarte(numbers), (pointId, coordonnee) => {
@@ -392,78 +455,16 @@ function mount(
         });
     }
 
-    function imageFrame(
-        image: ImageDeTrajet,
-        numbers: readonly { point: Point; number: number }[],
-    ): HTMLElement {
-        const frame = document.createElement('div');
-        frame.className = 'image-frame';
-
-        const bar = document.createElement('div');
-        bar.className = 'image-bar';
-        const nom = document.createElement('span');
-        nom.className = 'image-name';
-        nom.textContent = image.nom;
-        bar.append(nom, ...pageButtons(image).map(createButton));
-
-        const area = document.createElement('div');
-        area.className = 'image-area';
-        area.append(createSchemaPage(image));
-        for (const { point, number } of numbers) {
-            if (point.imageId === image.id) {
-                area.append(pointMarker(point, number));
-            }
-        }
-        area.addEventListener('click', (event) => {
-            run(onImageClick(image, area, event.clientY), 'le placement du point');
-        });
-        // Le menu contextuel natif du navigateur est remplacé par l'ajout direct du point.
-        area.addEventListener('contextmenu', (event) => {
-            event.preventDefault();
-            run(onImageRightClick(image, area, event.clientY), 'l’ajout du point');
-        });
-
-        frame.append(bar, area);
-        return frame;
-    }
-
     /**
      * La pile étant affichée dans l'ordre inverse du voyage (première page en
      * bas), monter une page à l'écran la fait **avancer** dans le voyage. Les
-     * méthodes de l'agrégat portent le nom du voyage, les intitulés celui de
-     * l'écran : l'équivalence est écrite ici, une fois.
+     * intitulés parlent de l'écran, l'agrégat parle du voyage : `<image-frame>`
+     * traduit l'un en l'autre, et il ne reste ici que l'intention.
      */
-    function pageButtons(image: ImageDeTrajet): Button[] {
-        return [
-            {
-                text: '🔼',
-                ariaLabel: `Monter ${image.nom}`,
-                action: () => {
-                    movePage(image.id, 'avancer');
-                },
-            },
-            {
-                text: '🔽',
-                ariaLabel: `Descendre ${image.nom}`,
-                action: () => {
-                    movePage(image.id, 'reculer');
-                },
-            },
-            {
-                text: '🗑️ Supprimer',
-                ariaLabel: `Supprimer ${image.nom}`,
-                action: () => {
-                    deleteImage(image);
-                },
-                danger: true,
-            },
-        ];
-    }
-
-    function movePage(imageId: ImageId, sens: 'avancer' | 'reculer'): void {
+    function movePage(imageId: ImageId, direction: 'forward' | 'backward'): void {
         run(
             applyToTrajetAndSave((currentTrajet) => {
-                if (sens === 'avancer') {
+                if (direction === 'forward') {
                     currentTrajet.moveImageForwardInVoyage(imageId);
                 } else {
                     currentTrajet.moveImageBackwardInVoyage(imageId);
@@ -472,72 +473,15 @@ function mount(
             'le déplacement de la page',
         );
     }
+}
 
-    function pointRow(currentTrajet: Trajet, point: Point, number: number): HTMLLIElement {
-        const image = trajetImage(currentTrajet, point.imageId);
-        const row = document.createElement('li');
-        row.className = 'point-row';
-
-        const description = document.createElement('span');
-        description.className = 'point-description';
-        description.textContent =
-            `Point ${String(number)} — ${image.nom} à ${String(Math.round(point.fraction.value * 100))} % — ` +
-            `${point.coordonnee.latitude.toFixed(4)}, ${point.coordonnee.longitude.toFixed(4)}`;
-
-        row.append(description, ...pointActions(point, number).map(createButton));
-        return row;
-    }
-
-    function pointMarker(point: Point, number: number): HTMLElement {
-        const marker = document.createElement('div');
-        marker.className = 'point-marker';
-        marker.style.top = `${String(point.fraction.value * 100)}%`;
-
-        const etiquette = document.createElement('span');
-        etiquette.className = 'point-number';
-        etiquette.textContent = String(number);
-
-        // Boutons flottants : les mêmes actions que la liste, mais directement sur
-        // l'image, pour ne pas avoir à remonter en haut de la page à chaque point.
-        const actions = document.createElement('div');
-        actions.className = 'point-actions';
-        actions.append(
-            ...pointActions(point, number).map((action) =>
-                createButton({ ...action, variant: 'floating' }),
-            ),
-        );
-
-        marker.append(etiquette, actions);
-        return marker;
-    }
-
-    /** Les trois actions possibles sur un point, partagées entre la liste et les boutons flottants. */
-    function pointActions(point: Point, number: number): Button[] {
-        return [
-            {
-                text: "🖼️ Sur l'image",
-                ariaLabel: `Déplacer le point ${String(number)} sur l'image`,
-                action: () => {
-                    changeMode({ type: 'deplacement', pointId: point.id });
-                },
-            },
-            {
-                text: '🗺️ Sur la carte',
-                ariaLabel: `Déplacer le point ${String(number)} sur la carte`,
-                action: () => {
-                    run(movePointOnCarte(point), 'le déplacement du point');
-                },
-            },
-            {
-                text: '🗑️ Supprimer',
-                ariaLabel: `Supprimer le point ${String(number)}`,
-                action: () => {
-                    deletePoint(point, number);
-                },
-                danger: true,
-            },
-        ];
-    }
+/** La phrase que lit l'utilisateur pour un point : sa page, sa hauteur, son lieu. */
+function pointDescription(trajet: Trajet, point: Point, number: number): string {
+    const image = trajetImage(trajet, point.imageId);
+    return (
+        `Point ${String(number)} — ${image.nom} à ${String(Math.round(point.fraction.value * 100))} % — ` +
+        `${point.coordonnee.latitude.toFixed(4)}, ${point.coordonnee.longitude.toFixed(4)}`
+    );
 }
 
 /**
@@ -564,6 +508,15 @@ function trajetImage(trajet: Trajet, imageId: string): ImageDeTrajet {
         throw new Error(`Incohérence : la page ${imageId} n'appartient pas au trajet.`);
     }
     return image;
+}
+
+/** Même garde pour un point : l'écran ne montre que ce que l'agrégat contient. */
+function trajetPoint(trajet: Trajet, pointId: PointId): Point {
+    const point = trajet.points.find((candidate) => candidate.id === pointId);
+    if (point === undefined) {
+        throw new Error(`Incohérence : le point ${pointId} n'appartient pas au trajet.`);
+    }
+    return point;
 }
 
 async function imageDimensions(file: File): Promise<{ largeur: number; hauteur: number }> {

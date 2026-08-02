@@ -21,7 +21,11 @@
 <div class="editor-body">
     <div id="carte-points" class="carte-points"></div>
     <div class="images-column">
-        <ol id="points-list" class="points-list"></ol>
+        <!-- `role="list"` plutôt qu'un <ol> : ses lignes sont des custom
+             elements, qui ne peuvent pas être des <li> (les éléments intégrés
+             personnalisés n'arriveront pas, WebKit s'y refuse). Le rôle rend la
+             sémantique que la balise ne peut plus porter. -->
+        <div id="points-list" class="points-list" role="list"></div>
         <div id="images-stack"></div>
     </div>
 </div>
