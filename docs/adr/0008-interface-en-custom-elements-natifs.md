@@ -65,7 +65,7 @@ pas une bibliothèque distribuée.
   URL d'objet, les sources de position, le verrou d'écran et les écouteurs se
   libèrent au détachement, sans appel à ne pas oublier.
 - ➕ Les écrans se testent en jsdom avec les fakes existants : le dossier `ui/`
-  passe de zéro test à vingt-deux.
+  passe de zéro test à vingt-cinq.
 - ➕ Le balisage redevient du HTML : plus un seul `document.createElement` dans
   les écrans.
 - ➖ Un custom element est `inline` par défaut. Chaque élément doit poser son
