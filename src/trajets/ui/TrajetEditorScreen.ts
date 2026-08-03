@@ -1,8 +1,9 @@
 import type { CarteDesPoints, DisplayedPoint } from '../../carte/ports/CarteDesPointsPort';
 import type { CoordonneeSelector } from '../../carte/ports/CoordonneeSelectorPort';
-import { query } from '../../shared/dom';
+import { query, queryAll } from '../../shared/dom';
 import { createQueue } from '../../shared/queue';
 import type { Run } from '../../shared/runner';
+import { SchemaPageElement, createSchemaPage } from '../../shared/SchemaPage';
 import { defineScreen } from '../../shared/screen';
 import type { Coordonnee } from '../domain/Coordonnee';
 import type { FractionVerticale } from '../domain/FractionVerticale';
@@ -415,13 +416,20 @@ function mount(
         title.textContent = currentTrajet.nom.value;
         const numbers = currentTrajet.numberedPointsInOrdreDuVoyage();
 
+        // Les pages déjà montées sont **reprises**, pas refaites : chaque écriture
+        // reconstruit les cadres et les repères, mais une image inchangée garde
+        // son élément, donc son URL d'objet, donc son décodage. Sans cela,
+        // déplacer un marqueur faisait redécoder tout le schéma.
+        const montees = displayedPages();
+
         // La pile s'affiche comme le document se lit (de bas en haut) : la
         // première page du voyage tout en bas, la dernière tout en haut.
         pagesContainer.replaceChildren(
             ...currentTrajet.imagesInReadingOrder().map((image) =>
                 createImageFrame({
-                    page: image,
+                    schemaPage: montees.get(image.id) ?? createSchemaPage(image),
                     imageId: image.id,
+                    nom: image.nom,
                     markers: numbers
                         .filter(({ point }) => point.imageId === image.id)
                         .map(({ point, number }) => ({
@@ -453,6 +461,20 @@ function mount(
                 'le déplacement du point',
             );
         });
+    }
+
+    /**
+     * Les pages actuellement montées, par identifiant. Relues du DOM à chaque
+     * rendu : c'est le document qui dit ce qui est affiché, jamais un cache
+     * tenu à côté et qui pourrait mentir.
+     */
+    function displayedPages(): Map<string, SchemaPageElement> {
+        return new Map(
+            queryAll('schema-page', SchemaPageElement, pagesContainer).map((page) => [
+                page.pageId,
+                page,
+            ]),
+        );
     }
 
     /**

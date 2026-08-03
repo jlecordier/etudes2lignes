@@ -132,9 +132,27 @@ let echecs: string[];
 let run: Run;
 let retours: number;
 let suivis: number;
+let urlsCreees: string[];
+let urlsLiberees: string[];
 
-beforeEach(() => {
+beforeEach(async () => {
+    // Vider la scène **avant** de remettre les compteurs à zéro : les pages du
+    // test précédent libèrent leurs URL à la microtâche suivant leur
+    // détachement, et compteraient sinon dans le test qui commence.
     document.body.replaceChildren();
+    await laisserLesPromessesSAchever();
+    // jsdom n'a pas d'URL d'objet : on en pose une à la main, et le test lit
+    // ainsi exactement ce que l'écran fait décoder — ou ne fait pas redécoder.
+    urlsCreees = [];
+    urlsLiberees = [];
+    URL.createObjectURL = () => {
+        const url = `blob:page-${String(urlsCreees.length + 1)}`;
+        urlsCreees.push(url);
+        return url;
+    };
+    URL.revokeObjectURL = (url: string) => {
+        urlsLiberees.push(url);
+    };
     repository = new FakeTrajetRepository(trajetDeTroisPages);
     carteDesPoints = new FakeCarteDesPoints();
     echecs = [];
@@ -242,6 +260,33 @@ describe('trajet-editor-screen', () => {
             await laisserLesPromessesSAchever();
 
             expect(pagesAffichees(element)).toEqual(['p3.png', 'p1.png', 'p2.png']);
+        });
+    });
+
+    describe('Étant donné trois pages affichées, quand l’écran rend à nouveau', () => {
+        it('alors aucune page inchangée n’est redécodée', async () => {
+            const element = await attacherLEcran();
+            expect(urlsCreees).toHaveLength(3);
+
+            // Un déplacement réordonne la pile : les cadres et les repères sont
+            // refaits, les images non.
+            monter(element, 'p1.png');
+            await laisserLesPromessesSAchever();
+
+            expect(urlsCreees).toHaveLength(3);
+            expect(urlsLiberees).toEqual([]);
+            expect(pagesAffichees(element)).toEqual(['p3.png', 'p1.png', 'p2.png']);
+        });
+
+        it('alors les pages gardent leurs éléments, donc leur décodage', async () => {
+            const element = await attacherLEcran();
+            const avant = [...element.querySelectorAll('schema-page')];
+
+            monter(element, 'p1.png');
+            await laisserLesPromessesSAchever();
+
+            const apres = [...element.querySelectorAll('schema-page')];
+            expect(new Set(apres)).toEqual(new Set(avant));
         });
     });
 

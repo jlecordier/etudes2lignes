@@ -1,6 +1,6 @@
 import { query } from '../../shared/dom';
 import { createButton, type Button } from '../../shared/elements';
-import { createSchemaPage, type DisplayablePage } from '../../shared/SchemaPage';
+import type { SchemaPageElement } from '../../shared/SchemaPage';
 import { createTemplate } from '../../shared/template';
 import { FractionVerticale } from '../domain/FractionVerticale';
 import type { ImageId } from '../domain/ids';
@@ -9,10 +9,17 @@ import { createPointMarker, type DisplayedMarker } from './PointMarker';
 
 import html from './ImageFrame.html?raw';
 
-/** Une page du schéma telle que l'éditeur l'habille : sa barre et ses repères. */
+/**
+ * Une page du schéma telle que l'éditeur l'habille : sa barre et ses repères.
+ *
+ * Le cadre reçoit la page **déjà montée** au lieu de la fabriquer : c'est ce qui
+ * permet à l'écran de rendre à nouveau sans faire redécoder une image que rien
+ * n'a changée — une page de schéma pèse une trentaine de mégaoctets.
+ */
 export interface FramedPage {
-    readonly page: DisplayablePage;
+    readonly schemaPage: SchemaPageElement;
     readonly imageId: ImageId;
+    readonly nom: string;
     readonly markers: readonly DisplayedMarker[];
 }
 
@@ -27,13 +34,13 @@ export function createImageFrame(framed: FramedPage): ImageFrameElement {
     const element = new ImageFrameElement();
     element.append(content());
 
-    query('.image-name', HTMLSpanElement, element).textContent = framed.page.nom;
+    query('.image-name', HTMLSpanElement, element).textContent = framed.nom;
     query('.image-bar', HTMLDivElement, element).append(
         ...pageButtons(element, framed).map(createButton),
     );
 
     const area = query('.image-area', HTMLDivElement, element);
-    area.append(createSchemaPage(framed.page));
+    area.append(framed.schemaPage);
     area.append(...framed.markers.map(createPointMarker));
 
     area.addEventListener('click', (event) => {
@@ -61,7 +68,7 @@ export function createImageFrame(framed: FramedPage): ImageFrameElement {
  * ici, une fois.
  */
 function pageButtons(host: HTMLElement, framed: FramedPage): Button[] {
-    const { nom } = framed.page;
+    const { nom } = framed;
     return [
         {
             text: '🔼',
