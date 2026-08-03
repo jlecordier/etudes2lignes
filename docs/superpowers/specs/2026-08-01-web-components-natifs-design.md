@@ -4,6 +4,16 @@ Les écrans et les fragments d'interface deviennent des **custom elements**. Le
 navigateur reprend à sa charge le cycle de vie que les écrans tiennent
 aujourd'hui à la main, et les gabarits redeviennent du HTML.
 
+> **Document historique.** La décision retenue et ses arbitrages sont consignés
+> dans l'[ADR 0008](../../adr/0008-interface-en-custom-elements-natifs.md), qui
+> fait foi. Deux choses ont divergé à l'exécution :
+>
+> - le **lot 3 s'est scindé en deux** commits — l'écran d'édition et le cycle de
+>   vie de la carte d'abord, les trois feuilles ensuite ;
+> - `defineScreen` (`src/shared/screen.ts`) n'était pas prévu. Les coquilles des
+>   deux premiers écrans se sont révélées identiques à la ligne près, et fallow
+>   l'a signalé comme duplication avant qu'on ne l'écrive une troisième fois.
+
 ## Constat
 
 L'interface est en DOM natif ([ADR 0001](../../adr/0001-hexagone-sans-framework.md)),
