@@ -37,15 +37,19 @@ techniques récurrents.
 
 ## Architecture
 
-| Terme                      | Définition                                                                                                                                     |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Hexagone**               | Un module métier = `domain/` (pur) + `ports/` (interfaces) + `adapters/` (implémentations en bordure) + `ui/` (écrans DOM, adapters entrants). |
-| **Screaming architecture** | Le premier niveau de `src/` nomme le métier (`trajets/`, `suivi/`, `carte/`), pas la technique.                                                |
-| **Domaine**                | Logique métier pure : zéro import plateforme, testable sans navigateur.                                                                        |
-| **Port**                   | Interface TypeScript définie par le métier (ex. `TrajetRepository`, `PositionSource`).                                                         |
-| **Adapter**                | Implémentation d'un port en bordure (ex. `IdbTrajetRepository`, `GeolocationPositionSource`).                                                  |
-| **Composition root**       | `src/main.ts` : le **seul** fichier qui instancie les adapters concrets et les injecte (à la main, sans framework).                            |
-| **Règle de dépendance**    | `domain` ne dépend de rien ; `ports` du domaine seul ; `adapters`/`ui` des ports + domaine ; seul `main.ts` connaît le concret.                |
+| Terme                      | Définition                                                                                                                                                                 |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Hexagone**               | Un module métier = `domain/` (pur) + `ports/` (interfaces) + `adapters/` (implémentations en bordure) + `ui/` (écrans DOM, adapters entrants).                             |
+| **Screaming architecture** | Le premier niveau de `src/` nomme le métier (`trajets/`, `suivi/`, `carte/`), pas la technique.                                                                            |
+| **Domaine**                | Logique métier pure : zéro import plateforme, testable sans navigateur.                                                                                                    |
+| **Port**                   | Interface TypeScript définie par le métier (ex. `TrajetRepository`, `PositionSource`).                                                                                     |
+| **Adapter**                | Implémentation d'un port en bordure (ex. `IdbTrajetRepository`, `GeolocationPositionSource`).                                                                              |
+| **Composition root**       | `src/main.ts` : le **seul** fichier qui instancie les adapters concrets et les injecte (à la main, sans framework).                                                        |
+| **Règle de dépendance**    | `domain` ne dépend de rien ; `ports` du domaine seul ; `adapters`/`ui` des ports + domaine ; seul `main.ts` connaît le concret.                                            |
+| **Écran**                  | Un custom element monté dans `<main id="app">`. L'attacher détache le précédent ; le détachement range tout ([ADR 0008](adr/0008-interface-en-custom-elements-natifs.md)). |
+| **Feuille**                | Un fragment d'interface sans port ni domaine : données en entrée (propriétés), intentions en sortie (événements).                                                          |
+| **Intention**              | L'événement qu'une feuille émet pour dire ce que l'utilisateur veut. L'écran écoute et décide — la feuille n'agit jamais.                                                  |
+| **Gabarit**                | Le balisage d'un élément, dans un `.html` à côté de son `.ts`, importé en `?raw` et cloné.                                                                                 |
 
 ## Tests
 

@@ -43,6 +43,13 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
         // Rotation d'un iPad/téléphone : le conteneur change de taille sans
         // repasser par show() — Leaflet doit se remesurer tout de suite. Posé
         // sur `window`, cet écouteur ne partirait pas avec la carte sans le signal.
+        //
+        // Mutant survivant assumé : retirer `signal` ne fait échouer aucun test.
+        // Un écouteur qui survit à `unmount` n'a pas de conséquence observable
+        // par l'état — la carte démontée qu'il remesure ne se plaint pas — et le
+        // constater demanderait d'espionner `window.addEventListener`, ce que la
+        // démarche de test proscrit. Le seul témoin serait la mémoire d'une
+        // session longue, que rien ici ne mesure.
         window.addEventListener('resize', () => carte.invalidateSize(), {
             signal: teardown.signal,
         });

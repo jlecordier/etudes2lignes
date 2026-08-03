@@ -44,8 +44,21 @@ points into it instead of duplicating it. Claude Code specifics live in
   instantiates concrete adapters and injects them by hand (no DI framework).
 - The first level of `src/` names the **business** (`trajets/`, `suivi/`,
   `carte/`), not the tech.
-- `ui/` screens are **inbound adapters** (native DOM). No UI framework — ever
-  (see [ADR 0001](docs/adr/0001-hexagone-sans-framework.md)).
+- `ui/` screens are **inbound adapters** built as **native custom elements**
+  ([ADR 0008](docs/adr/0008-interface-en-custom-elements-natifs.md)). No UI
+  framework — ever (see [ADR 0001](docs/adr/0001-hexagone-sans-framework.md)):
+  custom elements, `<template>`, shadow DOM and `AbortController` are platform
+  APIs, and rendering stays explicit.
+    - A screen is **created, attached, detached**. `createXScreen(deps)` returns
+      a configured element; `goToScreen` mounts it into `<main id="app">`, which
+      detaches the previous one. Detaching aborts an `AbortSignal` — listeners
+      go, and teardown hangs off it. **There is no exit method to remember.**
+    - Markup lives in a `.html` file next to its `.ts`, imported with `?raw`.
+    - Leaves take **data as properties** and emit **intents as `CustomEvent`s**
+      (declared in `src/trajets/ui/intents.ts`); the screen listens once on its
+      root. A leaf never touches the aggregate or a port.
+    - Take the lifecycle only where a resource must be released — `<schema-page>`
+      owns its object URL; other leaves are built by their factory.
 - Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Vocabulary:
   [`docs/GLOSSAIRE.md`](docs/GLOSSAIRE.md).
 

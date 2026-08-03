@@ -238,6 +238,7 @@ describe('Carte des points de l’éditeur', () => {
             const { carteDesPoints, container, show, carte } = testBed();
             show([point(1, PARIS)]);
 
+            carte().setView([0, 0], 3, { animate: false });
             carteDesPoints.unmount();
             const nouveau = conteneurMesure();
             document.body.replaceChildren(nouveau);
@@ -252,6 +253,10 @@ describe('Carte des points de l’éditeur', () => {
             expect(markers(carte()).map((marker) => marker.getLatLng().lat)).toEqual([
                 BORDEAUX.latitude,
             ]);
+            // La carte neuve se recadre sur les points : le souvenir de ce qui
+            // était affiché est parti avec l'ancienne, sans quoi elle garderait
+            // le cadrage du conteneur précédent.
+            expect(carte().getCenter().lat).toBeCloseTo(BORDEAUX.latitude, 4);
         });
 
         it('alors se servir d’une carte démontée est refusé, en le disant', () => {

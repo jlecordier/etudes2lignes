@@ -197,11 +197,19 @@ function pagesAffichees(element: HTMLElement): string[] {
 }
 
 function monter(element: HTMLElement, nomDeLaPage: string): void {
+    cliquerLAction(element, `Monter ${nomDeLaPage}`);
+}
+
+function supprimer(element: HTMLElement, nomDeLaPage: string): void {
+    cliquerLAction(element, `Supprimer ${nomDeLaPage}`);
+}
+
+function cliquerLAction(element: HTMLElement, intitule: string): void {
     const bouton = queryAll('button', HTMLButtonElement, element).find(
-        (candidat) => candidat.getAttribute('aria-label') === `Monter ${nomDeLaPage}`,
+        (candidat) => candidat.getAttribute('aria-label') === intitule,
     );
     if (bouton === undefined) {
-        throw new Error(`Aucun bouton « Monter ${nomDeLaPage} » dans l’écran.`);
+        throw new Error(`Aucun bouton « ${intitule} » dans l’écran.`);
     }
     bouton.click();
 }
@@ -276,6 +284,21 @@ describe('trajet-editor-screen', () => {
             expect(urlsCreees).toHaveLength(3);
             expect(urlsLiberees).toEqual([]);
             expect(pagesAffichees(element)).toEqual(['p3.png', 'p1.png', 'p2.png']);
+        });
+
+        it('alors supprimer une page libère la sienne, et elle seule', async () => {
+            const element = await attacherLEcran();
+            window.confirm = () => true;
+
+            supprimer(element, 'p3.png');
+            await laisserLesPromessesSAchever();
+
+            // C'est tout l'enjeu du projet : une page décodée pèse une trentaine
+            // de mégaoctets, et rien ne la libère si son URL survit. Les deux
+            // autres, elles, ne doivent ni être libérées ni être refaites.
+            expect(urlsLiberees).toHaveLength(1);
+            expect(urlsCreees).toHaveLength(3);
+            expect(pagesAffichees(element)).toEqual(['p2.png', 'p1.png']);
         });
 
         it('alors les pages gardent leurs éléments, donc leur décodage', async () => {

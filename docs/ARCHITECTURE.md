@@ -14,7 +14,7 @@ src/
 
 Chaque capacité est un petit hexagone : `domain/` (logique pure), `ports/`
 (interfaces définies par le métier), `adapters/` (implémentations en bordure),
-`ui/` (écrans DOM — les adapters entrants).
+`ui/` (les écrans — des **custom elements natifs**, adapters entrants).
 
 **Règle de dépendance** : `domain` ne dépend de rien ; `ports` ne dépendent que
 du domaine ; `adapters` et `ui` dépendent des ports et du domaine ; seul
@@ -38,18 +38,56 @@ du domaine ; `adapters` et `ui` dépendent des ports et du domaine ; seul
 
 ## Les ports et leurs adapters
 
-| Port                 | Contrat                                                                                                     | Adapters                                                                              |
-| -------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `TrajetRepository`   | `listSummaries` / `charger` / `sauvegarder` (atomique) / `supprimer` ; **rejette** si la base est illisible | `IdbTrajetRepository` (IndexedDB via idb)                                             |
-| `PositionSource`     | `demarrer(onPosition, onStatus)` / `arreter()` — idempotent, redémarrable                                   | `GeolocationPositionSource` (GPS)                                                     |
-| `PositionSimulator`  | un `PositionSource` pilotable : `simuler(position)` + `lastPosition`                                        | `SimulationPositionSource` (position choisie à la main)                               |
-| `ScreenWakeLock`     | `maintenir()` / `relacher()`, best effort                                                                   | `BrowserScreenWakeLock` (wake lock)                                                   |
-| `Foreground`         | `onReturnToForeground(action) → désabonnement` / `isInForeground()`                                         | `BrowserForeground` (visibilitychange, pageshow, focus)                               |
-| `CoordonneeSelector` | `choisir(initial, reperes) → Coordonnee \| null`                                                            | `LeafletCoordonneeSelector` (Leaflet + OSM, plein écran)                              |
-| `CarteDesPoints`     | `afficher(points, onMove)` / `choisirUneCoordonnee(initial)` / `annulerLeChoix()`                           | `LeafletCarteDesPoints` (carte intégrée à l'éditeur, marqueurs numérotés déplaçables) |
+| Port                 | Contrat                                                                                                       | Adapters                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `TrajetRepository`   | `listSummaries` / `load` / `save` (atomique) / `delete` ; **rejette** si la base est illisible                | `IdbTrajetRepository` (IndexedDB via idb)                                             |
+| `PositionSource`     | `start(onPosition, onStatus)` / `stop()` — idempotent, redémarrable                                           | `GeolocationPositionSource` (GPS)                                                     |
+| `PositionSimulator`  | un `PositionSource` pilotable : `simulate(position)` + `lastPosition`                                         | `SimulationPositionSource` (position choisie à la main)                               |
+| `ScreenWakeLock`     | `acquire()` / `release()`, best effort                                                                        | `BrowserScreenWakeLock` (wake lock)                                                   |
+| `Foreground`         | `onReturnToForeground(action) → désabonnement` / `isInForeground()`                                           | `BrowserForeground` (visibilitychange, pageshow, focus)                               |
+| `CoordonneeSelector` | `choose(initial, reperes) → Coordonnee \| null`                                                               | `LeafletCoordonneeSelector` (Leaflet + OSM, plein écran)                              |
+| `CarteDesPoints`     | `mount(container)` / `unmount()` puis `show(points, onMove)` / `chooseCoordonnee(initial)` / `cancelChoice()` | `LeafletCarteDesPoints` (carte intégrée à l'éditeur, marqueurs numérotés déplaçables) |
+
+**Pourquoi la carte se monte et se démonte** : l'écran d'édition est fabriqué et
+détruit à chaque ouverture, donc son conteneur est un élément neuf à chaque fois.
+Une carte Leaflet mémorisée d'une visite à l'autre resterait accrochée au
+conteneur précédent, et la deuxième ouverture n'afficherait plus rien
+([ADR 0008](adr/0008-interface-en-custom-elements-natifs.md)).
 
 Les deux cartes honorent la coordonnée de départ : déplacer un point rouvre la
 carte là où il se trouve, quelle que soit la taille de l'écran.
+
+## L'interface : des custom elements natifs
+
+Détail et arbitrages : [ADR 0008](adr/0008-interface-en-custom-elements-natifs.md).
+En résumé, ce qu'il faut savoir pour travailler dedans :
+
+| Élément                  | Où                                 | Rôle                                                   |
+| ------------------------ | ---------------------------------- | ------------------------------------------------------ |
+| `<trajets-list-screen>`  | `trajets/ui/TrajetsListScreen.ts`  | écran d'accueil                                        |
+| `<trajet-editor-screen>` | `trajets/ui/TrajetEditorScreen.ts` | écran d'édition                                        |
+| `<suivi-screen>`         | `suivi/ui/SuiviScreen.ts`          | écran de suivi                                         |
+| `<trajet-row>`           | `trajets/ui/TrajetRow.ts`          | une ligne de la liste                                  |
+| `<image-frame>`          | `trajets/ui/ImageFrame.ts`         | une page et son habillage d'édition                    |
+| `<point-marker>`         | `trajets/ui/PointMarker.ts`        | le repère d'un point sur sa page                       |
+| `<point-row>`            | `trajets/ui/PointRow.ts`           | une ligne de la liste des points                       |
+| `<schema-page>`          | `shared/SchemaPage.ts`             | une page affichée, **propriétaire de son URL d'objet** |
+
+- **Un écran se fabrique, s'attache, se détache.** `createXScreen(dependencies)`
+  rend un élément déjà configuré ; `goToScreen` le monte dans `<main id="app">`,
+  ce qui détache le précédent. Le détachement avorte un `AbortSignal` : les
+  écouteurs partent, et le rangement (sources arrêtées, verrou relâché, carte
+  démontée) y est branché. Il n'y a **aucun appel de sortie** à ne pas oublier.
+- **Le gabarit est du HTML**, dans un `.html` à côté du `.ts`, importé en `?raw`.
+- **Données en entrée, intentions en sortie** : une feuille reçoit des propriétés
+  et émet des `CustomEvent` qui remontent (`trajets/ui/intents.ts` les déclare) ;
+  l'écran écoute une fois sur sa racine et décide. Une feuille ne touche ni
+  l'agrégat ni un port.
+- **Le cycle de vie ne se prend que là où il y a une ressource à rendre.**
+  `<schema-page>` monte son image à l'attachement et libère son URL au
+  détachement ; les autres feuilles se construisent à la fabrique.
+- **Le rendu reste explicite** (`render()`), mais ne rase plus : une page
+  inchangée garde son élément, donc son décodage — trente mégaoctets par page.
 
 **Un état mesuré, jamais une phrase** : `onStatus` transporte un `SourceStatus`
 du domaine (mètres, millisecondes) et c'est `suivi/domain/presentation.ts` qui
@@ -75,14 +113,14 @@ Exemple : rejouer une trace GPX enregistrée. Créer
   de l'image), `NomDeTrajet` (non vide), identifiants typés (`TrajetId`,
   `ImageId`, `PointId`).
 - **Agrégat `Trajet`** (racine) : images ordonnées + points, méthodes
-  d'intention (`ajouterImage`, `avancerImageDansLeVoyage`, `ajouterPoint`,
-  `deplacerPointSurCarte`…), pas de setters. Les déplacements d'image sont
-  nommés dans le langage du **voyage**, jamais dans celui de l'écran : la stack
+  d'intention (`addImage`, `moveImageForwardInVoyage`, `addPoint`,
+  `movePointOnCarte`…), pas de setters. Les déplacements d'image sont
+  nommés dans le langage du **voyage**, jamais dans celui de l'écran : la pile
   s'affichant à l'envers du voyage, un nom spatial (« monter ») désignerait
   l'opération inverse selon qu'on parle du document ou de l'affichage.
 - **Requêtes portées par la racine** plutôt que refaites par les appelants :
-  `imagesDansLOrdreDeLecture`, `pointsDeLImage`,
-  `pointsNumerotesDansLOrdreDuVoyage` — le numéro d'un point est un concept
+  `imagesInReadingOrder`, `pointsOfImage`,
+  `numberedPointsInOrdreDuVoyage` — le numéro d'un point est un concept
   visible par l'utilisateur, il n'a qu'un seul producteur.
 - **Invariants protégés par l'agrégat** :
     - un point référence toujours une image du trajet ;

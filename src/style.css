@@ -224,7 +224,7 @@ trajet-editor-screen {
 
 /* Carte des points + images : empilées sur mobile (carte au-dessus),
    côte à côte à partir de 900 px — un iPad en paysage passe le seuil,
-   en portrait non (même seuil dans EditeurTrajetScreen.ts). */
+   en portrait non (même seuil dans TrajetEditorScreen.ts). */
 .editor-body {
     display: flex;
     flex-direction: column;
@@ -392,7 +392,7 @@ suivi-screen {
     position: fixed;
     left: 0;
     right: 0;
-    /* La fraction vient du domaine (`FRACTION_D_ECRAN_DE_LA_POSITION`), posée
+    /* La fraction vient du domaine (`POSITION_VIEWPORT_FRACTION`), posée
        sur :root par l'écran de suivi : le repère ne peut plus mentir sur la
        position que le défilement vise réellement. */
     top: calc(var(--fraction-position, 0.75) * 100dvh);

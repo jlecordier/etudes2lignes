@@ -11,15 +11,17 @@ Légende : `U` = test unitaire (Vitest), `E` = test de bout en bout (Playwright)
 
 ## Trajets
 
-| #    | Exigence                                                                       | Vérifié par                                 |
-| ---- | ------------------------------------------------------------------------------ | ------------------------------------------- |
-| TR-1 | Créer, renommer, supprimer un trajet                                           | `E e2e/trajets.spec.ts`                     |
-| TR-2 | Un nom de trajet est non vide (sinon rejet)                                    | `U NomDeTrajet.test.ts`                     |
-| TR-3 | Les images sont ordonnées et réordonnables (▲/▼)                               | `U Trajet.test.ts`, `E e2e/editeur.spec.ts` |
-| TR-4 | Charger restitue nom, images (ordre, dimensions, content) et points            | `U IdbTrajetRepository.test.ts`             |
-| TR-5 | Un identifiant inconnu au chargement rend `null`                               | `U IdbTrajetRepository.test.ts`             |
-| TR-6 | Les résumés sont rendus du plus ancien au plus récent, avec les comptes        | `U IdbTrajetRepository.test.ts`             |
-| TR-7 | Un lot importé se lit sous les pages existantes, dans l'ordre de l'explorateur | `U Trajet.test.ts`, `E e2e/editeur.spec.ts` |
+| #    | Exigence                                                                                   | Vérifié par                                 |
+| ---- | ------------------------------------------------------------------------------------------ | ------------------------------------------- |
+| TR-1 | Créer, renommer, supprimer un trajet                                                       | `E e2e/trajets.spec.ts`                     |
+| TR-2 | Un nom de trajet est non vide (sinon rejet)                                                | `U NomDeTrajet.test.ts`                     |
+| TR-3 | Les images sont ordonnées et réordonnables (▲/▼)                                           | `U Trajet.test.ts`, `E e2e/editeur.spec.ts` |
+| TR-4 | Charger restitue nom, images (ordre, dimensions, content) et points                        | `U IdbTrajetRepository.test.ts`             |
+| TR-5 | Un identifiant inconnu au chargement rend `null`                                           | `U IdbTrajetRepository.test.ts`             |
+| TR-6 | Les résumés sont rendus du plus ancien au plus récent, avec les comptes                    | `U IdbTrajetRepository.test.ts`             |
+| TR-7 | Un lot importé se lit sous les pages existantes, dans l'ordre de l'explorateur             | `U Trajet.test.ts`, `E e2e/editeur.spec.ts` |
+| TR-8 | Une liste illisible explique la panne et laisse réessayer, sans message d'accueil trompeur | `U TrajetsListScreen.test.ts`               |
+| TR-9 | Une écriture refusée fait repartir l'écran de ce qui est réellement stocké                 | `U TrajetEditorScreen.test.ts`              |
 
 ## Géoréférencement
 
@@ -75,6 +77,21 @@ Légende : `U` = test unitaire (Vitest), `E` = test de bout en bout (Playwright)
 | ---- | ------------------------------------------------------------------------ | ------------------------------- |
 | HL-1 | Après une première visite, l'app fonctionne sans réseau (service worker) | `E e2e/horsligne.spec.ts`       |
 | HL-2 | Les données persistent localement entre sessions (IndexedDB)             | `U IdbTrajetRepository.test.ts` |
+
+## Cycle de vie des écrans
+
+Un écran vit le temps de son attachement au document
+([ADR 0008](adr/0008-interface-en-custom-elements-natifs.md)). Ces exigences
+disent ce que son départ doit avoir rendu.
+
+| #    | Exigence                                                                                        | Vérifié par                                                      |
+| ---- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| CV-1 | Quitter le suivi arrête les sources de position et relâche le verrou d'écran                    | `U SuiviScreen.test.ts`                                          |
+| CV-2 | Quitter un écran retire ses écouteurs, y compris ceux posés sur `window`                        | `U SuiviScreen.test.ts`                                          |
+| CV-3 | Un chargement qui s'achève après la sortie ne monte rien et ne prend aucun verrou               | `U SuiviScreen.test.ts`, `U TrajetEditorScreen.test.ts`          |
+| CV-4 | Une page retirée de l'affichage libère son URL d'objet ; un simple déplacement ne la libère pas | `U SchemaPage.test.ts`, `U TrajetEditorScreen.test.ts`           |
+| CV-5 | Une page inchangée n'est pas redécodée quand l'écran rend à nouveau                             | `U TrajetEditorScreen.test.ts`                                   |
+| CV-6 | Rouvrir l'éditeur remonte sa carte sur le conteneur neuf                                        | `U LeafletCarteDesPoints.test.ts`, `E e2e/carte-editeur.spec.ts` |
 
 ## Qualité (transverse)
 

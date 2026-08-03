@@ -19,12 +19,16 @@ pas la technique. Chaque capacité = `domain/` + `ports/` + `adapters/` + `ui/`.
 entrants en DOM natif. L'injection de dépendances est **manuelle**, dans le seul
 `src/main.ts` (composition root).
 
+Depuis l'[ADR 0008](0008-interface-en-custom-elements-natifs.md), ce DOM natif
+est celui des **custom elements** — quatre API de la plateforme, pas un
+framework. La décision ci-dessus reste entière : le rendu demeure explicite.
+
 ## Conséquences
 
 - ➕ Domaine pur, testé sans navigateur ni mocks d'interaction.
 - ➕ Bundle réduit, zéro « framework churn », dépendances minimales.
 - ➕ La simulation, le mode test, l'ajout d'un adapter tombent de l'architecture.
 - ➖ Câblage DOM à la main : plus verbeux, discipline requise dans les écrans.
-- ➖ Pas de rendu déclaratif : les écrans re-rendent explicitement (`rendre()`).
+- ➖ Pas de rendu déclaratif : les écrans re-rendent explicitement (`render()`).
 
 Détail vivant : [`../ARCHITECTURE.md`](../ARCHITECTURE.md).
