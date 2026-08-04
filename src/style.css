@@ -148,6 +148,36 @@ image-frame schema-page {
     flex-wrap: wrap;
 }
 
+/* Trois libellés entiers n'entrent pas sur un téléphone — la barre de l'éditeur
+   s'ouvrait sur trois lignes de boutons. Sous 560 px elle se réduit à ses
+   pictogrammes ; le nom accessible reste dans `aria-label`, seul endroit que le
+   masquage n'atteint pas, et c'est ce dont dépendent les parcours e2e joués sur
+   iPhone 14 (390 px) et Pixel 7 (412 px).
+
+   Le seuil est propre à cette barre : `--large-screen` (900 px) est celui de la
+   carte, et le réutiliser réduirait la barre à trois pictogrammes minuscules sur
+   un iPad en portrait.
+
+   `inline-flex` + `gap` plutôt qu'une espace dans le gabarit : une espace
+   masquée laisse une traîne à droite du pictogramme, et Prettier reformate ces
+   `.html`. Sans effet sur la barre de la liste des trajets, dont les boutons
+   n'ont qu'un seul nœud de texte, donc un seul élément flex. */
+.action-bar button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.button-label {
+    display: none;
+}
+
+@media (min-width: 560px) {
+    .button-label {
+        display: inline;
+    }
+}
+
 .hint-banner {
     background: #fef3c7;
     border: 1px solid #f59e0b;

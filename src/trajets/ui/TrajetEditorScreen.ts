@@ -10,6 +10,7 @@ import type { FractionVerticale } from '../domain/FractionVerticale';
 import type { ImageDeTrajet, ImageFile, Point, Trajet } from '../domain/Trajet';
 import type { ImageId, PointId, TrajetId } from '../domain/ids';
 import type { TrajetRepository } from '../ports/TrajetRepository';
+import { downloadTrajet } from './downloadTrajet';
 import { createImageFrame } from './ImageFrame';
 import type { PageAimIntent } from './intents';
 import { createPointRow } from './PointRow';
@@ -109,6 +110,20 @@ function mount(
     );
     addPointButton.addEventListener('click', startAddingPoint, { signal });
     floatingAddPointButton.addEventListener('click', startAddingPoint, { signal });
+    // L'export part de l'agrégat que l'écran a en mémoire, sans repasser par le
+    // dépôt : toute écriture passe par `applyToTrajetAndSave`, qui resynchronise
+    // sur échec — ce qui est affiché est donc ce qui est stocké.
+    query('#export-trajet-button', HTMLButtonElement, root).addEventListener(
+        'click',
+        () => {
+            const currentTrajet = trajet;
+            if (currentTrajet === null) {
+                return;
+            }
+            run(downloadTrajet(currentTrajet), 'l’export du trajet');
+        },
+        { signal },
+    );
     query('#cancel-placement-button', HTMLButtonElement, root).addEventListener(
         'click',
         () => {

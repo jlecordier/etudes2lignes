@@ -9,9 +9,21 @@
     voyage. Conseil : un point près du départ et un près de l'arrivée du trajet, puis densifiez là
     où vous voulez de la précision.
 </p>
+<!-- Sous 560 px la feuille de style masque les `.button-label` : trois libellés
+     entiers ouvraient la barre sur trois lignes. Le nom accessible vit donc
+     dans `aria-label`, seul endroit que le masquage n'atteint pas — un bouton
+     qui l'oublierait s'annoncerait « 🖼️ ». `TrajetEditorScreen.test.ts` le
+     vérifie pour chacun. -->
 <div class="action-bar">
-    <button id="add-images-button" type="button">🖼️ Ajouter des images</button>
-    <button id="add-point-button" type="button">📍 Ajouter un point</button>
+    <button id="add-images-button" type="button" aria-label="Ajouter des images">
+        🖼️<span class="button-label">Ajouter des images</span>
+    </button>
+    <button id="add-point-button" type="button" aria-label="Ajouter un point">
+        📍<span class="button-label">Ajouter un point</span>
+    </button>
+    <button id="export-trajet-button" type="button" aria-label="Exporter">
+        ⬇️<span class="button-label">Exporter</span>
+    </button>
 </div>
 <input id="input-images" type="file" accept="image/jpeg,image/png" multiple hidden />
 <p id="placement-hint" class="hint-banner" hidden>

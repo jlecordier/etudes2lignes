@@ -5,7 +5,8 @@ import { NomDeTrajet } from '../domain/NomDeTrajet';
 import { Trajet } from '../domain/Trajet';
 import type { TrajetId } from '../domain/ids';
 import type { TrajetSummary, TrajetRepository } from '../ports/TrajetRepository';
-import { exportTrajetToJson, importTrajetFromJson } from '../serialization/trajetJson';
+import { importTrajetFromJson } from '../serialization/trajetJson';
+import { downloadTrajet } from './downloadTrajet';
 import { createTrajetRow } from './TrajetRow';
 import html from './TrajetsListScreen.html?raw';
 
@@ -165,7 +166,7 @@ function mount(
             await show();
             return;
         }
-        telecharger(await exportTrajetToJson(trajet), `${fileNameFrom(summary.nom)}.json`);
+        await downloadTrajet(trajet);
     }
 
     async function deleteTrajet(summary: TrajetSummary): Promise<void> {
@@ -201,28 +202,6 @@ async function readTrajetFile(file: File): Promise<Trajet | null> {
         alert(readableMessage(error));
         return null;
     }
-}
-
-/** Délai avant de libérer l'URL blob d'un téléchargement (une minute). */
-const REVOCATION_DELAY_MS = 60_000;
-
-/** Déclenche le téléchargement d'un fichier texte par le navigateur. */
-function telecharger(content: string, fileName: string): void {
-    const url = URL.createObjectURL(new Blob([content], { type: 'application/json' }));
-    const lien = document.createElement('a');
-    lien.href = url;
-    lien.download = fileName;
-    lien.click();
-    // Révocation différée : Safari/iOS et Firefox lisent le blob après le tick
-    // courant ; le révoquer tout de suite annulerait le téléchargement.
-    setTimeout(() => {
-        URL.revokeObjectURL(url);
-    }, REVOCATION_DELAY_MS);
-}
-
-/** Un nom de trajet peut contenir des caractères interdits dans un nom de fichier. */
-function fileNameFrom(nom: string): string {
-    return nom.replace(/[/\\:*?"<>|]/g, '-');
 }
 
 /**

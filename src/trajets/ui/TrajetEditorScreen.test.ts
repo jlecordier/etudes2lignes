@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { CarteDesPoints, DisplayedPoint } from '../../carte/ports/CarteDesPointsPort';
 import type { CoordonneeSelector } from '../../carte/ports/CoordonneeSelectorPort';
+import { requireElementAt } from '../../shared/array';
 import { queryAll } from '../../shared/dom';
 import { createRunner, type Run } from '../../shared/runner';
 import { Coordonnee } from '../domain/Coordonnee';
@@ -134,6 +135,8 @@ let retours: number;
 let suivis: number;
 let urlsCreees: string[];
 let urlsLiberees: string[];
+let blobsParUrl: Map<string, Blob>;
+let telechargements: { nom: string; url: string }[];
 
 beforeEach(async () => {
     // Vider la scène **avant** de remettre les compteurs à zéro : les pages du
@@ -143,15 +146,26 @@ beforeEach(async () => {
     await laisserLesPromessesSAchever();
     // jsdom n'a pas d'URL d'objet : on en pose une à la main, et le test lit
     // ainsi exactement ce que l'écran fait décoder — ou ne fait pas redécoder.
+    // Le blob est gardé de côté : c'est ainsi que l'export se lit, sans espion.
     urlsCreees = [];
     urlsLiberees = [];
-    URL.createObjectURL = () => {
+    blobsParUrl = new Map();
+    telechargements = [];
+    URL.createObjectURL = (objet: Blob | MediaSource) => {
+        if (!(objet instanceof Blob)) {
+            throw new Error('Ce test n’attend que des Blob.');
+        }
         const url = `blob:page-${String(urlsCreees.length + 1)}`;
         urlsCreees.push(url);
+        blobsParUrl.set(url, objet);
         return url;
     };
     URL.revokeObjectURL = (url: string) => {
         urlsLiberees.push(url);
+    };
+    // jsdom ne télécharge rien : l'ancre relève ce qu'elle aurait enregistré.
+    HTMLAnchorElement.prototype.click = function (this: HTMLAnchorElement) {
+        telechargements.push({ nom: this.download, url: this.getAttribute('href') ?? '' });
     };
     repository = new FakeTrajetRepository(trajetDeTroisPages);
     carteDesPoints = new FakeCarteDesPoints();
@@ -204,6 +218,10 @@ function supprimer(element: HTMLElement, nomDeLaPage: string): void {
     cliquerLAction(element, `Supprimer ${nomDeLaPage}`);
 }
 
+function exporter(element: HTMLElement): void {
+    cliquerLAction(element, 'Exporter');
+}
+
 function cliquerLAction(element: HTMLElement, intitule: string): void {
     const bouton = queryAll('button', HTMLButtonElement, element).find(
         (candidat) => candidat.getAttribute('aria-label') === intitule,
@@ -212,6 +230,16 @@ function cliquerLAction(element: HTMLElement, intitule: string): void {
         throw new Error(`Aucun bouton « ${intitule} » dans l’écran.`);
     }
     bouton.click();
+}
+
+/** Le fichier que le navigateur s'est vu proposer : son nom et son contenu. */
+async function fichierPropose(): Promise<{ nom: string; contenu: unknown }> {
+    const telechargement = requireElementAt(telechargements, 0);
+    const blob = blobsParUrl.get(telechargement.url);
+    if (blob === undefined) {
+        throw new Error(`Aucun blob derrière « ${telechargement.url} ».`);
+    }
+    return { nom: telechargement.nom, contenu: JSON.parse(await blob.text()) };
 }
 
 describe('trajet-editor-screen', () => {
@@ -336,6 +364,62 @@ describe('trajet-editor-screen', () => {
             expect(pagesAffichees(element)).toEqual([]);
             expect(carteDesPoints.isMounted()).toBe(false);
             expect(suivis).toBe(0);
+        });
+    });
+
+    describe('Étant donné un trajet ouvert, quand je clique sur « Exporter »', () => {
+        it('alors le fichier proposé au téléchargement est le trajet affiché', async () => {
+            const element = await attacherLEcran();
+
+            exporter(element);
+            await laisserLesPromessesSAchever();
+
+            // L'écran exporte l'agrégat qu'il a en mémoire, sans repasser par
+            // le dépôt : c'est ce qu'il montre, et c'est ce qui est stocké.
+            const { nom, contenu } = await fichierPropose();
+            expect(nom).toBe('Paris → Bordeaux.json');
+            expect(contenu).toMatchObject({
+                trajet: {
+                    nom: 'Paris → Bordeaux',
+                    images: [{ nom: 'p1.png' }, { nom: 'p2.png' }, { nom: 'p3.png' }],
+                    points: [{ image: 0 }],
+                },
+            });
+            expect(echecs).toEqual([]);
+        });
+    });
+
+    describe('Étant donné un chargement encore en cours, quand je clique sur « Exporter »', () => {
+        it('alors rien n’est proposé au téléchargement, et rien n’est signalé', async () => {
+            repository.suspendreLaLecture();
+            const element = createTrajetEditorScreen(dependances());
+            document.body.append(element);
+
+            exporter(element);
+            await laisserLesPromessesSAchever();
+
+            // Sans la garde, l'export partirait sans trajet : l'utilisateur
+            // récolterait un « Échec de l'export du trajet » pour un simple
+            // clic trop tôt.
+            expect(telechargements).toEqual([]);
+            expect(echecs).toEqual([]);
+        });
+    });
+
+    describe('Étant donné la barre d’actions de l’éditeur', () => {
+        it('alors chaque bouton porte un nom accessible, que le masquage de son libellé ne peut pas lui retirer', async () => {
+            const element = await attacherLEcran();
+
+            // Sous 560 px la feuille de style masque les libellés visibles : le
+            // nom accessible ne vit plus que dans `aria-label`. Sans lui, le
+            // bouton s'annonce « 🖼️ » — et les parcours e2e joués sur iPhone et
+            // Pixel, tous deux sous le seuil, ne le trouvent plus.
+            const boutons = queryAll('.action-bar button', HTMLButtonElement, element);
+            expect(boutons.map((bouton) => bouton.getAttribute('aria-label'))).toEqual([
+                'Ajouter des images',
+                'Ajouter un point',
+                'Exporter',
+            ]);
         });
     });
 });

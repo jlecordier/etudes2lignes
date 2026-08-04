@@ -34,7 +34,9 @@ pour suivre votre position GPS.
 - **Import / export** : « ⬇️ Exporter » enregistre un trajet complet (nom,
   images en base64, points) dans un fichier JSON autonome ; « ⬆️ Importer » le
   recharge sur un autre appareil, créant à chaque fois un nouveau trajet. C'est
-  le moyen de transférer un trajet d'un appareil à l'autre sans réseau.
+  le moyen de transférer un trajet d'un appareil à l'autre sans réseau. Le bouton
+  est sur chaque ligne de la liste **et** dans la barre d'actions de l'éditeur :
+  on exporte ce qu'on vient de géoréférencer sans revenir en arrière.
 
 ## Démarrage
 

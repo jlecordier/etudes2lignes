@@ -64,12 +64,15 @@ Légende : `U` = test unitaire (Vitest), `E` = test de bout en bout (Playwright)
 
 ## Import / export
 
-| #    | Exigence                                                                    | Vérifié par                                           |
-| ---- | --------------------------------------------------------------------------- | ----------------------------------------------------- |
-| IE-1 | Export → fichier JSON autonome (nom, images base64, points par index)       | `U trajetJson.test.ts`, `E e2e/import-export.spec.ts` |
-| IE-2 | Aller-retour fidèle, y compris une image binaire réelle (bytes 0–255)       | `U trajetJson.test.ts`                                |
-| IE-3 | Import régénère les identifiants → toujours un nouveau trajet               | `U trajetJson.test.ts`, `E e2e/import-export.spec.ts` |
-| IE-4 | Fichier étranger / version inconnue / incohérent → rejet avec message clair | `U trajetJson.test.ts`                                |
+| #    | Exigence                                                                    | Vérifié par                                                   |
+| ---- | --------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| IE-1 | Export → fichier JSON autonome (nom, images base64, points par index)       | `U trajetJson.test.ts`, `E e2e/import-export.spec.ts`         |
+| IE-2 | Aller-retour fidèle, y compris une image binaire réelle (bytes 0–255)       | `U trajetJson.test.ts`                                        |
+| IE-3 | Import régénère les identifiants → toujours un nouveau trajet               | `U trajetJson.test.ts`, `E e2e/import-export.spec.ts`         |
+| IE-4 | Fichier étranger / version inconnue / incohérent → rejet avec message clair | `U trajetJson.test.ts`                                        |
+| IE-5 | Exporter depuis l'éditeur, sans repasser par la liste                       | `U TrajetEditorScreen.test.ts`, `E e2e/import-export.spec.ts` |
+| IE-6 | Le nom du fichier est celui du trajet, caractères interdits remplacés       | `U downloadTrajet.test.ts`                                    |
+| IE-7 | Un bouton de la barre d'actions reste nommé quand son libellé est masqué    | `U TrajetEditorScreen.test.ts`, `E e2e/import-export.spec.ts` |
 
 ## Hors ligne (PWA)
 

@@ -60,6 +60,38 @@ test.describe('Import / export JSON', () => {
         await expect(page.locator('.point-description')).toHaveCount(1);
     });
 
+    test('Étant donné un trajet ouvert dans l’éditeur, quand je l’exporte, alors le fichier part sans repasser par la liste', async ({
+        page,
+    }) => {
+        await ouvrirUnTrajetAvecUnePage(page);
+        await ajouterUnPoint(page, 0.5, 0);
+        await expect(page.locator('.point-description')).toHaveCount(1);
+
+        const telechargement = page.waitForEvent('download');
+        await page.locator('.action-bar').getByRole('button', { name: 'Exporter' }).click();
+
+        // Le nom accessible est cherché tel quel : sur iPhone 14 et Pixel 7, tous
+        // deux sous les 560 px, le libellé visible est masqué et seul
+        // `aria-label` porte encore le nom du bouton.
+        const download = await telechargement;
+        // Le nom exact n'est pas asséré ici : « → » peut être ré-encodé
+        // différemment d'un navigateur à l'autre. C'est `downloadTrajet.test.ts`
+        // qui fixe la règle du nom, là où elle est déterministe.
+        expect(download.suggestedFilename()).toMatch(/\.json$/);
+        const content: unknown = JSON.parse(await readFile(await download.path(), 'utf-8'));
+        expect(content).toMatchObject({
+            application: 'etudes2lignes',
+            version: 1,
+            trajet: {
+                nom: 'Paris → Bordeaux',
+                images: [{ nom: 'page-1.png', donneesBase64: expect.stringMatching(/.+/) }],
+                points: [{ image: 0 }],
+            },
+        });
+        // On n'a jamais quitté l'éditeur.
+        await expect(page.getByRole('heading', { name: 'Paris → Bordeaux' })).toBeVisible();
+    });
+
     test('Étant donné un fichier qui n’est pas un export, quand je l’importe, alors un message l’explique et rien n’est créé', async ({
         page,
     }) => {
