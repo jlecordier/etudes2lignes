@@ -1,7 +1,13 @@
 <header class="header">
     <h1>Mes trajets</h1>
+    <!-- « Importer » cède son libellé sous 560 px (d'où le `.button-label` et
+         l'`aria-label` qui le nomme malgré tout) ; « Nouveau trajet » garde le
+         sien en toute largeur — c'est l'action principale de l'écran, et sur une
+         liste vide un pictogramme seul n'inviterait à rien. -->
     <div class="action-bar">
-        <button id="import-trajet-button" type="button" class="secondary">⬆️ Importer</button>
+        <button id="import-trajet-button" type="button" class="secondary" aria-label="Importer">
+            ⬆️<span class="button-label">Importer</span>
+        </button>
         <button id="create-trajet-button" type="button">🆕 Nouveau trajet</button>
     </div>
 </header>

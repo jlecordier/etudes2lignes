@@ -108,7 +108,7 @@ describe('trajets-list-screen', () => {
 
             expect(nomsAffiches(element)).toEqual(['Paris → Bordeaux', 'Tours → Nantes']);
             expect(queryAll('.trajet-details', HTMLSpanElement, element)[0]?.textContent).toBe(
-                '6 image(s) · 4 point(s)',
+                '6 images · 4 points',
             );
             expect(query('#empty-list', HTMLParagraphElement, element).hidden).toBe(true);
         });

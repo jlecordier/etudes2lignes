@@ -1,6 +1,7 @@
 import { query } from '../../shared/dom';
 import { createButton, type Button } from '../../shared/elements';
 import { createTemplate } from '../../shared/template';
+import { trajetContentsText } from '../domain/presentation';
 import type { TrajetSummary } from '../ports/TrajetRepository';
 import { emitIntent } from './intents';
 
@@ -24,31 +25,38 @@ export function createTrajetRow(summary: TrajetSummary): TrajetRowElement {
         emitIntent(element, 'open-trajet', { summary });
     });
 
-    query('.trajet-details', HTMLSpanElement, element).textContent =
-        `${String(summary.imageCount)} image(s) · ${String(summary.pointCount)} point(s)`;
+    query('.trajet-details', HTMLSpanElement, element).textContent = trajetContentsText(
+        summary.imageCount,
+        summary.pointCount,
+    );
 
-    element.append(...trajetActions(element, summary).map(createButton));
+    query('.trajet-footer', HTMLDivElement, element).append(
+        ...trajetActions(element, summary).map(createButton),
+    );
     return element;
 }
 
 function trajetActions(host: HTMLElement, summary: TrajetSummary): Button[] {
     return [
         {
-            text: '✏️ Renommer',
+            icon: '✏️',
+            label: 'Renommer',
             ariaLabel: `Renommer ${summary.nom}`,
             action: () => {
                 emitIntent(host, 'rename-trajet', { summary });
             },
         },
         {
-            text: '⬇️ Exporter',
+            icon: '⬇️',
+            label: 'Exporter',
             ariaLabel: `Exporter ${summary.nom}`,
             action: () => {
                 emitIntent(host, 'export-trajet', { summary });
             },
         },
         {
-            text: '🗑️ Supprimer',
+            icon: '🗑️',
+            label: 'Supprimer',
             ariaLabel: `Supprimer ${summary.nom}`,
             action: () => {
                 emitIntent(host, 'delete-trajet', { summary });

@@ -1,5 +1,10 @@
+<!-- Le retour cède son libellé sous 560 px pour rendre au titre les 68 px qu'il
+     lui prenait ; « Suivre » garde le sien, c'est l'action de l'écran et une
+     boussole seule ne la dirait pas. -->
 <header class="header">
-    <button id="back-to-list-button" type="button" class="secondary">🔙 Trajets</button>
+    <button id="back-to-list-button" type="button" class="secondary" aria-label="Trajets">
+        🔙<span class="button-label">Trajets</span>
+    </button>
     <h2 id="trajet-title"></h2>
     <button id="suivre-button" type="button">🧭 Suivre</button>
 </header>

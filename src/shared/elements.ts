@@ -11,7 +11,15 @@
 export type ButtonVariant = 'secondary' | 'floating';
 
 export interface Button {
-    readonly text: string;
+    /** Le pictogramme, toujours visible : c'est tout ce qui reste sur écran étroit. */
+    readonly icon: string;
+    /**
+     * Le libellé visible, **masqué sous 560 px** par la feuille de style (il part
+     * dans un `.button-label`). L'omettre fait un bouton pictogramme en toute
+     * largeur d'écran. Dans les deux cas c'est `ariaLabel` qui nomme le bouton :
+     * le masquage ne peut donc pas le rendre muet.
+     */
+    readonly label?: string;
     /** Le nom accessible, lu par les lecteurs d'écran. Obligatoire. */
     readonly ariaLabel: string;
     readonly action: () => void;
@@ -24,7 +32,16 @@ export function createButton(button: Button): HTMLButtonElement {
     const element = document.createElement('button');
     element.type = 'button';
     element.className = classes(variant, button.danger ?? false);
-    element.textContent = button.text;
+    // Le pictogramme et le libellé sont deux nœuds distincts, et c'est le `gap`
+    // de la feuille de style qui les espace : une espace dans le texte laisserait
+    // une traîne à droite du pictogramme une fois le libellé retiré.
+    element.append(button.icon);
+    if (button.label !== undefined) {
+        const label = document.createElement('span');
+        label.className = 'button-label';
+        label.textContent = button.label;
+        element.append(label);
+    }
     element.setAttribute('aria-label', button.ariaLabel);
     if (variant === 'floating') {
         element.title = button.ariaLabel;

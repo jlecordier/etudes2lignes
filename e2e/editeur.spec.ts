@@ -85,8 +85,8 @@ test.describe("Éditeur d'un trajet — les images", () => {
         await ouvrirUnTrajetVierge(page);
         await importerDeuxPages(page);
 
-        await page.getByRole('button', { name: '🔙 Trajets' }).click();
+        await page.getByRole('button', { name: 'Trajets' }).click();
 
-        await expect(page.getByText('2 image(s) · 0 point(s)')).toBeVisible();
+        await expect(page.getByText('2 images · aucun point')).toBeVisible();
     });
 });

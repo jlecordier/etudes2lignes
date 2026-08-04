@@ -13,19 +13,58 @@ function clickCountingArea(): { area: HTMLDivElement; clicksReceived: () => numb
     return { area, clicksReceived: () => clicks };
 }
 
+/** Le pictogramme : ce que le bouton montre quand son libellé est masqué. */
+function iconOf(button: HTMLButtonElement): string {
+    return [...button.childNodes]
+        .filter((node) => node.nodeType === Node.TEXT_NODE)
+        .map((node) => node.textContent ?? '')
+        .join('');
+}
+
+function labelOf(button: HTMLButtonElement): string | null {
+    return button.querySelector('.button-label')?.textContent ?? null;
+}
+
 describe('createButton', () => {
     describe('Étant donné un descriptif, quand je crée le bouton', () => {
-        it('alors il porte son texte, son intitulé accessible et le type « button »', () => {
+        it('alors il porte son intitulé accessible et le type « button »', () => {
             const button = createButton({
-                text: '🗑️ Supprimer',
+                icon: '🗑️',
+                label: 'Supprimer',
                 ariaLabel: 'Supprimer le point 1',
                 action: () => undefined,
             });
 
             expect(button.type).toBe('button');
-            expect(button.textContent).toBe('🗑️ Supprimer');
             expect(button.getAttribute('aria-label')).toBe('Supprimer le point 1');
             expect(button.className).toBe('secondary');
+        });
+
+        it('alors le libellé vit dans son propre élément, que la feuille de style peut retirer', () => {
+            const button = createButton({
+                icon: '🗑️',
+                label: 'Supprimer',
+                ariaLabel: 'Supprimer le point 1',
+                action: () => undefined,
+            });
+
+            // Sous 560 px seul le pictogramme reste : le libellé doit donc être
+            // atteignable par un sélecteur, et le nom accessible vivre ailleurs.
+            expect(iconOf(button)).toBe('🗑️');
+            expect(labelOf(button)).toBe('Supprimer');
+        });
+    });
+
+    describe('Étant donné un descriptif sans libellé, quand je crée le bouton', () => {
+        it('alors il n’a pas d’élément de libellé du tout — il n’y a rien à masquer', () => {
+            const button = createButton({
+                icon: '🔼',
+                ariaLabel: 'Monter page-1.png',
+                action: () => undefined,
+            });
+
+            expect(iconOf(button)).toBe('🔼');
+            expect(labelOf(button)).toBeNull();
         });
     });
 
@@ -33,7 +72,8 @@ describe('createButton', () => {
         it('alors son action se déclenche', () => {
             let declenchements = 0;
             const button = createButton({
-                text: '✏️ Renommer',
+                icon: '✏️',
+                label: 'Renommer',
                 ariaLabel: 'Renommer Paris → Bordeaux',
                 action: () => {
                     declenchements++;
@@ -50,7 +90,8 @@ describe('createButton', () => {
     describe('Étant donné un bouton dangereux, quand je le crée', () => {
         it('alors il porte la classe « danger » en plus', () => {
             const button = createButton({
-                text: '🗑️ Supprimer',
+                icon: '🗑️',
+                label: 'Supprimer',
                 ariaLabel: 'Supprimer page-1.jpg',
                 action: () => undefined,
                 danger: true,
@@ -66,7 +107,8 @@ describe('createButton', () => {
             let declenchements = 0;
             area.append(
                 createButton({
-                    text: '🗺️ Sur la carte',
+                    icon: '🗺️',
+                    label: 'Sur la carte',
                     ariaLabel: 'Déplacer le point 1 sur la carte',
                     action: () => {
                         declenchements++;
@@ -83,7 +125,7 @@ describe('createButton', () => {
 
         it('alors il porte une infobulle, car son texte est minuscule', () => {
             const button = createButton({
-                text: '🗺️',
+                icon: '🗺️',
                 ariaLabel: 'Déplacer le point 2 sur la carte',
                 action: () => undefined,
                 variant: 'floating',
@@ -99,7 +141,8 @@ describe('createButton', () => {
             const { area, clicksReceived } = clickCountingArea();
             area.append(
                 createButton({
-                    text: 'Ordinaire',
+                    icon: '•',
+                    label: 'Ordinaire',
                     ariaLabel: 'Un bouton ordinaire',
                     action: () => undefined,
                 }),
@@ -114,7 +157,7 @@ describe('createButton', () => {
     describe('Étant donné un bouton flottant dangereux, quand je le crée', () => {
         it('alors il cumule les deux classes', () => {
             const button = createButton({
-                text: '🗑️',
+                icon: '🗑️',
                 ariaLabel: 'Supprimer le point 3',
                 action: () => undefined,
                 danger: true,

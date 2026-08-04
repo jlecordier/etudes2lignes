@@ -34,6 +34,10 @@ suivi-screen {
     justify-content: space-between;
     gap: 1rem;
     margin-bottom: 1rem;
+    /* Volontairement **sans** `flex-wrap` : l'en-tête de l'éditeur porte trois
+       éléments (retour, titre, Suivre) et plier les envoyait sur trois lignes,
+       ce qui coûtait plus de hauteur qu'un titre serré. C'est le libellé des
+       boutons qui cède la place au titre, pas la ligne qui se casse. */
 }
 
 h1,
@@ -42,8 +46,22 @@ h2 {
     font-size: 1.25rem;
 }
 
+/* Un bouton d'en-tête garde sa largeur, c'est le titre qui plie : à trois
+   éléments sur un téléphone, tout se comprimait au prorata et « Suivre » se
+   cassait en deux à l'intérieur de son propre bouton. */
+.header > button {
+    flex-shrink: 0;
+}
+
+/* Un bouton porte un pictogramme et, souvent, un libellé masquable : c'est ce
+   `gap` qui les espace, et non une espace dans le texte — laquelle laisserait
+   une traîne à droite du pictogramme une fois le libellé retiré. */
 button {
     font: inherit;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
     padding: 0.5rem 0.75rem;
     border: 1px solid #1d4ed8;
     border-radius: 0.375rem;
@@ -77,32 +95,63 @@ button.danger {
     color: #6b7280;
 }
 
+/* La surface des cartes de liste, écrite une fois pour les trois porteurs. */
 trajet-row,
+point-row,
+.list-error {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+}
+
+point-row,
 .list-error {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     flex-wrap: wrap;
     padding: 0.5rem;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.375rem;
 }
 
+/* Deux lignes, et dans cet ordre : le trajet d'abord, ce qui agit dessus
+   ensuite. Les actions occupaient auparavant la moitié de la hauteur. */
+trajet-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+}
+
+/* Le titre de la ligne, pas un champ de saisie : à plat, aligné à gauche et
+   dans le bleu des actions — c'est ce qu'on touche pour ouvrir le trajet. */
 .trajet-name {
-    flex: 1;
-    min-width: 10rem;
-    text-align: left;
-    background: white;
-    color: #1f2937;
-    border-color: #e5e7eb;
+    justify-content: flex-start;
+    padding: 0;
+    border: none;
+    background: none;
+    color: #1d4ed8;
+    font-size: 1.0625rem;
     font-weight: 600;
+    text-align: left;
+}
+
+.trajet-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .trajet-details {
+    /* Occupe le reste de la ligne, ce qui pousse les actions contre le bord.
+       `min-width` explicite, et pas de `nowrap` : sans quoi le compte impose sa
+       largeur entière comme plancher (`min-width: auto` d'un élément flex vaut
+       sa taille min-content), et un trajet à trois chiffres de points renverrait
+       les trois actions à la ligne suivante. */
+    flex: 1;
+    min-width: 5rem;
     color: #6b7280;
     font-size: 0.875rem;
-    white-space: nowrap;
 }
 
 .help {
@@ -148,26 +197,24 @@ image-frame schema-page {
     flex-wrap: wrap;
 }
 
-/* Trois libellés entiers n'entrent pas sur un téléphone — la barre de l'éditeur
-   s'ouvrait sur trois lignes de boutons. Sous 560 px elle se réduit à ses
-   pictogrammes ; le nom accessible reste dans `aria-label`, seul endroit que le
-   masquage n'atteint pas, et c'est ce dont dépendent les parcours e2e joués sur
-   iPhone 14 (390 px) et Pixel 7 (412 px).
+/* Un libellé enveloppé dans un `.button-label` accepte de disparaître : sous
+   560 px il ne reste que le pictogramme. C'est ce qui fait tenir la barre
+   d'actions de l'éditeur sur une ligne au lieu de trois, et les trois actions
+   d'un trajet ou d'un point à côté de leur texte au lieu de dessous. Un bouton
+   dont le libellé doit rester en toute largeur — « Nouveau trajet », l'action
+   principale de l'accueil — ne porte simplement pas la classe.
 
-   Le seuil est propre à cette barre : `--large-screen` (900 px) est celui de la
-   carte, et le réutiliser réduirait la barre à trois pictogrammes minuscules sur
-   un iPad en portrait.
+   La contrepartie est une obligation : le nom accessible doit vivre dans
+   `aria-label`, seul endroit que le masquage n'atteint pas, sinon le bouton
+   s'annonce « 🖼️ ». `createButton` la rend impossible à oublier (`ariaLabel` y
+   est requis) ; pour les boutons écrits à la main dans un gabarit, c'est
+   `TrajetEditorScreen.test.ts` qui la vérifie. Les parcours e2e joués sur
+   iPhone 14 (390 px) et Pixel 7 (412 px) sont tous deux sous le seuil et
+   désignent les boutons par leur nom : ils échouent si un `aria-label` manque.
 
-   `inline-flex` + `gap` plutôt qu'une espace dans le gabarit : une espace
-   masquée laisse une traîne à droite du pictogramme, et Prettier reformate ces
-   `.html`. Sans effet sur la barre de la liste des trajets, dont les boutons
-   n'ont qu'un seul nœud de texte, donc un seul élément flex. */
-.action-bar button {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-}
-
+   Le seuil est propre à cette convention : `--large-screen` (900 px) est celui
+   de la carte, et le réutiliser réduirait ces barres à des pictogrammes
+   minuscules sur un iPad en portrait. */
 .button-label {
     display: none;
 }
@@ -336,21 +383,14 @@ trajet-editor-screen {
     gap: 0.5rem;
 }
 
-point-row {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    padding: 0.5rem;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.375rem;
-}
-
 .point-description {
     flex: 1;
     font-size: 0.875rem;
-    min-width: 12rem;
+    /* 12rem mettait la ligne pile à la limite sur un téléphone (192 px de
+       description + 126 de boutons + 24 de gouttières = 342, pour 342
+       disponibles) : la corbeille repassait à la ligne. La description grandit
+       de toute façon pour occuper ce qui reste. */
+    min-width: 8rem;
 }
 
 /* Sélecteur de coordonnée : carte plein écran par-dessus l'écran courant. */

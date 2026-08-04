@@ -127,6 +127,7 @@ coup. C'est ce qui empêche le dépôt d'avoir trois mots pour un concept.
 | `champ` (propriété d'objet) | `field`               | `premier plan`           | `foreground`           |
 | `charger` / `sauvegarder`   | `load` / `save`       | `rendre`                 | `render`               |
 | `télécharger`               | `download`            | `libellé` (visible)      | `label`                |
+| `pictogramme`               | `icon`                |                          |                        |
 | `clé`                       | `key`                 | `requête` / `sélecteur`  | `query` / `selector`   |
 | `colonne`                   | `column`              | `résultat`               | `result`               |
 | `conteneur`                 | `container`           | `secondaire`/`flottant`  | `secondary`/`floating` |

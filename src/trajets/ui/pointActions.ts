@@ -16,21 +16,24 @@ export function pointActions(
     const numero = String(intent.number);
     const actions: Button[] = [
         {
-            text: "🖼️ Sur l'image",
+            icon: '🖼️',
+            label: "Sur l'image",
             ariaLabel: `Déplacer le point ${numero} sur l'image`,
             action: () => {
                 emitIntent(host, 'move-point-on-image', intent);
             },
         },
         {
-            text: '🗺️ Sur la carte',
+            icon: '🗺️',
+            label: 'Sur la carte',
             ariaLabel: `Déplacer le point ${numero} sur la carte`,
             action: () => {
                 emitIntent(host, 'move-point-on-carte', intent);
             },
         },
         {
-            text: '🗑️ Supprimer',
+            icon: '🗑️',
+            label: 'Supprimer',
             ariaLabel: `Supprimer le point ${numero}`,
             action: () => {
                 emitIntent(host, 'delete-point', intent);

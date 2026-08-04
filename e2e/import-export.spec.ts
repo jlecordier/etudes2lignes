@@ -9,8 +9,8 @@ async function preparerUnTrajetEtRevenirALaListe(page: Page): Promise<void> {
     await ouvrirUnTrajetAvecUnePage(page);
     await ajouterUnPoint(page, 0.5, 0);
     await expect(page.locator('.point-description')).toHaveCount(1);
-    await page.getByRole('button', { name: '🔙 Trajets' }).click();
-    await expect(page.getByText('1 image(s) · 1 point(s)')).toBeVisible();
+    await page.getByRole('button', { name: 'Trajets' }).click();
+    await expect(page.getByText('1 image · 1 point')).toBeVisible();
 }
 
 async function exporterLePremierTrajet(page: Page): Promise<string> {
@@ -52,7 +52,7 @@ test.describe('Import / export JSON', () => {
         await expect(
             page.getByRole('button', { name: 'Paris → Bordeaux', exact: true }),
         ).toHaveCount(2);
-        await expect(page.getByText('1 image(s) · 1 point(s)')).toHaveCount(2);
+        await expect(page.getByText('1 image · 1 point')).toHaveCount(2);
 
         // Le trajet importé s'ouvre avec son image et son point.
         await page.getByRole('button', { name: 'Paris → Bordeaux', exact: true }).nth(1).click();

@@ -13,7 +13,7 @@ test.describe('Gestion des trajets', () => {
         await expect(
             page.getByRole('button', { name: 'Paris → Bordeaux', exact: true }),
         ).toBeVisible();
-        await expect(page.getByText('0 image(s) · 0 point(s)')).toBeVisible();
+        await expect(page.getByText('Aucune image')).toBeVisible();
     });
 
     test('Étant donné un trajet, quand je le renomme, alors la liste montre le nouveau nom', async ({

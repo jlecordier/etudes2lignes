@@ -11,17 +11,18 @@ Légende : `U` = test unitaire (Vitest), `E` = test de bout en bout (Playwright)
 
 ## Trajets
 
-| #    | Exigence                                                                                   | Vérifié par                                 |
-| ---- | ------------------------------------------------------------------------------------------ | ------------------------------------------- |
-| TR-1 | Créer, renommer, supprimer un trajet                                                       | `E e2e/trajets.spec.ts`                     |
-| TR-2 | Un nom de trajet est non vide (sinon rejet)                                                | `U NomDeTrajet.test.ts`                     |
-| TR-3 | Les images sont ordonnées et réordonnables (▲/▼)                                           | `U Trajet.test.ts`, `E e2e/editeur.spec.ts` |
-| TR-4 | Charger restitue nom, images (ordre, dimensions, content) et points                        | `U IdbTrajetRepository.test.ts`             |
-| TR-5 | Un identifiant inconnu au chargement rend `null`                                           | `U IdbTrajetRepository.test.ts`             |
-| TR-6 | Les résumés sont rendus du plus ancien au plus récent, avec les comptes                    | `U IdbTrajetRepository.test.ts`             |
-| TR-7 | Un lot importé se lit sous les pages existantes, dans l'ordre de l'explorateur             | `U Trajet.test.ts`, `E e2e/editeur.spec.ts` |
-| TR-8 | Une liste illisible explique la panne et laisse réessayer, sans message d'accueil trompeur | `U TrajetsListScreen.test.ts`               |
-| TR-9 | Une écriture refusée fait repartir l'écran de ce qui est réellement stocké                 | `U TrajetEditorScreen.test.ts`              |
+| #     | Exigence                                                                                   | Vérifié par                                                      |
+| ----- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| TR-1  | Créer, renommer, supprimer un trajet                                                       | `E e2e/trajets.spec.ts`                                          |
+| TR-2  | Un nom de trajet est non vide (sinon rejet)                                                | `U NomDeTrajet.test.ts`                                          |
+| TR-3  | Les images sont ordonnées et réordonnables (▲/▼)                                           | `U Trajet.test.ts`, `E e2e/editeur.spec.ts`                      |
+| TR-4  | Charger restitue nom, images (ordre, dimensions, content) et points                        | `U IdbTrajetRepository.test.ts`                                  |
+| TR-5  | Un identifiant inconnu au chargement rend `null`                                           | `U IdbTrajetRepository.test.ts`                                  |
+| TR-6  | Les résumés sont rendus du plus ancien au plus récent, avec les comptes                    | `U IdbTrajetRepository.test.ts`                                  |
+| TR-7  | Un lot importé se lit sous les pages existantes, dans l'ordre de l'explorateur             | `U Trajet.test.ts`, `E e2e/editeur.spec.ts`                      |
+| TR-8  | Une liste illisible explique la panne et laisse réessayer, sans message d'accueil trompeur | `U TrajetsListScreen.test.ts`                                    |
+| TR-9  | Une écriture refusée fait repartir l'écran de ce qui est réellement stocké                 | `U TrajetEditorScreen.test.ts`                                   |
+| TR-10 | Les comptes d'un trajet se lisent en français : pluriel par compte, absence en mots        | `U trajets/domain/presentation.test.ts`, `E e2e/trajets.spec.ts` |
 
 ## Géoréférencement
 
@@ -72,7 +73,6 @@ Légende : `U` = test unitaire (Vitest), `E` = test de bout en bout (Playwright)
 | IE-4 | Fichier étranger / version inconnue / incohérent → rejet avec message clair | `U trajetJson.test.ts`                                        |
 | IE-5 | Exporter depuis l'éditeur, sans repasser par la liste                       | `U TrajetEditorScreen.test.ts`, `E e2e/import-export.spec.ts` |
 | IE-6 | Le nom du fichier est celui du trajet, caractères interdits remplacés       | `U downloadTrajet.test.ts`                                    |
-| IE-7 | Un bouton de la barre d'actions reste nommé quand son libellé est masqué    | `U TrajetEditorScreen.test.ts`, `E e2e/import-export.spec.ts` |
 
 ## Hors ligne (PWA)
 
@@ -98,9 +98,10 @@ disent ce que son départ doit avoir rendu.
 
 ## Qualité (transverse)
 
-| #    | Exigence                                                                                                                                                                                                                        | Vérifié par                                                                                         |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| QA-1 | Le code typecheck sans erreur                                                                                                                                                                                                   | `pnpm typecheck` (CI)                                                                               |
-| QA-2 | Lint type-aware strict à zéro (aucun `!`, aucun `as` de forme — les casts de **marque** d'identifiant restent tolérés dans `domain/ids.ts` et à la frontière de persistance, cf. [ADR 0005](adr/0005-indexeddb-arraybuffer.md)) | `pnpm lint` (CI) — cf. [ADR 0002](adr/0002-lint-type-aware-strict.md)                               |
-| QA-3 | Pas de nouveau code mort / duplication / complexité introduits                                                                                                                                                                  | `pnpm exec fallow audit` (CI) — cf. [ADR 0003](adr/0003-fallow-garde-fou-qualite.md)                |
-| QA-4 | Les garde-fous du domaine et des adapters ont un témoin exécutable — hormis les mutants équivalents et les gardes inatteignables, commentés sur place                                                                           | `pnpm mutation` (à la demande, **hors CI**) — cf. [ADR 0006](adr/0006-tests-de-mutation-stryker.md) |
+| #    | Exigence                                                                                                                                                                                                                        | Vérifié par                                                                                                                |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| QA-1 | Le code typecheck sans erreur                                                                                                                                                                                                   | `pnpm typecheck` (CI)                                                                                                      |
+| QA-2 | Lint type-aware strict à zéro (aucun `!`, aucun `as` de forme — les casts de **marque** d'identifiant restent tolérés dans `domain/ids.ts` et à la frontière de persistance, cf. [ADR 0005](adr/0005-indexeddb-arraybuffer.md)) | `pnpm lint` (CI) — cf. [ADR 0002](adr/0002-lint-type-aware-strict.md)                                                      |
+| QA-3 | Pas de nouveau code mort / duplication / complexité introduits                                                                                                                                                                  | `pnpm exec fallow audit` (CI) — cf. [ADR 0003](adr/0003-fallow-garde-fou-qualite.md)                                       |
+| QA-4 | Les garde-fous du domaine et des adapters ont un témoin exécutable — hormis les mutants équivalents et les gardes inatteignables, commentés sur place                                                                           | `pnpm mutation` (à la demande, **hors CI**) — cf. [ADR 0006](adr/0006-tests-de-mutation-stryker.md)                        |
+| QA-5 | Un bouton qui perd son libellé sous 560 px garde son nom accessible dans `aria-label` — sinon il s'annonce « 🖼️ »                                                                                                               | `U elements.test.ts`, `U TrajetEditorScreen.test.ts`, et toute la suite `E` rejouée sur iPhone 14 / Pixel 7, sous le seuil |
