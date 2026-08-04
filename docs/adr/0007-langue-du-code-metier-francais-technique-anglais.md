@@ -76,9 +76,13 @@ Trois exceptions, chacune pour une raison précise :
 - ⚠️ **Ce que le typecheck ne voit pas.** La moitié du chantier ne tenait qu'à
   des **chaînes de caractères**. Quatre pièges, tous rencontrés, tous à relire
   avant le prochain renommage :
-    - `src/navigation.ts` fabrique l'id de l'écran par gabarit
-      (`` `screen-${name}` ``) à partir des littéraux de `ScreenName`. Renommer
-      l'un sans l'autre éteint les trois écrans **sans une seule erreur**.
+    - le nom de balise passé à `customElements.define` est recopié en toutes
+      lettres dans `src/style.css` et dans les locators e2e. Renommer l'un sans
+      les autres laisse l'écran vivant mais **déshabillé**, sans une seule
+      erreur. (Ce piège vivait auparavant dans `src/navigation.ts`, qui
+      fabriquait l'id de l'écran par gabarit à partir de `ScreenName` ; l'[ADR
+      0008](0008-interface-en-custom-elements-natifs.md) a supprimé ce
+      gabarit — et déplacé le piège, pas résolu.)
     - `src/shared/elements.ts` compose les classes CSS en dur à partir des
       littéraux de `ButtonVariant`, et quatre tests unitaires les assèrent au
       caractère près.

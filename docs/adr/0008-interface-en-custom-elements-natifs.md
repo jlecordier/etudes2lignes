@@ -52,8 +52,8 @@ Un seul élément en a un : `<schema-page>`, dont l'intérieur est un `<img>` et
 rien d'autre. Tous les autres vivent en light DOM et restent habillés par
 `src/style.css` — le style dit _HTML web components_.
 
-Encapsuler partout aurait obligé à répartir 413 lignes de feuille de style entre
-sept gabarits sans aucun test de régression visuelle pour le prouver, et à
+Encapsuler partout aurait obligé à découper toute la feuille de style globale
+entre les gabarits, sans aucun test de régression visuelle pour le prouver, et à
 dupliquer les styles de bouton dans chaque gabarit qui en contient (les classes
 globales ne traversent pas la frontière). Beaucoup de risque pour une
 encapsulation dont rien ici ne manque : l'application est un document unique,
@@ -64,8 +64,8 @@ pas une bibliothèque distribuée.
 - ➕ Le cycle de vie est garanti par le navigateur, pas par une discipline. Les
   URL d'objet, les sources de position, le verrou d'écran et les écouteurs se
   libèrent au détachement, sans appel à ne pas oublier.
-- ➕ Les écrans se testent en jsdom avec les fakes existants : le dossier `ui/`
-  passe de zéro test à vingt-cinq.
+- ➕ Les écrans se testent en jsdom avec les fakes existants : le dossier `ui/`,
+  qui n'avait aucun test, en a désormais.
 - ➕ Le balisage redevient du HTML : plus un seul `document.createElement` dans
   les écrans.
 - ➖ Un custom element est `inline` par défaut. Chaque élément doit poser son
