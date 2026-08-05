@@ -2,27 +2,66 @@
 
 L'écran de suivi montre le schéma à sa taille réelle, qui remonte sous un repère
 fixe. On y lit finement où l'on est — et rien du voyage entier. Il tiendrait
-pourtant dans une colonne de 91 px : celle qu'aucun des deux écrans ne montre.
+pourtant dans une colonne étroite juste à côté : celle qu'aucun des deux écrans
+ne montre.
 
 **Sur iPad en paysage et au-delà, le trajet entier s'affiche à côté de celui qui
 défile, avec une barre à la position. En portrait et en dessous, un bouton
 flottant fait apparaître le même aperçu en incrustation.**
 
-## Les chiffres qui décident
+## L'échelle est déduite, jamais supposée
 
-| Mesure                                                  | Valeur                                                         |
-| ------------------------------------------------------- | -------------------------------------------------------------- |
-| Un trajet réel : `PMP-BX (ERTMS)`                       | **6 pages de 2481 × 3508**                                     |
-| Une page décodée                                        | 2481 × 3508 × 4 = **35 Mo** — **209 Mo** la pile               |
-| `Σ (hauteur / largeur)` de ces 6 pages                  | **8,49**                                                       |
-| Hauteur utile sur iPad paysage (1180 × 820, barre ôtée) | ≈ **775 px**                                                   |
-| Largeur de l'aperçu qui fait tenir la pile dedans       | 775 / 8,49 = **91 px** — des pages de 91 × 129                 |
-| Seuil de bascule                                        | `--large-screen` (900 px), déjà celui de la carte de l'éditeur |
+L'aperçu n'a pas de taille propre. Sa largeur est celle qui fait tenir la pile
+entière dans la hauteur disponible :
 
-Ces 91 px commandent tout le reste : à cette échelle un libellé du schéma est
-illisible, donc l'aperçu répond à « où en suis-je du voyage », jamais à « qu'y
-a-t-il ici ». Il ne porte **que** les images, un filet entre les pages et la
-barre — ni pastilles de points, ni portion parcourue grisée.
+```
+largeur = hauteur disponible ÷ Σ (hauteur / largeur)
+                                 ↑ le ratio propre à chaque page
+```
+
+**Rien ici ne suppose que les pages d'un trajet se ressemblent.** La somme porte
+sur le ratio de chacune : deux pages ou trente, portrait, paysage, ou n'importe
+quel mélange — l'égalité `Σ hauteurs affichées = hauteur disponible` est exacte
+dans tous les cas, parce que la pile pose toutes les pages à la **même largeur**
+et que chacune garde son propre ratio (`SchemaPage` réserve les `largeur` et
+`hauteur` de _sa_ page, et sa géométrie est `img { width: 100%; height: auto }`).
+L'agrégat garantit par ailleurs des dimensions entières strictement positives
+(`isDimension`), donc aucun ratio n'est ni nul ni infini.
+
+Ce que les ratios changent, c'est donc l'**échelle**, et rien d'autre. Quelques
+trajets pour la donner, sur 775 px de hauteur utile — un iPad en paysage
+(1180 × 820) barre d'état ôtée :
+
+| Trajet                                      | Σ ratios | Largeur déduite            | Ce qu'on voit                      |
+| ------------------------------------------- | -------- | -------------------------- | ---------------------------------- |
+| 1 page panoramique 8000 × 800               | 0,10     | 7750 → **192** (plafonnée) | un ruban de 192 × 19               |
+| 2 pages A4 portrait                         | 2,83     | 274 → **192** (plafonnée)  | deux pages, plus court que l'écran |
+| 3 pages A4 + 1 panoramique                  | 4,34     | **178**                    | 252 + 252 + 252 + 18 = 775 ✓       |
+| `PMP-BX (ERTMS)` du dépôt : 6 × 2481 × 3508 | 8,49     | **91**                     | des pages de 91 × 129              |
+| 23 pages A4 portrait                        | 32,5     | **24**                     | la limite basse, voir plus bas     |
+
+Le seuil de bascule, lui, ne dépend pas du trajet : c'est `--large-screen`
+(900 px), déjà celui de la carte de l'éditeur.
+
+### La limite basse est nommée, pas corrigée
+
+Plus la pile est haute, plus la colonne est étroite : c'est le prix du « tout tient
+dans un écran ». Vers 24 px de large une silhouette de page ne dit plus rien —
+atteint au-delà d'une vingtaine de pages A4, ou bien plus tôt avec des pages
+franchement hautes.
+
+**Aucun plancher de largeur n'est posé**, et c'est délibéré : un plancher casse
+l'invariant qui fait tout tenir (SU-16), et il faudrait alors soit rogner l'aperçu
+— qui mentirait sur l'étendue du trajet — soit le rendre défilant, ce qui est
+l'exact contraire de ce qu'on cherche. L'aperçu reste donc juste et devient
+étroit ; c'est un compromis qu'on préfère assumer que masquer.
+
+### Ce que l'aperçu porte, à toute échelle
+
+À ces largeurs un libellé du schéma est illisible, quel que soit le trajet. Donc
+l'aperçu répond à « où en suis-je du voyage », jamais à « qu'y a-t-il ici ». Il ne
+porte **que** les images, un filet entre les pages et la barre — ni pastilles de
+points, ni portion parcourue grisée.
 
 Le filet est dessiné par `.overview-stack schema-page + schema-page::after`, en
 absolu : une `border-top` aurait ajouté un pixel à la hauteur de chaque page, et
@@ -90,11 +129,11 @@ Conséquence assumée du seuil partagé : un iPad Pro 12,9" **en portrait** fait
 1024 px et obtient donc les deux colonnes. C'est cohérent avec la carte de
 l'éditeur, qui s'épingle déjà à côté des images sur le même appareil.
 
-### La largeur de l'aperçu est une conséquence, pas un réglage
+### Qui calcule la largeur
 
-Pour que la pile entière tienne dans la hauteur, la colonne doit valoir
-`hauteur ÷ Σ(hauteur/largeur)`. Le TypeScript écrit la seule chose que le CSS ne
-peut pas deviner — la **somme des ratios** — et le CSS fait la division :
+Le TypeScript écrit la seule chose que le CSS ne peut pas deviner — la **somme des
+ratios**, qu'il tire des dimensions portées par l'agrégat — et le CSS fait la
+division :
 
 ```css
 /* sur le sélecteur `suivi-screen` : le panneau comme le repère en héritent */
@@ -106,11 +145,12 @@ Le repli `3rem` n'est pas décoratif : sans lui, un `var()` non résolu invalide
 `calc()`, donc `--overview-width`, donc la largeur — l'aperçu n'aurait aucune
 taille entre le montage et la première mesure.
 
-Les deux plafonds servent les trajets courts : à deux pages la division donne
-274 px, que `12rem` ramène à 192 px sur iPad et `33vw` à 129 px sur un téléphone.
-Plafonner ne peut que faire tenir l'aperçu **davantage** dans la hauteur, jamais
-moins — et comme la barre se place sur des offsets **mesurés**, elle reste juste
-quelle que soit la largeur réellement appliquée.
+Les deux plafonds servent les trajets courts et les pages très larges (voir le
+tableau d'échelles) : `12rem` sur un iPad, `33vw` sur un téléphone — 129 px sur
+390 px de large. Plafonner ne peut que faire tenir l'aperçu **davantage** dans la
+hauteur, jamais moins ; et comme la barre se place sur des offsets **mesurés**,
+elle reste juste quelle que soit la largeur réellement appliquée — plafonnée ou
+non, uniforme ou pas.
 
 `--suivi-bar-height` est mesurée par le TypeScript et posée sur l'élément-écran,
 pas sur `:root` : elle disparaît avec l'écran. Elle est relevée au chargement, à
@@ -223,22 +263,29 @@ libérations au détachement. C'est exactement le contrat de la classe — « **
 propriétaire** de son URL d'objet » — donc rien à assouplir, et CV-4 continue de
 valoir : le témoin compte simplement deux URL par page.
 
-Le coût réel est le **décodage**. Deux atténuations tombent de la conception :
+Le coût réel est le **décodage**, et il se compte en pixels sources : une page
+scannée en A4 à 300 dpi (2481 × 3508) pèse 35 Mo décodée, donc les 6 pages de
+`PMP-BX` en tiennent 209 — la pile qui défile les porte **déjà**, aperçu ou pas.
+Un trajet d'images plus modestes coûte proportionnellement moins ; la question
+posée par l'aperçu est la même dans tous les cas : est-ce que ça double ?
+
+Deux atténuations tombent de la conception :
 
 - sur petit écran, aperçu fermé = `display: none`, donc les images ne sont ni
   mises en page ni chargées (`loading="lazy"` sur un sous-arbre non affiché) :
   **aucun octet décodé tant que l'incrustation n'est pas ouverte** ;
-- à 91 px de large, Safari et Chrome sous-échantillonnent le décodage des JPEG
-  (facteurs de 2), ce qui ramènerait les 209 Mo à quelques mégaoctets.
+- aux largeurs de l'aperçu, Safari et Chrome sous-échantillonnent le décodage des
+  JPEG (par facteurs de 2), ce qui ramènerait ces 209 Mo à quelques mégaoctets.
 
 Le second point est une attente, pas une garantie — un PNG ne se
 sous-échantillonne pas de la même façon. **La mesure est donc un critère
-d'acceptation** : PMP-BX ouvert sur grand écran, relevé mémoire avant/après. Si
-le décodage double, le repli documenté est de construire les vignettes une fois
-au chargement (`createImageBitmap` page par page → un `<canvas>`), ce qui plafonne
-le pic à une page et l'aperçu à quelques centaines de kilo-octets. Ce repli ne
-touche que le contenu de la colonne : la géométrie, la barre, la bascule et le
-CSS restent tels quels.
+d'acceptation** : `PMP-BX` ouvert sur grand écran, relevé mémoire avant/après —
+c'est le trajet le plus lourd dont on dispose, donc le pire cas connu. Si le
+décodage double, le repli documenté est de construire les vignettes une fois au
+chargement (`createImageBitmap` page par page → un `<canvas>`), ce qui plafonne le
+pic à une page et l'aperçu à quelques centaines de kilo-octets. Ce repli ne touche
+que le contenu de la colonne : la géométrie, la barre, la bascule et le CSS
+restent tels quels.
 
 **Écarté : partager l'URL entre les deux piles avec un compteur de références.**
 Une URL d'objet est une poignée, pas une copie — les octets du `Blob` sont déjà
@@ -260,17 +307,20 @@ n'ajoute rien de dicible. La position, elle, se dit déjà en toutes lettres dan
 
 ## Cas limites
 
-| Cas                                 | Ce que fait l'aperçu                                                                             |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Trajet sans page                    | Panneau et bouton masqués, `--overview-ratios-sum` non écrite — le CSS ne divise jamais par zéro |
-| Une seule page                      | Montrée entière, plafonds de largeur appliqués (le suivi, lui, réclame deux points)              |
-| Moins de deux points                | `pas-assez-de-points` → barre cachée                                                             |
-| Aucun fix encore reçu               | Barre cachée                                                                                     |
-| `hors-trajet`, signal perdu         | Barre à sa dernière place, la ligne d'état porte le doute — même règle que le défilement         |
-| Simulation quittée                  | `lastSurTrajet` remis à zéro → barre cachée : aucune position fictive ne reste affichée          |
-| Rotation d'iPad                     | Le CSS recalcule la largeur, `resize` réinterpole la barre **et** le défilement                  |
-| Position reçue, incrustation fermée | `#overview-stack` mesure 0 → rien n'est placé ; l'ouverture rattrape                             |
-| Grand écran                         | Aperçu toujours monté, bouton masqué, `.overview-ouvert` sans effet                              |
+| Cas                                 | Ce que fait l'aperçu                                                                              |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Trajet sans page                    | Panneau et bouton masqués, `--overview-ratios-sum` non écrite — le CSS ne divise jamais par zéro  |
+| Une seule page                      | Montrée entière, plafonds de largeur appliqués (le suivi, lui, réclame deux points)               |
+| Pages de ratios différents          | Chacune garde le sien ; seule l'échelle commune s'ajuste — c'est le cas normal, pas une exception |
+| Une page très large (panoramique)   | Σ ratios minuscule → largeur plafonnée, aperçu plus court que l'écran : il tient, en plus court   |
+| Beaucoup de pages très hautes       | Colonne très étroite, sans plancher : juste mais peu lisible, limite nommée et assumée            |
+| Moins de deux points                | `pas-assez-de-points` → barre cachée                                                              |
+| Aucun fix encore reçu               | Barre cachée                                                                                      |
+| `hors-trajet`, signal perdu         | Barre à sa dernière place, la ligne d'état porte le doute — même règle que le défilement          |
+| Simulation quittée                  | `lastSurTrajet` remis à zéro → barre cachée : aucune position fictive ne reste affichée           |
+| Rotation d'iPad                     | Le CSS recalcule la largeur, `resize` réinterpole la barre **et** le défilement                   |
+| Position reçue, incrustation fermée | `#overview-stack` mesure 0 → rien n'est placé ; l'ouverture rattrape                              |
+| Grand écran                         | Aperçu toujours monté, bouton masqué, `.overview-ouvert` sans effet                               |
 
 Le garde-fou du dernier cas est une mesure, pas un seuil recopié : si la pile de
 l'aperçu ne mesure rien, il n'y a rien à y placer — et surtout aucun 0 à prendre
@@ -278,14 +328,14 @@ pour un offset.
 
 ## Ce que les tests prouvent
 
-| Fichier                                | Ce qu'il prouve                                                                                                                                                        |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `suivi/domain/projection.test.ts`      | `offsetAt` rejoue la même position dans un second jeu d'offsets : deux référentiels, un seul choix de segment. Mutation-testé.                                         |
-| `suivi/domain/overview.test.ts` (neuf) | La somme des ratios : une page, plusieurs, aucune (0 — le cas qui protège le CSS de la division par zéro).                                                             |
-| `suivi/ui/SuiviScreen.test.ts`         | L'aperçu monte autant de pages que la pile ; **deux URL par page, toutes rendues au détachement** ; `aria-pressed` bascule.                                            |
-| `e2e/suivi.spec.ts` — grand écran      | Aperçu présent sans bouton ; **la pile entière tient dans la hauteur** ; simulation sur le point 1 → `(barreY − pileY) / hauteurDeLaPile ≈ 0,8`, la fraction du point. |
-| `e2e/suivi.spec.ts` — petit écran      | Aperçu absent, bouton présent ; activé → aperçu et barre ; rebasculé → il repart.                                                                                      |
-| `e2e/suivi.spec.ts` — simulation       | Quitter la simulation efface la barre.                                                                                                                                 |
+| Fichier                                | Ce qu'il prouve                                                                                                                                                                                              |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `suivi/domain/projection.test.ts`      | `offsetAt` rejoue la même position dans un second jeu d'offsets : deux référentiels, un seul choix de segment. Mutation-testé.                                                                               |
+| `suivi/domain/overview.test.ts` (neuf) | La somme des ratios : une page, aucune (0 — le cas qui protège le CSS de la division par zéro), et **des pages de ratios différents**, dont une panoramique — le témoin qu'aucune uniformité n'est supposée. |
+| `suivi/ui/SuiviScreen.test.ts`         | L'aperçu monte autant de pages que la pile ; **deux URL par page, toutes rendues au détachement** ; `aria-pressed` bascule.                                                                                  |
+| `e2e/suivi.spec.ts` — grand écran      | Aperçu présent sans bouton ; **la pile entière tient dans la hauteur** ; simulation sur le point 1 → `(barreY − pileY) / hauteurDeLaPile ≈ 0,8`, la fraction du point.                                       |
+| `e2e/suivi.spec.ts` — petit écran      | Aperçu absent, bouton présent ; activé → aperçu et barre ; rebasculé → il repart.                                                                                                                            |
+| `e2e/suivi.spec.ts` — simulation       | Quitter la simulation efface la barre.                                                                                                                                                                       |
 
 **Ce qui n'a pas de témoin, dit franchement.** jsdom ne fait pas de mise en page :
 `getBoundingClientRect` y rend 0 partout. Aucun test unitaire ne peut voir _où_
@@ -317,7 +367,7 @@ Deux exigences dans [`EXIGENCES.md`](../../EXIGENCES.md), section Suivi :
 | #     | Exigence                                                                                                                      |
 | ----- | ----------------------------------------------------------------------------------------------------------------------------- |
 | SU-15 | Aperçu du trajet entier avec une barre à la position : côte à côte au-dessus de 900 px, en incrustation basculable en dessous |
-| SU-16 | L'aperçu tient toujours dans la hauteur disponible, quel que soit le nombre de pages                                          |
+| SU-16 | L'aperçu tient toujours dans la hauteur disponible, quels que soient le nombre de pages et leurs ratios                       |
 
 ## Fichiers
 
