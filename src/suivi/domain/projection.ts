@@ -15,10 +15,32 @@ export interface EtapeDuVoyage {
     readonly offset: number;
 }
 
+/**
+ * Où l'on est **sur le trajet** : le segment retenu et l'avancement dessus.
+ *
+ * Indépendante de tout référentiel de pixels, et c'est tout son intérêt : la
+ * pile qui défile et l'aperçu du trajet entier mesurent des offsets différents,
+ * mais réinterpolent la **même** décision. Sans elle il faudrait projeter deux
+ * fois, donc entretenir deux ancrages d'adhérence — et les deux vues pourraient
+ * retenir deux segments différents près d'une jonction, exactement le bruit que
+ * `chooseSegment` existe pour absorber.
+ */
+export interface TrajetPosition {
+    readonly segmentIndex: number;
+    /** Avancement le long du segment retenu, borné à [0, 1]. */
+    readonly t: number;
+}
+
+/**
+ * La position tombe sur le trajet : elle dit **où sur le trajet** on est, et
+ * l'offset visé dans le référentiel des étapes fournies. L'écran en garde le
+ * dernier, dont il se sert pour trois choses — l'adhérence du tick suivant, le
+ * défilement, et la barre de l'aperçu.
+ */
+export type SurTrajet = { kind: 'sur-trajet'; scrollTarget: number } & TrajetPosition;
+
 export type SuiviResult =
-    | { kind: 'pas-assez-de-points' }
-    | { kind: 'hors-trajet'; distanceMetres: number }
-    | { kind: 'sur-trajet'; scrollTarget: number };
+    { kind: 'pas-assez-de-points' } | { kind: 'hors-trajet'; distanceMetres: number } | SurTrajet;
 
 /**
  * La cible de défilement retenue au tick précédent, pour l'adhérence : c'est
@@ -74,9 +96,24 @@ export function computeScrollTarget(
         return { kind: 'hors-trajet', distanceMetres: projection.distanceMetres };
     }
 
-    const start = requireElementAt(etapes, chosenIndex).offset;
-    const end = requireElementAt(etapes, chosenIndex + 1).offset;
-    return { kind: 'sur-trajet', scrollTarget: interpolate(start, end, projection.t) };
+    const trajetPosition: TrajetPosition = { segmentIndex: chosenIndex, t: projection.t };
+    return {
+        kind: 'sur-trajet',
+        scrollTarget: offsetAt(etapes, trajetPosition),
+        ...trajetPosition,
+    };
+}
+
+/**
+ * L'offset visé pour une position sur le trajet, dans le référentiel des étapes
+ * fournies. Appelée une fois par vue : le document pour la pile qui défile, sa
+ * propre pile pour l'aperçu. C'est ici, et nulle part ailleurs, qu'une position
+ * sur le trajet devient des pixels.
+ */
+export function offsetAt(etapes: readonly EtapeDuVoyage[], position: TrajetPosition): number {
+    const start = requireElementAt(etapes, position.segmentIndex).offset;
+    const end = requireElementAt(etapes, position.segmentIndex + 1).offset;
+    return interpolate(start, end, position.t);
 }
 
 /**

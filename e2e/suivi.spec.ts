@@ -5,6 +5,7 @@ import {
     choisirUneCoordonneeSurLaCarte,
     expectedScroll,
     currentScroll,
+    isLargeScreen,
     requireDefined,
     ouvrirUnTrajetAvecUnePage,
 } from './helpers';
@@ -40,6 +41,100 @@ async function simulerSurLePremierRepere(page: Page): Promise<void> {
     await page.getByRole('button', { name: 'Valider' }).click();
     await expect(page.locator('#screen-carte')).toBeHidden();
 }
+
+/**
+ * Rend l'aperçu visible : au-dessus de 900 px il l'est déjà, en dessous c'est le
+ * bouton flottant qui le déplie. C'est le CSS qui dit lequel des deux, comme
+ * pour l'application.
+ */
+async function afficherLApercu(page: Page): Promise<void> {
+    if (!(await isLargeScreen(page))) {
+        await page.getByRole('button', { name: 'Aperçu du trajet' }).click();
+    }
+    await expect(page.locator('#trajet-overview')).toBeVisible();
+}
+
+/** La hauteur relative de la barre dans la pile de l'aperçu, telle qu'elle s'affiche. */
+async function fractionDeLaBarre(page: Page): Promise<number> {
+    const pile = requireDefined(
+        await page.locator('#overview-stack').boundingBox(),
+        'cadre de la pile de l’aperçu',
+    );
+    const barre = requireDefined(
+        await page.locator('#overview-position').boundingBox(),
+        'cadre de la barre de position',
+    );
+    return (barre.y - pile.y) / pile.height;
+}
+
+test.describe('Aperçu du trajet pendant le suivi', () => {
+    test('Étant donné une position simulée sur le premier point, alors la barre de l’aperçu tombe à la hauteur de ce point', async ({
+        page,
+    }) => {
+        await ouvrirLeSuiviDUnTrajetGeoreference(page);
+        await afficherLApercu(page);
+
+        await simulerSurLePremierRepere(page);
+
+        // Le premier point du voyage est à 80 % de l'unique page : la barre doit
+        // tomber à 80 % de la pile de l'aperçu. On lit la fraction sur les boîtes
+        // réelles — un test qui recalculerait les offsets ne vérifierait rien.
+        await expect(page.locator('#overview-position')).toBeVisible();
+        await expect.poll(async () => fractionDeLaBarre(page)).toBeCloseTo(0.8, 1);
+    });
+
+    test('Étant donné la simulation quittée, alors la barre quitte l’aperçu', async ({ page }) => {
+        await ouvrirLeSuiviDUnTrajetGeoreference(page);
+        await afficherLApercu(page);
+        await simulerSurLePremierRepere(page);
+        await expect(page.locator('#overview-position')).toBeVisible();
+
+        await page.getByRole('button', { name: '🚪 Quitter' }).click();
+
+        // Sans quoi une position fictive resterait plantée sur le trajet, que
+        // l'utilisateur lirait comme sa position réelle.
+        await expect(page.locator('#overview-position')).toBeHidden();
+    });
+
+    test('Étant donné un grand écran, alors l’aperçu est là sans bouton, et le trajet entier y tient', async ({
+        page,
+    }) => {
+        await ouvrirLeSuiviDUnTrajetGeoreference(page);
+        test.skip(!(await isLargeScreen(page)), 'Parcours réservé au grand écran.');
+
+        await expect(page.locator('#trajet-overview')).toBeVisible();
+        await expect(page.locator('#overview-button')).toBeHidden();
+
+        const pile = requireDefined(
+            await page.locator('#overview-stack').boundingBox(),
+            'cadre de la pile de l’aperçu',
+        );
+        const viewport = requireDefined(page.viewportSize(), 'viewport');
+        expect(pile.height).toBeLessThanOrEqual(viewport.height);
+        expect(pile.height).toBeGreaterThan(0);
+        // Autant de vignettes que la pile a de pages.
+        await expect(page.locator('#overview-stack overview-page')).toHaveCount(
+            await page.locator('#suivi-stack schema-page').count(),
+        );
+    });
+
+    test('Étant donné un petit écran, alors le bouton flottant déplie puis replie l’aperçu', async ({
+        page,
+    }) => {
+        await ouvrirLeSuiviDUnTrajetGeoreference(page);
+        test.skip(await isLargeScreen(page), 'Parcours réservé aux écrans sous le seuil.');
+
+        const overview = page.locator('#trajet-overview');
+        const bouton = page.getByRole('button', { name: 'Aperçu du trajet' });
+        await expect(overview).toBeHidden();
+
+        await bouton.click();
+        await expect(overview).toBeVisible();
+
+        await bouton.click();
+        await expect(overview).toBeHidden();
+    });
+});
 
 test.describe('Suivi du trajet (position simulée)', () => {
     test('Étant donné une permission refusée (défaut Playwright), alors l’état l’explique', async ({

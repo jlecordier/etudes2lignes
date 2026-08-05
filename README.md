@@ -26,6 +26,12 @@ pour suivre votre position GPS.
   les ~10 s) et le document défile pour placer votre position au quart bas de
   l'écran — les trois quarts hauts montrent ce qui arrive. Défilement manuel →
   bouton « Reprendre le suivi ». L'écran reste allumé (wake lock).
+- **Aperçu du trajet** : à côté du schéma qui défile, le trajet **entier** réduit
+  pour tenir dans une hauteur d'écran, avec une barre à votre position. Côte à
+  côte sur grand écran (iPad en paysage compris) ; en dessous, un bouton flottant
+  🗺️ le déplie par-dessus la lecture, qui continue de défiler derrière. La barre
+  suit votre position, pas votre lecture : défiler à la main pour regarder plus
+  loin ne la déplace pas — c'est ainsi qu'on voit où l'on en est resté.
 - **Simulation** : choisissez une position fictive sur la carte pour vérifier
   votre géoréférencement sans bouger de chez vous.
 - **Hors ligne** : après une première visite en ligne, tout fonctionne sans

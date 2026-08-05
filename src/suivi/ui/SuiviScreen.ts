@@ -8,18 +8,26 @@ import type { Coordonnee } from '../../trajets/domain/Coordonnee';
 import type { Trajet } from '../../trajets/domain/Trajet';
 import type { TrajetId } from '../../trajets/domain/ids';
 import type { TrajetRepository } from '../../trajets/ports/TrajetRepository';
+import { ratiosSum } from '../domain/overview';
 import { sourceStatusText, suiviStatusText } from '../domain/presentation';
 import {
     computeScrollTarget,
     computeScroll,
+    offsetAt,
     POSITION_VIEWPORT_FRACTION,
-    type AncragePrecedent,
     type EtapeDuVoyage,
+    type SurTrajet,
 } from '../domain/projection';
 import type { SourceStatus } from '../domain/sourceStatus';
 import type { ScreenWakeLock } from '../ports/ScreenWakeLockPort';
 import type { PositionSource } from '../ports/PositionSource';
 import type { PositionSimulator } from '../ports/PositionSimulator';
+import {
+    createOverviewPage,
+    overviewPageId,
+    paintOverviewPage,
+    OverviewPageElement,
+} from './OverviewPage';
 import html from './SuiviScreen.html?raw';
 
 export interface SuiviDependencies {
@@ -63,6 +71,11 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
     const simulationBanner = query('#simulation-banner', HTMLElement, root);
     const resumeButton = query('#resume-button', HTMLButtonElement, root);
     const pagesContainer = query('#suivi-stack', HTMLDivElement, root);
+    const suiviBar = query('#suivi-bar', HTMLDivElement, root);
+    const overview = query('#trajet-overview', HTMLDivElement, root);
+    const overviewStack = query('#overview-stack', HTMLDivElement, root);
+    const overviewButton = query('#overview-button', HTMLButtonElement, root);
+    const positionBar = query('#overview-position', HTMLDivElement, root);
 
     // Le repère visuel doit tomber là où le défilement vise : une seule valeur,
     // celle du domaine, que le CSS lit.
@@ -73,7 +86,13 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
 
     let trajet: Trajet | null = null;
     let lastPosition: Coordonnee | null = null;
-    let ancragePrecedent: AncragePrecedent | null = null;
+    /**
+     * Le dernier résultat « sur trajet ». Il sert à trois choses : l'adhérence du
+     * tick suivant, le défilement, et la barre de l'aperçu. C'est **la position
+     * sur le trajet** qu'on garde, pas des pixels : après une rotation, les
+     * offsets ont tous changé mais elle, non.
+     */
+    let lastSurTrajet: SurTrajet | null = null;
     let suiviAutomatique = true;
     // L'écran sait qu'il attend un choix sur la carte : il n'a pas à le déduire
     // de l'attribut `hidden` d'un écran appartenant à une autre capacité.
@@ -104,6 +123,29 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
         'click',
         () => {
             resumeSuivi();
+        },
+        { signal },
+    );
+    overviewButton.addEventListener(
+        'click',
+        () => {
+            toggleOverview();
+        },
+        { signal },
+    );
+
+    /**
+     * Une rotation ne déplace pas la position sur le trajet : elle déplace les
+     * offsets des deux piles. Rien n'est donc reprojeté — on réinterpole.
+     *
+     * Posé sur `window`, donc hors de l'écran : sans le signal, il survivrait à
+     * la sortie et s'ajouterait une fois de plus à chaque visite.
+     */
+    window.addEventListener(
+        'resize',
+        () => {
+            measureSuiviBar();
+            replayLastSurTrajet();
         },
         { signal },
     );
@@ -154,6 +196,16 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
     }
 
     /**
+     * La hauteur de la barre d'état, que la feuille de style retire à celle de
+     * l'écran pour dimensionner l'aperçu. Mesurée, parce qu'elle change : le
+     * bandeau de simulation s'ajoute, et la barre se plie sur écran étroit.
+     */
+    function measureSuiviBar(): void {
+        const height = suiviBar.getBoundingClientRect().height;
+        root.style.setProperty('--suivi-bar-height', `${String(height)}px`);
+    }
+
+    /**
      * Le seul endroit qui change de source de position — et donc le seul qui
      * remette l'état du suivi à zéro.
      *
@@ -161,15 +213,22 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
      * sens d'une source à l'autre : sans cette remise à zéro, quitter la
      * simulation puis appuyer sur « Reprendre le suivi » recalait la page sur la
      * position simulée, que l'utilisateur lisait comme sa position réelle.
+     *
+     * La barre de l'aperçu disparaît par la même occasion, et pour la même
+     * raison : elle ne doit pas laisser une position fictive plantée sur le
+     * trajet après qu'on a quitté la simulation.
      */
     function switchTo(mode: SuiviMode): void {
         realSource.stop();
         simulation.stop();
         lastPosition = null;
-        ancragePrecedent = null;
+        lastSurTrajet = null;
         suiviAutomatique = true;
         resumeButton.hidden = true;
+        positionBar.hidden = true;
         simulationBanner.hidden = mode !== 'simulation';
+        // Le bandeau vient de s'ajouter ou de partir : la barre a changé de hauteur.
+        measureSuiviBar();
         // Le texte d'attente n'est plus écrit ici : la source annonce elle-même
         // son état au démarrage, et `presentation.ts` le rédige.
         if (mode === 'simulation') {
@@ -185,6 +244,54 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
         // d'un seul tenant, sans rupture aux changements de page.
         const pages = trajet === null ? [] : trajet.imagesInReadingOrder();
         pagesContainer.replaceChildren(...pages.map((page) => createSchemaPage(page)));
+        // Les mêmes pages en réduction, mais **pas** les mêmes images : des
+        // vignettes peintes une fois dans un canevas. Les réafficher en `<img>`
+        // coûtait 183 Mo de plus sur un trajet réel, et ne les rendait jamais
+        // (voir `OverviewPage`). La barre reste dans cette pile — c'est elle qui
+        // lui sert de repère, et un enfant en absolu ne pèse pas sur la mise en page.
+        const vignettes = pages.map((page) => ({
+            element: createOverviewPage(page),
+            blob: page.blob,
+        }));
+        overviewStack.replaceChildren(...vignettes.map(({ element }) => element), positionBar);
+
+        // Sans page, aucun aperçu à proposer — et surtout aucune somme à écrire :
+        // la feuille de style diviserait par zéro.
+        const hasPages = pages.length > 0;
+        overview.hidden = !hasPages;
+        overviewButton.hidden = !hasPages;
+        if (hasPages) {
+            root.style.setProperty('--overview-ratios-sum', String(ratiosSum(pages)));
+            run(paintOverview(vignettes), 'la construction de l’aperçu du trajet');
+        }
+    }
+
+    /**
+     * Les vignettes de l'aperçu, **une page à la fois**.
+     *
+     * Le séquentiel est la raison d'être du canevas : six décodages concurrents
+     * tiendraient six pages pleine taille en mémoire, soit exactement ce que
+     * l'aperçu cherche à éviter. Le signal arrête la construction si l'écran est
+     * quitté entre deux pages.
+     */
+    async function paintOverview(
+        vignettes: readonly { element: OverviewPageElement; blob: Blob }[],
+    ): Promise<void> {
+        for (const { element, blob } of vignettes) {
+            if (signal.aborted) {
+                return;
+            }
+            await paintOverviewPage(element, blob);
+        }
+    }
+
+    /** L'aperçu s'ouvre et se ferme ; sur grand écran il est là de toute façon. */
+    function toggleOverview(): void {
+        const ouvert = root.classList.toggle('overview-ouvert');
+        overviewButton.setAttribute('aria-pressed', String(ouvert));
+        // Il ne mesurait rien tant qu'il était replié : la barre n'avait donc
+        // aucun endroit où se poser. Maintenant, si.
+        replayLastSurTrajet();
     }
 
     // --- Position → défilement --------------------------------------------------
@@ -211,12 +318,53 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
         if (currentTrajet === null || position === null) {
             return;
         }
-        const result = computeScrollTarget(voyageEtapes(currentTrajet), position, ancragePrecedent);
+        const result = computeScrollTarget(stackEtapes(currentTrajet), position, lastSurTrajet);
         statusElement.textContent = suiviStatusText(result);
         if (result.kind === 'sur-trajet') {
-            ancragePrecedent = result;
-            followTarget(result.scrollTarget);
+            lastSurTrajet = result;
+            replayLastSurTrajet();
         }
+    }
+
+    /**
+     * Place les deux vues sur la dernière position connue **sur le trajet**.
+     *
+     * Le seul chemin par lequel quoi que ce soit bouge, et il ne décide rien : ni
+     * coordonnée relue, ni segment rechoisi. Une position qui arrive, l'ouverture
+     * de l'aperçu et une rotation d'écran y mènent toutes les trois — dans les
+     * deux derniers cas, seuls les pixels ont changé.
+     *
+     * L'ancrage est réécrit avec la cible fraîchement mesurée : après une
+     * rotation, l'ancienne appartiendrait à une mise en page qui n'existe plus, et
+     * l'adhérence du tick suivant la comparerait à des candidats d'aujourd'hui.
+     */
+    function replayLastSurTrajet(): void {
+        const currentTrajet = trajet;
+        const last = lastSurTrajet;
+        if (currentTrajet === null || last === null) {
+            return;
+        }
+        const scrollTarget = offsetAt(stackEtapes(currentTrajet), last);
+        lastSurTrajet = { ...last, scrollTarget };
+        followTarget(scrollTarget);
+        placeOverviewPosition(currentTrajet, last);
+    }
+
+    /**
+     * La barre, dans le référentiel de l'aperçu — la même position sur le trajet,
+     * réinterpolée sur les offsets de sa propre pile.
+     */
+    function placeOverviewPosition(currentTrajet: Trajet, last: SurTrajet): void {
+        // Aperçu replié : `display: none` ne mesure rien. On ne place donc rien —
+        // et surtout on ne prend pas ce 0 pour un offset. C'est une mesure, pas un
+        // seuil de largeur recopié : la feuille de style reste seule à décider.
+        if (overviewStack.getBoundingClientRect().height === 0) {
+            positionBar.hidden = true;
+            return;
+        }
+        const offset = offsetAt(overviewEtapes(currentTrajet), last);
+        positionBar.style.top = `${String(offset)}px`;
+        positionBar.hidden = false;
     }
 
     /** Le défilement automatique s'efface devant un défilement humain. */
@@ -233,11 +381,44 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
     }
 
     /**
+     * Les offsets de la pile qui défile, en coordonnées du document : c'est
+     * `window` qu'on fait défiler, donc c'est là que la cible doit se lire.
+     */
+    function stackEtapes(currentTrajet: Trajet): EtapeDuVoyage[] {
+        const montees = queryAll('schema-page', SchemaPageElement, pagesContainer);
+        return voyageEtapes(
+            currentTrajet,
+            new Map(montees.map((page) => [page.pageId, page])),
+            -window.scrollY,
+        );
+    }
+
+    /**
+     * Ceux de l'aperçu, relativement au haut de sa propre pile : le panneau est
+     * épinglé ou fixe, où les coordonnées du document ne veulent rien dire. Le
+     * résultat est directement le `top` de la barre.
+     */
+    function overviewEtapes(currentTrajet: Trajet): EtapeDuVoyage[] {
+        const vignettes = queryAll('overview-page', OverviewPageElement, overviewStack);
+        return voyageEtapes(
+            currentTrajet,
+            new Map(vignettes.map((element) => [overviewPageId(element), element])),
+            overviewStack.getBoundingClientRect().top,
+        );
+    }
+
+    /**
+     * Les étapes du voyage projetées dans un référentiel d'affichage : une pile
+     * de pages, et l'origine depuis laquelle on compte les offsets.
+     *
      * Les offsets sont relus à chaque position (jamais mis en cache) :
      * gratuit toutes les ~10 s, et insensible aux rotations d'écran.
      */
-    function voyageEtapes(currentTrajet: Trajet): EtapeDuVoyage[] {
-        const pages = displayedPages();
+    function voyageEtapes(
+        currentTrajet: Trajet,
+        pages: ReadonlyMap<string, HTMLElement>,
+        originTop: number,
+    ): EtapeDuVoyage[] {
         return currentTrajet.pointsInOrdreDuVoyage().map((point) => {
             const affichee = pages.get(point.imageId);
             if (affichee === undefined) {
@@ -246,23 +427,9 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
             const frame = affichee.getBoundingClientRect();
             return {
                 coordonnee: point.coordonnee,
-                offset: frame.top + window.scrollY + point.fraction.value * frame.height,
+                offset: frame.top - originTop + point.fraction.value * frame.height,
             };
         });
-    }
-
-    /**
-     * Les pages montées, par identifiant. La pile est relue à chaque position
-     * comme les offsets le sont : rien n'est mis en cache, donc rien ne peut
-     * mentir après un rendu.
-     */
-    function displayedPages(): Map<string, SchemaPageElement> {
-        return new Map(
-            queryAll('schema-page', SchemaPageElement, pagesContainer).map((page) => [
-                page.pageId,
-                page,
-            ]),
-        );
     }
 
     // --- Défilement manuel -------------------------------------------------------

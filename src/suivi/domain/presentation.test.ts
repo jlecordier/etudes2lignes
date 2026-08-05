@@ -20,7 +20,9 @@ describe('suiviStatusText', () => {
 
     describe('Étant donné une position sur le trajet', () => {
         it('alors aucun texte d’état n’est affiché', () => {
-            expect(suiviStatusText({ kind: 'sur-trajet', scrollTarget: 100 })).toBe('');
+            expect(
+                suiviStatusText({ kind: 'sur-trajet', scrollTarget: 100, segmentIndex: 0, t: 0.5 }),
+            ).toBe('');
         });
     });
 });

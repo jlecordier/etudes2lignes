@@ -279,9 +279,11 @@ point-marker {
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
 }
 
-/* Reste à l'écran quel que soit le défilement : sur tactile, seul recours
-   pour ajouter un point sans remonter tout en haut (pas de clic droit). */
-.floating-add-point-button {
+/* Restent à l'écran quel que soit le défilement : sur tactile, seul recours pour
+   ajouter un point sans remonter tout en haut (pas de clic droit), et pour
+   déplier l'aperçu du trajet sans quitter sa lecture. */
+.floating-add-point-button,
+.overview-button {
     position: fixed;
     right: 1rem;
     bottom: 1rem;
@@ -296,7 +298,79 @@ trajet-editor-screen {
 }
 
 .suivi-stack {
+    flex: 1;
+    /* Sans lui, le `min-width: auto` d'un élément flex vaut sa taille min-content :
+       une page large imposerait sa largeur et l'aperçu n'aurait plus de place. */
+    min-width: 0;
     padding-bottom: 6rem;
+}
+
+/* L'aperçu du trajet entier. Replié par défaut — donc `display: none`, donc
+   aucune image mise en page ni chargée : sur petit écran il ne coûte rien tant
+   qu'on ne l'ouvre pas. C'est la classe posée par la bascule qui le déplie, en
+   incrustation par-dessus la pile ; celle-ci ne bouge alors pas d'un pixel et
+   garde ses offsets, donc le suivi continue pendant qu'on consulte l'aperçu.
+
+   Le seuil du mode est ici et nulle part ailleurs : le TypeScript ne fait que
+   basculer la classe, il n'a aucun 900 à recopier. */
+.trajet-overview {
+    display: none;
+}
+
+.overview-ouvert .trajet-overview {
+    display: flex;
+    justify-content: center;
+    /* Sans lui, l'étirement par défaut donnerait à la pile la hauteur du panneau
+       au lieu de celle de ses pages : la pile doit envelopper exactement ce
+       qu'elle contient, puisque c'est sur elle que la barre se repère. */
+    align-items: flex-start;
+    position: fixed;
+    right: 0;
+    top: var(--suivi-bar-height, 3rem);
+    height: var(--overview-height);
+    /* Au-dessus du repère (5), sous les boutons flottants (20). */
+    z-index: 15;
+    background: rgba(255, 255, 255, 0.9);
+    /* En ombre et non en bordure : la largeur du panneau doit rester exactement
+       celle de sa pile, dont le repère se sert pour savoir où s'arrêter. */
+    box-shadow: -1px 0 0 #e5e7eb;
+}
+
+.overview-stack {
+    position: relative;
+    width: var(--overview-width);
+}
+
+/* Un filet par page, en `outline` : une bordure aurait ajouté un pixel à la
+   hauteur de chaque page et la pile ne tiendrait plus exactement dans la hauteur
+   calculée. Un `::after` sur l'hôte n'aurait rien donné — les pseudo-éléments
+   d'un hôte de shadow root vivent dans le light DOM, qu'aucun `slot` n'expose
+   ici. L'outline, lui, ne pèse pas sur la mise en page et passe au-dessus de
+   la vignette. */
+overview-page {
+    display: block;
+    outline: 1px dashed #9ca3af;
+    outline-offset: -1px;
+}
+
+/* Le fond du canevas fait `OVERVIEW_BACKING_WIDTH` de large ; le navigateur le
+   réduit à la largeur de la colonne, et sa hauteur suit son propre ratio — donc
+   chaque page garde le sien. */
+overview-page canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+/* La position sur le trajet, dans le référentiel de l'aperçu. Son `top` est posé
+   par l'écran, en pixels de la pile ci-dessus : c'est la même décision de
+   projection que celle qui fait défiler le document, réinterpolée ici. */
+.overview-position {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-top: 3px solid #2563eb;
+    pointer-events: none;
 }
 
 /* Carte des points + images : empilées sur mobile (carte au-dessus),
@@ -348,6 +422,44 @@ trajet-editor-screen {
 
     .images-column {
         flex: 1;
+    }
+
+    /* L'aperçu du trajet est là en permanence : il prend sa place à côté de la
+       pile au lieu de la recouvrir, et la bascule n'a plus d'objet.
+
+       Sélecteurs délibérément plus spécifiques que ceux de l'incrustation, qui
+       vivent plus bas dans la feuille : le seuil ne s'écrit qu'ici — ajouter une
+       seconde requête média près de l'écran de suivi aurait recopié le 900 —,
+       donc c'est la spécificité qui tranche, et non l'ordre. */
+    suivi-screen .trajet-overview,
+    suivi-screen.overview-ouvert .trajet-overview {
+        display: flex;
+        justify-content: center;
+        /* Voir l'incrustation : la pile enveloppe ses pages, elle ne s'étire pas. */
+        align-items: flex-start;
+        position: sticky;
+        top: var(--suivi-bar-height, 3rem);
+        height: var(--overview-height);
+        flex: 0 0 auto;
+        /* Sous la barre d'état (10), au-dessus de la pile. */
+        z-index: 0;
+        background: none;
+        box-shadow: -1px 0 0 #e5e7eb;
+    }
+
+    suivi-screen .overview-button {
+        display: none;
+    }
+
+    /* Le repère ne dit la position que de la vue qui défile : il s'arrête au
+       bord de l'aperçu au lieu de le traverser. */
+    suivi-screen .guide-line {
+        right: var(--overview-width);
+    }
+
+    /* Recentré sur la pile, pas sur la fenêtre. */
+    suivi-screen .resume-button {
+        left: calc((100% - var(--overview-width)) / 2);
     }
 }
 
@@ -428,6 +540,33 @@ trajet-editor-screen {
 /* Écran de suivi */
 suivi-screen {
     padding: 0;
+
+    /* L'aperçu du trajet n'a pas de taille propre : sa largeur est celle qui fait
+       tenir la pile entière dans la hauteur disponible, soit
+       `hauteur ÷ Σ(hauteur/largeur)`. Le TypeScript écrit la seule chose que le
+       CSS ne peut pas deviner — la somme des ratios, un ratio par page, aucune
+       uniformité supposée — et la division se fait ici.
+
+       Les deux plafonds servent les trajets courts et les pages très larges, où
+       la division rendrait une colonne absurdement grande. Plafonner ne peut que
+       faire tenir l'aperçu *davantage* dans la hauteur, jamais moins ; et comme la
+       barre se place sur des offsets mesurés, elle reste juste quelle que soit la
+       largeur réellement appliquée.
+
+       Les replis (`3rem`, `1`) ne sont pas décoratifs : un `var()` non résolu
+       invalide tout le `calc()`, donc la largeur — l'aperçu n'aurait aucune taille
+       entre le montage et la première mesure. */
+    --overview-height: calc(100dvh - var(--suivi-bar-height, 3rem));
+    --overview-width: min(
+        calc(var(--overview-height) / var(--overview-ratios-sum, 1)),
+        12rem,
+        33vw
+    );
+}
+
+.suivi-body {
+    display: flex;
+    align-items: flex-start;
 }
 
 .suivi-bar {
@@ -469,6 +608,12 @@ suivi-screen {
     border-top: 2px dashed #2563eb;
     pointer-events: none;
     z-index: 5;
+}
+
+/* Incrustation dépliée : le repère s'arrête là où elle commence, comme il
+   s'arrête au bord de la colonne sur grand écran. */
+.overview-ouvert .guide-line {
+    right: var(--overview-width);
 }
 
 .resume-button {

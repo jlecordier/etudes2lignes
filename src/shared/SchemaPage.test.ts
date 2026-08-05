@@ -1,11 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest';
-import {
-    SchemaPageElement,
-    createSchemaPage,
-    type DisplayablePage,
-    type ObjectUrls,
-} from './SchemaPage';
+import type { DisplayablePage } from './DisplayedPage';
+import { SchemaPageElement, createSchemaPage, type ObjectUrls } from './SchemaPage';
 
 /** URL d'objet à la main : le test observe ce qui est réellement créé et libéré. */
 class TrackedUrls implements ObjectUrls {

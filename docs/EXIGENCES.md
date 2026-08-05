@@ -56,6 +56,15 @@ Légende : `U` = test unitaire (Vitest), `E` = test de bout en bout (Playwright)
 | SU-13 | Une source arrêtée puis redémarrée ne traîne ni throttle ni silence hérités     | `U GeolocationPositionSource.test.ts`                           |
 | SU-14 | Un seul lock d'écran à la fois, et aucun laissé allumé après « relâcher »       | `U BrowserScreenWakeLock.test.ts`                               |
 
+### Aperçu du trajet
+
+| #     | Exigence                                                                                                                      | Vérifié par                                    |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| SU-15 | Aperçu du trajet entier avec une barre à la position : côte à côte au-dessus de 900 px, en incrustation basculable en dessous | `U SuiviScreen.test.ts`, `E e2e/suivi.spec.ts` |
+| SU-16 | L'aperçu tient dans la hauteur disponible, quels que soient le nombre de pages et leurs ratios                                | `U overview.test.ts`, `E e2e/suivi.spec.ts`    |
+| SU-17 | Aperçu et défilement désignent le même endroit : une seule décision de projection, réinterpolée par vue                       | `U projection.test.ts`                         |
+| SU-18 | La barre ne bouge que « sur trajet », et disparaît quand on quitte la simulation                                              | `E e2e/suivi.spec.ts`                          |
+
 ## Simulation
 
 | #    | Exigence                                                           | Vérifié par                                                 |
@@ -95,6 +104,8 @@ disent ce que son départ doit avoir rendu.
 | CV-4 | Une page retirée de l'affichage libère son URL d'objet ; un simple déplacement ne la libère pas | `U SchemaPage.test.ts`, `U TrajetEditorScreen.test.ts`           |
 | CV-5 | Une page inchangée n'est pas redécodée quand l'écran rend à nouveau                             | `U TrajetEditorScreen.test.ts`                                   |
 | CV-6 | Rouvrir l'éditeur remonte sa carte sur le conteneur neuf                                        | `U LeafletCarteDesPoints.test.ts`, `E e2e/carte-editeur.spec.ts` |
+
+| CV-7 | Une vignette d'aperçu relâche la page pleine taille dès qu'elle est peinte, et les pages se peignent une à une | `U OverviewPage.test.ts`, `U SuiviScreen.test.ts` |
 
 ## Qualité (transverse)
 

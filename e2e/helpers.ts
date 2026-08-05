@@ -108,7 +108,7 @@ export async function choisirUneCoordonneeSurLaCarte(page: Page, shiftX = 0): Pr
 }
 
 /** Le seuil du grand écran n'est écrit qu'une fois, dans la feuille de style. */
-function isLargeScreen(page: Page): Promise<boolean> {
+export function isLargeScreen(page: Page): Promise<boolean> {
     return page.evaluate(
         () =>
             getComputedStyle(document.documentElement).getPropertyValue('--large-screen').trim() ===

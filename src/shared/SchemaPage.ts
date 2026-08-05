@@ -9,17 +9,9 @@
  * garantit le cycle de vie, pas nous.
  */
 import html from './SchemaPage.html?raw';
+import type { DisplayablePage } from './DisplayedPage';
 import { query, requireConfiguration } from './dom';
 import { createTemplate } from './template';
-
-/** Une page à afficher. `ImageDeTrajet` s'y assigne : aucun domaine n'est requis. */
-export interface DisplayablePage {
-    readonly id: string;
-    readonly nom: string;
-    readonly blob: Blob;
-    readonly largeur: number;
-    readonly hauteur: number;
-}
 
 /** La création d'URL d'objet, injectable pour que les tests observent les libérations. */
 export interface ObjectUrls {

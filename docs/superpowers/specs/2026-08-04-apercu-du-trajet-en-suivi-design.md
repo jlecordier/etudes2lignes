@@ -22,9 +22,9 @@ largeur = hauteur disponible ÷ Σ (hauteur / largeur)
 **Rien ici ne suppose que les pages d'un trajet se ressemblent.** La somme porte
 sur le ratio de chacune : deux pages ou trente, portrait, paysage, ou n'importe
 quel mélange — l'égalité `Σ hauteurs affichées = hauteur disponible` est exacte
-dans tous les cas, parce que la pile pose toutes les pages à la **même largeur**
-et que chacune garde son propre ratio (`SchemaPage` réserve les `largeur` et
-`hauteur` de _sa_ page, et sa géométrie est `img { width: 100%; height: auto }`).
+dans tous les cas, parce que la pile pose toutes les pages à la **même largeur** et
+que chacune garde son propre ratio : chaque élément réserve sa boîte depuis les
+`largeur` et `hauteur` de _sa_ page, et sa géométrie est `width: 100%; height: auto`.
 L'agrégat garantit par ailleurs des dimensions entières strictement positives
 (`isDimension`), donc aucun ratio n'est ni nul ni infini.
 
@@ -60,12 +60,17 @@ l'exact contraire de ce qu'on cherche. L'aperçu reste donc juste et devient
 
 À ces largeurs un libellé du schéma est illisible, quel que soit le trajet. Donc
 l'aperçu répond à « où en suis-je du voyage », jamais à « qu'y a-t-il ici ». Il ne
-porte **que** les images, un filet entre les pages et la barre — ni pastilles de
-points, ni portion parcourue grisée.
+porte **que** les pages, un filet entre elles et la barre — ni pastilles de points,
+ni portion parcourue grisée.
 
-Le filet est dessiné par `.overview-stack schema-page + schema-page::after`, en
-absolu : une `border-top` aurait ajouté un pixel à la hauteur de chaque page, et
-l'aperçu ne tiendrait plus _exactement_ dans la hauteur qu'on lui a calculée.
+Le filet est un `outline: 1px dashed` avec `outline-offset: -1px` sur chaque page :
+un outline ne pèse pas sur la mise en page, là où une `border-top` aurait ajouté un
+pixel à la hauteur de chaque page et l'aperçu ne tiendrait plus _exactement_ dans
+la hauteur qu'on lui a calculée.
+
+_Corrigé à l'implémentation :_ la première version le dessinait avec un `::after`
+sur la page. Ça ne rendait rien, la page étant alors un hôte de shadow root — les
+pseudo-éléments d'un hôte vivent dans son light DOM, qu'aucun `<slot>` n'exposait.
 
 ## Décision
 
@@ -125,6 +130,13 @@ Un trajet sans page masque le panneau **et** le bouton (`hidden`, qui gagne sur 
 requête média) : sur grand écran, une colonne vide n'aurait laissé qu'un filet
 vertical sans rien dedans.
 
+Le panneau porte `align-items: flex-start`, et ce n'est pas cosmétique : sans lui,
+l'étirement par défaut d'un conteneur flex donne à la pile la hauteur du **panneau**
+au lieu de celle de ses pages. La barre tombait alors juste — elle se repère sur les
+pages — mais toute mesure prise sur la pile mentait, y compris l'assertion « le
+trajet entier tient dans la hauteur », qui passait pour cette exacte mauvaise
+raison. C'est le témoin e2e du placement qui l'a fait tomber.
+
 Conséquence assumée du seuil partagé : un iPad Pro 12,9" **en portrait** fait
 1024 px et obtient donc les deux colonnes. C'est cohérent avec la carte de
 l'éditeur, qui s'épingle déjà à côté des images sur le même appareil.
@@ -178,8 +190,14 @@ export function offsetAt(etapes: readonly EtapeDuVoyage[], position: TrajetPosit
 ```
 
 `scrollTarget` reste ce qu'il a toujours été — la cible dans le référentiel qu'on
-a fourni —, donc **aucune assertion de `projection.test.ts` ne change** et aucune
-fonction n'est renommée.
+a fourni —, et aucune fonction n'est renommée.
+
+_Corrigé à l'implémentation :_ la spec annonçait qu'aucune assertion existante ne
+changerait. Faux, à deux endroits, tous deux des `toEqual` sur l'objet entier :
+`projection.test.ts` (le segment dégénéré) et `presentation.test.ts` (un résultat
+construit à la main). Le premier gagne au change — il affirme maintenant que `t`
+vaut **0** sur un segment plus court qu'un mètre, ce qui est la règle qu'on voulait
+protéger.
 
 Côté écran, `voyageEtapes` sert désormais les deux piles et prend donc son
 conteneur **et son origine** :
@@ -256,42 +274,81 @@ après une rotation, donc le repère à 75 % désigne le mauvais endroit du sch�
 jusqu'au tick suivant — jusqu'à ~10 s. C'est une amélioration hors du besoin
 initial ; elle est écrite ici parce qu'elle ne doit pas passer en contrebande.
 
-### Deux fois la même page en mémoire — mesuré, pas supposé
+### Des vignettes, pas les images une seconde fois — la mesure a tranché
 
-Chaque page est montée deux fois : deux `schema-page`, deux URL d'objet, deux
-libérations au détachement. C'est exactement le contrat de la classe — « **le
-propriétaire** de son URL d'objet » — donc rien à assouplir, et CV-4 continue de
-valoir : le témoin compte simplement deux URL par page.
+Le coût de l'aperçu est le **décodage**, et il se compte en pixels sources : une
+page scannée en A4 à 300 dpi (2481 × 3508) pèse 35 Mo décodée, donc les 6 pages de
+`PMP-BX` en tiennent 209 — que la pile qui défile porte déjà, aperçu ou pas. La
+question était : est-ce que l'aperçu double ça ?
 
-Le coût réel est le **décodage**, et il se compte en pixels sources : une page
-scannée en A4 à 300 dpi (2481 × 3508) pèse 35 Mo décodée, donc les 6 pages de
-`PMP-BX` en tiennent 209 — la pile qui défile les porte **déjà**, aperçu ou pas.
-Un trajet d'images plus modestes coûte proportionnellement moins ; la question
-posée par l'aperçu est la même dans tous les cas : est-ce que ça double ?
+**La première version affichait les mêmes `<img>` une seconde fois** (deux
+`schema-page`, deux URL d'objet), en pariant que Safari et Chrome
+sous-échantillonneraient le décodage des JPEG à la largeur d'affichage. Mesure sur
+`PMP-BX`, RSS du processus de rendu, deux cycles ouvert/fermé :
 
-Deux atténuations tombent de la conception :
+| Relevé                  | RSS de rendu |
+| ----------------------- | ------------ |
+| Aperçu replié           | **428 Mo**   |
+| Aperçu déplié           | **611 Mo**   |
+| Aperçu replié à nouveau | **610 Mo**   |
+| Redéplié                | **611 Mo**   |
 
-- sur petit écran, aperçu fermé = `display: none`, donc les images ne sont ni
-  mises en page ni chargées (`loading="lazy"` sur un sous-arbre non affiché) :
-  **aucun octet décodé tant que l'incrustation n'est pas ouverte** ;
-- aux largeurs de l'aperçu, Safari et Chrome sous-échantillonnent le décodage des
-  JPEG (par facteurs de 2), ce qui ramènerait ces 209 Mo à quelques mégaoctets.
+**+183 Mo, pour 209 Mo de doublement théorique : le pari est perdu.** Le navigateur
+décode à la taille source, pas à celle de l'affichage — et il ne rend rien en
+refermant. Un pied de la conception tenait quand même : replié, l'aperçu coûte
+zéro (`display: none` ne met en page ni ne charge rien), mais seulement jusqu'au
+premier dépliage.
 
-Le second point est une attente, pas une garantie — un PNG ne se
-sous-échantillonne pas de la même façon. **La mesure est donc un critère
-d'acceptation** : `PMP-BX` ouvert sur grand écran, relevé mémoire avant/après —
-c'est le trajet le plus lourd dont on dispose, donc le pire cas connu. Si le
-décodage double, le repli documenté est de construire les vignettes une fois au
-chargement (`createImageBitmap` page par page → un `<canvas>`), ce qui plafonne le
-pic à une page et l'aperçu à quelques centaines de kilo-octets. Ce repli ne touche
-que le contenu de la colonne : la géométrie, la barre, la bascule et le CSS
-restent tels quels.
+**Donc le repli, tel qu'il était pré-décidé : un canevas par page.**
+`OverviewPage` réserve sa boîte à l'attachement (aucun décodage), puis peint sa
+vignette dans un `<canvas>` de 384 px de fond et **relâche la page pleine taille**
+(`ImageBitmap.close()`). Même mesure, même trajet :
+
+| Relevé                | RSS de rendu     |
+| --------------------- | ---------------- |
+| Aperçu replié         | **434 Mo**       |
+| Aperçu déplié         | **421 Mo**       |
+| Replié, puis redéplié | **421 / 425 Mo** |
+
+Le surcoût disparaît dans le bruit. Ce qui reste tient dans
+`384 × ratio × 4` octets par page, soit quelques centaines de kilo-octets pour un
+trajet entier.
+
+Trois écarts par rapport au repli tel qu'il était écrit, et les trois comptent :
+
+- **un canevas par page, et non un seul pour la pile.** L'aperçu garde ainsi un
+  élément mesurable par page, donc la barre continue de se placer sur des offsets
+  **mesurés** — la géométrie de la section précédente n'est pas touchée d'une
+  ligne. Un canevas unique aurait obligé à calculer les offsets depuis les
+  dimensions du domaine, c'est-à-dire à faire entrer la mise en page dans le
+  domaine : précisément ce que la section « Écarté » refuse.
+- **la peinture est séquentielle, et c'est l'écran qui la pilote** (`paintOverview`
+  sous son `run`, arrêtée par le signal). Six vignettes construites en parallèle
+  décoderaient six pages pleine taille en même temps : le pic qu'on cherche
+  justement à éviter. La peinture depuis le `connectedCallback` de chaque page
+  aurait été concurrente par construction.
+- **la vignette est bâtie par sa fabrique, sans cycle de vie.** Écrite d'abord en
+  custom element à `connectedCallback` (comme `schema-page`), elle contredisait
+  l'[ADR 0008](../../adr/0008-interface-en-custom-elements-natifs.md), qui réserve
+  le cycle de vie aux feuilles possédant une ressource à relâcher — or la vignette
+  relâche son décodage dans son propre `finally` et ne retient plus rien ensuite.
+  C'est fallow qui l'a signalé, en détectant un clone de 21 lignes avec
+  `SchemaPage` : le protocole « propriété entrante + garde + shadow root », répété.
+  Le motif de `point-marker` (classe vide, tout dans la fabrique) supprime le clone
+  **et** le mode de panne — plus rien n'est différé, donc une vignette ne peut plus
+  exister sans savoir quelle page elle montre.
+
+    _Tenté et écarté :_ une classe de base commune aux deux éléments. Elle
+    dédoublonnait, mais faisait perdre à fallow la trace des crochets du navigateur
+    (`connectedCallback` derrière un type local passe pour du code mort), soit trois
+    suppressions à écrire — l'esquive que le projet s'interdit.
 
 **Écarté : partager l'URL entre les deux piles avec un compteur de références.**
 Une URL d'objet est une poignée, pas une copie — les octets du `Blob` sont déjà
 partagés, c'est le même objet. Et le cache de décodage du navigateur est indexé
-par URL **et taille de rendu**, or les deux tailles diffèrent par construction :
-le compteur aurait ajouté de la mécanique sans économiser un octet.
+par URL **et taille de rendu** : le compteur aurait ajouté de la mécanique sans
+économiser un octet. La mesure ci-dessus le confirme a posteriori — le coût était
+bien dans le décodage, pas dans la poignée.
 
 ### Le bouton dit son état, pas son action
 
@@ -328,14 +385,16 @@ pour un offset.
 
 ## Ce que les tests prouvent
 
-| Fichier                                | Ce qu'il prouve                                                                                                                                                                                              |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `suivi/domain/projection.test.ts`      | `offsetAt` rejoue la même position dans un second jeu d'offsets : deux référentiels, un seul choix de segment. Mutation-testé.                                                                               |
-| `suivi/domain/overview.test.ts` (neuf) | La somme des ratios : une page, aucune (0 — le cas qui protège le CSS de la division par zéro), et **des pages de ratios différents**, dont une panoramique — le témoin qu'aucune uniformité n'est supposée. |
-| `suivi/ui/SuiviScreen.test.ts`         | L'aperçu monte autant de pages que la pile ; **deux URL par page, toutes rendues au détachement** ; `aria-pressed` bascule.                                                                                  |
-| `e2e/suivi.spec.ts` — grand écran      | Aperçu présent sans bouton ; **la pile entière tient dans la hauteur** ; simulation sur le point 1 → `(barreY − pileY) / hauteurDeLaPile ≈ 0,8`, la fraction du point.                                       |
-| `e2e/suivi.spec.ts` — petit écran      | Aperçu absent, bouton présent ; activé → aperçu et barre ; rebasculé → il repart.                                                                                                                            |
-| `e2e/suivi.spec.ts` — simulation       | Quitter la simulation efface la barre.                                                                                                                                                                       |
+| Fichier                                | Ce qu'il prouve                                                                                                                                                                                                                            |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `suivi/domain/projection.test.ts`      | `offsetAt` rejoue la même position dans un second jeu d'offsets : deux référentiels, un seul choix de segment. Mutation-testé.                                                                                                             |
+| `suivi/domain/overview.test.ts` (neuf) | La somme des ratios : une page, aucune (0 — le cas qui protège le CSS de la division par zéro), et **des pages de ratios différents**, dont une panoramique — le témoin qu'aucune uniformité n'est supposée.                               |
+| `suivi/ui/OverviewPage.test.ts` (neuf) | La boîte est réservée avant tout décodage, et rien n'est décodé à l'attachement ; la page pleine taille est relâchée dès la vignette peinte — même si l'élément a été détaché entre-temps.                                                 |
+| `suivi/ui/SuiviScreen.test.ts`         | L'aperçu monte autant de pages que la pile ; **une seule URL d'objet par page** (l'aperçu n'ouvre pas de seconde image) ; **les vignettes se peignent une à la fois** ; `aria-pressed` bascule ; un trajet sans page n'offre pas d'aperçu. |
+| `e2e/suivi.spec.ts` — placement        | Simulation sur le point 1 → `(barreY − pileY) / hauteurDeLaPile ≈ 0,8`, la fraction du point. Joué sur les cinq navigateurs, dans les deux modes.                                                                                          |
+| `e2e/suivi.spec.ts` — grand écran      | Aperçu présent sans bouton ; **le trajet entier tient dans la hauteur** ; autant de vignettes que de pages.                                                                                                                                |
+| `e2e/suivi.spec.ts` — petit écran      | Aperçu replié, bouton présent ; déplié puis replié par le bouton.                                                                                                                                                                          |
+| `e2e/suivi.spec.ts` — simulation       | Quitter la simulation efface la barre.                                                                                                                                                                                                     |
 
 **Ce qui n'a pas de témoin, dit franchement.** jsdom ne fait pas de mise en page :
 `getBoundingClientRect` y rend 0 partout. Aucun test unitaire ne peut voir _où_
@@ -347,44 +406,55 @@ test creux qui passe parce que tout vaut zéro.
 
 `aperçu` est absent du lexique, donc technique par défaut
 ([ADR 0007](../../adr/0007-langue-du-code-metier-francais-technique-anglais.md)) →
-**`overview`**. Deux lignes à ajouter au tableau des mots techniques récurrents de
+**`overview`**. Trois lignes au tableau des mots techniques récurrents de
 [`GLOSSAIRE.md`](../../GLOSSAIRE.md#mots-techniques-récurrents--traduction-retenue) :
-`aperçu → overview` et `bascule` / `basculer → toggle`. `TrajetPosition` suit
-l'ordre des mots anglais, comme `trajet-row` : le mot métier garde sa forme
-française à sa nouvelle place.
+`aperçu → overview`, `bascule` / `basculer → toggle`, `peindre → paint`.
+`TrajetPosition` suit l'ordre des mots anglais, comme `trajet-row` : le mot métier
+garde sa forme française à sa nouvelle place.
 
-Une ligne à ajouter au tableau **Métier**, parce que c'est un concept du domaine
-et pas seulement un type :
+Deux lignes au tableau **Métier**, parce que ce sont des concepts et pas seulement
+des types :
 
-| Terme                      | Définition                                                                                                                                            | Dans le code     |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| **Position sur le trajet** | Le segment retenu et l'avancement dessus. Indépendante de tout référentiel de pixels : c'est ce qui permet aux deux vues de désigner le même endroit. | `TrajetPosition` |
+| Terme                      | Définition                                                                                                                                                  | Dans le code                |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| **Position sur le trajet** | Le segment retenu et l'avancement dessus. Indépendante de tout référentiel de pixels : c'est ce qui permet aux deux vues de désigner le même endroit.       | `TrajetPosition`            |
+| **Aperçu du trajet**       | Le voyage entier réduit pour tenir dans une hauteur d'écran, avec une barre à la position. Des vignettes peintes une fois, pas les images une seconde fois. | `OverviewPage`, `ratiosSum` |
 
 ## Traçabilité
 
-Deux exigences dans [`EXIGENCES.md`](../../EXIGENCES.md), section Suivi :
+Dans [`EXIGENCES.md`](../../EXIGENCES.md), une sous-section « Aperçu du trajet »
+sous Suivi, et une ligne de plus au cycle de vie :
 
 | #     | Exigence                                                                                                                      |
 | ----- | ----------------------------------------------------------------------------------------------------------------------------- |
 | SU-15 | Aperçu du trajet entier avec une barre à la position : côte à côte au-dessus de 900 px, en incrustation basculable en dessous |
-| SU-16 | L'aperçu tient toujours dans la hauteur disponible, quels que soient le nombre de pages et leurs ratios                       |
+| SU-16 | L'aperçu tient dans la hauteur disponible, quels que soient le nombre de pages et leurs ratios                                |
+| SU-17 | Aperçu et défilement désignent le même endroit : une seule décision de projection, réinterpolée par vue                       |
+| SU-18 | La barre ne bouge que « sur trajet », et disparaît quand on quitte la simulation                                              |
+| CV-7  | Une vignette relâche la page pleine taille dès qu'elle est peinte, et les pages se peignent une à une                         |
 
 ## Fichiers
 
-| Fichier                               | Ce qui change                                                            |
-| ------------------------------------- | ------------------------------------------------------------------------ |
-| `src/suivi/domain/projection.ts`      | `TrajetPosition`, `offsetAt`, deux champs sur `sur-trajet`               |
-| `src/suivi/domain/projection.test.ts` | Le témoin des deux référentiels                                          |
-| `src/suivi/domain/overview.ts`        | **Neuf** — `ratiosSum(pages)`, pur                                       |
-| `src/suivi/domain/overview.test.ts`   | **Neuf**                                                                 |
-| `src/suivi/ui/SuiviScreen.html`       | `.suivi-body`, l'aperçu, la barre, le bouton flottant                    |
-| `src/suivi/ui/SuiviScreen.ts`         | Seconde pile, placement de la barre, bascule, `resize`, hauteur de barre |
-| `src/suivi/ui/SuiviScreen.test.ts`    | Montage, URL, `aria-pressed`                                             |
-| `src/style.css`                       | Les deux modes, la largeur déduite, le repère qui s'arrête à l'aperçu    |
-| `e2e/suivi.spec.ts`                   | Les trois parcours                                                       |
-| `docs/EXIGENCES.md`                   | SU-15, SU-16                                                             |
-| `docs/GLOSSAIRE.md`                   | Une ligne Métier, deux entrées de lexique                                |
-| `README.md`                           | Une phrase dans la puce **Suivi**                                        |
+| Fichier                                 | Ce qui change                                                                                      |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `src/suivi/domain/projection.ts`        | `TrajetPosition`, `SurTrajet`, `offsetAt`, deux champs sur `sur-trajet`                            |
+| `src/suivi/domain/projection.test.ts`   | Le témoin des deux référentiels, et `t` sur un segment dégénéré                                    |
+| `src/suivi/domain/presentation.test.ts` | Un résultat construit à la main, complété                                                          |
+| `src/suivi/domain/overview.ts`          | **Neuf** — `ratiosSum(pages)`, pur                                                                 |
+| `src/suivi/domain/overview.test.ts`     | **Neuf**                                                                                           |
+| `src/suivi/ui/OverviewPage.ts`          | **Neuf** — la vignette : boîte réservée, peinte, décodage relâché                                  |
+| `src/shared/DisplayedPage.ts`           | **Neuf** — `DisplayablePage` déménage : aucun des deux éléments n’en est le propriétaire           |
+| `src/shared/SchemaPage.ts`              | Importe le type au lieu de le déclarer                                                             |
+| `src/suivi/ui/OverviewPage.test.ts`     | **Neuf**                                                                                           |
+| `src/suivi/ui/SuiviScreen.html`         | `.suivi-body`, l'aperçu, la barre, le bouton flottant                                              |
+| `src/suivi/ui/SuiviScreen.ts`           | Pile de vignettes peinte page par page, placement de la barre, bascule, `resize`, hauteur de barre |
+| `src/suivi/ui/SuiviScreen.test.ts`      | Montage, URL, enchaînement des vignettes, `aria-pressed`                                           |
+| `src/style.css`                         | Les deux modes, la largeur déduite, le repère qui s'arrête à l'aperçu                              |
+| `e2e/suivi.spec.ts`                     | Les quatre parcours                                                                                |
+| `e2e/helpers.ts`                        | `isLargeScreen` exporté                                                                            |
+| `docs/EXIGENCES.md`                     | SU-15 à SU-18, CV-7                                                                                |
+| `docs/GLOSSAIRE.md`                     | Deux lignes Métier, trois entrées de lexique                                                       |
+| `README.md`                             | Une puce **Aperçu du trajet**                                                                      |
 
 ## Écarté
 

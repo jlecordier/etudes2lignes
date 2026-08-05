@@ -4,6 +4,7 @@ import { Coordonnee } from '../../trajets/domain/Coordonnee';
 import {
     computeScrollTarget,
     computeScroll,
+    offsetAt,
     type AncragePrecedent,
     type EtapeDuVoyage,
 } from './projection';
@@ -150,7 +151,14 @@ describe('calculerCibleDeScroll', () => {
 
             const result = computeScrollTarget(aSingleDegenerateSegment, poitiers, null);
 
-            expect(result).toEqual({ kind: 'sur-trajet', scrollTarget: 7000 });
+            // `t` vaut 0 : un segment plus court qu'un mètre est traité comme un
+            // point, donc l'avancement dessus n'a pas de sens à interpoler.
+            expect(result).toEqual({
+                kind: 'sur-trajet',
+                scrollTarget: 7000,
+                segmentIndex: 0,
+                t: 0,
+            });
         });
 
         it('alors du bruit GPS autour de la jonction ne fait pas osciller la page', () => {
@@ -202,6 +210,45 @@ describe('calculerCibleDeScroll', () => {
             if (result.kind === 'sur-trajet') {
                 expect(result.scrollTarget).toBeGreaterThan(10500);
                 expect(result.scrollTarget).toBeLessThanOrEqual(13900);
+            }
+        });
+    });
+});
+
+describe('offsetAt', () => {
+    /**
+     * Les mêmes trois étapes, mais projetées dans l'aperçu : l'aperçu mesure ses
+     * propres pages, relativement à sa propre pile, donc ses offsets n'ont ni la
+     * même échelle ni la même origine que ceux du document.
+     */
+    const etapesInTheOverview: EtapeDuVoyage[] = [
+        { coordonnee: massy, offset: 300 },
+        { coordonnee: vendome, offset: 200 },
+        { coordonnee: poitiers, offset: 100 },
+    ];
+
+    describe('Étant donné une position sur le trajet', () => {
+        it('alors la rejouer dans son propre référentiel redonne la cible', () => {
+            const result = computeScrollTarget(etapesOnOnePage, milieu(massy, vendome), null);
+
+            expect(result.kind).toBe('sur-trajet');
+            if (result.kind === 'sur-trajet') {
+                expect(offsetAt(etapesOnOnePage, result)).toBeCloseTo(result.scrollTarget, 6);
+            }
+        });
+
+        it('alors la rejouer dans le référentiel de l’aperçu y place le même endroit du trajet', () => {
+            const result = computeScrollTarget(etapesOnOnePage, milieu(massy, vendome), null);
+
+            expect(result.kind).toBe('sur-trajet');
+            if (result.kind === 'sur-trajet') {
+                // Mi-chemin du premier segment : 7500 dans le document, 250 dans
+                // l'aperçu. Les deux vues désignent le même endroit parce
+                // qu'aucune ne redécide — elles interpolent la même décision.
+                expect(result.scrollTarget).toBeGreaterThan(7400);
+                expect(result.scrollTarget).toBeLessThan(7600);
+                expect(offsetAt(etapesInTheOverview, result)).toBeGreaterThan(245);
+                expect(offsetAt(etapesInTheOverview, result)).toBeLessThan(255);
             }
         });
     });

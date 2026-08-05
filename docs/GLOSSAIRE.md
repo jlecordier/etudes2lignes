@@ -35,6 +35,9 @@ techniques récurrents.
 | **Suivi automatique**             | Le document défile tout seul selon la position. Coupé par un défilement humain ; « Reprendre » le rétablit.                                                                    | `SuiviScreen`                                                       |
 | **Simulation**                    | Position fictive choisie à la main pour tester le géoréférencement sans bouger.                                                                                                | `SimulationPositionSource`                                          |
 
+| **Position sur le trajet** | Le segment retenu et l'avancement dessus. Indépendante de tout référentiel de pixels : c'est ce qui permet à l'aperçu et au défilement de désigner le même endroit. | `TrajetPosition` |
+| **Aperçu du trajet** | Le voyage entier réduit pour tenir dans une hauteur d'écran, avec une barre à la position. Des vignettes peintes une fois, pas les images une seconde fois. | `OverviewPage`, `ratiosSum` |
+
 ## Architecture
 
 | Terme                      | Définition                                                                                                                                                                 |
@@ -115,6 +118,8 @@ coup. C'est ce qui empêche le dépôt d'avoir trois mots pour un concept.
 | Français                    | Anglais               | Français                 | Anglais                |
 | --------------------------- | --------------------- | ------------------------ | ---------------------- |
 | `aide`                      | `help`                | `intitulé` (nom access.) | `ariaLabel`            |
+| `aperçu`                    | `overview`            | `bascule`, `basculer`    | `toggle`               |
+| `peindre`                   | `paint`               |                          |                        |
 | `banc`, `bancDEssai`        | `testBed`             | `lancer`, `lanceur`      | `run`, `runner`        |
 | `bandeau`                   | `banner`              | `largeur` / `hauteur`    | `width` / `height`     |
 | `barre`                     | `bar`                 | `liste`                  | `list`                 |

@@ -1,4 +1,4 @@
-<div class="suivi-bar">
+<div id="suivi-bar" class="suivi-bar">
     <button id="leave-suivi-button" type="button" class="secondary">🔙 Éditer</button>
     <span id="suivi-status" class="suivi-status"></span>
     <button id="simuler-button" type="button" class="secondary">🧪 Simuler</button>
@@ -7,6 +7,28 @@
         <button id="leave-simulation-button" type="button" class="secondary">🚪 Quitter</button>
     </p>
 </div>
-<div id="suivi-stack" class="suivi-stack"></div>
+<div class="suivi-body">
+    <div id="suivi-stack" class="suivi-stack"></div>
+    <!-- Une silhouette du voyage entier : elle n'ajoute aucun nom de page à
+         énoncer, et la position se dit déjà en toutes lettres dans l'état. -->
+    <div id="trajet-overview" class="trajet-overview" aria-hidden="true" hidden>
+        <div id="overview-stack" class="overview-stack">
+            <div id="overview-position" class="overview-position" hidden></div>
+        </div>
+    </div>
+</div>
 <div class="guide-line" aria-hidden="true"></div>
 <button id="resume-button" type="button" class="resume-button" hidden>▶️ Reprendre le suivi</button>
+<!-- Intitulé stable et `aria-pressed` : c'est l'état qui bascule, pas le nom —
+     un bouton qui change de nom ne se désigne plus, ni au test ni à la voix. -->
+<button
+    id="overview-button"
+    type="button"
+    class="secondary overview-button"
+    aria-label="Aperçu du trajet"
+    aria-pressed="false"
+    title="Aperçu du trajet"
+    hidden
+>
+    🗺️
+</button>
