@@ -14,6 +14,14 @@ body {
 :root {
     /* Passe à 1 dans la requête média du grand écran, plus bas. */
     --large-screen: 0;
+
+    /* La géométrie du repère d'un point, posée ici parce que trois règles la
+       partagent : la pastille sur l'image, la même pastille sur la carte, et le
+       trait sur le milieu duquel la première se cale. Écrite une fois, elle ne
+       peut pas dériver d'une vue à l'autre — c'est tout l'objet du symbole
+       commun. */
+    --point-badge-size: 1.625rem;
+    --point-line-thickness: 2px;
 }
 
 /* Un custom element est `inline` par défaut : les écrans-éléments doivent le
@@ -240,30 +248,56 @@ image-frame schema-page {
     cursor: crosshair;
 }
 
+/* Le trait qui traverse la page à la hauteur du point. En pointillé : plein, il
+   effaçait sur toute la largeur la ligne de cotes qu'il est là pour désigner. */
 point-marker {
     display: block;
     position: absolute;
     left: 0;
     right: 0;
-    border-top: 2px solid #dc2626;
+    border-top: var(--point-line-thickness) dashed #dc2626;
     pointer-events: none;
 }
 
-/* Le numéro d'un point : la même pastille rouge dans la liste, sur l'image et sur
-   la carte. Une seule identité, que l'œil suit d'une vue à l'autre. */
-.point-number {
+/* Le numéro d'un point : un seul symbole, sur l'image comme sur la carte. Chaque
+   vue avait le sien — une pilule plate ici, un disque cerclé de blanc là — et
+   l'œil ne reconnaissait pas le même point en passant de l'une à l'autre. Une
+   seule règle, donc : les sélecteurs de la carte viennent la chercher ici plutôt
+   que d'entretenir un sosie ailleurs dans la feuille.
+
+   Ils restent scopés sous leur conteneur : leaflet.css arrive après dans le
+   bundle, et son `.leaflet-marker-icon { display: block }` écraserait le centrage
+   flex d'un sélecteur de même poids.
+
+   Largeur fixe, et non `min-width` : un numéro à trois chiffres débordera du
+   disque, mais symétriquement, donc toujours centré sur ce qu'il désigne — une
+   pastille qui s'allonge vers la droite décalerait le marqueur de sa coordonnée. */
+.point-number,
+.carte-points .carte-marker,
+#carte-container .carte-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--point-badge-size);
+    height: var(--point-badge-size);
     background: #dc2626;
     color: white;
+    border: 2px solid white;
     border-radius: 999px;
-    padding: 0 0.4rem;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
-/* Sur l'image, la pastille est posée sur le repère. */
+/* Sur l'image, la pastille est centrée sur le trait : c'est la hauteur du point
+   qu'elle annonce, et un numéro posé à côté de son trait se lit comme celui du
+   trait voisin. Le décalage se compte depuis la boîte de padding, qui commence
+   sous le trait — d'où la demi-épaisseur de celui-ci ajoutée à la moitié de la
+   pastille pour remonter jusqu'à son milieu. */
 point-marker .point-number {
     position: absolute;
     left: 0.25rem;
-    top: -0.75rem;
+    top: calc((var(--point-line-thickness) + var(--point-badge-size)) / -2);
 }
 
 /* Le numéro de la page, compté depuis le haut de la pile. Gris, pour ne pas se
@@ -285,20 +319,32 @@ point-marker .point-number {
     pointer-events: none;
 }
 
-/* Boutons flottants posés sur chaque ligne : agir sur un point sans remonter
-   à la liste tout en haut de la page. */
+/* Boutons flottants posés sur chaque trait : agir sur un point sans remonter en
+   haut de la page.
+
+   Entièrement **au-dessus** du trait, et non plus à cheval sur lui : à cheval,
+   leur moitié basse couvrait la cote que le trait désigne, c'est-à-dire
+   exactement ce qu'on venait lire. Le décalage part de la boîte de padding, qui
+   commence sous le trait : lui rendre son épaisseur pose les boutons au ras du
+   trait, et le terme suivant est donc exactement l'espace qui se voit. Il en faut
+   franchement — à 2 px, les boutons touchaient encore la ligne et se lisaient
+   comme lui appartenant. */
 .point-actions {
     position: absolute;
     right: 0.25rem;
-    top: -0.75rem;
+    bottom: calc(var(--point-line-thickness) + 0.75rem);
     display: flex;
     gap: 0.25rem;
     pointer-events: auto;
 }
 
+/* Un cran plus grands que le minuscule d'origine : à 24 px de haut, ces trois
+   boutons se manquaient sous le pouce et leur pictogramme se perdait dans un
+   schéma chargé. Ils restent plus petits que les boutons de la barre d'actions —
+   posés sur l'image, ils lui empruntent sa place. */
 .floating-button {
-    padding: 0.15rem 0.5rem;
-    font-size: 0.75rem;
+    padding: 0.3rem 0.55rem;
+    font-size: 0.875rem;
     line-height: 1.4;
     white-space: nowrap;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
@@ -519,21 +565,17 @@ overview-page canvas {
     }
 }
 
-/* Scopé sous les conteneurs de cartes : leaflet.css arrive après dans le
-   bundle et son .leaflet-marker-icon { display: block } écraserait le
-   centrage flex. */
+/* L'apparence du marqueur est celle de la pastille commune, plus haut. Ne reste
+   ici que ce qui n'appartient qu'à la carte : le centrage sur la coordonnée et le
+   curseur de préhension.
+
+   Cette marge négative tient le rôle de l'`iconAnchor` de Leaflet, que
+   `numberedIcon` ne donne plus — pas plus que l'`iconSize` : les deux
+   inscriraient la taille du symbole une seconde fois, en TypeScript, et les deux
+   vues finiraient par ne plus montrer la même pastille. */
 .carte-points .carte-marker,
 #carte-container .carte-marker {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #dc2626;
-    color: white;
-    border: 2px solid white;
-    border-radius: 999px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    margin: calc(var(--point-badge-size) / -2) 0 0 calc(var(--point-badge-size) / -2);
     cursor: grab;
 }
 

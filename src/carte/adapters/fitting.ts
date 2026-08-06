@@ -11,9 +11,10 @@ import { FRANCE_VIEW } from './osmLayer';
 const SINGLE_POINT_ZOOM = 12;
 
 /**
- * Marge conservée autour des points, en pixels : la pastille numérotée mesure
- * 26 px et est centrée sur son point, donc elle dépasse de 13 px — 40 px la
- * laissent entière, avec de quoi respirer.
+ * Marge conservée autour des points, en pixels : la pastille numérotée est
+ * centrée sur son point, donc elle dépasse d'une demi-pastille — soit 13 px pour
+ * les 1,625 rem que la feuille de style lui donne (`--point-badge-size`). 40 px
+ * la laissent entière, avec de quoi respirer.
  */
 const FIT_PADDING: [number, number] = [40, 40];
 

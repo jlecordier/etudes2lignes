@@ -6,6 +6,7 @@ import {
     coordonneeDuPoint,
     clicDroitSurLImage,
     cliquerSurLImage,
+    mesuresDuRepere,
     pngFile,
     requireDefined,
     ouvrirUnTrajetAvecUnePage,
@@ -34,6 +35,44 @@ test.describe('Géoréférencement des points', () => {
             /^Coordonnée : -?\d+\.\d{4}, -?\d+\.\d{4}$/,
         );
         await expect(page.locator('point-marker')).toHaveCount(1);
+    });
+
+    test('Étant donné un point posé sur l’image, alors son numéro porte le symbole de la carte, centré sur son trait', async ({
+        page,
+    }) => {
+        await ouvrirUnTrajetAvecUnePage(page);
+        await ajouterUnPoint(page, 0.5);
+        await expect(page.locator('#carte-points .carte-marker')).toHaveText(['1']);
+
+        const repere = await mesuresDuRepere(page);
+
+        // Un seul symbole pour un même point : l'œil qui passe du schéma à la
+        // carte doit y reconnaître la même pastille, pas une cousine. La taille
+        // n'est écrite qu'une fois (`--point-badge-size`) — c'est ce que mesure
+        // cette égalité, y compris pour la carte, dont `numberedIcon` ne dit plus
+        // ni la taille ni l'ancre.
+        expect(repere.pastille.width).toBe(repere.pastilleDeLaCarte.width);
+        expect(repere.pastille.height).toBe(repere.pastilleDeLaCarte.height);
+        // Centrée sur son trait : posée à côté, elle se lit comme le numéro du
+        // trait voisin. Un pixel de tolérance pour l'arrondi du rendu.
+        expect(Math.abs(repere.pastille.milieu - repere.trait.milieu)).toBeLessThanOrEqual(1);
+    });
+
+    test('Étant donné un point posé sur l’image, alors ses boutons se tiennent au-dessus du trait, sans couvrir ce qu’il désigne', async ({
+        page,
+    }) => {
+        await ouvrirUnTrajetAvecUnePage(page);
+        await ajouterUnPoint(page, 0.5);
+        await expect(page.locator('point-marker')).toHaveCount(1);
+
+        const repere = await mesuresDuRepere(page);
+
+        // À cheval sur le trait, leur moitié basse couvrait la cote que le trait
+        // désigne — exactement ce qu'on venait lire.
+        expect(repere.boutons.bottom).toBeLessThanOrEqual(repere.trait.top);
+        // Et jamais plus petits que le numéro dont ils portent les actions : sous
+        // le pouce, ces boutons-là se manquaient.
+        expect(repere.boutons.height).toBeGreaterThanOrEqual(repere.pastille.height);
     });
 
     test('Étant donné un point, quand je le déplace sur l’image, alors sa hauteur change sans ouvrir la carte', async ({

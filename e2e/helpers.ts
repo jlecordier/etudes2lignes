@@ -103,6 +103,71 @@ export async function hauteurDuRepere(page: Page, index = 0): Promise<number> {
     return Math.round(((repere.y - zone.y) / zone.height) * 100);
 }
 
+/** Une boîte mesurée à l'écran : de quoi dire « au-dessus de » et « centré sur ». */
+export interface BoiteMesuree {
+    readonly top: number;
+    readonly bottom: number;
+    readonly milieu: number;
+    readonly width: number;
+    readonly height: number;
+}
+
+/** Le repère d'un point sur l'image, pièce par pièce, et la pastille du même numéro sur la carte. */
+export interface MesuresDuRepere {
+    /** Le trait qui traverse la page à la hauteur du point. */
+    readonly trait: BoiteMesuree;
+    /** La pastille numérotée posée sur ce trait. */
+    readonly pastille: BoiteMesuree;
+    /** Les trois boutons flottants du repère. */
+    readonly boutons: BoiteMesuree;
+    /** La pastille du **même numéro** sur la carte intégrée. */
+    readonly pastilleDeLaCarte: BoiteMesuree;
+}
+
+/**
+ * Mesure le repère d'un point et la pastille du même point sur la carte.
+ *
+ * Les quatre boîtes sont prises dans la même image : schéma et carte répondent au
+ * même geste, et quatre mesures successives compareraient quatre instants. Lève
+ * dès qu'une pièce manque, plutôt que de rendre une comparaison vide qui
+ * passerait toute seule. L'index compte les repères de haut en bas.
+ */
+export function mesuresDuRepere(page: Page, index = 0): Promise<MesuresDuRepere> {
+    return page.evaluate((rang) => {
+        const boite = (element: Element | null | undefined, quoi: string): BoiteMesuree => {
+            if (element === null || element === undefined) {
+                throw new Error(`${quoi} : rien à mesurer.`);
+            }
+            const cadre = element.getBoundingClientRect();
+            return {
+                top: cadre.top,
+                bottom: cadre.bottom,
+                milieu: cadre.top + cadre.height / 2,
+                width: cadre.width,
+                height: cadre.height,
+            };
+        };
+        const reperes = document.querySelectorAll('point-marker');
+        const repere = reperes[rang];
+        if (repere === undefined) {
+            throw new Error(`Repère ${rang + 1} introuvable : ${reperes.length} sur la page.`);
+        }
+        const pastille = repere.querySelector('.point-number');
+        const numero = pastille?.textContent ?? '';
+        return {
+            trait: boite(repere, 'Trait du repère'),
+            pastille: boite(pastille, 'Pastille du repère'),
+            boutons: boite(repere.querySelector('.point-actions'), 'Boutons du repère'),
+            pastilleDeLaCarte: boite(
+                [...document.querySelectorAll('#carte-points .carte-marker')].find(
+                    (candidat) => candidat.textContent === numero,
+                ),
+                `Pastille ${numero} sur la carte`,
+            ),
+        };
+    }, index);
+}
+
 /** Renvoie une valeur attendue (cadre, viewport, texte, correspondance…) ou échoue clairement. */
 export function requireDefined<T>(value: T | null | undefined, label: string): T {
     if (value === null || value === undefined) {

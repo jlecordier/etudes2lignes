@@ -7,7 +7,7 @@
  * devient impossible.
  */
 
-/** Le bouton posé sur une image est minuscule : il porte une infobulle et n'éveille pas la zone sous lui. */
+/** Le bouton posé sur une image est plus petit : il porte une infobulle et n'éveille pas la zone sous lui. */
 export type ButtonVariant = 'secondary' | 'floating';
 
 export interface Button {

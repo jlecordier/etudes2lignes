@@ -40,6 +40,8 @@ Légende : `U` = test unitaire (Vitest), `E` = test de bout en bout (Playwright)
 | GR-10 | La coordonnée d'un point se lit en infobulle sur son repère, jamais en clair dans l'écran         | `U TrajetEditorScreen.test.ts`, `U presentation.test.ts`, `E e2e/points.spec.ts`          |
 | GR-11 | Désigner un point sur la carte amène son repère à l'écran, sans jamais le déplacer                | `U TrajetEditorScreen.test.ts`, `U LeafletCarteDesPoints.test.ts`, `E e2e/points.spec.ts` |
 | GR-12 | Sous 900 px, un bouton flottant met la carte par-dessus le schéma ; désigner un point l'en retire | `U TrajetEditorScreen.test.ts`, `U LeafletCarteDesPoints.test.ts`, `E e2e/points.spec.ts` |
+| GR-13 | Un point porte le même symbole numéroté sur le schéma et sur la carte, centré sur son trait       | `E e2e/points.spec.ts`                                                                    |
+| GR-14 | Le repère laisse lire ce qu'il désigne : trait en pointillé, boutons au-dessus et non à cheval    | `E e2e/points.spec.ts`                                                                    |
 
 ## Suivi
 
