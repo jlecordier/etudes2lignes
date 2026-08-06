@@ -554,6 +554,23 @@ describe('Trajet', () => {
             expect(trajet.progressOfPoint(hautDeLaCarree)).toBeCloseTo(1 / 4, 10);
             expect(trajet.progressOfPoint(milieuDeLaHaute)).toBeCloseTo(2.5 / 4, 10);
         });
+
+        it('quand deux pages ont les mêmes proportions, alors elles pèsent pareil quelle que soit leur taille', () => {
+            const trajet = newTrajet();
+            // La pile pose toutes ses pages à la même largeur : ce qui pèse est
+            // le **rapport** hauteur/largeur, jamais le nombre de pixels. Une
+            // page deux fois plus grande dans les deux sens occupe exactement la
+            // même hauteur à l'écran — et donc la même part du voyage.
+            const petite = trajet.addImage({ ...imageFile('a.jpg'), largeur: 100, hauteur: 100 });
+            trajet.addImage({ ...imageFile('b.jpg'), largeur: 200, hauteur: 200 });
+            const hautDeLaPetite = trajet.addPoint({
+                imageId: petite,
+                fraction: FractionVerticale.create(0),
+                coordonnee: massy,
+            });
+
+            expect(trajet.progressOfPoint(hautDeLaPetite)).toBe(0.5);
+        });
     });
 
     describe('Étant donné un trajet sauvegardé, quand je le réhydrate', () => {
