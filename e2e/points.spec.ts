@@ -3,6 +3,7 @@ import {
     ajouterUnPoint,
     choisirUneCoordonneePourUnPoint,
     coordonneeDuPoint,
+    ecartAuCentreDeLaCarte,
     clicDroitSurLImage,
     cliquerSurLImage,
     pngFile,
@@ -214,6 +215,27 @@ test.describe('Géoréférencement des points', () => {
 
         // Le défilement est fluide : l'assertion réessaie jusqu'à ce qu'il aboutisse.
         await expect(pastille).toBeInViewport();
+    });
+
+    test('Étant donné deux points, quand je clique la ligne du second, alors la carte se cale sur lui', async ({
+        page,
+    }) => {
+        await ouvrirUnTrajetAvecUnePage(page);
+        await ajouterUnPoint(page, 0.8, 0);
+        await expect(page.locator('.point-description')).toHaveCount(1);
+        await ajouterUnPoint(page, 0.2, 150);
+        await expect(page.locator('#carte-points .carte-marker')).toHaveText(['1', '2']);
+
+        await page.locator('.point-description').nth(1).click();
+
+        // Le marqueur du point désigné tombe au centre de la carte : c'est ce que
+        // « recentrer » veut dire, et ça se mesure sans ouvrir Leaflet.
+        //
+        // Les deux cadres sont lus dans la même image, et l'assertion réessaie :
+        // le même clic lance aussi un défilement fluide, qui déplace encore la
+        // carte épinglée du grand écran pendant qu'on mesure. Deux mesures prises
+        // l'une après l'autre compareraient deux instants différents.
+        await expect.poll(() => ecartAuCentreDeLaCarte(page, '2')).toBeLessThan(2);
     });
 
     test('Étant donné le choix sur carte, quand je saisis latitude et longitude à la main, alors le point est créé avec ces valeurs', async ({

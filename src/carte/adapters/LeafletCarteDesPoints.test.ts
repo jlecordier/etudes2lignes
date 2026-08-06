@@ -129,6 +129,33 @@ describe('Carte des points de l’éditeur', () => {
         });
     });
 
+    describe('Étant donné un trajet affiché en entier, quand on me demande un point précis', () => {
+        it('alors la carte se cale dessus, au même zoom que partout ailleurs', () => {
+            const { carteDesPoints, show, carte } = testBed();
+            show([point(1, PARIS), point(2, BORDEAUX)]);
+
+            carteDesPoints.centerOn(BORDEAUX);
+
+            expect(carte().getCenter().lat).toBeCloseTo(BORDEAUX.latitude, 6);
+            expect(carte().getCenter().lng).toBeCloseTo(BORDEAUX.longitude, 6);
+            expect(carte().getZoom()).toBe(12);
+        });
+
+        it('alors réafficher les mêmes points ensuite ne défait pas le centrage', () => {
+            const { carteDesPoints, show, carte } = testBed();
+            const points = [point(1, PARIS), point(2, BORDEAUX)];
+            show(points);
+
+            carteDesPoints.centerOn(BORDEAUX);
+            // Une écriture quelconque (un marqueur déplacé ailleurs, par exemple)
+            // fait réafficher l'écran : le cadrage demandé doit tenir.
+            show(points);
+
+            expect(carte().getCenter().lat).toBeCloseTo(BORDEAUX.latitude, 6);
+            expect(carte().getZoom()).toBe(12);
+        });
+    });
+
     describe('Étant donné un point existant, quand j’arme le choix avec sa position', () => {
         it('alors la carte est centrée sur elle', async () => {
             const { carteDesPoints, show, carte } = testBed();

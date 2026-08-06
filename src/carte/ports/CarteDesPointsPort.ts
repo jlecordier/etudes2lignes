@@ -12,24 +12,28 @@ export interface DisplayedPoint {
  * Port : la carte d'ensemble de l'éditeur, avec tous les points du trajet.
  *
  * Contrat :
- * - `afficher` montre exactement les points donnés (marqueurs numérotés,
+ * - `show` montre exactement les points donnés (marqueurs numérotés,
  *   déplaçables) ; `onMove` est appelé quand l'utilisateur fait
  *   glisser un marqueur. La carte se recadre sur les points à la première
  *   ouverture et quand l'ensemble des points change — jamais sur un simple
  *   déplacement, pour ne pas voler le zoom.
- * - `choisirUneCoordonnee` arme un clic : la promesse rend la coordonnée
+ * - `centerOn` cale la carte sur une coordonnée, au zoom d'un point unique :
+ *   c'est ce que l'écran demande quand l'utilisateur désigne un point dans la
+ *   liste. Même cadrage que `chooseCoordonnee` sur un point existant — désigner
+ *   un point et le déplacer amènent au même endroit, à la même échelle.
+ * - `chooseCoordonnee` arme un clic : la promesse rend la coordonnée
  *   cliquée sur la carte. Quand une `initialCoordonnee` est donnée (on déplace
  *   un point existant), la carte se centre dessus avant d'armer le clic —
- *   exactement comme `CoordonneeSelector.choisir` sur mobile. Les points du
- *   trajet, eux, sont déjà tous à l'écran grâce à `afficher`. Armer un nouveau
+ *   exactement comme `CoordonneeSelector.choose` sur mobile. Les points du
+ *   trajet, eux, sont déjà tous à l'écran grâce à `show`. Armer un nouveau
  *   choix annule le précédent (null).
- * - `annulerLeChoix` résout le choix en attente avec null (sans objet sinon) :
+ * - `cancelChoice` résout le choix en attente avec null (sans objet sinon) :
  *   un choix armé n'attend jamais indéfiniment, l'écran peut l'abandonner.
- * - `monter`/`demonter` encadrent la vie de la carte. L'écran d'édition est
+ * - `mount`/`unmount` encadrent la vie de la carte. L'écran d'édition est
  *   fabriqué et détruit à chaque visite : son conteneur est un élément neuf à
  *   chaque fois, et une carte mémorisée d'une visite à l'autre pointerait sur un
  *   conteneur détaché — la deuxième ouverture n'afficherait plus rien. Toute
- *   autre méthode exige d'avoir été montée ; `demonter` rend tout ce que la
+ *   autre méthode exige d'avoir été montée ; `unmount` rend tout ce que la
  *   carte tenait et peut se rappeler sans dommage.
  */
 export interface CarteDesPoints {
@@ -39,6 +43,7 @@ export interface CarteDesPoints {
         points: readonly DisplayedPoint[],
         onMove: (id: PointId, coordonnee: Coordonnee) => void,
     ): void;
+    centerOn(coordonnee: Coordonnee): void;
     chooseCoordonnee(initialCoordonnee: Coordonnee | null): Promise<Coordonnee | null>;
     cancelChoice(): void;
 }

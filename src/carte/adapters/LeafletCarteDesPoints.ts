@@ -107,6 +107,15 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
         }
     }
 
+    /**
+     * Cale la carte sur une coordonnée. Le cadrage est celui de `fitting`, donc
+     * le même que partout ailleurs dans l'appli : désigner un point dans la liste
+     * et le déplacer amènent au même endroit, à la même échelle.
+     */
+    centerOn(coordonnee: Coordonnee): void {
+        centerOnCoordonnee(this.mountedCarte(), coordonnee);
+    }
+
     chooseCoordonnee(initialCoordonnee: Coordonnee | null): Promise<Coordonnee | null> {
         this.cancelChoice();
         const carte = this.mountedCarte();

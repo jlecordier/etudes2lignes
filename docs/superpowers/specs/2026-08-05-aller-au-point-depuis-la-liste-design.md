@@ -141,24 +141,37 @@ Trois coutures, dans le sens de l'architecture — la feuille annonce, l'écran
 décide ([ADR 0008](../../adr/0008-interface-en-custom-elements-natifs.md)) :
 
 ```ts
-// intents.ts — le pendant des deux « move » déjà là
-'show-point-on-image': CustomEvent<PointIntent>;
+// intents.ts — la feuille dit ce que l'utilisateur veut, pas comment le faire
+'show-point': CustomEvent<PointIntent>;
 
 // PointMarker.ts — comme `schema-page` porte son `pageId`
 get pointId(): PointId
 
 // TrajetEditorScreen.ts
-root.addEventListener('show-point-on-image', (event) => {
-    showPointOnImage(event.detail.pointId);
+root.addEventListener('show-point', (event) => {
+    showPoint(event.detail.pointId);
 }, { signal });
 
-function showPointOnImage(pointId: PointId): void {
-    const marker = queryAll('point-marker', PointMarkerElement, pagesContainer).find(
-        (candidate) => candidate.pointId === pointId,
-    );
-    marker?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+function showPoint(pointId: PointId): void {
+    carteDesPoints.centerOn(trajetPoint(currentTrajet, pointId).coordonnee);
+    scrollToMarker(pointId);
 }
 ```
+
+**Un geste, deux réponses.** Le repère vient au centre de l'écran, et la carte se
+cale sur la coordonnée du même point — l'intention ne nomme donc pas de support
+(`show-point`, et non `show-point-on-image`) : elle dit qu'on veut voir ce point,
+l'écran décide de ce que cela veut dire.
+
+Les deux à chaque fois, sans regarder la taille de l'écran. Au-dessus de 900 px
+la carte est épinglée à côté de la pile, donc les deux réponses se lisent d'un
+coup ; en dessous elle est au-dessus des images, et son cadrage attend qu'on y
+remonte. Rien ne se perd, et le seuil du grand écran n'a pas à être recopié dans
+l'écran d'édition.
+
+Le cadrage de la carte n'est pas inventé : `centerOn` appelle `centerOnCoordonnee`
+(`carte/adapters/fitting.ts`), déjà utilisé quand on déplace un point. Désigner un
+point et le déplacer amènent au même endroit, à la même échelle.
 
 `block: 'center'` et non les trois quarts hauts du suivi : cette fraction existe
 pour laisser voir ce qui arrive quand on avance (`POSITION_VIEWPORT_FRACTION`).
@@ -245,9 +258,6 @@ Deux assertions e2e existantes changent de nature, et il faut le dire :
 - **Un clignotement du marqueur à l'arrivée.** La pastille rouge au centre de
   l'écran se voit ; `element.animate` casserait le test unitaire (jsdom ne
   l'implémente pas) pour un confort marginal.
-- **Recentrer aussi la carte sur le point.** La demande porte sur le trajet.
-  L'intention `show-point-on-carte` s'écrira d'elle-même à côté de
-  `move-point-on-carte` le jour où elle sera voulue.
 - **Une navigation « point suivant / précédent »** et un retour vers la liste
   après le défilement : hors périmètre. Les actions d'un point sont déjà
   atteignables sur son marqueur, sans remonter.
@@ -267,7 +277,7 @@ Deux assertions e2e existantes changent de nature, et il faut le dire :
 | `src/trajets/domain/Trajet.test.ts`         | numérotation depuis le haut, avancement                        |
 | `src/trajets/domain/presentation.ts`        | la phrase et la coordonnée                                     |
 | `src/trajets/domain/presentation.test.ts`   | leurs témoins                                                  |
-| `src/trajets/ui/intents.ts`                 | `show-point-on-image`                                          |
+| `src/trajets/ui/intents.ts`                 | `show-point`                                                   |
 | `src/trajets/ui/PointRow.ts` + `.html`      | bouton plat, pastille, infobulle                               |
 | `src/trajets/ui/PointMarker.ts`             | `pointId`                                                      |
 | `src/trajets/ui/ImageFrame.ts` + `.html`    | pastille du numéro de page                                     |

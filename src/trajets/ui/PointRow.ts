@@ -45,7 +45,7 @@ export function createPointRow(row: DisplayedPointRow): PointRowElement {
         `Aller au point ${String(row.number)} — ${row.description}`,
     );
     description.addEventListener('click', () => {
-        emitIntent(element, 'show-point-on-image', {
+        emitIntent(element, 'show-point', {
             pointId: row.pointId,
             number: row.number,
         });

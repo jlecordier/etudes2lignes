@@ -73,6 +73,7 @@ class FakeTrajetRepository implements TrajetRepository {
 class FakeCarteDesPoints implements CarteDesPoints {
     private container: HTMLElement | null = null;
     private displayed: readonly DisplayedPoint[] = [];
+    private centres: Coordonnee[] = [];
 
     mount(container: HTMLElement): void {
         this.container = container;
@@ -85,6 +86,17 @@ class FakeCarteDesPoints implements CarteDesPoints {
 
     show(points: readonly DisplayedPoint[]): void {
         this.displayed = points;
+    }
+
+    centerOn(coordonnee: Coordonnee): void {
+        this.centres.push(coordonnee);
+    }
+
+    /** Les coordonnées sur lesquelles on lui a demandé de se caler, dans l'ordre. */
+    centrages(): string[] {
+        return this.centres.map(
+            (coordonnee) => `${String(coordonnee.latitude)}, ${String(coordonnee.longitude)}`,
+        );
     }
 
     chooseCoordonnee(): Promise<Coordonnee | null> {
@@ -500,11 +512,22 @@ describe('trajet-editor-screen', () => {
             expect(elementsMontres()).toEqual(['point-marker 2']);
         });
 
-        it('quand je ne clique rien, alors rien ne défile', async () => {
+        it('quand je clique la ligne du second, alors la carte se cale sur sa coordonnée', async () => {
+            repository = new FakeTrajetRepository(trajetDeDeuxPoints);
+            const element = await attacherLEcran();
+
+            requireElementAt(accessButtons(element), 1).click();
+
+            // Un seul geste, deux réponses : le schéma défile et la carte suit.
+            expect(carteDesPoints.centrages()).toEqual(['48.8566, 2.3522']);
+        });
+
+        it('quand je ne clique rien, alors rien ne défile et la carte garde son cadrage', async () => {
             repository = new FakeTrajetRepository(trajetDeDeuxPoints);
             await attacherLEcran();
 
             expect(elementsMontres()).toEqual([]);
+            expect(carteDesPoints.centrages()).toEqual([]);
         });
     });
 

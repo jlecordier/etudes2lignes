@@ -181,9 +181,9 @@ function mount(
         { signal },
     );
     root.addEventListener(
-        'show-point-on-image',
+        'show-point',
         (event) => {
-            showPointOnImage(event.detail.pointId);
+            showPoint(event.detail.pointId);
         },
         { signal },
     );
@@ -418,6 +418,24 @@ function mount(
     }
 
     /**
+     * Montre le point : son repère sur le schéma, et la carte calée dessus.
+     *
+     * Les deux à chaque fois, sans regarder la taille de l'écran. Au-dessus de
+     * 900 px la carte est épinglée à côté de la pile, donc les deux réponses se
+     * lisent d'un coup ; en dessous elle est au-dessus des images, et son cadrage
+     * attend simplement qu'on y remonte. Rien ne se perd, et le seuil du grand
+     * écran n'a pas à être recopié ici.
+     */
+    function showPoint(pointId: PointId): void {
+        const currentTrajet = trajet;
+        if (currentTrajet === null) {
+            return;
+        }
+        carteDesPoints.centerOn(trajetPoint(currentTrajet, pointId).coordonnee);
+        scrollToMarker(pointId);
+    }
+
+    /**
      * Amène le repère du point au centre de l'écran.
      *
      * C'est le document affiché qui dit où le point se trouve, pas un calcul : le
@@ -426,7 +444,7 @@ function mount(
      * hauts du suivi : cette fraction existe pour laisser voir ce qui arrive quand
      * on avance ; ici on ne suit rien, on vient regarder.
      */
-    function showPointOnImage(pointId: PointId): void {
+    function scrollToMarker(pointId: PointId): void {
         // Le type des repères est annoté, et pas seulement déduit de `queryAll` :
         // sans cette annotation, fallow n'attribue pas la lecture de `pointId` à
         // la classe et déclare le membre inutilisé (vérifié dans les deux sens).

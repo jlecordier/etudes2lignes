@@ -20,8 +20,10 @@ pour suivre votre position GPS.
   (« 34 % du trajet ») et le numéro de sa page, compté depuis le haut de la pile
   — le même numéro que la pastille grise posée dans le coin de chaque image. Pas
   de kilomètres : l'application ne connaît ni les PK du schéma ni la longueur de
-  la ligne. **Toucher la ligne d'un point amène son repère à l'écran**, sans le
-  chercher dans la pile. Sa coordonnée exacte reste disponible en infobulle.
+  la ligne. **Toucher la ligne d'un point amène son repère à l'écran et cale la
+  carte dessus** — sur grand écran, où la carte est épinglée à côté du schéma,
+  les deux réponses se lisent d'un coup. Sa coordonnée exacte reste disponible
+  en infobulle.
 - **Carte d'ensemble dans l'éditeur** : tous les points du trajet, numérotés
   et **déplaçables directement** au doigt ou à la souris. Côte à côte avec les
   images et épinglée pendant le défilement sur grand écran (iPad en paysage

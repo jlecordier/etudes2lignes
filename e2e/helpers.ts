@@ -54,6 +54,37 @@ export async function coordonneeDuPoint(page: Page, index = 0): Promise<string> 
     );
 }
 
+/**
+ * Distance, en pixels, entre le marqueur numéroté demandé et le centre de la
+ * carte intégrée. Zéro quand la carte est calée sur ce point.
+ *
+ * Les deux cadres sont mesurés dans la même image : le geste qui recentre la
+ * carte lance aussi le défilement du schéma, et deux mesures successives
+ * compareraient deux instants. Rend l'infini si l'un des deux manque, ce qui
+ * fait échouer l'assertion au lieu de la faire passer par accident.
+ */
+export function ecartAuCentreDeLaCarte(page: Page, numero: string): Promise<number> {
+    return page.evaluate((cherche) => {
+        const carte = document.querySelector('#carte-points');
+        const marqueur = [...document.querySelectorAll('#carte-points .carte-marker')].find(
+            (candidat) => candidat.textContent === cherche,
+        );
+        if (carte === null || marqueur === undefined) {
+            return Number.POSITIVE_INFINITY;
+        }
+        const cadreDeLaCarte = carte.getBoundingClientRect();
+        const cadreDuMarqueur = marqueur.getBoundingClientRect();
+        return Math.hypot(
+            cadreDuMarqueur.x +
+                cadreDuMarqueur.width / 2 -
+                (cadreDeLaCarte.x + cadreDeLaCarte.width / 2),
+            cadreDuMarqueur.y +
+                cadreDuMarqueur.height / 2 -
+                (cadreDeLaCarte.y + cadreDeLaCarte.height / 2),
+        );
+    }, numero);
+}
+
 /** Renvoie une valeur attendue (cadre, viewport, texte, correspondance…) ou échoue clairement. */
 export function requireDefined<T>(value: T | null | undefined, label: string): T {
     if (value === null || value === undefined) {
