@@ -10,6 +10,8 @@ import html from './PointMarker.html?raw';
 export interface DisplayedMarker extends PointIntent {
     /** Hauteur sur la page, dans [0, 1] — 0 en haut. */
     readonly fraction: number;
+    /** Sa coordonnée, telle que l'infobulle du repère la donne. */
+    readonly coordonnee: string;
 }
 
 const content = createTemplate(html);
@@ -44,6 +46,8 @@ customElements.define('point-marker', PointMarkerElement);
 export function createPointMarker(marker: DisplayedMarker): PointMarkerElement {
     const element = new PointMarkerElement();
     element.marker = marker;
+    // La coordonnée exacte se lit au survol du repère, là où le point est posé.
+    element.title = marker.coordonnee;
     element.append(content());
     element.style.top = `${String(marker.fraction * 100)}%`;
     query('.point-number', HTMLSpanElement, element).textContent = String(marker.number);

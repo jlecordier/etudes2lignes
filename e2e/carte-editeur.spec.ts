@@ -12,9 +12,9 @@ test.describe("Carte de l'éditeur (tous les points du trajet)", () => {
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
         await ajouterUnPoint(page, 0.8, 0);
-        await expect(page.locator('.point-description')).toHaveCount(1);
+        await expect(page.locator('point-marker')).toHaveCount(1);
         await ajouterUnPoint(page, 0.2, 150);
-        await expect(page.locator('.point-description')).toHaveCount(2);
+        await expect(page.locator('point-marker')).toHaveCount(2);
 
         await expect(page.locator('#carte-points .carte-marker')).toHaveText(['1', '2']);
     });
@@ -24,7 +24,7 @@ test.describe("Carte de l'éditeur (tous les points du trajet)", () => {
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
         await ajouterUnPoint(page, 0.5, 0);
-        await expect(page.locator('.point-description')).toHaveCount(1);
+        await expect(page.locator('point-marker')).toHaveCount(1);
         const before = await coordonneeDuPoint(page);
 
         // L'ajout du point a fait défiler la page : ramener la carte à l'écran,
@@ -42,7 +42,7 @@ test.describe("Carte de l'éditeur (tous les points du trajet)", () => {
         await page.mouse.up();
 
         // Assertion qui réessaie : la sauvegarde et le re-rendu sont asynchrones.
-        await expect(page.locator('point-row')).not.toHaveAttribute('title', before);
+        await expect(page.locator('point-marker').first()).not.toHaveAttribute('title', before);
     });
 
     test('Étant donné un aller-retour par le suivi, quand je rouvre l’éditeur, alors sa carte est toujours vivante', async ({

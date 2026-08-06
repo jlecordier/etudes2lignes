@@ -8,7 +8,7 @@ import { ajouterUnPoint, ouvrirUnTrajetAvecUnePage, preparerLApplication } from 
 async function preparerUnTrajetEtRevenirALaListe(page: Page): Promise<void> {
     await ouvrirUnTrajetAvecUnePage(page);
     await ajouterUnPoint(page, 0.5, 0);
-    await expect(page.locator('.point-description')).toHaveCount(1);
+    await expect(page.locator('point-marker')).toHaveCount(1);
     await page.getByRole('button', { name: 'Trajets' }).click();
     await expect(page.getByText('1 image · 1 point')).toBeVisible();
 }
@@ -57,7 +57,7 @@ test.describe('Import / export JSON', () => {
         // Le trajet importé s'ouvre avec son image et son point.
         await page.getByRole('button', { name: 'Paris → Bordeaux', exact: true }).nth(1).click();
         await expect(page.locator('.image-name')).toHaveText(['page-1.png']);
-        await expect(page.locator('.point-description')).toHaveCount(1);
+        await expect(page.locator('point-marker')).toHaveCount(1);
     });
 
     test('Étant donné un trajet ouvert dans l’éditeur, quand je l’exporte, alors le fichier part sans repasser par la liste', async ({
@@ -65,7 +65,7 @@ test.describe('Import / export JSON', () => {
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
         await ajouterUnPoint(page, 0.5, 0);
-        await expect(page.locator('.point-description')).toHaveCount(1);
+        await expect(page.locator('point-marker')).toHaveCount(1);
 
         const telechargement = page.waitForEvent('download');
         await page.locator('.action-bar').getByRole('button', { name: 'Exporter' }).click();

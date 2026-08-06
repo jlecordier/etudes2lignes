@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
 import {
     ajouterUnPoint,
+    hauteurDuRepere,
     choisirUneCoordonneePourUnPoint,
     coordonneeDuPoint,
-    ecartAuCentreDeLaCarte,
     clicDroitSurLImage,
     cliquerSurLImage,
     pngFile,
@@ -23,12 +23,13 @@ test.describe('Géoréférencement des points', () => {
         await cliquerSurLImage(page, 0.25);
         await choisirUneCoordonneePourUnPoint(page);
 
-        await expect(page.locator('.point-description')).toHaveCount(1);
-        await expect(page.locator('.point-description')).toHaveText(
-            /^7[4-6] % du trajet · page 1$/,
-        );
-        // La coordonnée a quitté la phrase : elle vit en infobulle sur la ligne.
-        await expect(page.locator('point-row')).toHaveAttribute(
+        await expect(page.locator('point-marker')).toHaveCount(1);
+        // Le point est posé là où on a cliqué : ça se mesure sur son repère,
+        // là où il est, plutôt que dans une phrase à côté.
+        await expect.poll(() => hauteurDuRepere(page)).toBeGreaterThanOrEqual(24);
+        expect(await hauteurDuRepere(page)).toBeLessThanOrEqual(26);
+        // La coordonnée, elle, se lit en infobulle sur le repère.
+        await expect(page.locator('point-marker')).toHaveAttribute(
             'title',
             /^Coordonnée : -?\d+\.\d{4}, -?\d+\.\d{4}$/,
         );
@@ -42,15 +43,14 @@ test.describe('Géoréférencement des points', () => {
         await ajouterUnPoint(page, 0.25);
 
         await page
-            .locator('#points-list')
+            .locator('point-marker')
             .getByRole('button', { name: "Déplacer le point 1 sur l'image" })
             .click();
         await cliquerSurLImage(page, 0.75);
 
         await expect(page.locator('#screen-carte')).toBeHidden();
-        await expect(page.locator('.point-description')).toHaveText(
-            /^2[4-6] % du trajet · page 1$/,
-        );
+        await expect.poll(() => hauteurDuRepere(page)).toBeGreaterThanOrEqual(74);
+        expect(await hauteurDuRepere(page)).toBeLessThanOrEqual(76);
     });
 
     test('Étant donné un point, quand je le déplace sur l’image via le bouton flottant sur le marqueur, alors sa hauteur change sans remonter à la liste', async ({
@@ -66,9 +66,8 @@ test.describe('Géoréférencement des points', () => {
         await cliquerSurLImage(page, 0.75);
 
         await expect(page.locator('#screen-carte')).toBeHidden();
-        await expect(page.locator('.point-description')).toHaveText(
-            /^2[4-6] % du trajet · page 1$/,
-        );
+        await expect.poll(() => hauteurDuRepere(page)).toBeGreaterThanOrEqual(74);
+        expect(await hauteurDuRepere(page)).toBeLessThanOrEqual(76);
     });
 
     test('Étant donné un point, quand je le déplace sur la carte, alors sa coordonnée change', async ({
@@ -79,13 +78,13 @@ test.describe('Géoréférencement des points', () => {
         const before = await coordonneeDuPoint(page);
 
         await page
-            .locator('#points-list')
+            .locator('point-marker')
             .getByRole('button', { name: 'Déplacer le point 1 sur la carte' })
             .click();
         await choisirUneCoordonneePourUnPoint(page, 150);
 
         // Assertion qui réessaie : la sauvegarde et le re-rendu sont asynchrones.
-        await expect(page.locator('point-row')).not.toHaveAttribute('title', before);
+        await expect(page.locator('point-marker').first()).not.toHaveAttribute('title', before);
     });
 
     test('Étant donné un point, quand je le déplace sur la carte via le bouton flottant sur le marqueur, alors sa coordonnée change', async ({
@@ -101,7 +100,7 @@ test.describe('Géoréférencement des points', () => {
             .click();
         await choisirUneCoordonneePourUnPoint(page, 150);
 
-        await expect(page.locator('point-row')).not.toHaveAttribute('title', before);
+        await expect(page.locator('point-marker').first()).not.toHaveAttribute('title', before);
     });
 
     test('Étant donné un point, quand je le supprime et confirme, alors liste et marqueur disparaissent', async ({
@@ -112,11 +111,11 @@ test.describe('Géoréférencement des points', () => {
 
         page.once('dialog', (dialog) => void dialog.accept());
         await page
-            .locator('#points-list')
+            .locator('point-marker')
             .getByRole('button', { name: 'Supprimer le point 1' })
             .click();
 
-        await expect(page.locator('.point-description')).toHaveCount(0);
+        await expect(page.locator('point-marker')).toHaveCount(0);
         await expect(page.locator('point-marker')).toHaveCount(0);
     });
 
@@ -134,7 +133,7 @@ test.describe('Géoréférencement des points', () => {
 
         // Le bouton flottant est posé sur la zone cliquable de l'image : sans
         // stopPropagation, ce clic remonterait et ajouterait un point parasite.
-        await expect(page.locator('.point-description')).toHaveCount(0);
+        await expect(page.locator('point-marker')).toHaveCount(0);
         await expect(page.locator('point-marker')).toHaveCount(0);
     });
 
@@ -146,10 +145,9 @@ test.describe('Géoréférencement des points', () => {
         await clicDroitSurLImage(page, 0.6);
         await choisirUneCoordonneePourUnPoint(page);
 
-        await expect(page.locator('.point-description')).toHaveCount(1);
-        await expect(page.locator('.point-description')).toHaveText(
-            /^(3[8-9]|4[0-2]) % du trajet · page 1$/,
-        );
+        await expect(page.locator('point-marker')).toHaveCount(1);
+        await expect.poll(() => hauteurDuRepere(page)).toBeGreaterThanOrEqual(58);
+        expect(await hauteurDuRepere(page)).toBeLessThanOrEqual(62);
         await expect(page.locator('point-marker')).toHaveCount(1);
     });
 
@@ -180,11 +178,11 @@ test.describe('Géoréférencement des points', () => {
         await cliquerSurLImage(page, 0.5);
         await choisirUneCoordonneePourUnPoint(page);
 
-        await expect(page.locator('.point-description')).toHaveCount(1);
+        await expect(page.locator('point-marker')).toHaveCount(1);
         await expect(page.locator('point-marker')).toHaveCount(1);
     });
 
-    test('Étant donné un point loin dans la pile, quand je clique sa ligne, alors son repère vient à l’écran', async ({
+    test('Étant donné un point loin dans la pile, quand je le désigne sur la carte, alors son repère vient à l’écran', async ({
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
@@ -198,12 +196,10 @@ test.describe('Géoréférencement des points', () => {
             'page-3.png',
         ]);
         // Le point se pose sur la page du bas — la première du voyage, la plus
-        // loin de la liste, qui est tout en haut de l'écran.
+        // loin du haut de l'écran.
         await clicDroitSurLImage(page, 0.5, 2);
         await choisirUneCoordonneePourUnPoint(page);
-        await expect(page.locator('.point-description')).toHaveText(
-            /^1[6-8] % du trajet · page 3$/,
-        );
+        await expect(page.locator('point-marker')).toHaveCount(1);
 
         await page.evaluate(() => {
             window.scrollTo(0, 0);
@@ -211,31 +207,44 @@ test.describe('Géoréférencement des points', () => {
         const pastille = page.locator('#images-stack .point-number');
         await expect(pastille).not.toBeInViewport();
 
-        await page.locator('.point-description').click();
+        await page.locator('#carte-points .carte-marker').first().click();
 
         // Le défilement est fluide : l'assertion réessaie jusqu'à ce qu'il aboutisse.
         await expect(pastille).toBeInViewport();
     });
 
-    test('Étant donné deux points, quand je clique la ligne du second, alors la carte se cale sur lui', async ({
+    test('Étant donné un petit écran, quand je bascule sur la carte, alors elle couvre le schéma et un point désigné l’en retire', async ({
         page,
     }) => {
+        test.skip(
+            requireDefined(page.viewportSize(), 'viewport').width >= 900,
+            'Au-dessus de 900 px la carte est déjà à côté de la pile : rien à aiguiller.',
+        );
         await ouvrirUnTrajetAvecUnePage(page);
+        // Deux pages de plus : sans un document plus haut que l'écran, la carte
+        // resterait visible en bas de page et la bascule ne prouverait rien.
+        await page
+            .locator('#input-images')
+            .setInputFiles([pngFile('page-2.png'), pngFile('page-3.png')]);
+        await expect(page.locator('.image-name')).toHaveCount(3);
         await ajouterUnPoint(page, 0.8, 0);
-        await expect(page.locator('.point-description')).toHaveCount(1);
-        await ajouterUnPoint(page, 0.2, 150);
-        await expect(page.locator('#carte-points .carte-marker')).toHaveText(['1', '2']);
+        await page.evaluate(() => {
+            window.scrollTo(0, document.body.scrollHeight);
+        });
+        const carte = page.locator('#carte-points');
+        await expect(carte).not.toBeInViewport();
 
-        await page.locator('.point-description').nth(1).click();
+        await page.getByRole('button', { name: '🗺️ Carte' }).click();
 
-        // Le marqueur du point désigné tombe au centre de la carte : c'est ce que
-        // « recentrer » veut dire, et ça se mesure sans ouvrir Leaflet.
-        //
-        // Les deux cadres sont lus dans la même image, et l'assertion réessaie :
-        // le même clic lance aussi un défilement fluide, qui déplace encore la
-        // carte épinglée du grand écran pendant qu'on mesure. Deux mesures prises
-        // l'une après l'autre compareraient deux instants différents.
-        await expect.poll(() => ecartAuCentreDeLaCarte(page, '2')).toBeLessThan(2);
+        // Par-dessus le schéma, quel que soit le défilement.
+        await expect(carte).toBeInViewport({ ratio: 0.9 });
+
+        await page.locator('#carte-points .carte-marker').first().click();
+
+        // Elle se retire d'elle-même : la garder ouverte cacherait ce qu'on vient
+        // de demander à voir.
+        await expect(carte).not.toBeInViewport();
+        await expect(page.locator('#images-stack .point-number')).toBeInViewport();
     });
 
     test('Étant donné le choix sur carte, quand je saisis latitude et longitude à la main, alors le point est créé avec ces valeurs', async ({
@@ -255,10 +264,7 @@ test.describe('Géoréférencement des points', () => {
         await page.getByRole('button', { name: 'Placer' }).click();
         await page.getByRole('button', { name: 'Valider' }).click();
 
-        await expect(page.locator('.point-description')).toHaveText(
-            /^(49|50|51) % du trajet · page 1$/,
-        );
-        await expect(page.locator('point-row')).toHaveAttribute(
+        await expect(page.locator('point-marker')).toHaveAttribute(
             'title',
             'Coordonnée : 46.5802, 0.3404',
         );

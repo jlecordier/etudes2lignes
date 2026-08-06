@@ -7,7 +7,7 @@ import { SchemaPageElement, createSchemaPage } from '../../shared/SchemaPage';
 import { defineScreen } from '../../shared/screen';
 import type { Coordonnee } from '../domain/Coordonnee';
 import type { FractionVerticale } from '../domain/FractionVerticale';
-import { pointCoordonneeText, pointDescriptionText } from '../domain/presentation';
+import { pointCoordonneeText } from '../domain/presentation';
 import type { ImageDeTrajet, ImageFile, Point, Trajet } from '../domain/Trajet';
 import type { ImageId, PointId, TrajetId } from '../domain/ids';
 import type { TrajetRepository } from '../ports/TrajetRepository';
@@ -15,7 +15,6 @@ import { downloadTrajet } from './downloadTrajet';
 import { createImageFrame } from './ImageFrame';
 import type { PageAimIntent } from './intents';
 import { PointMarkerElement } from './PointMarker';
-import { createPointRow } from './PointRow';
 import html from './TrajetEditorScreen.html?raw';
 
 export interface TrajetEditorDependencies {
@@ -63,7 +62,7 @@ function mount(
     const { repository, coordonneeSelector, carteDesPoints, run, trajetId, onBack, onSuivi } =
         dependencies;
     const title = query('#trajet-title', HTMLHeadingElement, root);
-    const pointsList = query('#points-list', HTMLDivElement, root);
+    const carteButton = query('#carte-button', HTMLButtonElement, root);
     const hintBanner = query('#placement-hint', HTMLParagraphElement, root);
     const hintText = query('#hint-text', HTMLSpanElement, root);
     const addImagesButton = query('#add-images-button', HTMLButtonElement, root);
@@ -110,6 +109,7 @@ function mount(
         },
         { signal },
     );
+    carteButton.addEventListener('click', toggleCarte, { signal });
     addPointButton.addEventListener('click', startAddingPoint, { signal });
     floatingAddPointButton.addEventListener('click', startAddingPoint, { signal });
     // L'export part de l'agrégat que l'écran a en mémoire, sans repasser par le
@@ -177,13 +177,6 @@ function mount(
         'move-point-on-carte',
         (event) => {
             run(movePointOnCarte(event.detail.pointId), 'le déplacement du point');
-        },
-        { signal },
-    );
-    root.addEventListener(
-        'show-point',
-        (event) => {
-            showPoint(event.detail.pointId);
         },
         { signal },
     );
@@ -418,20 +411,31 @@ function mount(
     }
 
     /**
-     * Montre le point : son repère sur le schéma, et la carte calée dessus.
+     * La carte par-dessus le schéma, ou l'inverse. Sans objet au-dessus de 900 px,
+     * où les deux sont côte à côte : la feuille de style y masque le bouton, et
+     * c'est elle qui décide — le seuil n'est écrit qu'à un endroit.
      *
-     * Les deux à chaque fois, sans regarder la taille de l'écran. Au-dessus de
-     * 900 px la carte est épinglée à côté de la pile, donc les deux réponses se
-     * lisent d'un coup ; en dessous elle est au-dessus des images, et son cadrage
-     * attend simplement qu'on y remonte. Rien ne se perd, et le seuil du grand
-     * écran n'a pas à être recopié ici.
+     * Le libellé dit où l'on va, pas où l'on est : c'est un aiguillage, pas un
+     * interrupteur d'état.
      */
-    function showPoint(pointId: PointId): void {
-        const currentTrajet = trajet;
-        if (currentTrajet === null) {
-            return;
+    function toggleCarte(): void {
+        const ouverte = root.classList.toggle('carte-ouverte');
+        carteButton.textContent = ouverte ? '🖼️ Schéma' : '🗺️ Carte';
+        // Le conteneur vient de changer de taille sans que la fenêtre bouge :
+        // sans cela, la carte garderait ses tuiles et ses marqueurs à l'échelle
+        // de la vignette qu'elle était.
+        carteDesPoints.resized();
+    }
+
+    /**
+     * Un point désigné sur la carte : le schéma vient à lui. Sur petit écran, la
+     * carte se retire par la même occasion — la garder ouverte cacherait
+     * précisément ce qu'on vient de demander à voir.
+     */
+    function showPointFromCarte(pointId: PointId): void {
+        if (root.classList.contains('carte-ouverte')) {
+            toggleCarte();
         }
-        carteDesPoints.centerOn(trajetPoint(currentTrajet, pointId).coordonnee);
         scrollToMarker(pointId);
     }
 
@@ -501,41 +505,29 @@ function mount(
                             pointId: point.id,
                             number,
                             fraction: point.fraction.value,
+                            coordonnee: pointCoordonneeText(
+                                point.coordonnee.latitude,
+                                point.coordonnee.longitude,
+                            ),
                         })),
                 }),
             ),
         );
 
-        pointsList.replaceChildren(
-            ...numbers.map(({ point, number }) =>
-                createPointRow({
-                    pointId: point.id,
-                    number,
-                    // L'avancement et le numéro de page viennent de l'agrégat :
-                    // lui seul connaît l'ordre du voyage et les proportions des
-                    // pages, et il est le seul à numéroter ce que l'œil compte.
-                    description: pointDescriptionText(
-                        currentTrajet.progressOfPoint(point.id),
-                        currentTrajet.pageNumberOfPoint(point.id),
-                    ),
-                    coordonnee: pointCoordonneeText(
-                        point.coordonnee.latitude,
-                        point.coordonnee.longitude,
-                    ),
-                }),
-            ),
+        carteDesPoints.show(
+            pointsForCarte(numbers),
+            (pointId, coordonnee) => {
+                // Ce callback se déclenche plus tard (glisser d'un marqueur) : le
+                // trajet courant a pu changer entre-temps, la file s'en assure.
+                run(
+                    applyToTrajetAndSave((trajetToUpdate) => {
+                        trajetToUpdate.movePointOnCarte(pointId, coordonnee);
+                    }),
+                    'le déplacement du point',
+                );
+            },
+            showPointFromCarte,
         );
-
-        carteDesPoints.show(pointsForCarte(numbers), (pointId, coordonnee) => {
-            // Ce callback se déclenche plus tard (glisser d'un marqueur) : le
-            // trajet courant a pu changer entre-temps, la file s'en assure.
-            run(
-                applyToTrajetAndSave((trajetToUpdate) => {
-                    trajetToUpdate.movePointOnCarte(pointId, coordonnee);
-                }),
-                'le déplacement du point',
-            );
-        });
     }
 
     /**

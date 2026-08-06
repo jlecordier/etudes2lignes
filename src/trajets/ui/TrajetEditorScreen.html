@@ -38,11 +38,6 @@
 <div class="editor-body">
     <div id="carte-points" class="carte-points"></div>
     <div class="images-column">
-        <!-- `role="list"` plutôt qu'un <ol> : ses lignes sont des custom
-             elements, qui ne peuvent pas être des <li> (les éléments intégrés
-             personnalisés n'arriveront pas, WebKit s'y refuse). Le rôle rend la
-             sémantique que la balise ne peut plus porter. -->
-        <div id="points-list" class="points-list" role="list"></div>
         <div id="images-stack"></div>
     </div>
 </div>
@@ -51,3 +46,8 @@
 <button id="floating-add-point-button" type="button" class="floating-add-point-button">
     📍 Ajouter un point
 </button>
+<!-- Sous 900 px, la carte défile avec la page et disparaît dès qu'on travaille
+     sur le schéma. Ce bouton la ramène par-dessus, et l'en retire. Son libellé
+     dit où il mène, pas où l'on est : au-dessus de 900 px, où la carte est
+     épinglée à côté de la pile, il n'a pas lieu d'être et la feuille le masque. -->
+<button id="carte-button" type="button" class="carte-button">🗺️ Carte</button>

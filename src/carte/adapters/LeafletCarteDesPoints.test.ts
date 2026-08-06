@@ -24,6 +24,8 @@ interface TestBed {
     container: HTMLElement;
     /** Les déplacements de marqueur rapportés par l'adapter. */
     moves: { id: PointId; coordonnee: Coordonnee }[];
+    /** Les points désignés d'un clic sur leur marqueur. */
+    shows: PointId[];
     show: (points: readonly DisplayedPoint[]) => void;
     /** La carte Leaflet de l'adapter (créée à son premier usage). */
     carte: () => L.Map;
@@ -33,8 +35,10 @@ interface TestBed {
  * croirait sa carte de taille nulle, incapable de calculer un zoom. */
 function conteneurMesure(): HTMLElement {
     const container = document.createElement('div');
-    Object.defineProperty(container, 'clientWidth', { value: 600 });
-    Object.defineProperty(container, 'clientHeight', { value: 600 });
+    // `configurable` : un test change ces mesures en cours de route, pour voir
+    // la carte se remesurer.
+    Object.defineProperty(container, 'clientWidth', { value: 600, configurable: true });
+    Object.defineProperty(container, 'clientHeight', { value: 600, configurable: true });
     return container;
 }
 
@@ -45,14 +49,22 @@ function testBed(): TestBed {
     const carteDesPoints = new LeafletCarteDesPoints();
     carteDesPoints.mount(container);
     const moves: { id: PointId; coordonnee: Coordonnee }[] = [];
+    const shows: PointId[] = [];
     return {
         carteDesPoints,
         container,
         moves,
+        shows,
         show: (points) => {
-            carteDesPoints.show(points, (id, coordonnee) => {
-                moves.push({ id, coordonnee });
-            });
+            carteDesPoints.show(
+                points,
+                (id, coordonnee) => {
+                    moves.push({ id, coordonnee });
+                },
+                (id) => {
+                    shows.push(id);
+                },
+            );
         },
         carte: () => {
             const last = createdCartes.at(-1);
@@ -126,33 +138,6 @@ describe('Carte des points de l’éditeur', () => {
 
             expect(carte().getZoom()).toBe(3);
             expect([carte().getCenter().lat, carte().getCenter().lng]).toEqual([0, 0]);
-        });
-    });
-
-    describe('Étant donné un trajet affiché en entier, quand on me demande un point précis', () => {
-        it('alors la carte se cale dessus, au même zoom que partout ailleurs', () => {
-            const { carteDesPoints, show, carte } = testBed();
-            show([point(1, PARIS), point(2, BORDEAUX)]);
-
-            carteDesPoints.centerOn(BORDEAUX);
-
-            expect(carte().getCenter().lat).toBeCloseTo(BORDEAUX.latitude, 6);
-            expect(carte().getCenter().lng).toBeCloseTo(BORDEAUX.longitude, 6);
-            expect(carte().getZoom()).toBe(12);
-        });
-
-        it('alors réafficher les mêmes points ensuite ne défait pas le centrage', () => {
-            const { carteDesPoints, show, carte } = testBed();
-            const points = [point(1, PARIS), point(2, BORDEAUX)];
-            show(points);
-
-            carteDesPoints.centerOn(BORDEAUX);
-            // Une écriture quelconque (un marqueur déplacé ailleurs, par exemple)
-            // fait réafficher l'écran : le cadrage demandé doit tenir.
-            show(points);
-
-            expect(carte().getCenter().lat).toBeCloseTo(BORDEAUX.latitude, 6);
-            expect(carte().getZoom()).toBe(12);
         });
     });
 
@@ -294,6 +279,33 @@ describe('Carte des points de l’éditeur', () => {
             expect(() => {
                 show([point(1, PARIS)]);
             }).toThrow('n’est pas montée');
+        });
+    });
+
+    describe('Étant donné un conteneur qui a changé de taille sans que la fenêtre bouge', () => {
+        it('quand on demande une remesure, alors la carte prend la nouvelle taille', () => {
+            const { carteDesPoints, container, carte, show } = testBed();
+            show([point(1, PARIS)]);
+            expect(carte().getSize().x).toBe(600);
+
+            // La carte passe par-dessus le schéma : son conteneur double de large.
+            Object.defineProperty(container, 'clientWidth', { value: 1200, configurable: true });
+            carteDesPoints.resized();
+
+            expect(carte().getSize().x).toBe(1200);
+        });
+    });
+
+    describe('Étant donné un marqueur que l’utilisateur désigne d’un clic', () => {
+        it('alors le point est rapporté, et rien n’a bougé', () => {
+            const { show, carte, moves, shows } = testBed();
+            const premier = point(1, PARIS);
+            show([premier, point(2, BORDEAUX)]);
+
+            markers(carte()).at(0)?.fire('click');
+
+            expect(shows).toEqual([premier.id]);
+            expect(moves).toEqual([]);
         });
     });
 

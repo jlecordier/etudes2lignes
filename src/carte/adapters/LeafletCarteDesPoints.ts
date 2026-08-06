@@ -23,6 +23,7 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
     private readonly markers = new Map<PointId, PlacedMarker>();
     private displayedIds = '';
     private onMove: ((id: PointId, coordonnee: Coordonnee) => void) | null = null;
+    private onShow: ((id: PointId) => void) | null = null;
     private resolveChoice: ((coordonnee: Coordonnee | null) => void) | null = null;
     private teardown: AbortController | null = null;
 
@@ -72,6 +73,7 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
         this.markers.clear();
         this.displayedIds = '';
         this.onMove = null;
+        this.onShow = null;
         this.carte?.remove();
         this.carte = null;
     }
@@ -79,8 +81,10 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
     show(
         points: readonly DisplayedPoint[],
         onMove: (id: PointId, coordonnee: Coordonnee) => void,
+        onShow: (id: PointId) => void,
     ): void {
         this.onMove = onMove;
+        this.onShow = onShow;
         const carte = this.mountedCarte();
 
         const presents = new Set(points.map((point) => point.id));
@@ -108,12 +112,11 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
     }
 
     /**
-     * Cale la carte sur une coordonnée. Le cadrage est celui de `fitting`, donc
-     * le même que partout ailleurs dans l'appli : désigner un point dans la liste
-     * et le déplacer amènent au même endroit, à la même échelle.
+     * Le conteneur a changé de taille sans que la fenêtre bouge — la carte vient
+     * de passer par-dessus le schéma, ou d'en revenir.
      */
-    centerOn(coordonnee: Coordonnee): void {
-        centerOnCoordonnee(this.mountedCarte(), coordonnee);
+    resized(): void {
+        this.mountedCarte().invalidateSize();
     }
 
     chooseCoordonnee(initialCoordonnee: Coordonnee | null): Promise<Coordonnee | null> {
@@ -164,6 +167,12 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
         }).addTo(this.mountedCarte());
         marker.on('dragend', () => {
             this.onMove?.(point.id, toCoordonnee(marker.getLatLng()));
+        });
+        // Leaflet ne rend jamais les deux : un glisser accompli supprime le clic
+        // qui le suit, et un mouvement de moins de trois pixels ne démarre aucun
+        // glisser. Un doigt qui tremble reste donc un clic.
+        marker.on('click', () => {
+            this.onShow?.(point.id);
         });
         this.markers.set(point.id, { marker, number: point.number });
     }

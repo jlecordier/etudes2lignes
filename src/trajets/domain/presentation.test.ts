@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pointCoordonneeText, pointDescriptionText, trajetContentsText } from './presentation';
+import { pointCoordonneeText, trajetContentsText } from './presentation';
 
 describe('trajetContentsText', () => {
     describe('Étant donné un trajet sans aucune image', () => {
@@ -23,29 +23,6 @@ describe('trajetContentsText', () => {
             expect(trajetContentsText(1, 4)).toBe('1 image · 4 points');
             expect(trajetContentsText(6, 1)).toBe('6 images · 1 point');
             expect(trajetContentsText(6, 4)).toBe('6 images · 4 points');
-        });
-    });
-});
-
-describe('pointDescriptionText', () => {
-    describe('Étant donné un point au tout début du voyage', () => {
-        it('alors il s’annonce au départ du trajet, sur la page qui le porte', () => {
-            // La première page du voyage est la dernière de la pile : le
-            // pourcentage part de 0 là où le numéro de page est le plus grand.
-            expect(pointDescriptionText(0, 3)).toBe('0 % du trajet · page 3');
-        });
-    });
-
-    describe('Étant donné un point tout au bout du voyage', () => {
-        it('alors il s’annonce à 100 %', () => {
-            expect(pointDescriptionText(1, 1)).toBe('100 % du trajet · page 1');
-        });
-    });
-
-    describe('Étant donné un avancement qui ne tombe pas sur un entier', () => {
-        it('alors le pourcentage est arrondi au plus proche, dans les deux sens', () => {
-            expect(pointDescriptionText(0.6249, 2)).toBe('62 % du trajet · page 2');
-            expect(pointDescriptionText(0.6251, 2)).toBe('63 % du trajet · page 2');
         });
     });
 });

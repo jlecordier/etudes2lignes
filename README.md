@@ -16,14 +16,17 @@ pour suivre votre position GPS.
   l'écran) reste accessible quel que soit le défilement — indispensable au
   tactile, où le clic droit n'existe pas. Points modifiables (sur l'image, sur
   la carte, boutons flottants sur chaque marqueur) et supprimables.
-- **Liste des points** : chaque point annonce son avancement dans le trajet
-  (« 34 % du trajet ») et le numéro de sa page, compté depuis le haut de la pile
-  — le même numéro que la pastille grise posée dans le coin de chaque image. Pas
-  de kilomètres : l'application ne connaît ni les PK du schéma ni la longueur de
-  la ligne. **Toucher la ligne d'un point amène son repère à l'écran et cale la
-  carte dessus** — sur grand écran, où la carte est épinglée à côté du schéma,
-  les deux réponses se lisent d'un coup. Sa coordonnée exacte reste disponible
-  en infobulle.
+- **Deux vues, et rien entre les deux** : les points vivent là où ils sont — sur
+  le schéma (pastille rouge numérotée, ses trois actions, sa coordonnée en
+  infobulle) et sur la carte (les mêmes numéros, dans le monde). Pas de liste à
+  part : elle ne disait rien que ces deux-là ne montrent mieux. **Désigner un
+  point sur la carte amène son repère à l'écran**, sans le chercher dans une pile
+  de plusieurs milliers de pixels. Chaque page porte son numéro, compté depuis le
+  haut de la pile, dans un coin de l'image.
+- **Aiguillage carte / schéma** : sous 900 px, la carte défile avec la page et
+  disparaît dès qu'on travaille sur le schéma ; un bouton flottant la ramène
+  par-dessus, et désigner un point l'en retire. Au-dessus de 900 px les deux sont
+  côte à côte, et le bouton n'a pas lieu d'être.
 - **Carte d'ensemble dans l'éditeur** : tous les points du trajet, numérotés
   et **déplaçables directement** au doigt ou à la souris. Côte à côte avec les
   images et épinglée pendant le défilement sur grand écran (iPad en paysage

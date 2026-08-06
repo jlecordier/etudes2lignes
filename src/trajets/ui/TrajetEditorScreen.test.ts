@@ -6,10 +6,12 @@ import { requireElementAt } from '../../shared/array';
 import { query, queryAll } from '../../shared/dom';
 import { createRunner, type Run } from '../../shared/runner';
 import { Coordonnee } from '../domain/Coordonnee';
+import type { PointId } from '../domain/ids';
 import { FractionVerticale } from '../domain/FractionVerticale';
 import { NomDeTrajet } from '../domain/NomDeTrajet';
 import { Trajet } from '../domain/Trajet';
 import type { TrajetRepository, TrajetSummary } from '../ports/TrajetRepository';
+import { PointMarkerElement } from './PointMarker';
 import { createTrajetEditorScreen, type TrajetEditorDependencies } from './TrajetEditorScreen';
 
 /**
@@ -73,7 +75,8 @@ class FakeTrajetRepository implements TrajetRepository {
 class FakeCarteDesPoints implements CarteDesPoints {
     private container: HTMLElement | null = null;
     private displayed: readonly DisplayedPoint[] = [];
-    private centres: Coordonnee[] = [];
+    private onShow: ((id: PointId) => void) | null = null;
+    private remesures = 0;
 
     mount(container: HTMLElement): void {
         this.container = container;
@@ -84,19 +87,26 @@ class FakeCarteDesPoints implements CarteDesPoints {
         this.displayed = [];
     }
 
-    show(points: readonly DisplayedPoint[]): void {
+    show(points: readonly DisplayedPoint[], _onMove: unknown, onShow: (id: PointId) => void): void {
         this.displayed = points;
+        this.onShow = onShow;
     }
 
-    centerOn(coordonnee: Coordonnee): void {
-        this.centres.push(coordonnee);
+    resized(): void {
+        this.remesures++;
     }
 
-    /** Les coordonnées sur lesquelles on lui a demandé de se caler, dans l'ordre. */
-    centrages(): string[] {
-        return this.centres.map(
-            (coordonnee) => `${String(coordonnee.latitude)}, ${String(coordonnee.longitude)}`,
-        );
+    /** Rejoue le clic de l'utilisateur sur le marqueur d'un point de la carte. */
+    designerLePoint(number: number): void {
+        const vise = this.displayed.find((point) => point.number === number);
+        if (vise === undefined) {
+            throw new Error(`Aucun point ${String(number)} sur la carte.`);
+        }
+        this.onShow?.(vise.id);
+    }
+
+    remesuresDemandees(): number {
+        return this.remesures;
     }
 
     chooseCoordonnee(): Promise<Coordonnee | null> {
@@ -254,6 +264,10 @@ function supprimer(element: HTMLElement, nomDeLaPage: string): void {
     cliquerLAction(element, `Supprimer ${nomDeLaPage}`);
 }
 
+function cliquerLaBascule(element: HTMLElement): void {
+    query('#carte-button', HTMLButtonElement, element).click();
+}
+
 function exporter(element: HTMLElement): void {
     cliquerLAction(element, 'Exporter');
 }
@@ -268,18 +282,9 @@ function cliquerLAction(element: HTMLElement, intitule: string): void {
     bouton.click();
 }
 
-/** Les phrases que la liste annonce, dans l'ordre du voyage. */
-function descriptions(element: HTMLElement): string[] {
-    return accessButtons(element).map((bouton) => bouton.textContent);
-}
-
-/**
- * Les boutons d'accès de la liste. `queryAll` vérifie le type : que la
- * description soit un vrai bouton — et non un `<span>` rendu cliquable — fait
- * partie de ce qui est vérifié ici.
- */
-function accessButtons(element: HTMLElement): HTMLButtonElement[] {
-    return queryAll('#points-list .point-description', HTMLButtonElement, element);
+/** Les repères posés sur les pages, dans l'ordre de lecture du document. */
+function marqueurs(element: HTMLElement): PointMarkerElement[] {
+    return queryAll('point-marker', PointMarkerElement, element);
 }
 
 /** Ce qu'on a demandé au navigateur de montrer, dit par ce qui est peint dessus. */
@@ -309,29 +314,17 @@ describe('trajet-editor-screen', () => {
             // Le document se lit de bas en haut : la dernière page du voyage
             // s'affiche en haut de la pile.
             expect(pagesAffichees(element)).toEqual(['p3.png', 'p2.png', 'p1.png']);
-            expect(element.querySelectorAll('point-row')).toHaveLength(1);
+            expect(marqueurs(element)).toHaveLength(1);
         });
 
-        it('alors chaque point dit son avancement dans le trajet et le numéro de sa page', async () => {
+        it('alors chaque repère porte la coordonnée de son point en infobulle', async () => {
             const element = await attacherLEcran();
 
-            // Trois pages de même format : le point au milieu de la première du
-            // voyage — celle du bas de la pile, donc la page 3 — est au sixième
-            // du voyage. Ni nom de fichier, ni coordonnées dans la phrase.
-            expect(descriptions(element)).toEqual(['17 % du trajet · page 3']);
-        });
-
-        it('alors la ligne d’un point porte sa coordonnée en infobulle, et son bouton dit où il mène', async () => {
-            const element = await attacherLEcran();
-
-            expect(
-                queryAll('point-row', HTMLElement, element).map((ligne) =>
-                    ligne.getAttribute('title'),
-                ),
-            ).toEqual(['Coordonnée : 44.8260, -0.5560']);
-            expect(
-                accessButtons(element).map((bouton) => bouton.getAttribute('aria-label')),
-            ).toEqual(['Aller au point 1 — 17 % du trajet · page 3']);
+            // La coordonnée exacte se lit là où le point est posé, au survol du
+            // repère — et non plus dans une liste à part.
+            expect(marqueurs(element).map((marqueur) => marqueur.title)).toEqual([
+                'Coordonnée : 44.8260, -0.5560',
+            ]);
         });
 
         it('alors les pages portent leur numéro, compté depuis le haut de la pile', async () => {
@@ -497,51 +490,50 @@ describe('trajet-editor-screen', () => {
     });
 
     describe('Étant donné deux points sur deux pages différentes', () => {
-        it('quand je clique la ligne du second, alors c’est son repère qui est amené à l’écran', async () => {
+        it('quand j’en désigne un sur la carte, alors c’est son repère qui est amené à l’écran', async () => {
             repository = new FakeTrajetRepository(trajetDeDeuxPoints);
             const element = await attacherLEcran();
-            expect(descriptions(element)).toEqual([
-                '17 % du trajet · page 3',
-                '92 % du trajet · page 1',
-            ]);
 
-            requireElementAt(accessButtons(element), 1).click();
+            carteDesPoints.designerLePoint(2);
 
             // Le second point est sur la page du haut de la pile : c'est bien son
             // repère, et non celui du premier, qu'on est allé chercher.
             expect(elementsMontres()).toEqual(['point-marker 2']);
+            expect(element.isConnected).toBe(true);
         });
 
-        it('quand je clique la ligne du second, alors la carte se cale sur sa coordonnée', async () => {
-            repository = new FakeTrajetRepository(trajetDeDeuxPoints);
-            const element = await attacherLEcran();
-
-            requireElementAt(accessButtons(element), 1).click();
-
-            // Un seul geste, deux réponses : le schéma défile et la carte suit.
-            expect(carteDesPoints.centrages()).toEqual(['48.8566, 2.3522']);
-        });
-
-        it('quand je ne clique rien, alors rien ne défile et la carte garde son cadrage', async () => {
+        it('quand rien n’est désigné, alors rien ne défile', async () => {
             repository = new FakeTrajetRepository(trajetDeDeuxPoints);
             await attacherLEcran();
 
             expect(elementsMontres()).toEqual([]);
-            expect(carteDesPoints.centrages()).toEqual([]);
         });
     });
 
-    describe('Étant donné un point dont la page a été déplacée dans le voyage', () => {
-        it('alors sa ligne annonce le nouveau numéro de page', async () => {
+    describe('Étant donné un petit écran, quand je bascule sur la carte', () => {
+        it('alors elle passe par-dessus le schéma, et se remesure', async () => {
             const element = await attacherLEcran();
 
-            // Le point est sur la première page du voyage (page 3 de la pile) :
-            // l'avancer d'un cran la fait monter d'une rangée — et il a désormais
-            // une page entière derrière lui, d'où la moitié du voyage.
-            monter(element, 'p1.png');
-            await laisserLesPromessesSAchever();
+            cliquerLaBascule(element);
 
-            expect(descriptions(element)).toEqual(['50 % du trajet · page 2']);
+            expect(element.classList.contains('carte-ouverte')).toBe(true);
+            // Le conteneur vient de changer de taille sans que la fenêtre bouge :
+            // sans remesure, la carte garderait l'échelle de sa vignette.
+            expect(carteDesPoints.remesuresDemandees()).toBe(1);
+            expect(query('#carte-button', HTMLButtonElement, element).textContent).toBe(
+                '🖼️ Schéma',
+            );
+        });
+
+        it('alors désigner un point la referme, pour laisser voir ce qu’on demande', async () => {
+            repository = new FakeTrajetRepository(trajetDeDeuxPoints);
+            const element = await attacherLEcran();
+            cliquerLaBascule(element);
+
+            carteDesPoints.designerLePoint(2);
+
+            expect(element.classList.contains('carte-ouverte')).toBe(false);
+            expect(elementsMontres()).toEqual(['point-marker 2']);
         });
     });
 

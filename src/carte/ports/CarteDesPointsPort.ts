@@ -17,10 +17,12 @@ export interface DisplayedPoint {
  *   glisser un marqueur. La carte se recadre sur les points à la première
  *   ouverture et quand l'ensemble des points change — jamais sur un simple
  *   déplacement, pour ne pas voler le zoom.
- * - `centerOn` cale la carte sur une coordonnée, au zoom d'un point unique :
- *   c'est ce que l'écran demande quand l'utilisateur désigne un point dans la
- *   liste. Même cadrage que `chooseCoordonnee` sur un point existant — désigner
- *   un point et le déplacer amènent au même endroit, à la même échelle.
+ * - `onShow` rapporte le point qu'un clic sur son marqueur désigne. Leaflet ne
+ *   confond pas ce clic avec un glisser : en deçà de trois pixels rien ne bouge,
+ *   et un glisser accompli supprime le clic qui le suit.
+ * - `resized` demande à la carte de se remesurer : son conteneur a changé de
+ *   taille sans que la fenêtre bouge (la carte passe en plein écran, et en
+ *   revient). Sans cela elle garderait l'échelle de la vignette qu'elle était.
  * - `chooseCoordonnee` arme un clic : la promesse rend la coordonnée
  *   cliquée sur la carte. Quand une `initialCoordonnee` est donnée (on déplace
  *   un point existant), la carte se centre dessus avant d'armer le clic —
@@ -42,8 +44,9 @@ export interface CarteDesPoints {
     show(
         points: readonly DisplayedPoint[],
         onMove: (id: PointId, coordonnee: Coordonnee) => void,
+        onShow: (id: PointId) => void,
     ): void;
-    centerOn(coordonnee: Coordonnee): void;
+    resized(): void;
     chooseCoordonnee(initialCoordonnee: Coordonnee | null): Promise<Coordonnee | null>;
     cancelChoice(): void;
 }

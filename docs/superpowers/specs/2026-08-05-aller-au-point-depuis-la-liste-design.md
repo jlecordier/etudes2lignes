@@ -1,5 +1,13 @@
 # Aller au point depuis la liste — conception
 
+> **Dépassée le lendemain.** La liste des points a été supprimée : elle
+> n'apportait rien que le repère sur le schéma et le marqueur sur la carte ne
+> montrent mieux. Le geste décrit ici est passé sur la carte, et la phrase qu'il
+> rendait lisible n'existe plus. Voir
+> [supprimer la liste des points](2026-08-06-supprime-la-liste-des-points-design.md).
+> Ce qui suit reste vrai de la pastille de page, gardée, et du raisonnement sur
+> la mesure de l'avancement — qui, lui, n'a pas survécu.
+
 La liste des points de l'éditeur annonce chaque point par une phrase de mise au
 point :
 

@@ -42,15 +42,16 @@ export async function ouvrirUnTrajetAvecUnePage(page: Page): Promise<void> {
 }
 
 /**
- * La coordonnée d'un point, telle que sa ligne la donne en infobulle.
+ * La coordonnée d'un point, telle que son repère la donne en infobulle.
  *
- * Elle a quitté la phrase visible — la carte, à côté, la montre mieux — et c'est
- * ici que les scénarios la relisent : « Coordonnée : 44.8260, -0.5560 ».
+ * Elle ne s'écrit nulle part en clair — la carte, à côté, la montre mieux — et
+ * c'est ici que les scénarios la relisent : « Coordonnée : 44.8260, -0.5560 ».
+ * L'index compte les repères dans l'ordre du document, de haut en bas.
  */
 export async function coordonneeDuPoint(page: Page, index = 0): Promise<string> {
     return requireDefined(
-        await page.locator('point-row').nth(index).getAttribute('title'),
-        `infobulle de la ligne du point ${String(index + 1)}`,
+        await page.locator('point-marker').nth(index).getAttribute('title'),
+        `infobulle du repère ${String(index + 1)}`,
     );
 }
 
@@ -83,6 +84,23 @@ export function ecartAuCentreDeLaCarte(page: Page, numero: string): Promise<numb
                 (cadreDeLaCarte.y + cadreDeLaCarte.height / 2),
         );
     }, numero);
+}
+
+/**
+ * La hauteur d'un repère sur sa page, en pourcentage — ce que la liste des points
+ * annonçait en toutes lettres, et qui se mesure désormais là où le point est
+ * posé. L'index compte les repères de haut en bas dans le document.
+ */
+export async function hauteurDuRepere(page: Page, index = 0): Promise<number> {
+    // Rend -1 plutôt que de lever quand les cadres manquent : chaque écriture
+    // reconstruit la pile, et une mesure prise entre deux rendus doit être
+    // réessayée par `expect.poll`, pas faire échouer le scénario.
+    const repere = await page.locator('point-marker').nth(index).boundingBox();
+    const zone = await page.locator('.image-area').nth(index).boundingBox();
+    if (repere === null || zone === null || zone.height === 0) {
+        return -1;
+    }
+    return Math.round(((repere.y - zone.y) / zone.height) * 100);
 }
 
 /** Renvoie une valeur attendue (cadre, viewport, texte, correspondance…) ou échoue clairement. */

@@ -26,19 +26,20 @@ Légende : `U` = test unitaire (Vitest), `E` = test de bout en bout (Playwright)
 
 ## Géoréférencement
 
-| #     | Exigence                                                                                                         | Vérifié par                                                                               |
-| ----- | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| GR-1  | Coordonnée validée (`lat ∈ [−90,90]`, `lon ∈ [−180,180]`)                                                        | `U Coordonnee.test.ts`                                                                    |
-| GR-2  | Fraction verticale `∈ [0,1]`                                                                                     | `U FractionVerticale.test.ts`                                                             |
-| GR-3  | Ajouter un point (image → carte) apparaît en liste et en marqueur                                                | `E e2e/points.spec.ts`                                                                    |
-| GR-4  | Clic droit sur l'image place un point directement puis choisit la coordonnée                                     | `E e2e/points.spec.ts`                                                                    |
-| GR-5  | Déplacer un point sur l'image / sur la carte (liste ou bouton flottant)                                          | `E e2e/points.spec.ts`                                                                    |
-| GR-6  | Un point référence toujours une image du trajet (invariant)                                                      | `U Trajet.test.ts`                                                                        |
-| GR-7  | Supprimer une image supprime ses points (cascade)                                                                | `U Trajet.test.ts`, `U IdbTrajetRepository.test.ts`                                       |
-| GR-8  | Carte intégrée : marqueurs numérotés, déplaçables ; placement responsive                                         | `E e2e/carte-editeur.spec.ts`                                                             |
-| GR-9  | Les pages sont numérotées depuis le haut de la pile, et le numéro suit un réordonnancement                       | `U Trajet.test.ts`, `E e2e/editeur.spec.ts`                                               |
-| GR-10 | La ligne d'un point dit son avancement en % du trajet et le numéro de sa page ; sa coordonnée passe en infobulle | `U Trajet.test.ts`, `U presentation.test.ts`, `E e2e/points.spec.ts`                      |
-| GR-11 | Cliquer la ligne d'un point amène son repère à l'écran et cale la carte dessus                                   | `U TrajetEditorScreen.test.ts`, `U LeafletCarteDesPoints.test.ts`, `E e2e/points.spec.ts` |
+| #     | Exigence                                                                                          | Vérifié par                                                                               |
+| ----- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| GR-1  | Coordonnée validée (`lat ∈ [−90,90]`, `lon ∈ [−180,180]`)                                         | `U Coordonnee.test.ts`                                                                    |
+| GR-2  | Fraction verticale `∈ [0,1]`                                                                      | `U FractionVerticale.test.ts`                                                             |
+| GR-3  | Ajouter un point (image → carte) apparaît en liste et en marqueur                                 | `E e2e/points.spec.ts`                                                                    |
+| GR-4  | Clic droit sur l'image place un point directement puis choisit la coordonnée                      | `E e2e/points.spec.ts`                                                                    |
+| GR-5  | Déplacer un point sur l'image / sur la carte, depuis les boutons de son repère                    | `E e2e/points.spec.ts`                                                                    |
+| GR-6  | Un point référence toujours une image du trajet (invariant)                                       | `U Trajet.test.ts`                                                                        |
+| GR-7  | Supprimer une image supprime ses points (cascade)                                                 | `U Trajet.test.ts`, `U IdbTrajetRepository.test.ts`                                       |
+| GR-8  | Carte intégrée : marqueurs numérotés, déplaçables ; placement responsive                          | `E e2e/carte-editeur.spec.ts`                                                             |
+| GR-9  | Les pages sont numérotées depuis le haut de la pile, et le numéro suit un réordonnancement        | `U Trajet.test.ts`, `E e2e/editeur.spec.ts`                                               |
+| GR-10 | La coordonnée d'un point se lit en infobulle sur son repère, jamais en clair dans l'écran         | `U TrajetEditorScreen.test.ts`, `U presentation.test.ts`, `E e2e/points.spec.ts`          |
+| GR-11 | Désigner un point sur la carte amène son repère à l'écran, sans jamais le déplacer                | `U TrajetEditorScreen.test.ts`, `U LeafletCarteDesPoints.test.ts`, `E e2e/points.spec.ts` |
+| GR-12 | Sous 900 px, un bouton flottant met la carte par-dessus le schéma ; désigner un point l'en retire | `U TrajetEditorScreen.test.ts`, `U LeafletCarteDesPoints.test.ts`, `E e2e/points.spec.ts` |
 
 ## Suivi
 

@@ -54,24 +54,16 @@ test.describe("Éditeur d'un trajet — les images", () => {
         await choisirUneCoordonneePourUnPoint(page);
         // La sauvegarde et le re-rendu sont asynchrones : attendre que le
         // point soit affiché avant de recliquer sur la pile (re-rendue).
-        await expect(page.locator('.point-description')).toHaveCount(1);
+        await expect(page.locator('point-marker')).toHaveCount(1);
         // …puis un point sur la page du bas (début du voyage).
         await clicDroitSurLImage(page, 0.5, 1);
         await choisirUneCoordonneePourUnPoint(page, 150);
 
-        // La liste suit l'ordre du voyage : le point du bas de la pile est le
-        // premier, et son avancement le plus petit — alors que son numéro de page
-        // est le plus grand, le voyage partant de la dernière page du document.
-        await expect(page.locator('.point-description')).toHaveText([
-            /^2[4-6] % du trajet · page 2$/,
-            /^7[4-6] % du trajet · page 1$/,
-        ]);
-        // …et à l'écran, de haut en bas, on lit « 2 » puis « 1 » : continu en
+        // À l'écran, de haut en bas, on lit « 2 » puis « 1 » : continu en
         // remontant, fini le zigzag « 2 1 / 4 3 » d'un empilement à l'envers.
-        // Sélecteur scopé à la pile : la même pastille numérote les points de la
-        // liste, une seule identité d'une vue à l'autre.
+        // Le voyage part du bas, donc le premier point est celui de la page du
+        // bas — dont le numéro de page, lui, est le plus grand.
         await expect(page.locator('#images-stack .point-number')).toHaveText(['2', '1']);
-        await expect(page.locator('#points-list .point-number')).toHaveText(['1', '2']);
     });
 
     test('Étant donné deux images, quand j’en supprime une et confirme, alors elle disparaît durablement', async ({

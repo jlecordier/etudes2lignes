@@ -308,12 +308,37 @@ point-marker .point-number {
    ajouter un point sans remonter tout en haut (pas de clic droit), et pour
    déplier l'aperçu du trajet sans quitter sa lecture. */
 .floating-add-point-button,
-.overview-button {
+.overview-button,
+.carte-button {
     position: fixed;
     right: 1rem;
     bottom: 1rem;
     z-index: 20;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* L'aiguillage carte/schéma prend le coin opposé à l'action : on ne veut pas
+   qu'un pouce qui cherche la carte tombe sur « Ajouter un point ». */
+.carte-button {
+    right: auto;
+    left: 1rem;
+}
+
+/* Par-dessus le schéma, et non plus au-dessus de lui : sous les boutons
+   flottants (20), au-dessus de tout le reste. La carte reprend sa hauteur de
+   vignette dès qu'on la referme — c'est `resized()` qui la fait se remesurer. */
+.carte-ouverte .carte-points {
+    position: fixed;
+    inset: 0;
+    height: auto;
+    z-index: 15;
+    border: none;
+    border-radius: 0;
+}
+
+/* Rien à placer tant que la carte couvre l'image : le bouton reviendra avec elle. */
+.carte-ouverte .floating-add-point-button {
+    display: none;
 }
 
 /* Les boutons flottants ne doivent jamais masquer la fin du contenu : on
@@ -449,6 +474,12 @@ overview-page canvas {
         flex: 1;
     }
 
+    /* La carte est déjà à côté de la pile : rien à aiguiller. C'est ici, et
+       nulle part ailleurs, que le seuil du grand écran s'écrit. */
+    .carte-button {
+        display: none;
+    }
+
     /* L'aperçu du trajet est là en permanence : il prend sa place à côté de la
        pile au lieu de la recouvrir, et la bascule n'a plus d'objet.
 
@@ -509,36 +540,6 @@ overview-page canvas {
 .awaiting-click,
 .awaiting-click * {
     cursor: crosshair !important;
-}
-
-.points-list {
-    list-style: none;
-    margin: 1rem 0 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-/* La description mène au repère sur le schéma : un bouton à plat, comme le nom
-   d'un trajet dans la liste — aligné à gauche, sans cadre, dans le bleu des
-   actions. `align-self: stretch` lui donne la hauteur de la ligne, donc une cible
-   tactile pleine sans ajouter un pixel à la liste. */
-.point-description {
-    flex: 1;
-    align-self: stretch;
-    justify-content: flex-start;
-    padding: 0;
-    border: none;
-    background: none;
-    color: #1d4ed8;
-    font-size: 0.875rem;
-    text-align: left;
-    /* 12rem mettait la ligne pile à la limite sur un téléphone (192 px de
-       description + 126 de boutons + 24 de gouttières = 342, pour 342
-       disponibles) : la corbeille repassait à la ligne. La description grandit
-       de toute façon pour occuper ce qui reste. */
-    min-width: 8rem;
 }
 
 /* Sélecteur de coordonnée : carte plein écran par-dessus l'écran courant. */
