@@ -20,6 +20,8 @@ export interface FramedPage {
     readonly schemaPage: SchemaPageElement;
     readonly imageId: ImageId;
     readonly nom: string;
+    /** Son rang dans la pile, compté depuis le haut : ce que la liste des points annonce. */
+    readonly pageNumber: number;
     readonly markers: readonly DisplayedMarker[];
 }
 
@@ -40,6 +42,7 @@ export function createImageFrame(framed: FramedPage): ImageFrameElement {
     );
 
     const area = query('.image-area', HTMLDivElement, element);
+    query('.page-number', HTMLSpanElement, area).textContent = String(framed.pageNumber);
     area.append(framed.schemaPage);
     area.append(...framed.markers.map(createPointMarker));
 

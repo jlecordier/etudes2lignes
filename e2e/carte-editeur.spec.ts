@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { ajouterUnPoint, requireDefined, ouvrirUnTrajetAvecUnePage } from './helpers';
+import {
+    ajouterUnPoint,
+    coordonneeDuPoint,
+    requireDefined,
+    ouvrirUnTrajetAvecUnePage,
+} from './helpers';
 
 test.describe("Carte de l'éditeur (tous les points du trajet)", () => {
     test('Étant donné deux points, alors la carte intégrée montre deux marqueurs numérotés', async ({
@@ -20,7 +25,7 @@ test.describe("Carte de l'éditeur (tous les points du trajet)", () => {
         await ouvrirUnTrajetAvecUnePage(page);
         await ajouterUnPoint(page, 0.5, 0);
         await expect(page.locator('.point-description')).toHaveCount(1);
-        const before = (await page.locator('.point-description').textContent()) ?? '';
+        const before = await coordonneeDuPoint(page);
 
         // L'ajout du point a fait défiler la page : ramener la carte à l'écran,
         // sinon le glisser viserait des coordonnées hors du viewport.
@@ -37,7 +42,7 @@ test.describe("Carte de l'éditeur (tous les points du trajet)", () => {
         await page.mouse.up();
 
         // Assertion qui réessaie : la sauvegarde et le re-rendu sont asynchrones.
-        await expect(page.locator('.point-description')).not.toHaveText(before);
+        await expect(page.locator('point-row')).not.toHaveAttribute('title', before);
     });
 
     test('Étant donné un aller-retour par le suivi, quand je rouvre l’éditeur, alors sa carte est toujours vivante', async ({

@@ -7,12 +7,14 @@ import { SchemaPageElement, createSchemaPage } from '../../shared/SchemaPage';
 import { defineScreen } from '../../shared/screen';
 import type { Coordonnee } from '../domain/Coordonnee';
 import type { FractionVerticale } from '../domain/FractionVerticale';
+import { pointCoordonneeText, pointDescriptionText } from '../domain/presentation';
 import type { ImageDeTrajet, ImageFile, Point, Trajet } from '../domain/Trajet';
 import type { ImageId, PointId, TrajetId } from '../domain/ids';
 import type { TrajetRepository } from '../ports/TrajetRepository';
 import { downloadTrajet } from './downloadTrajet';
 import { createImageFrame } from './ImageFrame';
 import type { PageAimIntent } from './intents';
+import { PointMarkerElement } from './PointMarker';
 import { createPointRow } from './PointRow';
 import html from './TrajetEditorScreen.html?raw';
 
@@ -175,6 +177,13 @@ function mount(
         'move-point-on-carte',
         (event) => {
             run(movePointOnCarte(event.detail.pointId), 'le déplacement du point');
+        },
+        { signal },
+    );
+    root.addEventListener(
+        'show-point-on-image',
+        (event) => {
+            showPointOnImage(event.detail.pointId);
         },
         { signal },
     );
@@ -408,6 +417,28 @@ function mount(
         );
     }
 
+    /**
+     * Amène le repère du point au centre de l'écran.
+     *
+     * C'est le document affiché qui dit où le point se trouve, pas un calcul : le
+     * repère est là, à sa hauteur, et le navigateur sait l'amener — y compris
+     * quand la pile a été réordonnée depuis. Le centre, et non les trois quarts
+     * hauts du suivi : cette fraction existe pour laisser voir ce qui arrive quand
+     * on avance ; ici on ne suit rien, on vient regarder.
+     */
+    function showPointOnImage(pointId: PointId): void {
+        // Le type des repères est annoté, et pas seulement déduit de `queryAll` :
+        // sans cette annotation, fallow n'attribue pas la lecture de `pointId` à
+        // la classe et déclare le membre inutilisé (vérifié dans les deux sens).
+        const markers: readonly PointMarkerElement[] = queryAll(
+            'point-marker',
+            PointMarkerElement,
+            pagesContainer,
+        );
+        const marker = markers.find((candidate) => candidate.pointId === pointId);
+        marker?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
     function startAddingPoint(): void {
         changeMode({ type: 'ajout' });
     }
@@ -440,11 +471,12 @@ function mount(
         // La pile s'affiche comme le document se lit (de bas en haut) : la
         // première page du voyage tout en bas, la dernière tout en haut.
         pagesContainer.replaceChildren(
-            ...currentTrajet.imagesInReadingOrder().map((image) =>
+            ...currentTrajet.numberedImagesInReadingOrder().map(({ image, number: pageNumber }) =>
                 createImageFrame({
                     schemaPage: montees.get(image.id) ?? createSchemaPage(image),
                     imageId: image.id,
                     nom: image.nom,
+                    pageNumber,
                     markers: numbers
                         .filter(({ point }) => point.imageId === image.id)
                         .map(({ point, number }) => ({
@@ -461,7 +493,17 @@ function mount(
                 createPointRow({
                     pointId: point.id,
                     number,
-                    description: pointDescription(currentTrajet, point, number),
+                    // L'avancement et le numéro de page viennent de l'agrégat :
+                    // lui seul connaît l'ordre du voyage et les proportions des
+                    // pages, et il est le seul à numéroter ce que l'œil compte.
+                    description: pointDescriptionText(
+                        currentTrajet.progressOfPoint(point.id),
+                        currentTrajet.pageNumberOfPoint(point.id),
+                    ),
+                    coordonnee: pointCoordonneeText(
+                        point.coordonnee.latitude,
+                        point.coordonnee.longitude,
+                    ),
                 }),
             ),
         );
@@ -510,15 +552,6 @@ function mount(
             'le déplacement de la page',
         );
     }
-}
-
-/** La phrase que lit l'utilisateur pour un point : sa page, sa hauteur, son lieu. */
-function pointDescription(trajet: Trajet, point: Point, number: number): string {
-    const image = trajetImage(trajet, point.imageId);
-    return (
-        `Point ${String(number)} — ${image.nom} à ${String(Math.round(point.fraction.value * 100))} % — ` +
-        `${point.coordonnee.latitude.toFixed(4)}, ${point.coordonnee.longitude.toFixed(4)}`
-    );
 }
 
 /**

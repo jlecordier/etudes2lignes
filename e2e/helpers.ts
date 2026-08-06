@@ -41,6 +41,19 @@ export async function ouvrirUnTrajetAvecUnePage(page: Page): Promise<void> {
     await expect(page.locator('.image-name')).toHaveText(['page-1.png']);
 }
 
+/**
+ * La coordonnée d'un point, telle que sa ligne la donne en infobulle.
+ *
+ * Elle a quitté la phrase visible — la carte, à côté, la montre mieux — et c'est
+ * ici que les scénarios la relisent : « Coordonnée : 44.8260, -0.5560 ».
+ */
+export async function coordonneeDuPoint(page: Page, index = 0): Promise<string> {
+    return requireDefined(
+        await page.locator('point-row').nth(index).getAttribute('title'),
+        `infobulle de la ligne du point ${String(index + 1)}`,
+    );
+}
+
 /** Renvoie une valeur attendue (cadre, viewport, texte, correspondance…) ou échoue clairement. */
 export function requireDefined<T>(value: T | null | undefined, label: string): T {
     if (value === null || value === undefined) {

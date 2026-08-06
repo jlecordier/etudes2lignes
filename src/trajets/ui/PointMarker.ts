@@ -1,5 +1,6 @@
-import { query } from '../../shared/dom';
+import { query, requireConfiguration } from '../../shared/dom';
 import { createTemplate } from '../../shared/template';
+import type { PointId } from '../domain/ids';
 import type { PointIntent } from './intents';
 import { pointActions } from './pointActions';
 
@@ -21,12 +22,28 @@ const content = createTemplate(html);
  * l'attachement. Le cycle de vie ne se prend que là où il y a quelque chose à
  * rendre.
  */
-export class PointMarkerElement extends HTMLElement {}
+export class PointMarkerElement extends HTMLElement {
+    #marker: DisplayedMarker | null = null;
+
+    set marker(value: DisplayedMarker) {
+        this.#marker = value;
+    }
+
+    /**
+     * Le point que ce repère marque, pour le retrouver dans la pile. C'est ce qui
+     * permet à la liste de dire « emmène-moi » sans connaître ni les pages ni les
+     * pixels : elle nomme un point, l'écran trouve l'endroit.
+     */
+    get pointId(): PointId {
+        return requireConfiguration(this.#marker, this).pointId;
+    }
+}
 
 customElements.define('point-marker', PointMarkerElement);
 
 export function createPointMarker(marker: DisplayedMarker): PointMarkerElement {
     const element = new PointMarkerElement();
+    element.marker = marker;
     element.append(content());
     element.style.top = `${String(marker.fraction * 100)}%`;
     query('.point-number', HTMLSpanElement, element).textContent = String(marker.number);

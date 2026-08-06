@@ -17,6 +17,15 @@ function imageNoms(images: readonly { nom: string }[]): string[] {
     return images.map((image) => image.nom);
 }
 
+/**
+ * Une page dont on choisit les proportions. La pile posant toutes ses pages à la
+ * même largeur, c'est le rapport `hauteur / largeur` qui pèse dans l'avancement :
+ * une largeur de 100 rend la hauteur directement lisible comme ce rapport.
+ */
+function pageOfRatio(nom: string, hauteur: number): ImageFile {
+    return { ...imageFile(nom), largeur: 100, hauteur };
+}
+
 const massy = Coordonnee.create(48.7266, 2.2617);
 const poitiers = Coordonnee.create(46.5802, 0.3404);
 const angouleme = Coordonnee.create(45.6484, 0.1562);
@@ -390,6 +399,160 @@ describe('Trajet', () => {
                 bottomPage2,
                 topPage2,
             ]);
+        });
+    });
+
+    describe('Étant donné une pile de trois pages', () => {
+        it('quand je demande leurs numéros, alors elles sont comptées depuis le haut, où le voyage finit', () => {
+            const trajet = newTrajet();
+            trajet.addImage(imageFile('a.jpg'));
+            trajet.addImage(imageFile('b.jpg'));
+            trajet.addImage(imageFile('c.jpg'));
+
+            const numerotees = trajet.numberedImagesInReadingOrder();
+
+            // La première page du voyage s'affiche tout en bas : c'est donc la
+            // dernière du voyage que l'œil compte en premier.
+            expect(numerotees.map(({ image, number }) => [image.nom, number])).toEqual([
+                ['c.jpg', 1],
+                ['b.jpg', 2],
+                ['a.jpg', 3],
+            ]);
+        });
+
+        it('quand j’avance une page dans le voyage, alors son numéro décroît : elle monte dans la pile', () => {
+            const trajet = newTrajet();
+            const idA = trajet.addImage(imageFile('a.jpg'));
+            trajet.addImage(imageFile('b.jpg'));
+            trajet.addImage(imageFile('c.jpg'));
+
+            trajet.moveImageForwardInVoyage(idA);
+
+            expect(trajet.numberedImagesInReadingOrder().map(({ image }) => image.nom)).toEqual([
+                'c.jpg',
+                'a.jpg',
+                'b.jpg',
+            ]);
+        });
+    });
+
+    describe('Étant donné un point sur la deuxième des trois pages du voyage', () => {
+        it('quand je demande le numéro de sa page, alors c’est celui que l’œil compte depuis le haut', () => {
+            const trajet = newTrajet();
+            trajet.addImage(imageFile('a.jpg'));
+            const milieu = trajet.addImage(imageFile('b.jpg'));
+            trajet.addImage(imageFile('c.jpg'));
+            const point = trajet.addPoint({
+                imageId: milieu,
+                fraction: FractionVerticale.create(0.5),
+                coordonnee: massy,
+            });
+
+            expect(trajet.pageNumberOfPoint(point)).toBe(2);
+        });
+
+        it('quand je réordonne les pages, alors le numéro annoncé suit', () => {
+            const trajet = newTrajet();
+            trajet.addImage(imageFile('a.jpg'));
+            const milieu = trajet.addImage(imageFile('b.jpg'));
+            trajet.addImage(imageFile('c.jpg'));
+            const point = trajet.addPoint({
+                imageId: milieu,
+                fraction: FractionVerticale.create(0.5),
+                coordonnee: massy,
+            });
+
+            trajet.moveImageForwardInVoyage(milieu);
+
+            // Avancer dans le voyage, c'est monter dans la pile : la page passe
+            // de la deuxième à la première rangée.
+            expect(trajet.pageNumberOfPoint(point)).toBe(1);
+        });
+
+        it('quand le point est inconnu, alors c’est refusé', () => {
+            const trajet = newTrajet();
+            const otherTrajet = newTrajet('Autre');
+            const imageAilleurs = otherTrajet.addImage(imageFile());
+            const pointAilleurs = otherTrajet.addPoint({
+                imageId: imageAilleurs,
+                fraction: FractionVerticale.create(0.5),
+                coordonnee: massy,
+            });
+
+            expect(() => trajet.pageNumberOfPoint(pointAilleurs)).toThrow('Point inconnu');
+        });
+    });
+
+    describe('Étant donné des pages carrées, quand je demande l’avancement d’un point', () => {
+        it('alors le bas de la première page est le départ, et le haut de la dernière l’arrivée', () => {
+            const trajet = newTrajet();
+            const premiere = trajet.addImage(pageOfRatio('a.jpg', 100));
+            const derniere = trajet.addImage(pageOfRatio('b.jpg', 100));
+            const depart = trajet.addPoint({
+                imageId: premiere,
+                fraction: FractionVerticale.create(1),
+                coordonnee: massy,
+            });
+            const arrivee = trajet.addPoint({
+                imageId: derniere,
+                fraction: FractionVerticale.create(0),
+                coordonnee: angouleme,
+            });
+
+            // Le voyage traverse une page du bas vers le haut : la fraction la
+            // plus grande est le point le plus tôt.
+            expect(trajet.progressOfPoint(depart)).toBe(0);
+            expect(trajet.progressOfPoint(arrivee)).toBe(1);
+        });
+
+        it('alors un point au quart du haut d’une page unique est aux trois quarts du voyage', () => {
+            const trajet = newTrajet();
+            const seule = trajet.addImage(pageOfRatio('a.jpg', 100));
+            const point = trajet.addPoint({
+                imageId: seule,
+                fraction: FractionVerticale.create(0.25),
+                coordonnee: massy,
+            });
+
+            expect(trajet.progressOfPoint(point)).toBe(0.75);
+        });
+
+        it('alors les pages déjà parcourues comptent, et elles seules', () => {
+            const trajet = newTrajet();
+            trajet.addImage(pageOfRatio('a.jpg', 100));
+            const milieu = trajet.addImage(pageOfRatio('b.jpg', 100));
+            trajet.addImage(pageOfRatio('c.jpg', 100));
+            const point = trajet.addPoint({
+                imageId: milieu,
+                fraction: FractionVerticale.create(0.5),
+                coordonnee: massy,
+            });
+
+            // Une page entière derrière, une demie entamée, sur trois pages.
+            expect(trajet.progressOfPoint(point)).toBeCloseTo(1.5 / 3, 10);
+        });
+    });
+
+    describe('Étant donné des pages de formats différents', () => {
+        it('quand je demande un avancement, alors chaque page pèse ses propres proportions', () => {
+            const trajet = newTrajet();
+            // Une page carrée, puis une trois fois plus haute que large : la
+            // seconde vaut trois fois la première dans la pile affichée.
+            const carree = trajet.addImage(pageOfRatio('a.jpg', 100));
+            const haute = trajet.addImage(pageOfRatio('b.jpg', 300));
+            const hautDeLaCarree = trajet.addPoint({
+                imageId: carree,
+                fraction: FractionVerticale.create(0),
+                coordonnee: massy,
+            });
+            const milieuDeLaHaute = trajet.addPoint({
+                imageId: haute,
+                fraction: FractionVerticale.create(0.5),
+                coordonnee: angouleme,
+            });
+
+            expect(trajet.progressOfPoint(hautDeLaCarree)).toBeCloseTo(1 / 4, 10);
+            expect(trajet.progressOfPoint(milieuDeLaHaute)).toBeCloseTo(2.5 / 4, 10);
         });
     });
 

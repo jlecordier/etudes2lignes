@@ -24,6 +24,9 @@ test.describe("Éditeur d'un trajet — les images", () => {
         await importerDeuxPages(page);
 
         await expect(page.locator('#images-stack schema-page')).toHaveCount(2);
+        // Les pages se comptent depuis le haut de la pile — l'ordre dans lequel
+        // l'explorateur les a livrées, et celui que la liste des points annonce.
+        await expect(page.locator('.page-number')).toHaveText(['1', '2']);
     });
 
     test('Étant donné deux images, quand je monte visuellement celle du bas, alors elle devient la fin du voyage', async ({
@@ -35,6 +38,9 @@ test.describe("Éditeur d'un trajet — les images", () => {
         await page.getByRole('button', { name: 'Monter page-2.png' }).click();
 
         await expect(page.locator('.image-name')).toHaveText(['page-2.png', 'page-1.png']);
+        // Le numéro dit la rangée, pas le fichier : c'est la page du haut qui
+        // porte le 1, quelle qu'elle soit.
+        await expect(page.locator('.page-number')).toHaveText(['1', '2']);
     });
 
     test('Étant donné un point sur chaque page, alors les numéros croissent en remontant la pile, comme les PK', async ({
@@ -53,14 +59,19 @@ test.describe("Éditeur d'un trajet — les images", () => {
         await clicDroitSurLImage(page, 0.5, 1);
         await choisirUneCoordonneePourUnPoint(page, 150);
 
-        // La liste suit l'ordre du voyage…
+        // La liste suit l'ordre du voyage : le point du bas de la pile est le
+        // premier, et son avancement le plus petit — alors que son numéro de page
+        // est le plus grand, le voyage partant de la dernière page du document.
         await expect(page.locator('.point-description')).toHaveText([
-            /^Point 1 — page-2\.png à \d+ % — -?\d+\.\d{4}, -?\d+\.\d{4}$/,
-            /^Point 2 — page-1\.png à \d+ % — -?\d+\.\d{4}, -?\d+\.\d{4}$/,
+            /^2[4-6] % du trajet · page 2$/,
+            /^7[4-6] % du trajet · page 1$/,
         ]);
         // …et à l'écran, de haut en bas, on lit « 2 » puis « 1 » : continu en
         // remontant, fini le zigzag « 2 1 / 4 3 » d'un empilement à l'envers.
-        await expect(page.locator('.point-number')).toHaveText(['2', '1']);
+        // Sélecteur scopé à la pile : la même pastille numérote les points de la
+        // liste, une seule identité d'une vue à l'autre.
+        await expect(page.locator('#images-stack .point-number')).toHaveText(['2', '1']);
+        await expect(page.locator('#points-list .point-number')).toHaveText(['1', '2']);
     });
 
     test('Étant donné deux images, quand j’en supprime une et confirme, alors elle disparaît durablement', async ({

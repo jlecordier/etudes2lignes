@@ -57,6 +57,7 @@ declare global {
         'delete-trajet': CustomEvent<TrajetIntent>;
         'move-point-on-image': CustomEvent<PointIntent>;
         'move-point-on-carte': CustomEvent<PointIntent>;
+        'show-point-on-image': CustomEvent<PointIntent>;
         'delete-point': CustomEvent<PointIntent>;
         'click-page': CustomEvent<PageAimIntent>;
         'right-click-page': CustomEvent<PageAimIntent>;

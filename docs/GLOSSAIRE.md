@@ -38,6 +38,9 @@ techniques récurrents.
 | **Position sur le trajet** | Le segment retenu et l'avancement dessus. Indépendante de tout référentiel de pixels : c'est ce qui permet à l'aperçu et au défilement de désigner le même endroit. | `TrajetPosition` |
 | **Aperçu du trajet** | Le voyage entier réduit pour tenir dans une hauteur d'écran, avec une barre à la position. Des vignettes peintes une fois, pas les images une seconde fois. | `OverviewPage`, `ratiosSum` |
 
+| **Avancement dans le voyage** | La part du trajet déjà parcourue en un point, dans `[0, 1]`. Mesurée **dans le document** — les pages à leurs proportions —, jamais en kilomètres : rien ici ne connaît la longueur de la ligne. | `Trajet.progressOfPoint` |
+| **Numéro de page** | Le rang d'une page dans la pile affichée, compté depuis le haut. L'inverse du rang dans le voyage, qui part du bas. | `Trajet.numberedImagesInReadingOrder` |
+
 ## Architecture
 
 | Terme                      | Définition                                                                                                                                                                 |
@@ -119,7 +122,7 @@ coup. C'est ce qui empêche le dépôt d'avoir trois mots pour un concept.
 | --------------------------- | --------------------- | ------------------------ | ---------------------- |
 | `aide`                      | `help`                | `intitulé` (nom access.) | `ariaLabel`            |
 | `aperçu`                    | `overview`            | `bascule`, `basculer`    | `toggle`               |
-| `peindre`                   | `paint`               |                          |                        |
+| `peindre`                   | `paint`               | `avancement`             | `progress`             |
 | `banc`, `bancDEssai`        | `testBed`             | `lancer`, `lanceur`      | `run`, `runner`        |
 | `bandeau`                   | `banner`              | `largeur` / `hauteur`    | `width` / `height`     |
 | `barre`                     | `bar`                 | `liste`                  | `list`                 |

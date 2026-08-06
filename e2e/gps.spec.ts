@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import {
     ajouterUnPoint,
+    coordonneeDuPoint,
     waitForScroll,
     expectedScroll,
     currentScroll,
@@ -35,14 +36,12 @@ test.describe('Suivi avec le GPS du navigateur (mocké)', () => {
         await ouvrirUnTrajetAvecUnePage(page);
         await ajouterUnPoint(page, 0.8, 0);
         await ajouterUnPoint(page, 0.2, 150);
-        // La coordonnée exacte du second point est lue dans la liste de l'éditeur.
-        const description = requireDefined(
-            await page.locator('.point-description').nth(1).textContent(),
-            'description du second point',
-        );
+        // La coordonnée exacte du second point est lue sur sa ligne, en
+        // infobulle : la phrase visible dit l'avancement dans le trajet, pas des
+        // degrés décimaux.
         const correspondance = requireDefined(
-            /— (-?[\d.]+), (-?[\d.]+)$/.exec(description),
-            'coordonnées dans la description',
+            /: (-?[\d.]+), (-?[\d.]+)$/.exec(await coordonneeDuPoint(page, 1)),
+            'coordonnées dans l’infobulle du second point',
         );
         const latitude = requireDefined(correspondance[1], 'latitude du point');
         const longitude = requireDefined(correspondance[2], 'longitude du point');

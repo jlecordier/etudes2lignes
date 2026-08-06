@@ -86,6 +86,18 @@ export class Trajet {
         return [...this._images].reverse();
     }
 
+    /**
+     * Les images dans l'ordre de lecture, numérotées à partir de 1 — le numéro que
+     * l'œil compte depuis le haut de la pile. Le voyage partant du bas, la
+     * dernière image du voyage porte le numéro 1.
+     */
+    numberedImagesInReadingOrder(): readonly { image: ImageDeTrajet; number: number }[] {
+        return this.imagesInReadingOrder().map((image) => ({
+            image,
+            number: this.readingNumberOf(image.id),
+        }));
+    }
+
     rename(nom: NomDeTrajet): void {
         this._nom = nom;
     }
@@ -190,6 +202,38 @@ export class Trajet {
         return this.pointsInOrdreDuVoyage().map((point, index) => ({ point, number: index + 1 }));
     }
 
+    /**
+     * Le numéro de la page qui porte ce point, compté depuis le haut de la pile —
+     * la même numérotation que celle peinte sur les images.
+     */
+    pageNumberOfPoint(pointId: PointId): number {
+        return this.readingNumberOf(this.requirePoint(pointId).imageId);
+    }
+
+    /**
+     * L'avancement du point dans le voyage, en part du trajet entier : 0 tout au
+     * début, 1 tout à la fin.
+     *
+     * Mesuré **dans le document** — les pages à leurs proportions, comme la pile
+     * les empile —, et non en kilomètres : rien ici ne connaît la longueur de la
+     * ligne. C'est la mesure de l'aperçu du suivi, dite depuis l'autre bout, et
+     * c'est ce qui permet aux deux de ne pas se contredire.
+     *
+     * Le voyage traversant une page du bas vers le haut, c'est `1 - fraction` qui
+     * avance. La somme des ratios ne peut pas être nulle : le point vise une image
+     * du trajet (invariant), et `admitImage` refuse toute dimension non
+     * strictement positive.
+     */
+    progressOfPoint(pointId: PointId): number {
+        const point = this.requirePoint(pointId);
+        const ratios = this._images.map((image) => image.hauteur / image.largeur);
+        const rank = this.requireImageIndex(point.imageId);
+        const parcouru =
+            sum(ratios.slice(0, rank)) +
+            (1 - point.fraction.value) * requireElementAt(ratios, rank);
+        return parcouru / sum(ratios);
+    }
+
     private swapImages(index: number, decalage: -1 | 1): void {
         const voisin = index + decalage;
         if (voisin < 0 || voisin >= this._images.length) {
@@ -222,6 +266,19 @@ export class Trajet {
         }
     }
 
+    /**
+     * La numérotation depuis le haut de la pile, écrite une seule fois : la
+     * pastille posée sur une image et le numéro qu'une ligne de point annonce ne
+     * peuvent pas diverger.
+     */
+    private readingNumberOf(imageId: ImageId): number {
+        return this._images.length - this.requireImageIndex(imageId);
+    }
+
+    private requirePoint(pointId: PointId): Point {
+        return requireElementAt(this._points, this.requirePointIndex(pointId));
+    }
+
     private requireImageIndex(imageId: ImageId): number {
         const index = this._images.findIndex((image) => image.id === imageId);
         if (index === -1) {
@@ -241,4 +298,8 @@ export class Trajet {
 
 function isDimension(value: number): boolean {
     return Number.isInteger(value) && value > 0;
+}
+
+function sum(values: readonly number[]): number {
+    return values.reduce((total, value) => total + value, 0);
 }

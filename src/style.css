@@ -249,15 +249,40 @@ point-marker {
     pointer-events: none;
 }
 
+/* Le numéro d'un point : la même pastille rouge dans la liste, sur l'image et sur
+   la carte. Une seule identité, que l'œil suit d'une vue à l'autre. */
 .point-number {
-    position: absolute;
-    left: 0.25rem;
-    top: -0.75rem;
     background: #dc2626;
     color: white;
     border-radius: 999px;
     padding: 0 0.4rem;
     font-size: 0.75rem;
+}
+
+/* Sur l'image, la pastille est posée sur le repère. */
+point-marker .point-number {
+    position: absolute;
+    left: 0.25rem;
+    top: -0.75rem;
+}
+
+/* Le numéro de la page, compté depuis le haut de la pile. Gris, pour ne pas se
+   confondre avec un numéro de point ; transparent aux clics, comme le repère,
+   sans quoi il volerait le placement d'un point posé sous lui.
+
+   Sans `z-index` : les repères viennent après lui dans le document, donc un point
+   posé tout en haut de la page couvre le numéro plutôt que d'être couvert par
+   lui. C'est le bon ordre — le numéro de page se retrouve, un point masqué non. */
+.page-number {
+    position: absolute;
+    left: 0.25rem;
+    top: 0.25rem;
+    background: #1f2937;
+    color: white;
+    border-radius: 999px;
+    padding: 0 0.4rem;
+    font-size: 0.75rem;
+    pointer-events: none;
 }
 
 /* Boutons flottants posés sur chaque ligne : agir sur un point sans remonter
@@ -495,9 +520,20 @@ overview-page canvas {
     gap: 0.5rem;
 }
 
+/* La description mène au repère sur le schéma : un bouton à plat, comme le nom
+   d'un trajet dans la liste — aligné à gauche, sans cadre, dans le bleu des
+   actions. `align-self: stretch` lui donne la hauteur de la ligne, donc une cible
+   tactile pleine sans ajouter un pixel à la liste. */
 .point-description {
     flex: 1;
+    align-self: stretch;
+    justify-content: flex-start;
+    padding: 0;
+    border: none;
+    background: none;
+    color: #1d4ed8;
     font-size: 0.875rem;
+    text-align: left;
     /* 12rem mettait la ligne pile à la limite sur un téléphone (192 px de
        description + 126 de boutons + 24 de gouttières = 342, pour 342
        disponibles) : la corbeille repassait à la ligne. La description grandit
