@@ -1,3 +1,4 @@
+import type { Subscription } from 'rxjs';
 import type { ScreenWakeLock } from '../ports/ScreenWakeLockPort';
 import type { Foreground } from '../ports/Foreground';
 import { BrowserForeground } from './BrowserForeground';
@@ -50,10 +51,10 @@ export class BrowserScreenWakeLock implements ScreenWakeLock {
     /** La demande en cours, partagée par tous ceux qui réclament en même temps. */
     private inFlightAcquisition: Promise<void> | null = null;
     /**
-     * Non nul exactement entre `maintenir` et `relacher` : c'est à la fois la
-     * poignée de désabonnement et la marque « le verrou est voulu ».
+     * Non nul exactement entre `maintenir` et `relacher` : c'est à la fois
+     * l'abonnement aux réveils et la marque « le verrou est voulu ».
      */
-    private unsubscribeFromForeground: (() => void) | null = null;
+    private foregroundSubscription: Subscription | null = null;
 
     constructor(dependencies?: { foreground?: Foreground; wakeLockProvider?: WakeLockProvider }) {
         this.foreground = dependencies?.foreground ?? new BrowserForeground();
@@ -62,15 +63,15 @@ export class BrowserScreenWakeLock implements ScreenWakeLock {
 
     async acquire(): Promise<void> {
         // Un second `maintenir` ne doit pas ouvrir un second abonnement.
-        this.unsubscribeFromForeground ??= this.foreground.onReturnToForeground(() => {
+        this.foregroundSubscription ??= this.foreground.returnToForeground$.subscribe(() => {
             this.reacquireOnForeground();
         });
         await this.acquerir();
     }
 
     async release(): Promise<void> {
-        this.unsubscribeFromForeground?.();
-        this.unsubscribeFromForeground = null;
+        this.foregroundSubscription?.unsubscribe();
+        this.foregroundSubscription = null;
         // Une demande en vol se rangerait après nous, et l'écran resterait
         // allumé sans personne pour l'éteindre : on l'attend d'abord. Le test de
         // nullité est là pour le lint (`await-thenable`), pas pour la logique —
@@ -84,9 +85,10 @@ export class BrowserScreenWakeLock implements ScreenWakeLock {
     }
 
     private reacquireOnForeground(): void {
-        // Un réveil arrive parfois alors que la page est encore masquée :
-        // redemander le verrou échouerait (l'API exige une page visible).
-        if (this.unsubscribeFromForeground === null || !this.foreground.isInForeground()) {
+        // Un réveil page masquée n'arrive plus jusqu'ici — `Foreground` le
+        // retient, puisque l'API exigerait la page visible. Reste à vérifier que
+        // le verrou est toujours voulu : `relacher` a pu passer entre-temps.
+        if (this.foregroundSubscription === null) {
             return;
         }
         // `acquerir` avale ses propres échecs : rien à rattraper ici.

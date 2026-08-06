@@ -15,50 +15,79 @@ function withHiddenPage(verifier: () => void): void {
     }
 }
 
+/** Les trois événements par lesquels un navigateur annonce un réveil. */
+function emitEveryWakeup(): void {
+    document.dispatchEvent(new Event('visibilitychange'));
+    window.dispatchEvent(new Event('pageshow'));
+    window.dispatchEvent(new Event('focus'));
+}
+
+/** Compte les réveils reçus pendant l'abonnement, qui est refermé ensuite. */
+function countWakeups(foreground: BrowserForeground, pendant: () => void): number {
+    let reveils = 0;
+    const subscription = foreground.returnToForeground$.subscribe(() => {
+        reveils++;
+    });
+    try {
+        pendant();
+    } finally {
+        subscription.unsubscribe();
+    }
+    return reveils;
+}
+
 describe('BrowserForeground', () => {
     describe('Étant donné un abonné au retour au premier plan', () => {
         it('alors chacun des trois réveils du navigateur le notifie', () => {
             const foreground = new BrowserForeground();
-            let reveils = 0;
-            const unsubscribe = foreground.onReturnToForeground(() => {
-                reveils++;
-            });
 
-            document.dispatchEvent(new Event('visibilitychange'));
-            window.dispatchEvent(new Event('pageshow'));
-            window.dispatchEvent(new Event('focus'));
+            const reveils = countWakeups(foreground, emitEveryWakeup);
 
             expect(reveils).toBe(3);
-            unsubscribe();
         });
 
-        it('alors le désabonnement rendu coupe les notifications', () => {
+        it('alors le désabonnement coupe les notifications', () => {
             const foreground = new BrowserForeground();
             let reveils = 0;
-            const unsubscribe = foreground.onReturnToForeground(() => {
+            const subscription = foreground.returnToForeground$.subscribe(() => {
                 reveils++;
             });
 
-            unsubscribe();
-            document.dispatchEvent(new Event('visibilitychange'));
-            window.dispatchEvent(new Event('pageshow'));
-            window.dispatchEvent(new Event('focus'));
+            subscription.unsubscribe();
+            emitEveryWakeup();
 
             expect(reveils).toBe(0);
         });
     });
 
-    describe('Étant donné une page visible', () => {
-        it('alors elle est au premier plan', () => {
-            expect(new BrowserForeground().isInForeground()).toBe(true);
+    describe('Étant donné une page encore masquée, quand un réveil arrive', () => {
+        it('alors il n’est pas transmis : ce n’est pas un retour au premier plan', () => {
+            const foreground = new BrowserForeground();
+
+            const reveils = countWakeups(foreground, () => {
+                withHiddenPage(emitEveryWakeup);
+            });
+
+            // Le filtre tient ici plutôt que chez chaque abonné : c'est la même
+            // question que celle des trois événements — « ce réveil est-il vrai ? ».
+            expect(reveils).toBe(0);
         });
     });
 
-    describe('Étant donné une page masquée', () => {
-        it('alors elle n’est pas au premier plan', () => {
-            withHiddenPage(() => {
-                expect(new BrowserForeground().isInForeground()).toBe(false);
+    describe('Étant donné personne d’abonné', () => {
+        it('alors rien n’écoute le navigateur : le flux est froid', () => {
+            const foreground = new BrowserForeground();
+            let reveils = 0;
+
+            emitEveryWakeup();
+            const subscription = foreground.returnToForeground$.subscribe(() => {
+                reveils++;
             });
+            subscription.unsubscribe();
+
+            // Les réveils émis avant l'abonnement ne sont pas rejoués : un
+            // abonné ne se réveille que pour ce qui arrive pendant sa vie.
+            expect(reveils).toBe(0);
         });
     });
 });

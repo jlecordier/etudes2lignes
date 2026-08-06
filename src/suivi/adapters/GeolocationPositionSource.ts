@@ -1,3 +1,4 @@
+import type { Subscription } from 'rxjs';
 import { Coordonnee } from '../../trajets/domain/Coordonnee';
 import type { SourceStatus } from '../domain/sourceStatus';
 import { usableFix } from '../domain/precisionDuFix';
@@ -43,7 +44,7 @@ interface ActiveWatch {
     readonly onPosition: (position: Coordonnee) => void;
     readonly onStatus: (status: SourceStatus) => void;
     readonly cancelWatchdog: () => void;
-    readonly unsubscribeFromForeground: () => void;
+    readonly foregroundSubscription: Subscription;
     watchId: number | null;
     lastHandledMs: number | null;
     lastFixMs: number | null;
@@ -131,7 +132,7 @@ export class GeolocationPositionSource implements PositionSource {
         const cancelWatchdog = this.scheduler.every(WATCHDOG_INTERVAL_MS, () => {
             this.checkForSilence();
         });
-        const unsubscribeFromForeground = this.foreground.onReturnToForeground(() => {
+        const foregroundSubscription = this.foreground.returnToForeground$.subscribe(() => {
             this.requestImmediatePosition();
         });
         const watch: ActiveWatch = {
@@ -139,7 +140,7 @@ export class GeolocationPositionSource implements PositionSource {
             onPosition,
             onStatus,
             cancelWatchdog,
-            unsubscribeFromForeground,
+            foregroundSubscription,
             watchId: null,
             lastHandledMs: null,
             lastFixMs: null,
@@ -164,7 +165,7 @@ export class GeolocationPositionSource implements PositionSource {
         this.watch = { type: 'arretee' };
         this.closeWatch(watch);
         watch.cancelWatchdog();
-        watch.unsubscribeFromForeground();
+        watch.foregroundSubscription.unsubscribe();
     }
 
     private openWatch(watch: ActiveWatch): void {
@@ -277,13 +278,13 @@ export class GeolocationPositionSource implements PositionSource {
      * et on lève le throttle pour traiter ce fix immédiatement.
      * Débouncé : des réveils en rafale (focus, alertes) relanceraient sans
      * cesse l'acquisition et dégraderaient la précision des fixes.
+     *
+     * Le réveil page masquée n'arrive plus jusqu'ici : `Foreground` ne le
+     * transmet pas, puisqu'il n'est pas un retour au premier plan.
      */
     private requestImmediatePosition(): void {
         const watch = this.watch;
         if (watch.type === 'arretee') {
-            return;
-        }
-        if (!this.foreground.isInForeground()) {
             return;
         }
         if (

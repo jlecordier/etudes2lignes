@@ -1,3 +1,4 @@
+import { Subject, defer, filter, finalize, type Observable } from 'rxjs';
 import type { Foreground } from '../ports/Foreground';
 
 /**
@@ -5,25 +6,29 @@ import type { Foreground } from '../ports/Foreground';
  * et ses réveils, pilotés à la main, sans navigateur ni jsdom.
  */
 export class FakeForeground implements Foreground {
-    private nextId = 1;
-    private readonly subscribers = new Map<number, () => void>();
+    private readonly wakeups = new Subject<void>();
     private visible = true;
+    private openSubscriptions = 0;
 
-    onReturnToForeground(action: () => void): () => void {
-        const id = this.nextId++;
-        this.subscribers.set(id, action);
-        return () => {
-            this.subscribers.delete(id);
-        };
-    }
-
-    isInForeground(): boolean {
-        return this.visible;
-    }
+    /**
+     * Comme le vrai : un réveil page masquée n'en est pas un.
+     *
+     * Les abonnements sont comptés au passage — c'est ce que les tests
+     * surveillent, et le compte se tient ici plutôt que de s'aller lire dans les
+     * entrailles du `Subject`.
+     */
+    readonly returnToForeground$: Observable<void> = defer(() => {
+        this.openSubscriptions++;
+        return this.wakeups.pipe(filter(() => this.visible));
+    }).pipe(
+        finalize(() => {
+            this.openSubscriptions--;
+        }),
+    );
 
     /** Combien d'abonnements l'abonné laisse ouverts. */
     subscriptions(): number {
-        return this.subscribers.size;
+        return this.openSubscriptions;
     }
 
     hidePage(): void {
@@ -37,8 +42,6 @@ export class FakeForeground implements Foreground {
 
     /** Un réveil brut, sans supposer que la page soit redevenue visible. */
     emitWakeup(): void {
-        for (const action of [...this.subscribers.values()]) {
-            action();
-        }
+        this.wakeups.next();
     }
 }
