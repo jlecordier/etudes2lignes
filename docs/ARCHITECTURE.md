@@ -75,9 +75,11 @@ En résumé, ce qu'il faut savoir pour travailler dedans :
 
 - **Un écran se fabrique, s'attache, se détache.** `createXScreen(dependencies)`
   rend un élément déjà configuré ; `goToScreen` le monte dans `<main id="app">`,
-  ce qui détache le précédent. Le détachement avorte un `AbortSignal` : les
-  écouteurs partent, et le rangement (sources arrêtées, verrou relâché, carte
-  démontée) y est branché. Il n'y a **aucun appel de sortie** à ne pas oublier.
+  ce qui détache le précédent. Le détachement avorte un `AbortSignal`, que
+  `untilAborted` donne en flux : tout ce que l'écran a ouvert s'y referme —
+  écouteurs, source de position, verrou d'écran — parce que chacun est passé par
+  `takeUntil(parti$)`. Seule la carte se démonte à la main, faute de survivre à
+  son conteneur. Il n'y a **aucun appel de sortie** à ne pas oublier.
 - **Le gabarit est du HTML**, dans un `.html` à côté du `.ts`, importé en `?raw`.
 - **Données en entrée, intentions en sortie** : une feuille reçoit des propriétés
   et émet des `CustomEvent` qui remontent (`trajets/ui/intents.ts` les déclare) ;
@@ -89,7 +91,7 @@ En résumé, ce qu'il faut savoir pour travailler dedans :
 - **Le rendu reste explicite** (`render()`), mais ne rase plus : une page
   inchangée garde son élément, donc son décodage — trente mégaoctets par page.
 
-**Un état mesuré, jamais une phrase** : `onStatus` transporte un `SourceStatus`
+**Un état mesuré, jamais une phrase** : `events$` transporte des `SourceStatus`
 du domaine (mètres, millisecondes) et c'est `suivi/domain/presentation.ts` qui
 rédige. Sans cela, la politique métier (« un fix à plus de 3 km est
 inutilisable ») vivait dans un adapter sortant — invisible au second adapter, et

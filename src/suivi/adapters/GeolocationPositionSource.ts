@@ -249,7 +249,9 @@ export class GeolocationPositionSource implements PositionSource {
         // le chien de garde ne doit pas la recouvrir d'une attente muette. Il se
         // tait jusqu'à la surveillance suivante, qui peut trouver la permission
         // accordée entre-temps.
-        const denied$ = merge(
+        // Annoté, et pas seulement déduit : sans le type, `false` pourrait
+        // devenir n'importe quelle valeur fausse sans que rien s'en aperçoive.
+        const denied$: Observable<boolean> = merge(
             permissionDenied$.pipe(map(() => true)),
             restarts$.pipe(map(() => false)),
         ).pipe(startWith(false));

@@ -26,16 +26,22 @@ const browserWakeLock: WakeLockProvider = {
 };
 
 /**
- * Ce qu'un maintien tient réellement : le verrou obtenu, et la demande en vol.
+ * Ce qu'un maintien tient réellement : le verrou obtenu, et la dernière demande
+ * faite à la plateforme.
  *
- * C'est le seul état qui doit **survivre d'un instant** au désabonnement. Une
+ * C'est le seul état qui doive **survivre d'un instant** au désabonnement. Une
  * demande partie juste avant lui livrerait sinon un verrou arrivé trop tard pour
  * que quiconque l'éteigne, et l'écran resterait allumé jusqu'à la fermeture de
  * l'onglet.
+ *
+ * `lastRequest` n'est pas remise à zéro une fois honorée, et n'a pas à l'être :
+ * le rangement l'attend, et attendre une demande déjà servie ne coûte rien. Un
+ * champ qu'on remettrait à `null` prétendrait distinguer deux cas dont rien ne
+ * dépend.
  */
 interface Holding {
     lock: WakeLockHandle | null;
-    inFlight: Promise<void> | null;
+    lastRequest: Promise<void> | null;
 }
 
 /**
@@ -69,7 +75,7 @@ export class BrowserScreenWakeLock implements ScreenWakeLock {
     }
 
     private hold(): Observable<never> {
-        const holding: Holding = { lock: null, inFlight: null };
+        const holding: Holding = { lock: null, lastRequest: null };
         return merge(
             // Le verrou est demandé d'entrée, puis repris à chaque retour au
             // premier plan — le système le reprend dès que la page est masquée.
@@ -87,10 +93,8 @@ export class BrowserScreenWakeLock implements ScreenWakeLock {
 
     private acquire(holding: Holding): Promise<void> {
         const request = this.requestLock(holding);
-        holding.inFlight = request;
-        return request.finally(() => {
-            holding.inFlight = null;
-        });
+        holding.lastRequest = request;
+        return request;
     }
 
     private async requestLock(holding: Holding): Promise<void> {
@@ -108,10 +112,12 @@ export class BrowserScreenWakeLock implements ScreenWakeLock {
 
     private async release(holding: Holding): Promise<void> {
         // Une demande en vol se rangerait après nous, et l'écran resterait
-        // allumé sans personne pour l'éteindre : on l'attend d'abord.
-        const inFlight = holding.inFlight;
-        if (inFlight !== null) {
-            await inFlight;
+        // allumé sans personne pour l'éteindre : on l'attend d'abord. Le test de
+        // nullité est là pour le lint (`await-thenable`), pas pour la logique —
+        // attendre `null` serait inoffensif.
+        const lastRequest = holding.lastRequest;
+        if (lastRequest !== null) {
+            await lastRequest;
         }
         try {
             await holding.lock?.release();
