@@ -1,4 +1,4 @@
-import { Subject, merge, switchMap, take, takeUntil, tap } from 'rxjs';
+import { Subject, merge, switchMap, takeUntil, tap } from 'rxjs';
 import type { DisplayedPoint } from '../../carte/ports/CarteDesPointsPort';
 import type { CoordonneeSelector } from '../../carte/ports/CoordonneeSelectorPort';
 import { query, queryAll } from '../../shared/dom';
@@ -188,15 +188,9 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
             }
         });
 
-    /**
-     * Le seul rangement qui reste à écrire : le verrou d'écran, que personne ne
-     * rendrait sinon. Les pages libèrent leurs URL d'objet toutes seules en
-     * quittant le document avec l'écran.
-     */
-    parti$.pipe(take(1)).subscribe(() => {
-        void screenWakeLock.release();
-    });
-
+    // Il ne reste **rien** à ranger en partant : le verrou d'écran se rend avec
+    // son abonnement, les sources se referment avec le leur, et les pages
+    // libèrent leurs URL d'objet en quittant le document avec l'écran.
     run(charger(), 'l’ouverture du suivi');
 
     async function charger(): Promise<void> {
@@ -208,7 +202,9 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
         }
         trajet = loaded;
         renderStack();
-        void screenWakeLock.acquire();
+        // L'écran reste allumé tant que ce suivi dure : le verrou est tenu par
+        // l'abonnement, et rendu quand l'écran s'en va.
+        screenWakeLock.held$.pipe(takeUntil(parti$)).subscribe();
         mode$.next('gps');
     }
 

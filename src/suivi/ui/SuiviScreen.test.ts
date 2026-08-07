@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { NEVER, defer, finalize, type Observable } from 'rxjs';
 import type { CoordonneeSelector } from '../../carte/ports/CoordonneeSelectorPort';
 import { query } from '../../shared/dom';
 import { createRunner, type Run } from '../../shared/runner';
@@ -61,22 +62,24 @@ class FakeTrajetRepository implements TrajetRepository {
     }
 }
 
-/** Verrou d'écran observable par son état, pas par les appels reçus. */
+/**
+ * Verrou d'écran observable par son état, pas par les appels reçus : il est
+ * tenu tant que quelqu'un est abonné, exactement comme le vrai.
+ */
 class FakeScreenWakeLock implements ScreenWakeLock {
-    private held = false;
+    private holders = 0;
 
-    acquire(): Promise<void> {
-        this.held = true;
-        return Promise.resolve();
-    }
-
-    release(): Promise<void> {
-        this.held = false;
-        return Promise.resolve();
-    }
+    readonly held$: Observable<never> = defer(() => {
+        this.holders++;
+        return NEVER.pipe(
+            finalize(() => {
+                this.holders--;
+            }),
+        );
+    });
 
     isHeld(): boolean {
-        return this.held;
+        return this.holders > 0;
     }
 }
 

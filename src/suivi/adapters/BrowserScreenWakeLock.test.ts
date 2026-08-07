@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { Subscription } from 'rxjs';
 import { FakeForeground } from './fakeForeground';
 import {
     BrowserScreenWakeLock,
@@ -76,11 +77,13 @@ async function letRequestsSettle(): Promise<void> {
     }
 }
 
-function testBed(): {
+interface TestBed {
     foreground: FakeForeground;
     provider: FakeWakeLockProvider;
     screenWakeLock: BrowserScreenWakeLock;
-} {
+}
+
+function testBed(): TestBed {
     const foreground = new FakeForeground();
     const provider = new FakeWakeLockProvider();
     return {
@@ -93,15 +96,21 @@ function testBed(): {
     };
 }
 
+/** Maintenir l'écran allumé, c'est s'abonner ; le relâcher, se désabonner. */
+function hold(screenWakeLock: BrowserScreenWakeLock): Subscription {
+    return screenWakeLock.held$.subscribe();
+}
+
 describe('BrowserScreenWakeLock', () => {
-    describe('Étant donné un appareil sans wake lock, quand je demande à garder l’écran allumé', () => {
+    describe('Étant donné un appareil sans wake lock, quand je maintiens l’écran allumé', () => {
         it('alors l’échec est avalé et le retour au premier plan est surveillé', async () => {
             // Aucun fournisseur injecté : la plateforme de test n'offre pas de
             // wake lock, exactement le cas « best effort échoué » que le port tolère.
             const foreground = new FakeForeground();
             const screenWakeLock = new BrowserScreenWakeLock({ foreground });
 
-            await screenWakeLock.acquire();
+            hold(screenWakeLock);
+            await letRequestsSettle();
 
             expect(foreground.subscriptions()).toBe(1);
         });
@@ -116,29 +125,39 @@ describe('BrowserScreenWakeLock', () => {
                 wakeLockProvider: provider,
             });
 
-            await screenWakeLock.acquire();
-            await screenWakeLock.release();
+            const maintien = hold(screenWakeLock);
+            await letRequestsSettle();
+            maintien.unsubscribe();
 
             expect(provider.requests).toBe(1);
             expect(foreground.subscriptions()).toBe(0);
         });
     });
 
-    describe('Étant donné un maintien demandé deux fois', () => {
-        it('alors un seul abonnement au premier plan est ouvert', async () => {
+    describe('Étant donné un maintien tenu deux fois de suite', () => {
+        it('alors chacun surveille le premier plan pour son compte, et les deux se rangent', async () => {
             const { foreground, screenWakeLock } = testBed();
 
-            await screenWakeLock.acquire();
-            await screenWakeLock.acquire();
+            const premier = hold(screenWakeLock);
+            const second = hold(screenWakeLock);
+            await letRequestsSettle();
+            const pendantLesDeux = foreground.subscriptions();
+            premier.unsubscribe();
+            second.unsubscribe();
 
-            expect(foreground.subscriptions()).toBe(1);
+            expect(pendantLesDeux).toBe(2);
+            expect(foreground.subscriptions()).toBe(0);
         });
+    });
 
-        it('alors un seul verrou est tenu : le second maintien ne redemande rien', async () => {
-            const { provider, screenWakeLock } = testBed();
+    describe('Étant donné un maintien en cours, quand un réveil survient sans que le système ait repris le verrou', () => {
+        it('alors rien n’est redemandé : celui qu’on tient est encore bon', async () => {
+            const { foreground, provider, screenWakeLock } = testBed();
+            hold(screenWakeLock);
+            await letRequestsSettle();
 
-            await screenWakeLock.acquire();
-            await screenWakeLock.acquire();
+            foreground.returnToForeground();
+            await letRequestsSettle();
 
             expect(provider.requests()).toBe(1);
             expect(provider.heldLocks()).toBe(1);
@@ -148,18 +167,21 @@ describe('BrowserScreenWakeLock', () => {
     describe('Étant donné un écran maintenu puis relâché', () => {
         it('alors plus rien ne surveille le premier plan', async () => {
             const { foreground, screenWakeLock } = testBed();
-            await screenWakeLock.acquire();
+            const maintien = hold(screenWakeLock);
+            await letRequestsSettle();
 
-            await screenWakeLock.release();
+            maintien.unsubscribe();
 
             expect(foreground.subscriptions()).toBe(0);
         });
 
         it('alors le verrou est libéré : l’écran peut s’éteindre', async () => {
             const { provider, screenWakeLock } = testBed();
-            await screenWakeLock.acquire();
+            const maintien = hold(screenWakeLock);
+            await letRequestsSettle();
 
-            await screenWakeLock.release();
+            maintien.unsubscribe();
+            await letRequestsSettle();
 
             expect(provider.heldLocks()).toBe(0);
         });
@@ -167,20 +189,25 @@ describe('BrowserScreenWakeLock', () => {
 
     describe('Étant donné un écran relâché, quand la page revient au premier plan', () => {
         it('alors le réveil ne réveille plus personne', async () => {
-            const { foreground, screenWakeLock } = testBed();
-            await screenWakeLock.acquire();
-            await screenWakeLock.release();
+            const { foreground, provider, screenWakeLock } = testBed();
+            const maintien = hold(screenWakeLock);
+            await letRequestsSettle();
+            maintien.unsubscribe();
+            await letRequestsSettle();
 
             foreground.returnToForeground();
+            await letRequestsSettle();
 
             expect(foreground.subscriptions()).toBe(0);
+            expect(provider.requests()).toBe(1);
         });
     });
 
     describe('Étant donné un retour au premier plan, que trois événements annoncent à la fois', () => {
         it('alors un seul verrou est demandé, et un seul est tenu', async () => {
             const { foreground, provider, screenWakeLock } = testBed();
-            await screenWakeLock.acquire();
+            hold(screenWakeLock);
+            await letRequestsSettle();
             // La page passe en arrière-plan : le système reprend le verrou.
             foreground.hidePage();
             provider.releaseFromSystem();
@@ -198,32 +225,31 @@ describe('BrowserScreenWakeLock', () => {
 
         it('alors relâcher libère bien le verrou repris, sans en laisser d’orphelin', async () => {
             const { foreground, provider, screenWakeLock } = testBed();
-            await screenWakeLock.acquire();
+            const maintien = hold(screenWakeLock);
+            await letRequestsSettle();
             foreground.hidePage();
             provider.releaseFromSystem();
             foreground.returnToForeground();
             foreground.emitWakeup();
             await letRequestsSettle();
 
-            await screenWakeLock.release();
+            maintien.unsubscribe();
+            await letRequestsSettle();
 
             expect(provider.heldLocks()).toBe(0);
         });
     });
 
     describe('Étant donné un relâchement pendant qu’une demande de verrou est en vol', () => {
-        it('alors relâcher attend ce verrou pour le libérer : aucun ne reste allumé', async () => {
+        it('alors le rangement attend ce verrou pour le libérer : aucun ne reste allumé', async () => {
             const { provider, screenWakeLock } = testBed();
             provider.holdRequests();
-            // `maintenir` n'est pas attendu : c'est ainsi que l'écran de suivi
-            // l'appelle, et la demande reste donc en vol.
-            const maintien = screenWakeLock.acquire();
+            const maintien = hold(screenWakeLock);
             await letRequestsSettle();
 
-            const liberation = screenWakeLock.release();
+            maintien.unsubscribe();
             provider.completeRequest();
-            await maintien;
-            await liberation;
+            await letRequestsSettle();
 
             expect(provider.requests()).toBe(1);
             expect(provider.heldLocks()).toBe(0);
@@ -233,7 +259,8 @@ describe('BrowserScreenWakeLock', () => {
     describe('Étant donné un réveil reçu alors que la page est encore masquée', () => {
         it('alors aucun verrou n’est demandé : l’API l’exigerait visible', async () => {
             const { foreground, provider, screenWakeLock } = testBed();
-            await screenWakeLock.acquire();
+            hold(screenWakeLock);
+            await letRequestsSettle();
             foreground.hidePage();
             provider.releaseFromSystem();
 

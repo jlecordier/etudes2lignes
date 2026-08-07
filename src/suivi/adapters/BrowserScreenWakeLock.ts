@@ -1,4 +1,4 @@
-import type { Subscription } from 'rxjs';
+import { defer, exhaustMap, finalize, ignoreElements, merge, of, type Observable } from 'rxjs';
 import type { ScreenWakeLock } from '../ports/ScreenWakeLockPort';
 import type { Foreground } from '../ports/Foreground';
 import { BrowserForeground } from './BrowserForeground';
@@ -26,107 +26,98 @@ const browserWakeLock: WakeLockProvider = {
 };
 
 /**
+ * Ce qu'un maintien tient réellement : le verrou obtenu, et la demande en vol.
+ *
+ * C'est le seul état qui doit **survivre d'un instant** au désabonnement. Une
+ * demande partie juste avant lui livrerait sinon un verrou arrivé trop tard pour
+ * que quiconque l'éteigne, et l'écran resterait allumé jusqu'à la fermeture de
+ * l'onglet.
+ */
+interface Holding {
+    lock: WakeLockHandle | null;
+    inFlight: Promise<void> | null;
+}
+
+/**
  * Wake lock du navigateur : garde l'écran allumé pendant le suivi.
  *
  * Best effort assumé : sur iOS en PWA installée, l'API n'est fiable que
  * depuis iOS 18.4 — tout échec est avalé, l'appli fonctionne sans verrou.
  * Le verrou est libéré par le système quand la page est masquée : on le
- * redemande au retour au premier plan tant que `maintenir` est actif — via le
- * port `Foreground`, le seul endroit qui sache reconnaître ce retour.
+ * redemande à chaque retour au premier plan, via le port `Foreground`, le seul
+ * endroit qui sache reconnaître ce retour.
  *
  * **Un seul verrou à la fois, et aucun orphelin.** Une demande de verrou est
- * lente, et deux courses menacent cette promesse — toutes deux réglées par la
- * mémoire de la demande en vol (`inFlightAcquisition`) :
+ * lente, et deux courses menacent cette promesse :
  * - un même retour au premier plan déclenche plusieurs réveils (trois
- *   événements l'annoncent) : sans cette mémoire, chacun obtiendrait son verrou
- *   et un seul serait rangé — les autres garderaient l'écran allumé jusqu'à la
- *   fermeture de l'onglet, et se rallumeraient à chaque retour ;
- * - `relacher` peut passer pendant qu'une demande est en vol : il l'attend,
- *   sinon le verrou arriverait après lui et personne ne l'éteindrait.
+ *   événements l'annoncent) : `exhaustMap` laisse la demande en vol absorber
+ *   ceux qui la suivent, là où chacun obtiendrait sinon son propre verrou dont
+ *   un seul serait rangé ;
+ * - le maintien peut cesser pendant qu'une demande est en vol : le rangement
+ *   l'attend, sinon le verrou arriverait après lui.
  */
 export class BrowserScreenWakeLock implements ScreenWakeLock {
     private readonly foreground: Foreground;
     private readonly provider: WakeLockProvider;
-    private lock: WakeLockHandle | null = null;
-    /** La demande en cours, partagée par tous ceux qui réclament en même temps. */
-    private inFlightAcquisition: Promise<void> | null = null;
-    /**
-     * Non nul exactement entre `maintenir` et `relacher` : c'est à la fois
-     * l'abonnement aux réveils et la marque « le verrou est voulu ».
-     */
-    private foregroundSubscription: Subscription | null = null;
+
+    /** Chaque abonnement tient son propre maintien, et le rend en partant. */
+    readonly held$: Observable<never> = defer(() => this.hold());
 
     constructor(dependencies?: { foreground?: Foreground; wakeLockProvider?: WakeLockProvider }) {
         this.foreground = dependencies?.foreground ?? new BrowserForeground();
         this.provider = dependencies?.wakeLockProvider ?? browserWakeLock;
     }
 
-    async acquire(): Promise<void> {
-        // Un second `maintenir` ne doit pas ouvrir un second abonnement.
-        this.foregroundSubscription ??= this.foreground.returnToForeground$.subscribe(() => {
-            this.reacquireOnForeground();
-        });
-        await this.acquerir();
+    private hold(): Observable<never> {
+        const holding: Holding = { lock: null, inFlight: null };
+        return merge(
+            // Le verrou est demandé d'entrée, puis repris à chaque retour au
+            // premier plan — le système le reprend dès que la page est masquée.
+            of(undefined),
+            this.foreground.returnToForeground$,
+        ).pipe(
+            exhaustMap(() => this.acquire(holding)),
+            // Le flux ne dit rien à personne : il tient l'écran allumé.
+            ignoreElements(),
+            finalize(() => {
+                void this.release(holding);
+            }),
+        );
     }
 
-    async release(): Promise<void> {
-        this.foregroundSubscription?.unsubscribe();
-        this.foregroundSubscription = null;
+    private acquire(holding: Holding): Promise<void> {
+        const request = this.requestLock(holding);
+        holding.inFlight = request;
+        return request.finally(() => {
+            holding.inFlight = null;
+        });
+    }
+
+    private async requestLock(holding: Holding): Promise<void> {
+        if (holding.lock !== null && !holding.lock.released) {
+            return;
+        }
+        try {
+            // `null` — l'appareil n'accorde rien — se range comme le reste : on
+            // n'arrive ici qu'avec un verrou déjà absent ou libéré.
+            holding.lock = await this.provider.demander();
+        } catch {
+            // Best effort : l'appli marche sans verrou.
+        }
+    }
+
+    private async release(holding: Holding): Promise<void> {
         // Une demande en vol se rangerait après nous, et l'écran resterait
-        // allumé sans personne pour l'éteindre : on l'attend d'abord. Le test de
-        // nullité est là pour le lint (`await-thenable`), pas pour la logique —
-        // attendre `null` serait inoffensif.
-        const inFlight = this.inFlightAcquisition;
+        // allumé sans personne pour l'éteindre : on l'attend d'abord.
+        const inFlight = holding.inFlight;
         if (inFlight !== null) {
             await inFlight;
         }
-        await this.releaseQuietly(this.lock);
-        this.lock = null;
-    }
-
-    private reacquireOnForeground(): void {
-        // Un réveil page masquée n'arrive plus jusqu'ici — `Foreground` le
-        // retient, puisque l'API exigerait la page visible. Reste à vérifier que
-        // le verrou est toujours voulu : `relacher` a pu passer entre-temps.
-        if (this.foregroundSubscription === null) {
-            return;
-        }
-        // `acquerir` avale ses propres échecs : rien à rattraper ici.
-        void this.acquerir();
-    }
-
-    private async acquerir(): Promise<void> {
-        this.inFlightAcquisition ??= this.requestLock();
         try {
-            await this.inFlightAcquisition;
-        } finally {
-            this.inFlightAcquisition = null;
-        }
-    }
-
-    private async requestLock(): Promise<void> {
-        if (this.lock !== null && !this.lock.released) {
-            return;
-        }
-        let obtenu: WakeLockHandle | null;
-        try {
-            obtenu = await this.provider.demander();
-        } catch {
-            return;
-        }
-        // `null` — l'appareil n'accorde rien — se range comme le reste : on
-        // n'arrive ici qu'avec un verrou déjà absent ou libéré, donc il n'y a
-        // rien à écraser. Et un verrou arrivé après `relacher` n'a pas besoin de
-        // garde non plus : `relacher` attend la demande en vol avant de libérer,
-        // donc il trouve toujours ce qui vient d'être rangé.
-        this.lock = obtenu;
-    }
-
-    private async releaseQuietly(lock: WakeLockHandle | null): Promise<void> {
-        try {
-            await lock?.release();
+            await holding.lock?.release();
         } catch {
             // Déjà libéré par le système : rien à faire.
         }
+        holding.lock = null;
     }
 }
