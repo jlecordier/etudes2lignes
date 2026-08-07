@@ -41,10 +41,10 @@ du domaine ; `adapters` et `ui` dépendent des ports et du domaine ; seul
 | Port                 | Contrat                                                                                                       | Adapters                                                                              |
 | -------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | `TrajetRepository`   | `listSummaries` / `load` / `save` (atomique) / `delete` ; **rejette** si la base est illisible                | `IdbTrajetRepository` (IndexedDB via idb)                                             |
-| `PositionSource`     | `start(onPosition, onStatus)` / `stop()` — idempotent, redémarrable                                           | `GeolocationPositionSource` (GPS)                                                     |
+| `PositionSource`     | `events$` — s'abonner démarre, se désabonner arrête ; commence par un état                                    | `GeolocationPositionSource` (GPS)                                                     |
 | `PositionSimulator`  | un `PositionSource` pilotable : `simulate(position)` + `lastPosition`                                         | `SimulationPositionSource` (position choisie à la main)                               |
-| `ScreenWakeLock`     | `acquire()` / `release()`, best effort                                                                        | `BrowserScreenWakeLock` (wake lock)                                                   |
-| `Foreground`         | `onReturnToForeground(action) → désabonnement` / `isInForeground()`                                           | `BrowserForeground` (visibilitychange, pageshow, focus)                               |
+| `ScreenWakeLock`     | `held$` — l'écran reste allumé tant que l'abonnement dure ; best effort                                       | `BrowserScreenWakeLock` (wake lock)                                                   |
+| `Foreground`         | `returnToForeground$` — les réveils, page effectivement visible                                               | `BrowserForeground` (visibilitychange, pageshow, focus)                               |
 | `CoordonneeSelector` | `choose(initial, reperes) → Coordonnee \| null`                                                               | `LeafletCoordonneeSelector` (Leaflet + OSM, plein écran)                              |
 | `CarteDesPoints`     | `mount(container)` / `unmount()` puis `show(points, onMove)` / `chooseCoordonnee(initial)` / `cancelChoice()` | `LeafletCarteDesPoints` (carte intégrée à l'éditeur, marqueurs numérotés déplaçables) |
 
@@ -200,11 +200,15 @@ segment)` — entre deux points éloignés, la corde s'écarte de la vraie ligne
   `getCurrentPosition` en boucle) ; les fixes approximatifs (cellule, Wi-Fi,
   vitres athermiques d'un train) sont utilisés jusqu'à 3 km d'incertitude, et
   au-delà l'état dit « Position approximative (± X km) » plutôt que « perdu » ;
-  erreurs passagères tolérées tant que le dernier fix est frais (tunnels) ;
-  redémarrage du watch (débouncé) au retour au premier plan (page gelée par
-  iOS/Android) ; chien de garde « dernière position il y a X min ».
+  erreurs passagères ignorées, puisqu'on ne s'alarme que d'un silence (tunnels) ;
+  réouverture du watch (throttlée) au retour au premier plan (page gelée par
+  iOS/Android) ; chien de garde « dernière position il y a X min », dont l'âge
+  est celui qu'un `timer` relancé à chaque fix a lui-même compté
+  ([ADR 0009](adr/0009-flux-du-temps-en-rxjs.md)).
 - `BrowserScreenWakeLock` : wake lock dans un try/catch, ré-acquis à chaque
-  retour au premier plan (le système le libère quand la page est masquée).
+  retour au premier plan (le système le libère quand la page est masquée) ;
+  `exhaustMap` fait qu'un même retour, annoncé par trois événements, n'en
+  demande qu'un.
 - Images : `width`/`height` réservés avant tout décodage (offsets stables),
   `loading="lazy"` (une page décodée ≈ 35 Mo de mémoire), object URLs révoquées.
 - IndexedDB : blobs stockés en `ArrayBuffer` (clonage de Blob fragile sur

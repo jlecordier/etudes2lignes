@@ -11,8 +11,8 @@ points into it instead of duplicating it. Claude Code specifics live in
 
 ## TL;DR
 
-- **Stack**: TypeScript · Vite · **vanilla DOM (no UI framework)** · Leaflet ·
-  IndexedDB (`idb`) · `vite-plugin-pwa`. Package manager: **pnpm**.
+- **Stack**: TypeScript · Vite · **vanilla DOM (no UI framework)** · RxJS ·
+  Leaflet · IndexedDB (`idb`) · `vite-plugin-pwa`. Package manager: **pnpm**.
 - **Architecture**: hexagonal + screaming — `src/<capability>/{domain,ports,adapters,ui}`.
 - **Language**: **French names the business, English names the plumbing.** An
   identifier is translated **word by word**: a word stays French if it is in the
@@ -83,10 +83,17 @@ points into it instead of duplicating it. Claude Code specifics live in
     - external JSON → `unknown` then runtime validation.
 - **Never disable a lint rule to dodge a finding** — fix the code. If a rule is
   genuinely wrong, prove it and relax it _with a documented justification_.
+- **Time is a stream, not a timestamp** ([ADR 0009](docs/adr/0009-flux-du-temps-en-rxjs.md)).
+  Cadence, freshness and concurrency are named operators (`throttleTime`,
+  `switchMap`, `concatMap`, `exhaustMap`), never fields holding instants that
+  something later subtracts. **Subscribing starts, unsubscribing stops**: ports
+  that deliver values over time expose an `Observable`, and every screen
+  `subscribe` hangs off its `takeUntil(parti$)` — a stream nobody subscribes to
+  does nothing, and says nothing about it.
 - **Tests: BDD, by state.** Behaviour is specified before the code, named
   `Étant donné / Quand / Alors`. **No `vi.fn`, no `toHaveBeenCalled`** —
-  hand-written fakes injected (fake geolocation, controlled clock, manual
-  scheduler, `fake-indexeddb`); assert on produced **values**.
+  hand-written fakes injected (fake geolocation, `fake-indexeddb`) and RxJS's
+  `TestScheduler` for virtual time; assert on produced **values**.
 - **A guard with no witness is not protected.** Before claiming a fix is covered,
   break it on purpose and watch the test fail — `pnpm mutation` does this in bulk
   over `domain`/`adapters`/`shared` ([ADR 0006](docs/adr/0006-tests-de-mutation-stryker.md)),

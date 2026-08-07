@@ -45,22 +45,22 @@ Légende : `U` = test unitaire (Vitest), `E` = test de bout en bout (Playwright)
 
 ## Suivi
 
-| #     | Exigence                                                                        | Vérifié par                                                     |
-| ----- | ------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| SU-1  | Moins de deux points → suivi impossible (état explicite)                        | `U projection.test.ts`, `E e2e/suivi.spec.ts`                   |
-| SU-2  | Position sur une étape → cible = offset de l'étape ; entre deux → interpolation | `U projection.test.ts`                                          |
-| SU-3  | Avant/après le trajet → cible bornée à la première/dernière étape               | `U projection.test.ts`                                          |
-| SU-4  | Seuil « hors trajet » adaptatif `max(5 km, 20 % du segment)`                    | `U projection.test.ts`                                          |
-| SU-5  | Segment de longueur nulle (jonction) → pas de division par zéro                 | `U projection.test.ts`                                          |
-| SU-6  | Adhérence : le bruit GPS près d'une jonction ne fait pas sauter la page         | `U projection.test.ts`                                          |
-| SU-7  | La cible est placée aux trois quarts hauts, bornée au document                  | `U projection.test.ts` (`computeScroll`)                        |
-| SU-8  | Message d'état lisible selon le résultat (attente/approx./perdu/hors-trajet)    | `U presentation.test.ts`, `U GeolocationPositionSource.test.ts` |
-| SU-9  | Défilement humain coupe le suivi auto ; « Reprendre » le rétablit               | `E e2e/suivi.spec.ts`                                           |
-| SU-10 | Fix approximatif toléré jusqu'à 3 km, en-deçà du seuil « hors trajet »          | `U precisionDuFix.test.ts`                                      |
-| SU-11 | Erreurs passagères tolérées tant que le dernier fix est frais (tunnels)         | `U GeolocationPositionSource.test.ts`                           |
-| SU-12 | « Permission refusée » n'est pas recouvert par le chien de garde                | `U GeolocationPositionSource.test.ts`                           |
-| SU-13 | Une source arrêtée puis redémarrée ne traîne ni throttle ni silence hérités     | `U GeolocationPositionSource.test.ts`                           |
-| SU-14 | Un seul lock d'écran à la fois, et aucun laissé allumé après « relâcher »       | `U BrowserScreenWakeLock.test.ts`                               |
+| #     | Exigence                                                                        | Vérifié par                                                          |
+| ----- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| SU-1  | Moins de deux points → suivi impossible (état explicite)                        | `U projection.test.ts`, `E e2e/suivi.spec.ts`                        |
+| SU-2  | Position sur une étape → cible = offset de l'étape ; entre deux → interpolation | `U projection.test.ts`                                               |
+| SU-3  | Avant/après le trajet → cible bornée à la première/dernière étape               | `U projection.test.ts`                                               |
+| SU-4  | Seuil « hors trajet » adaptatif `max(5 km, 20 % du segment)`                    | `U projection.test.ts`                                               |
+| SU-5  | Segment de longueur nulle (jonction) → pas de division par zéro                 | `U projection.test.ts`                                               |
+| SU-6  | Adhérence : le bruit GPS près d'une jonction ne fait pas sauter la page         | `U projection.test.ts`                                               |
+| SU-7  | La cible est placée aux trois quarts hauts, bornée au document                  | `U projection.test.ts` (`computeScroll`)                             |
+| SU-8  | Message d'état lisible selon le résultat (attente/approx./perdu/hors-trajet)    | `U presentation.test.ts`, `U GeolocationPositionSource.test.ts`      |
+| SU-9  | Défilement humain coupe le suivi auto ; « Reprendre » le rétablit               | `E e2e/suivi.spec.ts`                                                |
+| SU-10 | Fix approximatif toléré jusqu'à 3 km, en-deçà du seuil « hors trajet »          | `U precisionDuFix.test.ts`                                           |
+| SU-11 | Erreurs passagères tolérées tant que le dernier fix est frais (tunnels)         | `U GeolocationPositionSource.test.ts`                                |
+| SU-12 | « Permission refusée » n'est pas recouvert par le chien de garde                | `U GeolocationPositionSource.test.ts`                                |
+| SU-13 | Une source qu'on se remet à écouter ne traîne ni throttle ni silence hérités    | `U positionSourceContract.ts`, `U GeolocationPositionSource.test.ts` |
+| SU-14 | Un seul lock d'écran à la fois, et aucun laissé allumé après le désabonnement   | `U BrowserScreenWakeLock.test.ts`                                    |
 
 ### Aperçu du trajet
 
