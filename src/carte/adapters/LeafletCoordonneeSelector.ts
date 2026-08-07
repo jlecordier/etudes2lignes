@@ -1,5 +1,6 @@
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { Subject, firstValueFrom } from 'rxjs';
 import { query } from '../../shared/dom';
 import type { Coordonnee } from '../../trajets/domain/Coordonnee';
 import type { DisplayedPoint } from '../ports/CarteDesPointsPort';
@@ -16,7 +17,12 @@ export class LeafletCoordonneeSelector implements CoordonneeSelector {
     private carte: L.Map | null = null;
     private marker: L.Marker | null = null;
     private reperes: L.Marker[] = [];
-    private resolve: ((coordonnee: Coordonnee | null) => void) | null = null;
+    /**
+     * Le choix en cours : y pousser une valeur termine l'attente. C'était un
+     * `resolve` mémorisé qu'il fallait penser à remettre à `null` juste après
+     * l'avoir appelé.
+     */
+    private readonly choix = new Subject<Coordonnee | null>();
 
     private readonly screen = query('#screen-carte', HTMLElement);
     private readonly latitudeInput = query('#latitude-input', HTMLInputElement);
@@ -52,9 +58,9 @@ export class LeafletCoordonneeSelector implements CoordonneeSelector {
         }
         // La carte vient d'être dévoilée : Leaflet doit remesurer son conteneur.
         setTimeout(() => carte.invalidateSize(), 0);
-        return new Promise((resolve) => {
-            this.resolve = resolve;
-        });
+        // La première valeur poussée termine l'attente, et le désabonnement suit
+        // tout seul : il n'y a rien à remettre à zéro.
+        return firstValueFrom(this.choix);
     }
 
     private initializedCarte(): L.Map {
@@ -136,8 +142,6 @@ export class LeafletCoordonneeSelector implements CoordonneeSelector {
 
     private terminer(result: Coordonnee | null): void {
         this.screen.hidden = true;
-        const pending = this.resolve;
-        this.resolve = null;
-        pending?.(result);
+        this.choix.next(result);
     }
 }

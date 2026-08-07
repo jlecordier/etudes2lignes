@@ -1,5 +1,6 @@
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { Subject, firstValueFrom } from 'rxjs';
 import type { Coordonnee } from '../../trajets/domain/Coordonnee';
 import type { PointId } from '../../trajets/domain/ids';
 import type { CarteDesPoints, DisplayedPoint } from '../ports/CarteDesPointsPort';
@@ -24,7 +25,13 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
     private displayedIds = '';
     private onMove: ((id: PointId, coordonnee: Coordonnee) => void) | null = null;
     private onShow: ((id: PointId) => void) | null = null;
-    private resolveChoice: ((coordonnee: Coordonnee | null) => void) | null = null;
+    /**
+     * Le choix de coordonnée armé : y pousser une valeur termine l'attente, et
+     * `observed` dit s'il y a quelqu'un pour l'attendre. C'était un `resolve`
+     * mémorisé qu'il fallait penser à remettre à `null` — deux gestes pour une
+     * seule idée, dont l'oubli du second armait la carte pour toujours.
+     */
+    private readonly choix = new Subject<Coordonnee | null>();
     private teardown: AbortController | null = null;
 
     /**
@@ -55,13 +62,11 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
             signal: teardown.signal,
         });
         carte.on('click', (event) => {
-            const pending = this.resolveChoice;
-            if (pending === null) {
+            if (!this.choix.observed) {
                 return;
             }
-            this.resolveChoice = null;
             carte.getContainer().classList.remove('awaiting-click');
-            pending(toCoordonnee(event.latlng));
+            this.choix.next(toCoordonnee(event.latlng));
         });
     }
 
@@ -128,16 +133,14 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
             // écran le fait sur mobile.
             centerOnCoordonnee(carte, initialCoordonnee);
         }
-        return new Promise((resolve) => {
-            this.resolveChoice = resolve;
-        });
+        // La première valeur poussée termine l'attente, et le désabonnement suit
+        // tout seul : il n'y a rien à remettre à zéro.
+        return firstValueFrom(this.choix);
     }
 
     cancelChoice(): void {
         this.carte?.getContainer().classList.remove('awaiting-click');
-        const pending = this.resolveChoice;
-        this.resolveChoice = null;
-        pending?.(null);
+        this.choix.next(null);
     }
 
     private mountedCarte(): L.Map {
