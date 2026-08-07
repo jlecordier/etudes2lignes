@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { Coordonnee } from '../../trajets/domain/Coordonnee';
+import { TestScheduler } from 'rxjs/testing';
+import { Coordonnee } from '../../trajets/domain/Coordonnee';
 import type { SourceStatus } from '../domain/sourceStatus';
+import { positionEvent, statusEvent, type SourceEvent } from '../ports/PositionSource';
 import { verifyPositionSourceContract } from './positionSourceContract';
 import { FakeForeground } from './fakeForeground';
-import {
-    GeolocationPositionSource,
-    type Scheduler,
-    type GeolocationProvider,
-} from './GeolocationPositionSource';
+import { GeolocationPositionSource, type GeolocationProvider } from './GeolocationPositionSource';
 
 interface RegisteredWatch {
     readonly success: PositionCallback;
@@ -53,6 +51,11 @@ class FakeGeolocation implements GeolocationProvider {
         return this.registeredWatches.size;
     }
 
+    /** Combien de fois la plateforme a été mise sous surveillance en tout. */
+    totalWatches(): number {
+        return this.nextId - 1;
+    }
+
     emitFix(latitude: number, longitude: number, precision = 10): void {
         for (const registeredWatch of [...this.registeredWatches.values()]) {
             registeredWatch.success(fix(latitude, longitude, precision));
@@ -69,24 +72,12 @@ class FakeGeolocation implements GeolocationProvider {
 
     /** Une erreur livrée elle aussi après la coupure de la surveillance. */
     emitLateError(code: number): void {
-        this.lastRegisteredWatch?.error?.({
-            code,
-            message: '',
-            PERMISSION_DENIED: 1,
-            POSITION_UNAVAILABLE: 2,
-            TIMEOUT: 3,
-        });
+        this.lastRegisteredWatch?.error?.(positionError(code));
     }
 
     emitError(code: number): void {
         for (const registeredWatch of [...this.registeredWatches.values()]) {
-            registeredWatch.error?.({
-                code,
-                message: '',
-                PERMISSION_DENIED: 1,
-                POSITION_UNAVAILABLE: 2,
-                TIMEOUT: 3,
-            });
+            registeredWatch.error?.(positionError(code));
         }
     }
 }
@@ -108,185 +99,98 @@ function fix(latitude: number, longitude: number, accuracy: number): Geolocation
     };
 }
 
-/** Scheduler battu à la main par le test. */
-class ManualScheduler implements Scheduler {
-    private nextId = 1;
-    private readonly timers = new Map<number, () => void>();
-
-    every(_milliseconds: number, action: () => void): () => void {
-        const id = this.nextId++;
-        this.timers.set(id, action);
-        return () => {
-            this.timers.delete(id);
-        };
-    }
-
-    /** Combien de minuteries la source laisse tourner. */
-    activeTimers(): number {
-        return this.timers.size;
-    }
-
-    tick(): void {
-        for (const action of [...this.timers.values()]) {
-            action();
-        }
-    }
+function positionError(code: number): GeolocationPositionError {
+    return {
+        code,
+        message: '',
+        PERMISSION_DENIED: 1,
+        POSITION_UNAVAILABLE: 2,
+        TIMEOUT: 3,
+    };
 }
 
 interface TestBed {
     geolocation: FakeGeolocation;
-    scheduler: ManualScheduler;
     foreground: FakeForeground;
-    advanceTime: (ms: number) => void;
     source: GeolocationPositionSource;
-    positions: Coordonnee[];
-    statuses: SourceStatus[];
 }
 
-function testBed(): TestBed {
-    const { geolocation, scheduler, foreground, advanceTime, source } = unstartedSource();
-    const positions: Coordonnee[] = [];
-    const statuses: SourceStatus[] = [];
-    source.start(
-        (position) => positions.push(position),
-        (status) => statuses.push(status),
-    );
-    return { geolocation, scheduler, foreground, advanceTime, source, positions, statuses };
-}
-
-function unstartedSource(): Omit<TestBed, 'positions' | 'statuses'> {
+function unstartedSource(): TestBed {
     const geolocation = new FakeGeolocation();
-    const scheduler = new ManualScheduler();
     const foreground = new FakeForeground();
-    let currentTime = 0;
-    const source = new GeolocationPositionSource({
-        geolocation,
-        now: () => currentTime,
-        scheduler,
-        foreground,
-    });
     return {
         geolocation,
-        scheduler,
         foreground,
-        advanceTime: (ms) => {
-            currentTime += ms;
-        },
-        source,
+        source: new GeolocationPositionSource({ geolocation, foreground }),
     };
 }
 
-function latitudes(positions: readonly Coordonnee[]): number[] {
-    return positions.map((position) => position.latitude);
+/**
+ * Un geste de la plateforme ou de l'utilisateur, posé à un instant du temps
+ * virtuel. C'est ce que le scénario écrit, et le seul moyen d'agir : il n'y a
+ * plus d'horloge à avancer à la main, le temps est celui des flux.
+ */
+interface Geste {
+    readonly at: number;
+    readonly fait: () => void;
+}
+
+/**
+ * Joue un scénario en temps virtuel et rend ce que la source a raconté.
+ *
+ * Le temps ne s'avance plus indépendamment des minuteries — les deux sont le
+ * même temps, celui du `TestScheduler`, ce qui rapproche le test du réel : on
+ * ne peut plus battre le chien de garde sans que l'horloge bouge.
+ */
+function raconte(gestes: readonly Geste[], jusqua: number, testBed: TestBed): SourceEvent[] {
+    const scheduler = new TestScheduler((actual, expected) => {
+        expect(actual).toEqual(expected);
+    });
+    const events: SourceEvent[] = [];
+    scheduler.run(({ flush }) => {
+        const subscription = testBed.source.events$.subscribe((event) => {
+            events.push(event);
+        });
+        for (const { at, fait } of gestes) {
+            scheduler.schedule(fait, at);
+        }
+        scheduler.schedule(() => {
+            subscription.unsubscribe();
+        }, jusqua);
+        flush();
+    });
+    return events;
+}
+
+function positions(events: readonly SourceEvent[]): number[] {
+    return events.flatMap((event) => (event.kind === 'position' ? [event.position.latitude] : []));
+}
+
+function statuses(events: readonly SourceEvent[]): SourceStatus[] {
+    return events.flatMap((event) => (event.kind === 'status' ? [event.status] : []));
 }
 
 verifyPositionSourceContract('GeolocationPositionSource', () => {
-    const { geolocation, scheduler, foreground, advanceTime, source } = unstartedSource();
+    const { geolocation, foreground, source } = unstartedSource();
     return {
         source,
         emitPosition: (position) => {
-            // Le throttle de la source est laissé de côté ici : le contrat parle
-            // de démarrage et d'arrêt, pas de cadence.
-            advanceTime(11_000);
             geolocation.emitFix(position.latitude, position.longitude);
         },
-        heldResources: () =>
-            geolocation.openWatches() + scheduler.activeTimers() + foreground.subscriptions(),
+        heldResources: () => geolocation.openWatches() + foreground.subscriptions(),
     };
 });
 
 describe('GeolocationPositionSource', () => {
-    describe('Étant donné une permission refusée, quand le chien de garde bat plusieurs fois', () => {
-        it('alors la consigne reste affichée : elle seule dit comment en sortir', () => {
-            const { geolocation, scheduler, advanceTime, statuses } = testBed();
-
-            geolocation.emitError(1);
-            advanceTime(60_000);
-            scheduler.tick();
-            scheduler.tick();
-
-            expect(statuses.at(-1)).toEqual({ kind: 'permission-refusee' });
-        });
-    });
-
-    describe('Étant donné une source arrêtée puis redémarrée dans la seconde', () => {
-        it('alors le premier fix de la nouvelle session est transmis : le throttle de la précédente ne le retient pas', () => {
-            const { geolocation, source, advanceTime } = unstartedSource();
-            const firstSession: Coordonnee[] = [];
-            source.start(
-                (position) => firstSession.push(position),
-                () => undefined,
-            );
-            // Ce fix arme le throttle pour dix secondes.
-            geolocation.emitFix(46.0, 0.3);
-            source.stop();
-
-            // Le geste réel : « Quitter la simulation » arrête puis redémarre la
-            // source dans la même passe, bien avant la fin du throttle.
-            advanceTime(1_000);
-            const secondSession: Coordonnee[] = [];
-            source.start(
-                (position) => secondSession.push(position),
-                () => undefined,
-            );
-            geolocation.emitFix(46.5, 0.4);
-
-            expect(latitudes(firstSession)).toEqual([46.0]);
-            expect(latitudes(secondSession)).toEqual([46.5]);
-        });
-
-        it('alors son chien de garde annonce l’attente, non un silence hérité de la session morte', () => {
-            const { geolocation, scheduler, source, advanceTime } = unstartedSource();
-            source.start(
-                () => undefined,
-                () => undefined,
-            );
-            geolocation.emitFix(46.0, 0.3);
-            source.stop();
-            // Le fix de la session morte est maintenant vieux de bien plus que
-            // le silence toléré.
-            advanceTime(60_000);
-
-            const statuses: SourceStatus[] = [];
-            source.start(
-                () => undefined,
-                (status) => statuses.push(status),
-            );
-            scheduler.tick();
-
-            expect(statuses).toEqual([{ kind: 'attente' }, { kind: 'attente' }]);
-        });
-    });
-
-    describe('Étant donné une position déjà acquise quand la surveillance est coupée', () => {
-        it('alors ce fix en retard n’atteint plus l’écran', () => {
-            const { geolocation, source, positions } = testBed();
-            source.stop();
-
-            // Le système livre au thread principal un fix acquis avant le
-            // `clearWatch` : la session, elle, est morte.
-            geolocation.emitLateFix(46.5, 0.4);
-
-            expect(positions).toEqual([]);
-        });
-
-        it('alors une erreur en retard ne dit plus rien non plus', () => {
-            const { geolocation, source, statuses } = testBed();
-            source.stop();
-
-            geolocation.emitLateError(1);
-
-            expect(statuses).toEqual([{ kind: 'attente' }]);
-        });
-    });
-
     describe('Étant donné l’abonnement à la plateforme', () => {
         it('alors la source réclame la haute précision et refuse une position en cache', () => {
-            const { geolocation } = testBed();
+            const testBed = unstartedSource();
+
+            raconte([], 1_000, testBed);
 
             // Une position en cache placerait la page ailleurs qu'où l'on est, et
             // sans haute précision le navigateur répondrait par le Wi-Fi.
-            expect(geolocation.requestedOptions()).toEqual({
+            expect(testBed.geolocation.requestedOptions()).toEqual({
                 enableHighAccuracy: true,
                 maximumAge: 0,
             });
@@ -295,312 +199,425 @@ describe('GeolocationPositionSource', () => {
 
     describe('Étant donné un fix précis, quand il arrive', () => {
         it('alors la position est transmise', () => {
-            const { geolocation, positions } = testBed();
+            const testBed = unstartedSource();
 
-            geolocation.emitFix(46.5802, 0.3404);
+            const events = raconte(
+                [{ at: 1_000, fait: () => testBed.geolocation.emitFix(46.5802, 0.3404) }],
+                5_000,
+                testBed,
+            );
 
-            expect(positions.map((p) => [p.latitude, p.longitude])).toEqual([[46.5802, 0.3404]]);
+            expect(events).toEqual([
+                statusEvent({ kind: 'attente' }),
+                positionEvent(Coordonnee.create(46.5802, 0.3404)),
+            ]);
         });
     });
 
     describe('Étant donné un fix approximatif (800 m, positionnement cellulaire ou train)', () => {
         it('alors il est utilisé : mieux vaut une position approchée que « signal perdu »', () => {
-            const { geolocation, positions } = testBed();
+            const testBed = unstartedSource();
 
-            geolocation.emitFix(46.58, 0.34, 800);
+            const events = raconte(
+                [{ at: 1_000, fait: () => testBed.geolocation.emitFix(46.58, 0.34, 800) }],
+                5_000,
+                testBed,
+            );
 
-            expect(latitudes(positions)).toEqual([46.58]);
+            expect(positions(events)).toEqual([46.58]);
         });
     });
 
     describe('Étant donné un fix vraiment trop imprécis (5 km)', () => {
         it('alors il n’est pas transmis mais l’état mesure l’imprécision', () => {
-            const { geolocation, positions, statuses } = testBed();
+            const testBed = unstartedSource();
 
-            geolocation.emitFix(46.58, 0.34, 5_000);
+            const events = raconte(
+                [{ at: 1_000, fait: () => testBed.geolocation.emitFix(46.58, 0.34, 5_000) }],
+                5_000,
+                testBed,
+            );
 
-            expect(positions).toEqual([]);
-            expect(statuses.at(-1)).toEqual({ kind: 'imprecise', imprecisionMetres: 5_000 });
+            expect(positions(events)).toEqual([]);
+            expect(statuses(events).at(-1)).toEqual({
+                kind: 'imprecise',
+                imprecisionMetres: 5_000,
+            });
         });
 
         it('alors le chien de garde parle d’imprécision, jamais de signal perdu', () => {
-            const { geolocation, scheduler, advanceTime, statuses } = testBed();
-            geolocation.emitFix(46.0, 0.1);
-            advanceTime(60_000);
-            geolocation.emitFix(46.01, 0.11, 8_000);
-            advanceTime(10_000);
+            const testBed = unstartedSource();
 
-            scheduler.tick();
+            // Un fix exploitable, puis plus que du grossier : le GPS parle
+            // toujours, et c'est ce qu'il faut dire.
+            const events = raconte(
+                [
+                    { at: 1_000, fait: () => testBed.geolocation.emitFix(46.0, 0.1) },
+                    { at: 20_000, fait: () => testBed.geolocation.emitFix(46.01, 0.11, 8_000) },
+                ],
+                40_000,
+                testBed,
+            );
 
-            expect(statuses.at(-1)).toEqual({ kind: 'imprecise', imprecisionMetres: 8_000 });
+            expect(statuses(events).at(-1)).toEqual({
+                kind: 'imprecise',
+                imprecisionMetres: 8_000,
+            });
+        });
+
+        it('alors une imprécision périmée ne s’invente plus : c’est le silence qu’on annonce', () => {
+            const testBed = unstartedSource();
+
+            // Le fix grossier est vieux de plus que le silence toléré quand le
+            // chien de garde parle : annoncer « ± 8 km » sur sa foi reviendrait à
+            // décrire un instant qui n'existe plus.
+            const events = raconte(
+                [
+                    { at: 1_000, fait: () => testBed.geolocation.emitFix(46.0, 0.1) },
+                    { at: 2_000, fait: () => testBed.geolocation.emitFix(46.01, 0.11, 8_000) },
+                ],
+                70_000,
+                testBed,
+            );
+
+            expect(statuses(events).at(-1)).toEqual({ kind: 'perdue', ageMs: 60_000 });
         });
     });
 
     describe('Étant donné des fixes rapprochés', () => {
         it('alors au plus une position toutes les 10 s est transmise', () => {
-            const { geolocation, positions, advanceTime } = testBed();
+            const testBed = unstartedSource();
 
-            geolocation.emitFix(46.0, 0.1);
-            advanceTime(3_000);
-            geolocation.emitFix(46.1, 0.2);
-            advanceTime(8_000);
-            geolocation.emitFix(46.2, 0.3);
+            const events = raconte(
+                [
+                    { at: 1_000, fait: () => testBed.geolocation.emitFix(46.0, 0.1) },
+                    { at: 4_000, fait: () => testBed.geolocation.emitFix(46.1, 0.2) },
+                    { at: 12_000, fait: () => testBed.geolocation.emitFix(46.2, 0.3) },
+                ],
+                20_000,
+                testBed,
+            );
 
-            expect(latitudes(positions)).toEqual([46.0, 46.2]);
+            expect(positions(events)).toEqual([46.0, 46.2]);
+        });
+    });
+
+    describe('Étant donné une acquisition lente au démarrage (gare couverte)', () => {
+        it('alors un premier fix qui met 25 s à arriver n’est pas tué par le throttle', () => {
+            const testBed = unstartedSource();
+
+            const events = raconte(
+                [{ at: 25_000, fait: () => testBed.geolocation.emitFix(46.0, 0.1) }],
+                28_000,
+                testBed,
+            );
+
+            expect(positions(events)).toEqual([46.0]);
         });
     });
 
     describe('Étant donné une permission refusée', () => {
         it('alors l’état dit que la permission est refusée', () => {
-            const { geolocation, statuses } = testBed();
+            const testBed = unstartedSource();
 
-            geolocation.emitError(1);
+            const events = raconte(
+                [{ at: 1_000, fait: () => testBed.geolocation.emitError(1) }],
+                5_000,
+                testBed,
+            );
 
-            expect(statuses.at(-1)).toEqual({ kind: 'permission-refusee' });
+            expect(statuses(events).at(-1)).toEqual({ kind: 'permission-refusee' });
+        });
+
+        it('alors la consigne reste affichée : elle seule dit comment en sortir', () => {
+            const testBed = unstartedSource();
+
+            // Le chien de garde bat plusieurs fois pendant ce temps : il ne doit
+            // pas recouvrir la consigne d'une attente muette.
+            const events = raconte(
+                [{ at: 1_000, fait: () => testBed.geolocation.emitError(1) }],
+                90_000,
+                testBed,
+            );
+
+            expect(statuses(events)).toEqual([{ kind: 'attente' }, { kind: 'permission-refusee' }]);
+        });
+
+        it('alors une surveillance neuve le remet en cause : la permission a pu être accordée', () => {
+            const testBed = unstartedSource();
+
+            const events = raconte(
+                [
+                    { at: 1_000, fait: () => testBed.geolocation.emitError(1) },
+                    // Retour au premier plan : la surveillance est rouverte, et
+                    // le chien de garde retrouve la voix.
+                    { at: 10_000, fait: () => testBed.foreground.returnToForeground() },
+                ],
+                60_000,
+                testBed,
+            );
+
+            expect(statuses(events).at(-1)).toEqual({ kind: 'attente' });
         });
     });
 
     describe('Étant donné un appareil sans géolocalisation', () => {
-        it('alors le démarrage annonce l’indisponibilité et rien n’est mis en place', () => {
+        it('alors l’écoute annonce l’indisponibilité et rien n’est mis en place', () => {
             const foreground = new FakeForeground();
-            const scheduler = new ManualScheduler();
             // Aucune géolocalisation injectée et aucune sur la plateforme de test :
             // exactement la situation d'un navigateur en contexte non sécurisé.
-            const source = new GeolocationPositionSource({ foreground, scheduler });
-            const statuses: SourceStatus[] = [];
+            const source = new GeolocationPositionSource({ geolocation: null, foreground });
+            const events: SourceEvent[] = [];
 
-            source.start(
-                () => {
-                    throw new Error('aucune position ne peut arriver');
-                },
-                (status) => statuses.push(status),
-            );
+            source.events$.subscribe((event) => events.push(event));
 
-            expect(statuses).toEqual([{ kind: 'indisponible' }]);
-            expect(scheduler.activeTimers()).toBe(0);
+            expect(events).toEqual([statusEvent({ kind: 'indisponible' })]);
             expect(foreground.subscriptions()).toBe(0);
         });
     });
 
     describe('Étant donné une erreur passagère (position indisponible)', () => {
         it('alors rien n’est signalé tant que le dernier fix est frais', () => {
-            const { geolocation, advanceTime, statuses } = testBed();
-            geolocation.emitFix(46.0, 0.1);
-            advanceTime(2_000);
+            const testBed = unstartedSource();
 
-            geolocation.emitError(2);
+            const events = raconte(
+                [
+                    { at: 1_000, fait: () => testBed.geolocation.emitFix(46.0, 0.1) },
+                    { at: 3_000, fait: () => testBed.geolocation.emitError(2) },
+                ],
+                20_000,
+                testBed,
+            );
 
-            // Rien de plus que l'attente annoncée au démarrage.
-            expect(statuses).toEqual([{ kind: 'attente' }]);
+            // Rien de plus que l'attente annoncée au démarrage : une erreur
+            // passagère (tunnel) ne dit rien qu'un silence ne dirait mieux.
+            expect(statuses(events)).toEqual([{ kind: 'attente' }]);
         });
 
-        it('alors, après un long silence, l’état mesure l’ancienneté', () => {
-            const { geolocation, advanceTime, statuses } = testBed();
-            geolocation.emitFix(46.0, 0.1);
-            advanceTime(120_000);
+        it('alors c’est le silence qui finit par parler, et il mesure l’ancienneté', () => {
+            const testBed = unstartedSource();
 
-            geolocation.emitError(2);
+            const events = raconte(
+                [
+                    { at: 1_000, fait: () => testBed.geolocation.emitFix(46.0, 0.1) },
+                    { at: 3_000, fait: () => testBed.geolocation.emitError(2) },
+                ],
+                50_000,
+                testBed,
+            );
 
-            expect(statuses.at(-1)).toEqual({ kind: 'perdue', ageMs: 120_000 });
+            expect(statuses(events).at(-1)).toEqual({ kind: 'perdue', ageMs: 45_000 });
         });
     });
 
     describe('Étant donné un long silence du GPS', () => {
         it('alors, avant tout fix, le chien de garde signale l’attente', () => {
-            const { scheduler, advanceTime, statuses } = testBed();
+            const testBed = unstartedSource();
 
-            advanceTime(60_000);
-            scheduler.tick();
+            const events = raconte([], 50_000, testBed);
 
-            expect(statuses.at(-1)).toEqual({ kind: 'attente' });
+            // L'attente du démarrage, puis celle que le chien de garde répète :
+            // aucune position n'a jamais été obtenue, il n'y a pas d'âge à dire.
+            expect(statuses(events)).toEqual([
+                { kind: 'attente' },
+                { kind: 'attente' },
+                { kind: 'attente' },
+            ]);
         });
 
         it('alors, après un fix, l’état mesure l’ancienneté de la dernière position', () => {
-            const { geolocation, scheduler, advanceTime, statuses } = testBed();
-            geolocation.emitFix(46.0, 0.1);
+            const testBed = unstartedSource();
 
-            advanceTime(120_000);
-            scheduler.tick();
+            const events = raconte(
+                [{ at: 1_000, fait: () => testBed.geolocation.emitFix(46.0, 0.1) }],
+                80_000,
+                testBed,
+            );
 
-            expect(statuses.at(-1)).toEqual({ kind: 'perdue', ageMs: 120_000 });
+            // Le compteur repart du fix : 30 s de silence toléré, puis un
+            // battement toutes les 15 s, et l'âge est celui qu'il a compté.
+            expect(statuses(events)).toEqual([
+                { kind: 'attente' },
+                { kind: 'perdue', ageMs: 30_000 },
+                { kind: 'perdue', ageMs: 45_000 },
+                { kind: 'perdue', ageMs: 60_000 },
+                { kind: 'perdue', ageMs: 75_000 },
+            ]);
         });
 
-        it('alors un silence court ne déclenche rien', () => {
-            const { geolocation, scheduler, advanceTime, statuses } = testBed();
-            geolocation.emitFix(46.0, 0.1);
+        it('alors un silence plus court que le délai toléré ne déclenche rien', () => {
+            const testBed = unstartedSource();
 
-            advanceTime(10_000);
-            scheduler.tick();
+            const events = raconte(
+                [{ at: 1_000, fait: () => testBed.geolocation.emitFix(46.0, 0.1) }],
+                30_000,
+                testBed,
+            );
 
-            expect(statuses).toEqual([{ kind: 'attente' }]);
+            expect(statuses(events)).toEqual([{ kind: 'attente' }]);
+        });
+
+        it('alors chaque fix repousse l’alerte : un GPS bavard ne dit jamais « perdue »', () => {
+            const testBed = unstartedSource();
+
+            const events = raconte(
+                [
+                    { at: 1_000, fait: () => testBed.geolocation.emitFix(46.0, 0.1) },
+                    { at: 25_000, fait: () => testBed.geolocation.emitFix(46.1, 0.2) },
+                    { at: 50_000, fait: () => testBed.geolocation.emitFix(46.2, 0.3) },
+                ],
+                75_000,
+                testBed,
+            );
+
+            expect(statuses(events)).toEqual([{ kind: 'attente' }]);
         });
     });
 
-    describe('Étant donné un fix vieux du silence toléré, à la milliseconde près', () => {
-        it('alors il est encore frais : le chien de garde se taît', () => {
-            const { geolocation, scheduler, advanceTime, statuses } = testBed();
-            geolocation.emitFix(46.0, 0.3);
-
-            advanceTime(30_000);
-            scheduler.tick();
-
-            expect(statuses).toEqual([{ kind: 'attente' }]);
-        });
-
-        it('alors une milliseconde de plus le rend périmé', () => {
-            const { geolocation, scheduler, advanceTime, statuses } = testBed();
-            geolocation.emitFix(46.0, 0.3);
-
-            advanceTime(30_001);
-            scheduler.tick();
-
-            expect(statuses.at(-1)).toEqual({ kind: 'perdue', ageMs: 30_001 });
-        });
-    });
-
-    describe('Étant donné une source arrêtée', () => {
-        it('alors plus aucune position n’est transmise et rien ne tourne derrière', () => {
-            const { geolocation, scheduler, foreground, source, positions } = testBed();
+    describe('Étant donné un abonné qui se retire alors qu’un fix est déjà en vol', () => {
+        it('alors ce fix en retard n’atteint plus l’écran', () => {
+            const { geolocation, foreground, source } = unstartedSource();
+            const events: SourceEvent[] = [];
+            const subscription = source.events$.subscribe((event) => events.push(event));
             geolocation.emitFix(46.0, 0.1);
 
-            source.stop();
-            geolocation.emitFix(46.2, 0.3);
-
-            expect(latitudes(positions)).toEqual([46.0]);
-            expect(geolocation.openWatches()).toBe(0);
-            expect(scheduler.activeTimers()).toBe(0);
-            expect(foreground.subscriptions()).toBe(0);
-        });
-
-        it('alors un fix déjà en vol au moment de l’arrêt est ignoré', () => {
-            const { geolocation, source, positions, statuses } = testBed();
-            geolocation.emitFix(46.0, 0.1);
-
-            source.stop();
+            subscription.unsubscribe();
+            // Le système livre au thread principal un fix acquis avant le
+            // `clearWatch` : plus personne ne l'écoute.
             geolocation.emitLateFix(46.9, 0.9);
+            geolocation.emitLateError(1);
 
-            expect(latitudes(positions)).toEqual([46.0]);
-            expect(statuses).toEqual([{ kind: 'attente' }]);
+            expect(positions(events)).toEqual([46.0]);
+            expect(statuses(events)).toEqual([{ kind: 'attente' }]);
+            expect(geolocation.openWatches()).toBe(0);
+            expect(foreground.subscriptions()).toBe(0);
         });
     });
 
     describe('Étant donné un retour au premier plan', () => {
-        it('alors la surveillance redémarre et le prochain fix passe sans attendre le throttle', () => {
-            const { geolocation, foreground, positions, advanceTime } = testBed();
-            geolocation.emitFix(46.0, 0.1);
-            advanceTime(2_000);
+        it('alors la surveillance est rouverte et le prochain fix passe sans attendre le throttle', () => {
+            const testBed = unstartedSource();
 
-            foreground.returnToForeground();
-            geolocation.emitFix(46.5, 0.5);
+            const events = raconte(
+                [
+                    { at: 1_000, fait: () => testBed.geolocation.emitFix(46.0, 0.1) },
+                    { at: 3_000, fait: () => testBed.foreground.returnToForeground() },
+                    { at: 4_000, fait: () => testBed.geolocation.emitFix(46.5, 0.5) },
+                ],
+                10_000,
+                testBed,
+            );
 
-            expect(latitudes(positions)).toEqual([46.0, 46.5]);
+            expect(positions(events)).toEqual([46.0, 46.5]);
+            // Une surveillance neuve, et l'ancienne refermée : pas deux ouvertes.
+            expect(testBed.geolocation.totalWatches()).toBe(2);
+            expect(testBed.geolocation.openWatches()).toBe(0);
         });
 
-        it('alors des retours en rafale ne redémarrent pas la surveillance à chaque fois', () => {
-            const { geolocation, foreground, positions, advanceTime } = testBed();
-            geolocation.emitFix(46.0, 0.1);
-            advanceTime(2_000);
+        it('alors des retours en rafale ne rouvrent pas la surveillance à chaque fois', () => {
+            const testBed = unstartedSource();
 
-            foreground.returnToForeground();
-            geolocation.emitFix(46.1, 0.2);
-            advanceTime(2_000);
-            // Second réveil 2 s plus tard : ignoré, le throttle n'est pas levé.
-            foreground.returnToForeground();
-            geolocation.emitFix(46.2, 0.3);
+            const events = raconte(
+                [
+                    { at: 1_000, fait: () => testBed.geolocation.emitFix(46.0, 0.1) },
+                    { at: 3_000, fait: () => testBed.foreground.returnToForeground() },
+                    { at: 4_000, fait: () => testBed.geolocation.emitFix(46.1, 0.2) },
+                    // Second réveil 2 s plus tard : ignoré, le throttle tient.
+                    { at: 5_000, fait: () => testBed.foreground.returnToForeground() },
+                    { at: 6_000, fait: () => testBed.geolocation.emitFix(46.2, 0.3) },
+                ],
+                10_000,
+                testBed,
+            );
 
-            expect(latitudes(positions)).toEqual([46.0, 46.1]);
+            expect(positions(events)).toEqual([46.0, 46.1]);
+            expect(testBed.geolocation.totalWatches()).toBe(2);
         });
 
-        it('alors un réveil reçu au terme exact du délai de garde redémarre bien', () => {
-            const { geolocation, foreground, positions, advanceTime } = testBed();
-            geolocation.emitFix(46.0, 0.1);
-            advanceTime(2_000);
-            foreground.returnToForeground();
-            geolocation.emitFix(46.1, 0.2);
+        it('alors un réveil passé le délai de garde rouvre bien', () => {
+            const testBed = unstartedSource();
 
-            // Pile le délai de garde après le réveil précédent : il est retombé,
-            // celui-ci doit repartir. Sans quoi une PWA dégelée resterait jusqu'à
-            // dix secondes sans recalage, alors que le train avance.
-            advanceTime(5_000);
-            foreground.returnToForeground();
-            geolocation.emitFix(46.2, 0.3);
+            // Le délai de garde est retombé quand ce réveil arrive : il doit
+            // repartir. Sans quoi une PWA dégelée resterait jusqu'à dix secondes
+            // sans recalage, alors que le train avance.
+            const events = raconte(
+                [
+                    { at: 1_000, fait: () => testBed.geolocation.emitFix(46.0, 0.1) },
+                    { at: 3_000, fait: () => testBed.foreground.returnToForeground() },
+                    { at: 4_000, fait: () => testBed.geolocation.emitFix(46.1, 0.2) },
+                    { at: 9_000, fait: () => testBed.foreground.returnToForeground() },
+                    { at: 10_000, fait: () => testBed.geolocation.emitFix(46.2, 0.3) },
+                ],
+                15_000,
+                testBed,
+            );
 
-            expect(latitudes(positions)).toEqual([46.0, 46.1, 46.2]);
+            expect(positions(events)).toEqual([46.0, 46.1, 46.2]);
+            expect(testBed.geolocation.totalWatches()).toBe(3);
         });
 
-        it('alors un réveil reçu page masquée ne redémarre rien : le throttle reste en place', () => {
-            const { geolocation, foreground, positions, advanceTime } = testBed();
-            geolocation.emitFix(46.0, 0.1);
-            advanceTime(2_000);
+        it('alors un réveil reçu page masquée ne rouvre rien : le throttle reste en place', () => {
+            const testBed = unstartedSource();
 
-            foreground.hidePage();
-            foreground.emitWakeup();
-            geolocation.emitFix(46.5, 0.5);
+            const events = raconte(
+                [
+                    { at: 1_000, fait: () => testBed.geolocation.emitFix(46.0, 0.1) },
+                    { at: 2_000, fait: () => testBed.foreground.hidePage() },
+                    { at: 3_000, fait: () => testBed.foreground.emitWakeup() },
+                    { at: 4_000, fait: () => testBed.geolocation.emitFix(46.5, 0.5) },
+                ],
+                10_000,
+                testBed,
+            );
 
-            expect(latitudes(positions)).toEqual([46.0]);
-        });
-    });
-
-    describe('Étant donné une acquisition lente au démarrage (gare couverte)', () => {
-        it('alors un premier fix qui met 25 s à arriver n’est pas tué par le throttle', () => {
-            const { geolocation, advanceTime, positions } = testBed();
-
-            advanceTime(25_000);
-            geolocation.emitFix(46.0, 0.1);
-
-            expect(latitudes(positions)).toEqual([46.0]);
+            expect(positions(events)).toEqual([46.0]);
+            expect(testBed.geolocation.totalWatches()).toBe(1);
         });
     });
 
     describe('Étant donné un voyage complet simulé dans un wagon', () => {
         it('alors la source raconte fidèlement le voyage : attente, vitres athermiques, tunnel, sortie', () => {
-            const { geolocation, scheduler, advanceTime, positions, statuses } = testBed();
-
-            // Départ en gare couverte : 15 s sans le moindre signal.
-            advanceTime(15_000);
-            scheduler.tick();
-
-            // Premier fix 25 s après le départ : cellulaire, précis à 2 km
-            // seulement (loin des 500 m d'un GPS de plein ciel) — utilisé.
-            advanceTime(10_000);
-            geolocation.emitFix(48.72, 2.26, 2_000);
-
-            // Pleine voie derrière des vitres athermiques : un fix par 2 s,
-            // jamais mieux que 1,8 km. Le throttle n'en traite qu'un par 10 s.
-            const latitudesBehindTheGlass = [
-                48.71, 48.7, 48.69, 48.68, 48.67, 48.66, 48.65, 48.64, 48.63, 48.62,
+            const testBed = unstartedSource();
+            const { geolocation } = testBed;
+            const gestes: Geste[] = [
+                // Premier fix 25 s après le départ en gare couverte : cellulaire,
+                // précis à 2 km seulement — utilisé quand même.
+                { at: 25_000, fait: () => geolocation.emitFix(48.72, 2.26, 2_000) },
             ];
-            for (const latitude of latitudesBehindTheGlass) {
-                advanceTime(2_000);
-                geolocation.emitFix(latitude, 2.26, 1_800);
-            }
+            // Pleine voie derrière des vitres athermiques : un fix par 2 s, jamais
+            // mieux que 1,8 km. Le throttle n'en traite qu'un par 10 s.
+            const latitudesBehindTheGlass = [
+                48.71, 48.7, 48.69, 48.68, 48.67, 48.66, 48.65, 48.64, 48.63, 48.62, 48.61, 48.6,
+            ];
+            latitudesBehindTheGlass.forEach((latitude, index) => {
+                gestes.push({
+                    at: 26_000 + index * 2_000,
+                    fait: () => geolocation.emitFix(latitude, 2.26, 1_800),
+                });
+            });
+            // Tunnel : une erreur passagère à 50 s, puis plus rien pendant deux
+            // minutes. Sortie de tunnel : le GPS de plein ciel revient à 170 s.
+            gestes.push({ at: 50_000, fait: () => geolocation.emitError(2) });
+            gestes.push({ at: 170_000, fait: () => geolocation.emitFix(48.5, 2.2, 30) });
 
-            // Tunnel : une erreur passagère puis plus rien pendant deux minutes.
-            advanceTime(1_000);
-            geolocation.emitError(2);
-            advanceTime(14_000);
-            scheduler.tick();
-            advanceTime(30_000);
-            scheduler.tick();
-            advanceTime(75_000);
-            scheduler.tick();
+            const events = raconte(gestes, 190_000, testBed);
 
-            // Sortie de tunnel : le GPS de plein ciel revient, précis à 30 m.
-            advanceTime(5_000);
-            geolocation.emitFix(48.5, 2.2, 30);
-            advanceTime(10_000);
-            scheduler.tick();
-
-            // Les positions traitées : la première, puis une par tranche de
-            // 10 s pendant les vitres athermiques, puis la sortie de tunnel.
-            expect(latitudes(positions)).toEqual([48.72, 48.67, 48.62, 48.5]);
-            // Et le récit exact des états mesurés, dans l'ordre, rien de plus :
-            // le retour du signal éteint l'alerte (aucun état après la sortie).
-            // C'est `sourceStatusText` qui les met en phrases, pas la source.
-            expect(statuses).toEqual([
+            // Les positions traitées : la première, puis une par tranche de 10 s
+            // pendant les vitres athermiques, puis la sortie de tunnel.
+            expect(positions(events)).toEqual([48.72, 48.66, 48.6, 48.5]);
+            // Et le récit exact des états mesurés : l'attente du départ, puis le
+            // silence du tunnel qui s'allonge de 15 s en 15 s à partir du dernier
+            // fix reçu (celui de 48 s), et plus rien après la sortie : le retour
+            // du signal éteint l'alerte. C'est `sourceStatusText` qui les met en
+            // phrases, pas la source.
+            expect(statuses(events)).toEqual([
                 { kind: 'attente' },
-                { kind: 'attente' },
+                { kind: 'perdue', ageMs: 30_000 },
                 { kind: 'perdue', ageMs: 45_000 },
+                { kind: 'perdue', ageMs: 60_000 },
+                { kind: 'perdue', ageMs: 75_000 },
+                { kind: 'perdue', ageMs: 90_000 },
+                { kind: 'perdue', ageMs: 105_000 },
                 { kind: 'perdue', ageMs: 120_000 },
             ]);
         });

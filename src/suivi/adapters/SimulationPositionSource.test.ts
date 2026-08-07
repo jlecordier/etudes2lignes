@@ -1,25 +1,31 @@
 import { describe, expect, it } from 'vitest';
+import type { Subscription } from 'rxjs';
 import { Coordonnee } from '../../trajets/domain/Coordonnee';
 import type { SourceStatus } from '../domain/sourceStatus';
+import type { SourceEvent } from '../ports/PositionSource';
 import { verifyPositionSourceContract } from './positionSourceContract';
 import { SimulationPositionSource } from './SimulationPositionSource';
 
 const poitiers = Coordonnee.create(46.5802, 0.3404);
 const angouleme = Coordonnee.create(45.6484, 0.1562);
 
-interface Subscription {
+interface Listener {
     readonly positions: Coordonnee[];
     readonly statuses: SourceStatus[];
+    readonly subscription: Subscription;
 }
 
-function startAndCollect(source: SimulationPositionSource): Subscription {
+function listen(source: SimulationPositionSource): Listener {
     const positions: Coordonnee[] = [];
     const statuses: SourceStatus[] = [];
-    source.start(
-        (position) => positions.push(position),
-        (status) => statuses.push(status),
-    );
-    return { positions, statuses };
+    const subscription = source.events$.subscribe((event: SourceEvent) => {
+        if (event.kind === 'position') {
+            positions.push(event.position);
+        } else {
+            statuses.push(event.status);
+        }
+    });
+    return { positions, statuses, subscription };
 }
 
 verifyPositionSourceContract('SimulationPositionSource', () => {
@@ -36,60 +42,60 @@ verifyPositionSourceContract('SimulationPositionSource', () => {
 });
 
 describe('SimulationPositionSource', () => {
-    describe('Étant donné une source démarrée, quand je simule une position', () => {
+    describe('Étant donné une source écoutée, quand je simule une position', () => {
         it('alors elle est transmise immédiatement', () => {
             const source = new SimulationPositionSource();
-            const subscription = startAndCollect(source);
+            const listener = listen(source);
 
             source.simulate(poitiers);
 
-            expect(subscription.positions).toEqual([poitiers]);
+            expect(listener.positions).toEqual([poitiers]);
         });
     });
 
-    describe('Étant donné une source qui démarre sans position simulée', () => {
+    describe('Étant donné une source qu’on écoute sans position simulée', () => {
         it('alors elle annonce l’attente, comme le GPS réel : la ligne d’état ne garde pas le dernier message', () => {
             const source = new SimulationPositionSource();
 
-            const subscription = startAndCollect(source);
+            const listener = listen(source);
 
-            expect(subscription.statuses).toEqual([{ kind: 'attente' }]);
+            expect(listener.statuses).toEqual([{ kind: 'attente' }]);
         });
     });
 
-    describe('Étant donné une position déjà simulée, quand la source redémarre', () => {
+    describe('Étant donné une position déjà simulée, quand on se remet à écouter', () => {
         it('alors elle annonce l’attente puis rejoue la dernière position', () => {
             const source = new SimulationPositionSource();
-            startAndCollect(source);
+            const first = listen(source);
             source.simulate(angouleme);
-            source.stop();
+            first.subscription.unsubscribe();
 
-            const subscription = startAndCollect(source);
+            const second = listen(source);
 
-            expect(subscription.statuses).toEqual([{ kind: 'attente' }]);
-            expect(subscription.positions).toEqual([angouleme]);
+            expect(second.statuses).toEqual([{ kind: 'attente' }]);
+            expect(second.positions).toEqual([angouleme]);
         });
     });
 
-    describe('Étant donné une source arrêtée, quand je simule une position', () => {
-        it('alors rien n’est transmis', () => {
+    describe('Étant donné un abonné qui s’est retiré, quand je simule une position', () => {
+        it('alors rien ne lui est transmis', () => {
             const source = new SimulationPositionSource();
-            const subscription = startAndCollect(source);
-            source.stop();
+            const listener = listen(source);
+            listener.subscription.unsubscribe();
 
             source.simulate(poitiers);
 
-            expect(subscription.positions).toEqual([]);
+            expect(listener.positions).toEqual([]);
         });
     });
 
-    describe('Étant donné une position simulée puis la source arrêtée', () => {
+    describe('Étant donné une position simulée puis l’abonné retiré', () => {
         it('alors la dernière position reste mémorisée, pour rouvrir la carte dessus', () => {
             const source = new SimulationPositionSource();
-            startAndCollect(source);
+            const listener = listen(source);
 
             source.simulate(angouleme);
-            source.stop();
+            listener.subscription.unsubscribe();
 
             expect(source.lastPosition).toEqual(angouleme);
         });

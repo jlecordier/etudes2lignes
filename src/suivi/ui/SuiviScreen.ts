@@ -1,6 +1,8 @@
+import { Subject, merge, switchMap, take, takeUntil, tap } from 'rxjs';
 import type { DisplayedPoint } from '../../carte/ports/CarteDesPointsPort';
 import type { CoordonneeSelector } from '../../carte/ports/CoordonneeSelectorPort';
 import { query, queryAll } from '../../shared/dom';
+import { eventsOf, untilAborted, windowEventsOf } from '../../shared/events';
 import type { Run } from '../../shared/runner';
 import { SchemaPageElement, createSchemaPage } from '../../shared/SchemaPage';
 import { defineScreen } from '../../shared/screen';
@@ -98,85 +100,100 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
     // de l'attribut `hidden` d'un écran appartenant à une autre capacité.
     let activeCoordonneeChoice = false;
 
-    query('#leave-suivi-button', HTMLButtonElement, root).addEventListener(
-        'click',
-        () => {
+    /** Le détachement de l'écran : ce qui referme tout ce qu'il a ouvert. */
+    const parti$ = untilAborted(signal);
+
+    /**
+     * D'où vient la position. Rien ne coule tant que le trajet n'est pas chargé :
+     * le mode n'est poussé qu'à ce moment-là.
+     */
+    const mode$ = new Subject<SuiviMode>();
+
+    eventsOf(query('#leave-suivi-button', HTMLButtonElement, root), 'click')
+        .pipe(takeUntil(parti$))
+        .subscribe(() => {
             onBack();
-        },
-        { signal },
-    );
-    query('#simuler-button', HTMLButtonElement, root).addEventListener(
-        'click',
-        () => {
+        });
+    eventsOf(query('#simuler-button', HTMLButtonElement, root), 'click')
+        .pipe(takeUntil(parti$))
+        .subscribe(() => {
             run(chooseSimulatedPosition(), 'le choix de la position simulée');
-        },
-        { signal },
-    );
-    query('#leave-simulation-button', HTMLButtonElement, root).addEventListener(
-        'click',
-        () => {
-            switchTo('gps');
-        },
-        { signal },
-    );
-    resumeButton.addEventListener(
-        'click',
-        () => {
+        });
+    eventsOf(query('#leave-simulation-button', HTMLButtonElement, root), 'click')
+        .pipe(takeUntil(parti$))
+        .subscribe(() => {
+            mode$.next('gps');
+        });
+    eventsOf(resumeButton, 'click')
+        .pipe(takeUntil(parti$))
+        .subscribe(() => {
             resumeSuivi();
-        },
-        { signal },
-    );
-    overviewButton.addEventListener(
-        'click',
-        () => {
+        });
+    eventsOf(overviewButton, 'click')
+        .pipe(takeUntil(parti$))
+        .subscribe(() => {
             toggleOverview();
-        },
-        { signal },
-    );
+        });
 
     /**
      * Une rotation ne déplace pas la position sur le trajet : elle déplace les
      * offsets des deux piles. Rien n'est donc reprojeté — on réinterpole.
      *
-     * Posé sur `window`, donc hors de l'écran : sans le signal, il survivrait à
-     * la sortie et s'ajouterait une fois de plus à chaque visite.
+     * Posé sur `window`, donc hors de l'écran : sans le `takeUntil`, il
+     * survivrait à la sortie et s'ajouterait une fois de plus à chaque visite.
      */
-    window.addEventListener(
-        'resize',
-        () => {
+    windowEventsOf('resize')
+        .pipe(takeUntil(parti$))
+        .subscribe(() => {
             measureSuiviBar();
             replayLastSurTrajet();
-        },
-        { signal },
-    );
-
-    // Seuls un toucher sur le document ou la molette trahissent un défilement
-    // humain ; on n'écoute pas 'scroll' (déclenché aussi par nos scrollTo).
-    pagesContainer.addEventListener(
-        'touchstart',
-        () => {
-            switchToManualScroll();
-        },
-        { passive: true, signal },
-    );
-    // Posé sur `window`, donc hors de l'écran : sans ce signal, il survivrait à
-    // la sortie et s'ajouterait une fois de plus à chaque visite.
-    window.addEventListener(
-        'wheel',
-        () => {
-            switchToManualScroll();
-        },
-        { passive: true, signal },
-    );
+        });
 
     /**
-     * Quitter l'écran, c'est le détacher — et tout le rangement tient ici.
-     * Les pages, elles, libèrent leurs URL d'objet toutes seules en quittant
-     * le document avec l'écran.
+     * Ce qui trahit un défilement **humain** : un toucher sur le document ou la
+     * molette. On n'écoute pas 'scroll', que nos propres `scrollTo` déclenchent
+     * aussi. Les deux disent la même chose et se lisent donc d'un seul tenant —
+     * l'un est posé sur la pile, l'autre hors de l'écran, sur `window`.
      */
-    signal.addEventListener('abort', () => {
-        realSource.stop();
-        simulation.stop();
+    merge(
+        eventsOf(pagesContainer, 'touchstart', { passive: true }),
+        windowEventsOf('wheel', { passive: true }),
+    )
+        .pipe(takeUntil(parti$))
+        .subscribe(() => {
+            switchToManualScroll();
+        });
+
+    /**
+     * La position, d'où qu'elle vienne.
+     *
+     * Changer de mode referme la source précédente et ouvre la suivante : c'est
+     * le `switchMap` qui s'en charge, et il n'y a donc plus deux sources à
+     * penser à arrêter avant d'en démarrer une — ni au changement de mode, ni en
+     * quittant l'écran, où le `takeUntil` les referme toutes.
+     */
+    mode$
+        .pipe(
+            tap((mode) => {
+                resetSuivi(mode);
+            }),
+            switchMap((mode) => (mode === 'simulation' ? simulation : realSource).events$),
+            takeUntil(parti$),
+        )
+        .subscribe((event) => {
+            if (event.kind === 'position') {
+                onPosition(event.position);
+            } else {
+                onStatus(event.status);
+            }
+        });
+
+    /**
+     * Le seul rangement qui reste à écrire : le verrou d'écran, que personne ne
+     * rendrait sinon. Les pages libèrent leurs URL d'objet toutes seules en
+     * quittant le document avec l'écran.
+     */
+    parti$.pipe(take(1)).subscribe(() => {
         void screenWakeLock.release();
     });
 
@@ -192,7 +209,7 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
         trajet = loaded;
         renderStack();
         void screenWakeLock.acquire();
-        switchTo('gps');
+        mode$.next('gps');
     }
 
     /**
@@ -206,8 +223,8 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
     }
 
     /**
-     * Le seul endroit qui change de source de position — et donc le seul qui
-     * remette l'état du suivi à zéro.
+     * On change de source : tout ce que l'écran savait de la précédente est
+     * périmé.
      *
      * La mémoire de la dernière position et l'ancrage d'adhérence n'ont aucun
      * sens d'une source à l'autre : sans cette remise à zéro, quitter la
@@ -217,10 +234,12 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
      * La barre de l'aperçu disparaît par la même occasion, et pour la même
      * raison : elle ne doit pas laisser une position fictive plantée sur le
      * trajet après qu'on a quitté la simulation.
+     *
+     * Arrêter les sources n'est plus de son ressort — le `switchMap` referme
+     * celle qu'on quitte —, et le texte d'attente non plus : la source annonce
+     * elle-même son état, et `presentation.ts` le rédige.
      */
-    function switchTo(mode: SuiviMode): void {
-        realSource.stop();
-        simulation.stop();
+    function resetSuivi(mode: SuiviMode): void {
         lastPosition = null;
         lastSurTrajet = null;
         suiviAutomatique = true;
@@ -229,13 +248,6 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
         simulationBanner.hidden = mode !== 'simulation';
         // Le bandeau vient de s'ajouter ou de partir : la barre a changé de hauteur.
         measureSuiviBar();
-        // Le texte d'attente n'est plus écrit ici : la source annonce elle-même
-        // son état au démarrage, et `presentation.ts` le rédige.
-        if (mode === 'simulation') {
-            simulation.start(onPosition, onStatus);
-        } else {
-            realSource.start(onPosition, onStatus);
-        }
     }
 
     function renderStack(): void {
@@ -462,8 +474,11 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
         if (coordonnee === null || signal.aborted) {
             return;
         }
-        switchTo('simulation');
+        // La coordonnée est simulée **avant** le passage en mode simulation : la
+        // source la mémorise, et l'abonnement qui s'ouvre juste après la rejoue.
+        // L'inverse la pousserait à un flux que personne n'écoute encore.
         simulation.simulate(coordonnee);
+        mode$.next('simulation');
     }
 
     function trajetReperes(): DisplayedPoint[] {
