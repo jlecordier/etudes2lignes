@@ -74,8 +74,11 @@ un **framework UI**, et le rendu reste explicitement écrit en DOM natif.
   désabonnée, non parce qu'on a pensé à écrire un `arreter` complet.
 - ➕ Les tests décrivent le temps au lieu de le simuler : un diagramme marble
   dit à la fois l'entrée, l'instant et la sortie attendue.
-- ➖ Une dépendance runtime de plus (~ 34 kB min+gzip, tree-shakée à ce qui est
-  importé) dans un projet qui en comptait deux.
+- ➖ Une dépendance runtime de plus dans un projet qui en comptait deux. Ce
+  qu'elle pèse est le poids des **opérateurs importés**, pas celui de la
+  bibliothèque : RxJS se tree-shake, donc le bundle ne grossit que de ce que le
+  code appelle vraiment. C'est un coût qui suit l'usage, et qu'un `pnpm build`
+  mesure le jour où la question se pose.
 - ➖ RxJS a une courbe d'apprentissage réelle, et un opérateur mal choisi se
   trompe en silence (`switchMap` là où `concatMap` était voulu annule au lieu
   de mettre en file). Le remède est le même que partout ailleurs ici : la règle
