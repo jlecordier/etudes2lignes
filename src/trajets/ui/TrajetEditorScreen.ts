@@ -1,6 +1,8 @@
+import { merge, take, takeUntil } from 'rxjs';
 import type { CarteDesPoints, DisplayedPoint } from '../../carte/ports/CarteDesPointsPort';
 import type { CoordonneeSelector } from '../../carte/ports/CoordonneeSelectorPort';
 import { query, queryAll } from '../../shared/dom';
+import { eventsOf, untilAborted } from '../../shared/events';
 import { createQueue } from '../../shared/queue';
 import type { Run } from '../../shared/runner';
 import { SchemaPageElement, createSchemaPage } from '../../shared/SchemaPage';
@@ -82,118 +84,108 @@ function mount(
     // peut pas être mémorisée d'une visite à l'autre, son conteneur non plus.
     carteDesPoints.mount(query('#carte-points', HTMLElement, root));
 
-    query('#back-to-list-button', HTMLButtonElement, root).addEventListener('click', onBack, {
-        signal,
-    });
-    query('#suivre-button', HTMLButtonElement, root).addEventListener(
-        'click',
-        () => {
+    /** Le détachement de l'écran : ce qui referme tout ce qu'il a ouvert. */
+    const parti$ = untilAborted(signal);
+
+    eventsOf(query('#back-to-list-button', HTMLButtonElement, root), 'click')
+        .pipe(takeUntil(parti$))
+        .subscribe(() => {
+            onBack();
+        });
+    eventsOf(query('#suivre-button', HTMLButtonElement, root), 'click')
+        .pipe(takeUntil(parti$))
+        .subscribe(() => {
             if (trajet === null) {
                 return;
             }
             onSuivi();
-        },
-        { signal },
-    );
-    addImagesButton.addEventListener(
-        'click',
-        () => {
+        });
+    eventsOf(addImagesButton, 'click')
+        .pipe(takeUntil(parti$))
+        .subscribe(() => {
             fileInput.click();
-        },
-        { signal },
-    );
-    fileInput.addEventListener(
-        'change',
-        () => {
+        });
+    eventsOf(fileInput, 'change')
+        .pipe(takeUntil(parti$))
+        .subscribe(() => {
             run(importFiles(), 'l’ajout des pages');
-        },
-        { signal },
-    );
-    carteButton.addEventListener('click', toggleCarte, { signal });
-    addPointButton.addEventListener('click', startAddingPoint, { signal });
-    floatingAddPointButton.addEventListener('click', startAddingPoint, { signal });
+        });
+    eventsOf(carteButton, 'click')
+        .pipe(takeUntil(parti$))
+        .subscribe(() => {
+            toggleCarte();
+        });
+    // Deux boutons, une seule intention : ils se lisent donc d'un seul tenant.
+    merge(eventsOf(addPointButton, 'click'), eventsOf(floatingAddPointButton, 'click'))
+        .pipe(takeUntil(parti$))
+        .subscribe(() => {
+            startAddingPoint();
+        });
     // L'export part de l'agrégat que l'écran a en mémoire, sans repasser par le
     // dépôt : toute écriture passe par `applyToTrajetAndSave`, qui resynchronise
     // sur échec — ce qui est affiché est donc ce qui est stocké.
-    query('#export-trajet-button', HTMLButtonElement, root).addEventListener(
-        'click',
-        () => {
+    eventsOf(query('#export-trajet-button', HTMLButtonElement, root), 'click')
+        .pipe(takeUntil(parti$))
+        .subscribe(() => {
             const currentTrajet = trajet;
             if (currentTrajet === null) {
                 return;
             }
             run(downloadTrajet(currentTrajet), 'l’export du trajet');
-        },
-        { signal },
-    );
-    query('#cancel-placement-button', HTMLButtonElement, root).addEventListener(
-        'click',
-        () => {
+        });
+    eventsOf(query('#cancel-placement-button', HTMLButtonElement, root), 'click')
+        .pipe(takeUntil(parti$))
+        .subscribe(() => {
             changeMode(null);
             carteDesPoints.cancelChoice();
-        },
-        { signal },
-    );
+        });
 
     // Les fragments de l'écran annoncent, l'écran décide. Un seul jeu
     // d'écouteurs, posé sur la racine : les intentions y remontent, quel que
     // soit le nombre de pages et de points affichés.
-    root.addEventListener(
-        'click-page',
-        (event) => {
+    eventsOf(root, 'click-page')
+        .pipe(takeUntil(parti$))
+        .subscribe((event) => {
             run(onImageClick(event.detail), 'le placement du point');
-        },
-        { signal },
-    );
-    root.addEventListener(
-        'right-click-page',
-        (event) => {
+        });
+    eventsOf(root, 'right-click-page')
+        .pipe(takeUntil(parti$))
+        .subscribe((event) => {
             run(onImageRightClick(event.detail), 'l’ajout du point');
-        },
-        { signal },
-    );
-    root.addEventListener(
-        'move-image',
-        (event) => {
+        });
+    eventsOf(root, 'move-image')
+        .pipe(takeUntil(parti$))
+        .subscribe((event) => {
             movePage(event.detail.imageId, event.detail.direction);
-        },
-        { signal },
-    );
-    root.addEventListener(
-        'delete-image',
-        (event) => {
+        });
+    eventsOf(root, 'delete-image')
+        .pipe(takeUntil(parti$))
+        .subscribe((event) => {
             deleteImage(event.detail.imageId);
-        },
-        { signal },
-    );
-    root.addEventListener(
-        'move-point-on-image',
-        (event) => {
+        });
+    eventsOf(root, 'move-point-on-image')
+        .pipe(takeUntil(parti$))
+        .subscribe((event) => {
             changeMode({ type: 'deplacement', pointId: event.detail.pointId });
-        },
-        { signal },
-    );
-    root.addEventListener(
-        'move-point-on-carte',
-        (event) => {
+        });
+    eventsOf(root, 'move-point-on-carte')
+        .pipe(takeUntil(parti$))
+        .subscribe((event) => {
             run(movePointOnCarte(event.detail.pointId), 'le déplacement du point');
-        },
-        { signal },
-    );
-    root.addEventListener(
-        'delete-point',
-        (event) => {
+        });
+    eventsOf(root, 'delete-point')
+        .pipe(takeUntil(parti$))
+        .subscribe((event) => {
             deletePoint(event.detail.pointId, event.detail.number);
-        },
-        { signal },
-    );
+        });
 
     /**
-     * Quitter l'écran, c'est le détacher — et tout le rangement tient ici. Les
-     * pages libèrent leurs URL d'objet toutes seules en partant avec lui ;
-     * `unmount` abandonne au passage un choix de coordonnée encore armé.
+     * Quitter l'écran, c'est le détacher — et il ne reste que la carte à rendre :
+     * elle ne peut pas survivre à son conteneur. Les pages libèrent leurs URL
+     * d'objet toutes seules en partant avec lui ; `unmount` abandonne au passage
+     * un choix de coordonnée encore armé.
      */
-    signal.addEventListener('abort', () => {
+    parti$.pipe(take(1)).subscribe(() => {
         carteDesPoints.unmount();
     });
 

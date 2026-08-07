@@ -1,4 +1,6 @@
+import { takeUntil } from 'rxjs';
 import { query } from '../../shared/dom';
+import { eventsOf, untilAborted } from '../../shared/events';
 import type { Run } from '../../shared/runner';
 import { defineScreen } from '../../shared/screen';
 import { NomDeTrajet } from '../domain/NomDeTrajet';
@@ -35,65 +37,52 @@ function mount(
     const errorText = query('#list-error-text', HTMLSpanElement, root);
     const importFileInput = query('#input-import-trajet', HTMLInputElement, root);
 
-    query('#create-trajet-button', HTMLButtonElement, root).addEventListener(
-        'click',
-        () => {
+    /** Le détachement de l'écran : ce qui referme tout ce qu'il a ouvert. */
+    const parti$ = untilAborted(signal);
+
+    eventsOf(query('#create-trajet-button', HTMLButtonElement, root), 'click')
+        .pipe(takeUntil(parti$))
+        .subscribe(() => {
             run(createTrajet(), 'la création du trajet');
-        },
-        { signal },
-    );
-    query('#import-trajet-button', HTMLButtonElement, root).addEventListener(
-        'click',
-        () => {
+        });
+    eventsOf(query('#import-trajet-button', HTMLButtonElement, root), 'click')
+        .pipe(takeUntil(parti$))
+        .subscribe(() => {
             importFileInput.click();
-        },
-        { signal },
-    );
-    importFileInput.addEventListener(
-        'change',
-        () => {
+        });
+    eventsOf(importFileInput, 'change')
+        .pipe(takeUntil(parti$))
+        .subscribe(() => {
             run(importTrajet(), 'l’import du trajet');
-        },
-        { signal },
-    );
-    query('#retry-list-button', HTMLButtonElement, root).addEventListener(
-        'click',
-        () => {
+        });
+    eventsOf(query('#retry-list-button', HTMLButtonElement, root), 'click')
+        .pipe(takeUntil(parti$))
+        .subscribe(() => {
             run(show(), 'la lecture de la liste');
-        },
-        { signal },
-    );
+        });
 
     // Les lignes annoncent, l'écran décide : un seul jeu d'écouteurs, quel que
     // soit le nombre de trajets affichés.
-    root.addEventListener(
-        'open-trajet',
-        (event) => {
+    eventsOf(root, 'open-trajet')
+        .pipe(takeUntil(parti$))
+        .subscribe((event) => {
             onOpen(event.detail.summary.id);
-        },
-        { signal },
-    );
-    root.addEventListener(
-        'rename-trajet',
-        (event) => {
+        });
+    eventsOf(root, 'rename-trajet')
+        .pipe(takeUntil(parti$))
+        .subscribe((event) => {
             run(renameTrajet(event.detail.summary), 'le renommage du trajet');
-        },
-        { signal },
-    );
-    root.addEventListener(
-        'export-trajet',
-        (event) => {
+        });
+    eventsOf(root, 'export-trajet')
+        .pipe(takeUntil(parti$))
+        .subscribe((event) => {
             run(exportTrajet(event.detail.summary), 'l’export du trajet');
-        },
-        { signal },
-    );
-    root.addEventListener(
-        'delete-trajet',
-        (event) => {
+        });
+    eventsOf(root, 'delete-trajet')
+        .pipe(takeUntil(parti$))
+        .subscribe((event) => {
             run(deleteTrajet(event.detail.summary), 'la suppression du trajet');
-        },
-        { signal },
-    );
+        });
 
     run(show(), 'la lecture de la liste');
 

@@ -1,11 +1,19 @@
+import { from, type ObservableInput } from 'rxjs';
+
 /**
  * La frontière d'erreur de l'application.
  *
  * Un geste de l'utilisateur déclenche presque toujours un travail asynchrone
  * (lire ou écrire dans IndexedDB, décoder une image, attendre un choix sur la
- * carte). Lancé en `void travail()`, un rejet est perdu : l'écran ne dit rien
- * et ce qu'il montre diverge de ce qui est réellement enregistré. Tout travail
- * parti d'un gestionnaire d'événement passe donc par `run`.
+ * carte). Lancé sans personne pour recevoir son échec, un rejet est perdu :
+ * l'écran ne dit rien et ce qu'il montre diverge de ce qui est réellement
+ * enregistré. Tout travail parti d'un gestionnaire d'événement passe donc par
+ * `run`.
+ *
+ * Le travail est pris sous **n'importe quelle forme** que RxJS sache écouter :
+ * une promesse là où il y a une issue et une seule (lire la liste, renommer un
+ * trajet), un flux là où il y en a plusieurs. Les deux entrent par la même
+ * porte, et c'est `from` qui les met d'accord.
  *
  * Le lanceur est fabriqué avec sa façon de prévenir l'utilisateur, et injecté
  * comme les autres dépendances : les écrans ne connaissent pas `alert`, et les
@@ -20,15 +28,18 @@ export type Notify = (message: string) => void;
  * complément du nom — « l'enregistrement du trajet » — pour se lire dans
  * « Échec de … ».
  */
-export type Run = (travail: Promise<void>, label: string) => void;
+export type Run = (travail: ObservableInput<void>, label: string) => void;
 
 export function createRunner(signaler: Notify): Run {
     return (travail, label) => {
-        travail.catch((error: unknown) => {
-            // Le détail technique reste dans la console : il sert au diagnostic,
-            // pas à l'utilisateur, qui reçoit une phrase en français.
-            console.error(`Échec de ${label} :`, error);
-            signaler(failureMessage(label, error));
+        from(travail).subscribe({
+            error: (error: unknown) => {
+                // Le détail technique reste dans la console : il sert au
+                // diagnostic, pas à l'utilisateur, qui reçoit une phrase en
+                // français.
+                console.error(`Échec de ${label} :`, error);
+                signaler(failureMessage(label, error));
+            },
         });
     };
 }
