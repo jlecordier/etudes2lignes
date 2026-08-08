@@ -1,0 +1,26 @@
+{
+    "name": "Etudes2Lignes",
+    "image": "mcr.microsoft.com/devcontainers/typescript-node:24",
+    "features": {
+        "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
+    },
+
+    "mounts": [
+        // node_modules en volume, jamais depuis l'hôte : esbuild et rollup
+        // embarquent des binaires par plateforme, et ceux de macOS ne
+        // s'exécuteraient pas sous Linux.
+        "source=e2l-node-modules,target=${containerWorkspaceFolder}/node_modules,type=volume",
+        // Garde la session Claude connectée d'une reconstruction à l'autre.
+        "source=e2l-claude,target=/home/node/.claude,type=volume"
+    ],
+    // Sans cette variable, ~/.claude.json reste hors du volume et la connexion
+    // est quand même perdue à chaque reconstruction.
+    "containerEnv": { "CLAUDE_CONFIG_DIR": "/home/node/.claude" },
+
+    // pnpm épinglé à la version de l'hôte : package.json ne déclare pas de
+    // champ `packageManager`, donc corepack en choisirait une autre.
+    "postCreateCommand": "sudo chown node:node node_modules $HOME/.claude && npm i -g pnpm@9.9.0 && pnpm install --frozen-lockfile",
+
+    // 5173 : pnpm dev — 4173 : pnpm preview.
+    "forwardPorts": [5173, 4173]
+}

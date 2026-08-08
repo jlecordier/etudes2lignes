@@ -37,6 +37,12 @@ points into it instead of duplicating it. Claude Code specifics live in
 | Mutation tests (slow, on demand) | `pnpm mutation` — **not** part of the gate ([ADR 0006](docs/adr/0006-tests-de-mutation-stryker.md)) |
 | **All gates at once**            | `pnpm quality` (typecheck + lint + test + fallow audit)                                             |
 
+A ready-made environment for all of the above lives in
+[`.devcontainer/`](.devcontainer/) — Node and pnpm inside one container, so the
+commands run there rather than on your machine. It is the only supported path on
+native Windows. It ships no browsers, so `pnpm test:e2e` and `pnpm icons` stay on
+the host. See [CLAUDE.md](CLAUDE.md#isolation).
+
 ## Architecture rules (hard constraints)
 
 - **Dependency rule**: `domain` depends on nothing; `ports` on the domain only;

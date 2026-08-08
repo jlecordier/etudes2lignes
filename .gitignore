@@ -2,6 +2,12 @@
 node_modules/
 dist/
 
+# Store pnpm de repli. Sous le sandbox, pnpm ne peut pas sonder $PNPM_HOME en
+# écriture — ce dossier contient des binaires du $PATH, qu'on refuse d'ouvrir —
+# alors il recrée son store ici. C'est une duplication du cache, pas une perte :
+# supprimable à tout moment.
+.pnpm-store/
+
 # Sorties de test
 coverage/
 test-results/
@@ -10,6 +16,15 @@ playwright-report/
 # Tests de mutation (Stryker) : code muté temporaire et rapport
 .stryker-tmp/
 reports/
+
+# Réglages Claude Code, volontairement NON versionnés — et ce n'est pas un oubli.
+# Le sandbox refuse à toute commande confinée d'écrire un settings.json, pour
+# qu'elle ne puisse pas réécrire ses propres règles. Git étant lui-même confiné,
+# versionner ce fichier fait échouer `git checkout`, `git merge` et `git stash`
+# dès qu'ils doivent le matérialiser — constaté, pas supposé. Ce qui se partage,
+# c'est .devcontainer/.
+.claude/settings.json
+.claude/settings.local.json
 
 # IDE et système
 .idea/
