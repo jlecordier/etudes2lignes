@@ -676,7 +676,7 @@ EOF
 
 - Modify: `src/trajets/ui/TrajetEditorScreen.ts` (le garde de placement, issu de la revue de la Task 2)
 - Modify: `src/trajets/ui/TrajetEditorScreen.test.ts` (son témoin)
-- Modify: `e2e/points.spec.ts` (trois scénarios ajoutés)
+- Modify: `e2e/points.spec.ts` (quatre scénarios ajoutés — le quatrième est venu de la revue finale)
 - Modify: `docs/EXIGENCES.md:40, 44` (GR-10 réécrite, GR-15 ajoutée)
 - Modify: `README.md:19-25`
 
@@ -734,9 +734,9 @@ if (placementMode !== null) {
 Run: `pnpm test -- src/trajets/ui/TrajetEditorScreen.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5 : Écrire les trois scénarios**
+- [ ] **Step 5 : Écrire les scénarios**
 
-Dans `e2e/points.spec.ts`, ajouter `ecartAuCentreDeLaCarte` à la liste d'import du module de helpers (elle n'est pas triée : le placer où l'on veut), puis ajouter les deux tests à la fin du `describe` de fichier :
+Dans `e2e/points.spec.ts`, ajouter `ecartAuCentreDeLaCarte` à la liste d'import du module de helpers (elle n'est pas triée : le placer où l'on veut), puis ajouter les tests suivants à la fin du `describe` de fichier. Ils sont **trois** ici ; un quatrième — le témoin du grand écran — est venu plus tard, de la revue finale, et est décrit au bas de ce plan.
 
 ```ts
 test('Étant donné un point posé sur le schéma, quand je clique sa pastille, alors la carte se cale sur lui', async ({
@@ -819,10 +819,12 @@ test('Étant donné un placement en cours, quand je clique la pastille d’un po
 
 Ce troisième scénario visait d'abord le **trait** du repère, pas la pastille : `cliquerSurLImage` cliquait au centre horizontal de la zone, sur un trait rendu inerte au clic **en permanence** (`pointer-events: none` sur `point-marker`, sans condition de mode) — le scénario passait à l'identique que la règle CSS `.placement-active .point-number` ou le garde d'état `placementMode !== null` soient présents ou supprimés. Il ne mettait donc à l'épreuve ni l'un ni l'autre. Corrigé par le commit `793b62e`, il vise maintenant la **boîte de la pastille elle-même** — le seul endroit que le garde de placement rend réellement transparent — et regarde le seul signal qui distingue les deux issues : un second marqueur, ou aucun.
 
+Il ne témoigne pour autant que d'**une** des deux moitiés : la règle CSS. Pendant un placement, `.placement-active .point-number` (spécificité 0-2-0) l'emporte sur `point-marker .point-number` (0-1-1), donc le clic traverse et le point naît, que le garde d'état `placementMode !== null` existe ou non. La moitié clavier, elle, a son propre témoin — le test unitaire des Steps 1-4, qui passe par l'état et non par le CSS. Chacune a le sien ; aucune n'a celui de l'autre.
+
 - [ ] **Step 6 : Lancer les scénarios pour les voir passer**
 
 Run: `pnpm test:e2e points.spec.ts` (le `--` ne transmet pas le filtre : `test:e2e` vaut `playwright test`, et pnpm passe déjà les arguments suivants)
-Expected: PASS sur les cinq navigateurs. Le second scénario est marqué `skipped` sur `chromium`, `webkit` et `firefox`, qui tournent à 1280 px.
+Expected: PASS sur les cinq navigateurs. Le scénario du petit écran est marqué `skipped` sur `chromium`, `webkit` et `firefox`, qui tournent à 1280 px ; celui du grand écran (venu de la revue finale) l'est symétriquement sur `iphone` et `android`.
 
 - [ ] **Step 7 : Mettre les exigences d'accord**
 
@@ -875,6 +877,32 @@ d'une visée cachait l'image qu'on cherchait à cliquer.
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 EOF
 ```
+
+---
+
+## Le cinquième témoin, venu de la revue finale
+
+Le plan n'avait prévu que trois scénarios e2e. La revue de branche en a réclamé un
+quatrième, et pour la raison même qui avait fait corriger le troisième.
+
+`showPointOnCarte` ne pose `carte-ouverte` que sous 900 px : au-dessus, la carte
+est déjà épinglée à côté de la pile, et poser la classe la mettrait en plein écran
+— `.carte-ouverte .carte-points` (0-2-0) l'emporte sur la règle du grand écran
+(0-1-0), une requête média n'ajoutant aucune spécificité. Mais **rien ne
+protégeait ce `!isLargeScreen()`** : jsdom ne calcule jamais `--large-screen`,
+donc tous les tests unitaires sont des petits écrans, et le scénario desktop
+existant passait avec ou sans le terme — une carte plein écran garde elle aussi
+son marqueur au centre.
+
+Le scénario ajouté (commit `637d754`) est le symétrique du précédent :
+`test.skip(width < 900, …)`, un clic sur la pastille, et la comparaison du cadre
+de `#carte-points` avant et après. Inchangé si le garde tient, plein écran sinon.
+Vérifié par mutation : retirer `!isLargeScreen() && ` fait passer le cadre de
+617 × 688 décalé à 1280 × 720 à l'origine, et le scénario au rouge.
+
+C'est la troisième fois sur cette branche que la question « ce test casserait-il
+si le comportement disparaissait ? » trouve un non. Elle mérite d'être posée
+avant d'écrire l'assertion, pas après.
 
 ---
 
