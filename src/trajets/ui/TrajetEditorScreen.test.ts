@@ -78,6 +78,8 @@ class FakeCarteDesPoints implements CarteDesPoints {
     private onShow: ((id: PointId) => void) | null = null;
     private remesures = 0;
     private readonly centres: Coordonnee[] = [];
+    /** Journal ordonné des gestes demandés à la carte : remesure et centrage y écrivent chacun leur mot. */
+    private readonly gestes: string[] = [];
 
     mount(container: HTMLElement): void {
         this.container = container;
@@ -95,10 +97,12 @@ class FakeCarteDesPoints implements CarteDesPoints {
 
     resized(): void {
         this.remesures++;
+        this.gestes.push('remesure');
     }
 
     centerOn(coordonnee: Coordonnee): void {
         this.centres.push(coordonnee);
+        this.gestes.push('centrage');
     }
 
     /** Rejoue le clic de l'utilisateur sur le marqueur d'un point de la carte. */
@@ -117,6 +121,17 @@ class FakeCarteDesPoints implements CarteDesPoints {
     /** Les coordonnées sur lesquelles la carte a été calée, dans l'ordre. */
     centrages(): Coordonnee[] {
         return this.centres;
+    }
+
+    /**
+     * Le journal ordonné des gestes que l'écran a demandés à la carte
+     * (`'remesure'`, `'centrage'`) : contrairement à deux compteurs séparés, il
+     * met l'ordre lui-même à l'épreuve — permuter les deux lignes de
+     * `showPointOnCarte` change cette séquence, sans changer `remesuresDemandees`
+     * ni `centrages`.
+     */
+    gestesDeLaCarte(): string[] {
+        return this.gestes;
     }
 
     chooseCoordonnee(): Promise<Coordonnee | null> {
@@ -342,6 +357,12 @@ describe('trajet-editor-screen', () => {
                 '44.826,-0.556',
             ]);
             expect(marqueurs(element).map((marqueur) => marqueur.title)).toEqual(['']);
+            // « En clair » : aucun texte affiché par l'écran ne porte la
+            // coordonnée — pas seulement son infobulle, que l'assertion
+            // précédente couvre déjà. Les deux moitiés du nombre plutôt que la
+            // phrase jointe : ça débusque aussi bien un format qui les sépare.
+            expect(element.textContent).not.toContain('44.826');
+            expect(element.textContent).not.toContain('-0.556');
         });
 
         it('alors les pages portent leur numéro, compté depuis le haut de la pile', async () => {
@@ -567,10 +588,11 @@ describe('trajet-editor-screen', () => {
             cliquerLaPastille(element, 1);
 
             expect(element.classList.contains('carte-ouverte')).toBe(true);
-            // La remesure part avant le centrage : sans elle, la carte se
+            // La remesure part avant le centrage : sans cet ordre, la carte se
             // calerait sur la taille de la vignette qu'elle vient de quitter.
-            expect(carteDesPoints.remesuresDemandees()).toBe(1);
-            expect(carteDesPoints.centrages()).toHaveLength(1);
+            // Un journal unique et ordonné, plutôt que deux compteurs séparés,
+            // est ce qui met vraiment l'ordre à l'épreuve.
+            expect(carteDesPoints.gestesDeLaCarte()).toEqual(['remesure', 'centrage']);
         });
 
         it('quand la carte est déjà ouverte, alors elle y reste et se contente de se caler', async () => {
