@@ -1,7 +1,7 @@
 import { query, requireConfiguration } from '../../shared/dom';
 import { createTemplate } from '../../shared/template';
 import type { PointId } from '../domain/ids';
-import type { PointIntent } from './intents';
+import { emitIntent, type PointIntent } from './intents';
 import { pointActions } from './pointActions';
 
 import html from './PointMarker.html?raw';
@@ -50,7 +50,24 @@ export function createPointMarker(marker: DisplayedMarker): PointMarkerElement {
     element.title = marker.coordonnee;
     element.append(content());
     element.style.top = `${String(marker.fraction * 100)}%`;
-    query('.point-number', HTMLSpanElement, element).textContent = String(marker.number);
+    const pastille = query('.point-number', HTMLButtonElement, element);
+    pastille.textContent = String(marker.number);
+    // Le nom accessible et l'infobulle disent la même chose : sous 560 px la
+    // feuille de style masque les libellés visibles, et une pastille muette
+    // s'annoncerait « 2 » sans dire ce qu'un clic en ferait.
+    const intitule = `Voir le point ${String(marker.number)} sur la carte`;
+    pastille.setAttribute('aria-label', intitule);
+    pastille.title = intitule;
+    pastille.addEventListener('click', (event) => {
+        // Sans cela, le clic atteindrait la zone de l'image sous la pastille,
+        // qui y ajouterait ou déplacerait un point — comme pour les boutons
+        // flottants du point.
+        event.stopPropagation();
+        emitIntent(element, 'show-point-on-carte', {
+            pointId: marker.pointId,
+            number: marker.number,
+        });
+    });
     query('.point-actions', HTMLDivElement, element).append(
         ...pointActions(element, { pointId: marker.pointId, number: marker.number }, 'floating'),
     );

@@ -278,6 +278,11 @@ function cliquerLaBascule(element: HTMLElement): void {
     query('#carte-button', HTMLButtonElement, element).click();
 }
 
+/** Clique la pastille numérotée d'un repère : le geste « emmène-moi à la carte ». */
+function cliquerLaPastille(element: HTMLElement, numero: number): void {
+    cliquerLAction(element, `Voir le point ${String(numero)} sur la carte`);
+}
+
 function exporter(element: HTMLElement): void {
     cliquerLAction(element, 'Exporter');
 }
@@ -301,7 +306,7 @@ function marqueurs(element: HTMLElement): PointMarkerElement[] {
 function elementsMontres(): string[] {
     return montres.map(
         (montre) =>
-            `${montre.localName} ${query('.point-number', HTMLSpanElement, montre).textContent}`,
+            `${montre.localName} ${query('.point-number', HTMLButtonElement, montre).textContent}`,
     );
 }
 
@@ -517,6 +522,66 @@ describe('trajet-editor-screen', () => {
             await attacherLEcran();
 
             expect(elementsMontres()).toEqual([]);
+        });
+    });
+
+    describe('Étant donné deux points sur deux pages, quand je clique la pastille de l’un', () => {
+        it('alors la carte se cale sur SA coordonnée, pas celle de son voisin', async () => {
+            repository = new FakeTrajetRepository(trajetDeDeuxPoints);
+            const element = await attacherLEcran();
+
+            cliquerLaPastille(element, 2);
+
+            // Le point 1 est à Bordeaux, le point 2 à Paris : c'est bien celui
+            // qu'on a désigné que la carte est allée chercher.
+            expect(
+                carteDesPoints
+                    .centrages()
+                    .map((coordonnee) => [coordonnee.latitude, coordonnee.longitude]),
+            ).toEqual([[48.8566, 2.3522]]);
+        });
+
+        it('alors la pastille de chaque repère annonce où elle mène', async () => {
+            repository = new FakeTrajetRepository(trajetDeDeuxPoints);
+            const element = await attacherLEcran();
+
+            // Le document se lit de bas en haut : le point 2, posé sur la
+            // dernière page du voyage, s'affiche en haut de la pile.
+            expect(
+                queryAll('point-marker .point-number', HTMLButtonElement, element).map(
+                    (pastille) => [pastille.textContent, pastille.getAttribute('aria-label')],
+                ),
+            ).toEqual([
+                ['2', 'Voir le point 2 sur la carte'],
+                ['1', 'Voir le point 1 sur la carte'],
+            ]);
+        });
+    });
+
+    describe('Étant donné un petit écran où la carte est repliée', () => {
+        it('quand je clique la pastille d’un point, alors la carte vient par-dessus le schéma', async () => {
+            const element = await attacherLEcran();
+
+            cliquerLaPastille(element, 1);
+
+            expect(element.classList.contains('carte-ouverte')).toBe(true);
+            // La remesure part avant le centrage : sans elle, la carte se
+            // calerait sur la taille de la vignette qu'elle vient de quitter.
+            expect(carteDesPoints.remesuresDemandees()).toBe(1);
+            expect(carteDesPoints.centrages()).toHaveLength(1);
+        });
+
+        it('quand la carte est déjà ouverte, alors elle y reste et se contente de se caler', async () => {
+            const element = await attacherLEcran();
+            cliquerLaBascule(element);
+
+            cliquerLaPastille(element, 1);
+
+            expect(element.classList.contains('carte-ouverte')).toBe(true);
+            // Une seule remesure : celle de la bascule. Le geste n'en demande
+            // pas une seconde pour un conteneur qui n'a pas changé de taille.
+            expect(carteDesPoints.remesuresDemandees()).toBe(1);
+            expect(carteDesPoints.centrages()).toHaveLength(1);
         });
     });
 

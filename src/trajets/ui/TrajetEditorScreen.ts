@@ -163,6 +163,11 @@ function mount(
         .subscribe((event) => {
             deleteImage(event.detail.imageId);
         });
+    eventsOf(root, 'show-point-on-carte')
+        .pipe(takeUntil(parti$))
+        .subscribe((event) => {
+            showPointOnCarte(event.detail.pointId);
+        });
     eventsOf(root, 'move-point-on-image')
         .pipe(takeUntil(parti$))
         .subscribe((event) => {
@@ -429,6 +434,27 @@ function mount(
             toggleCarte();
         }
         scrollToMarker(pointId);
+    }
+
+    /**
+     * Le geste inverse : un point désigné sur le schéma, et la carte vient à
+     * lui. Sous 900 px elle se met par-dessus le schéma — la laisser repliée
+     * n'emmènerait nulle part. Au-dessus, elle est déjà à côté de la pile :
+     * poser `carte-ouverte` la mettrait en plein écran, sa règle l'emportant en
+     * spécificité sur celle du grand écran.
+     *
+     * La bascule demande la remesure, et le centrage vient après : l'inverse
+     * calerait la carte sur la taille de la vignette qu'elle vient de quitter.
+     */
+    function showPointOnCarte(pointId: PointId): void {
+        const currentTrajet = trajet;
+        if (currentTrajet === null) {
+            return;
+        }
+        if (!isLargeScreen() && !root.classList.contains('carte-ouverte')) {
+            toggleCarte();
+        }
+        carteDesPoints.centerOn(trajetPoint(currentTrajet, pointId).coordonnee);
     }
 
     /**

@@ -55,6 +55,7 @@ declare global {
         'rename-trajet': CustomEvent<TrajetIntent>;
         'export-trajet': CustomEvent<TrajetIntent>;
         'delete-trajet': CustomEvent<TrajetIntent>;
+        'show-point-on-carte': CustomEvent<PointIntent>;
         'move-point-on-image': CustomEvent<PointIntent>;
         'move-point-on-carte': CustomEvent<PointIntent>;
         'delete-point': CustomEvent<PointIntent>;

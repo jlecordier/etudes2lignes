@@ -248,6 +248,13 @@ image-frame schema-page {
     cursor: crosshair;
 }
 
+/* Tant qu'on vise une hauteur, toute l'image est cible : la pastille redevient
+   transparente, sans quoi elle avalerait le clic sur ses 26 px et le point ne
+   pourrait pas se poser à la hauteur d'un point existant. */
+.placement-active .point-number {
+    pointer-events: none;
+}
+
 /* Le trait qui traverse la page à la hauteur du point. En pointillé : plein, il
    effaçait sur toute la largeur la ligne de cotes qu'il est là pour désigner. */
 point-marker {
@@ -280,6 +287,10 @@ point-marker {
     justify-content: center;
     width: var(--point-badge-size);
     height: var(--point-badge-size);
+    /* La pastille du schéma est un bouton : sans cela, le `padding` de la règle
+       globale `button` déformerait le disque, et seulement de ce côté-ci — les
+       deux vues cesseraient de montrer la même pastille. */
+    padding: 0;
     background: #dc2626;
     color: white;
     border: 2px solid white;
@@ -298,6 +309,8 @@ point-marker .point-number {
     position: absolute;
     left: 0.25rem;
     top: calc((var(--point-line-thickness) + var(--point-badge-size)) / -2);
+    /* Le repère est transparent aux clics ; la pastille, elle, en attend un. */
+    pointer-events: auto;
 }
 
 /* Le numéro de la page, compté depuis le haut de la pile. Gris, pour ne pas se
