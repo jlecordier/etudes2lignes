@@ -674,7 +674,9 @@ EOF
 
 **Files:**
 
-- Modify: `e2e/points.spec.ts` (deux scénarios ajoutés)
+- Modify: `src/trajets/ui/TrajetEditorScreen.ts` (le garde de placement, issu de la revue de la Task 2)
+- Modify: `src/trajets/ui/TrajetEditorScreen.test.ts` (son témoin)
+- Modify: `e2e/points.spec.ts` (trois scénarios ajoutés)
 - Modify: `docs/EXIGENCES.md:40, 44` (GR-10 réécrite, GR-15 ajoutée)
 - Modify: `README.md:19-25`
 
@@ -683,7 +685,56 @@ EOF
 - Consumes: `ecartAuCentreDeLaCarte(page, numero): Promise<number>` de `e2e/helpers.ts` — « distance en pixels entre le marqueur numéroté demandé et le centre de la carte intégrée ; zéro quand la carte est calée sur ce point ». Le helper est **déjà écrit** et sans appelant depuis la suppression de `centerOn` : ne pas le réécrire, l'importer. `ouvrirUnTrajetAvecUnePage`, `ajouterUnPoint`, `clicDroitSurLImage`, `choisirUneCoordonneePourUnPoint`, `pngFile`, `requireDefined`, tous exportés par le même module.
 - Produces: rien que d'autres tâches consomment.
 
-- [ ] **Step 1 : Écrire les deux scénarios**
+**Deux ajouts issus de la revue de la Task 2**, traités en tête parce qu'ils touchent le code :
+
+> **(i) Le garde de placement est aujourd'hui du CSS seul.** `pointer-events: none` retire le survol, pas le focus : au clavier, `Tab` puis `Entrée` sur une pastille déclenche le geste pendant qu'on vise une hauteur, et sur petit écran la carte vient couvrir l'image qu'on essayait de cliquer. Souris et clavier ne disent pas la même chose.
+>
+> **(ii) Cette règle CSS n'a aucun témoin.** jsdom n'applique pas de feuille de style, et aucun scénario e2e ne pose de point à la hauteur d'une pastille existante. Or ce dépôt tient qu'« un garde sans témoin n'est pas protégé » ([AGENTS.md](../../../AGENTS.md#conventions)).
+
+- [ ] **Step 1 : Écrire le témoin du garde de placement**
+
+Dans `src/trajets/ui/TrajetEditorScreen.test.ts`, ajouter au `describe('Étant donné un petit écran où la carte est repliée', …)` créé par la Task 2 :
+
+```ts
+it('quand un placement est en cours, alors la pastille n’emmène nulle part', async () => {
+    const element = await attacherLEcran();
+    // La feuille de style rend la pastille transparente aux clics tant
+    // qu'on vise une hauteur ; le clavier, lui, ne connaît pas
+    // `pointer-events`. Les deux doivent dire la même chose.
+    cliquerLAction(element, 'Ajouter un point');
+
+    cliquerLaPastille(element, 1);
+
+    expect(carteDesPoints.centrages()).toEqual([]);
+    expect(element.classList.contains('carte-ouverte')).toBe(false);
+});
+```
+
+- [ ] **Step 2 : Le voir échouer**
+
+Run: `pnpm test -- src/trajets/ui/TrajetEditorScreen.test.ts`
+Expected: FAIL — `centrages()` contient une coordonnée, et `carte-ouverte` est posée.
+
+- [ ] **Step 3 : Poser le garde d'état**
+
+Dans `src/trajets/ui/TrajetEditorScreen.ts`, en tête de `showPointOnCarte`, après la garde sur le trajet :
+
+```ts
+// La feuille de style rend déjà la pastille transparente aux clics
+// pendant le placement ; le clavier ne connaît pas `pointer-events`, et
+// partir à la carte au milieu d'une visée cacherait l'image qu'on
+// cherchait à cliquer. L'état tranche, pas seulement le CSS.
+if (placementMode !== null) {
+    return;
+}
+```
+
+- [ ] **Step 4 : Le voir passer**
+
+Run: `pnpm test -- src/trajets/ui/TrajetEditorScreen.test.ts`
+Expected: PASS.
+
+- [ ] **Step 5 : Écrire les trois scénarios**
 
 Dans `e2e/points.spec.ts`, ajouter `ecartAuCentreDeLaCarte` à la liste d'import du module de helpers (elle n'est pas triée : le placer où l'on veut), puis ajouter les deux tests à la fin du `describe` de fichier :
 
@@ -741,14 +792,35 @@ test('Étant donné un petit écran où la carte est repliée, quand je clique l
     // s'était déjà cadrée dessus et l'assertion ne dirait rien.
     await expect(carte).toBeInViewport({ ratio: 0.9 });
 });
+
+test('Étant donné un placement en cours, quand je vise la hauteur d’un point déjà posé, alors un point s’y pose au lieu de partir à la carte', async ({
+    page,
+}) => {
+    await ouvrirUnTrajetAvecUnePage(page);
+    await ajouterUnPoint(page, 0.5, 0);
+    const hauteur = await hauteurDuRepere(page);
+
+    // Le repère du point 1 traverse la page à cette hauteur : c'est lui qu'on
+    // vise, et le mode placement doit le laisser passer.
+    await page.locator('.action-bar').getByRole('button', { name: 'Ajouter un point' }).click();
+    await cliquerSurLImage(page, 0.5);
+    await choisirUneCoordonneePourUnPoint(page, 150);
+
+    // Un second point est né à la même hauteur — la carte n'a pas été
+    // convoquée à sa place.
+    await expect(page.locator('point-marker')).toHaveCount(2);
+    await expect.poll(() => hauteurDuRepere(page)).toBe(hauteur);
+});
 ```
 
-- [ ] **Step 2 : Lancer les scénarios pour les voir passer**
+Ce troisième scénario vise le **trait** du repère, pas la pastille : `cliquerSurLImage` clique au centre horizontal de la zone, et la pastille est calée à gauche (`left: 0.25rem`). Il prouve donc que le repère ne vole pas le placement à sa hauteur ; le témoin direct de la pastille, lui, est le test unitaire des Steps 1-4, qui passe par l'état plutôt que par le CSS.
+
+- [ ] **Step 6 : Lancer les scénarios pour les voir passer**
 
 Run: `pnpm test:e2e -- points.spec.ts`
 Expected: PASS sur les cinq navigateurs. Le second scénario est marqué `skipped` sur `chromium`, `webkit` et `firefox`, qui tournent à 1280 px.
 
-- [ ] **Step 3 : Mettre les exigences d'accord**
+- [ ] **Step 7 : Mettre les exigences d'accord**
 
 Dans `docs/EXIGENCES.md`, réécrire la ligne GR-10 (`presentation.test.ts` n'en est plus un témoin) :
 
@@ -762,7 +834,7 @@ et ajouter GR-15 après GR-14 :
 | GR-15 | La pastille d'un point amène la carte sur lui ; sous 900 px, elle la met par-dessus le schéma      | `U TrajetEditorScreen.test.ts`, `U LeafletCarteDesPoints.test.ts`, `E e2e/points.spec.ts` |
 ```
 
-- [ ] **Step 4 : Mettre le README d'accord**
+- [ ] **Step 8 : Mettre le README d'accord**
 
 Dans `README.md`, remplacer la puce « Deux vues, et rien entre les deux » (lignes 19-25) :
 
@@ -776,21 +848,25 @@ Dans `README.md`, remplacer la puce « Deux vues, et rien entre les deux » (lig
   son numéro, compté depuis le haut de la pile, dans un coin de l'image.
 ```
 
-- [ ] **Step 5 : Vérifier l'ensemble**
+- [ ] **Step 9 : Vérifier l'ensemble**
 
 Run: `pnpm quality && pnpm test:e2e`
 Expected: PASS partout.
 
-- [ ] **Step 6 : Commit**
+- [ ] **Step 10 : Commit**
 
 ```bash
-git add e2e/points.spec.ts docs/EXIGENCES.md README.md
+git add src/trajets/ui/TrajetEditorScreen.ts src/trajets/ui/TrajetEditorScreen.test.ts e2e/points.spec.ts docs/EXIGENCES.md README.md
 git commit -F - <<'EOF'
 Prouve l'aller-retour entre le repère et la carte sur cinq navigateurs
 
 Le geste inverse était déjà couvert ; celui-ci l'est par la mesure qui lui
 correspond — l'écart entre le marqueur et le centre de la carte —, dont le
 helper attendait un appelant depuis qu'on avait retiré le centrage.
+
+Le placement, lui, tranche désormais sur l'état et non plus seulement sur
+`pointer-events` : le clavier ignore le CSS, et partir à la carte au milieu
+d'une visée cachait l'image qu'on cherchait à cliquer.
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 EOF
