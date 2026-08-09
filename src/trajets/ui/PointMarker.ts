@@ -1,5 +1,6 @@
 import { query, requireConfiguration } from '../../shared/dom';
 import { createTemplate } from '../../shared/template';
+import type { Coordonnee } from '../domain/Coordonnee';
 import type { PointId } from '../domain/ids';
 import { emitIntent, type PointIntent } from './intents';
 import { pointActions } from './pointActions';
@@ -10,8 +11,8 @@ import html from './PointMarker.html?raw';
 export interface DisplayedMarker extends PointIntent {
     /** Hauteur sur la page, dans [0, 1] — 0 en haut. */
     readonly fraction: number;
-    /** Sa coordonnée, telle que l'infobulle du repère la donne. */
-    readonly coordonnee: string;
+    /** Sa coordonnée, portée par le repère sans être montrée. */
+    readonly coordonnee: Coordonnee;
 }
 
 const content = createTemplate(html);
@@ -46,8 +47,11 @@ customElements.define('point-marker', PointMarkerElement);
 export function createPointMarker(marker: DisplayedMarker): PointMarkerElement {
     const element = new PointMarkerElement();
     element.marker = marker;
-    // La coordonnée exacte se lit au survol du repère, là où le point est posé.
-    element.title = marker.coordonnee;
+    // La coordonnée reste sur le repère — c'est ce qu'il marque — mais elle ne
+    // s'affiche plus : illisible pour un humain, elle occupait un survol que la
+    // pastille a mieux à employer.
+    element.dataset['coordonnee'] =
+        `${String(marker.coordonnee.latitude)},${String(marker.coordonnee.longitude)}`;
     element.append(content());
     element.style.top = `${String(marker.fraction * 100)}%`;
     const pastille = query('.point-number', HTMLButtonElement, element);

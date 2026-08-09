@@ -332,14 +332,16 @@ describe('trajet-editor-screen', () => {
             expect(marqueurs(element)).toHaveLength(1);
         });
 
-        it('alors chaque repère porte la coordonnée de son point en infobulle', async () => {
+        it('alors chaque repère porte la coordonnée de son point, sans jamais la montrer', async () => {
             const element = await attacherLEcran();
 
-            // La coordonnée exacte se lit là où le point est posé, au survol du
-            // repère — et non plus dans une liste à part.
-            expect(marqueurs(element).map((marqueur) => marqueur.title)).toEqual([
-                'Coordonnée : 44.8260, -0.5560',
+            // Elle reste là où le point est posé — c'est ce que le repère marque
+            // —, mais elle ne s'affiche plus : ni en clair, ni au survol. Une
+            // suite de décimales n'apprend rien à qui la lit.
+            expect(marqueurs(element).map((marqueur) => marqueur.dataset['coordonnee'])).toEqual([
+                '44.826,-0.556',
             ]);
+            expect(marqueurs(element).map((marqueur) => marqueur.title)).toEqual(['']);
         });
 
         it('alors les pages portent leur numéro, compté depuis le haut de la pile', async () => {

@@ -29,10 +29,10 @@ test.describe('Géoréférencement des points', () => {
         // là où il est, plutôt que dans une phrase à côté.
         await expect.poll(() => hauteurDuRepere(page)).toBeGreaterThanOrEqual(24);
         expect(await hauteurDuRepere(page)).toBeLessThanOrEqual(26);
-        // La coordonnée, elle, se lit en infobulle sur le repère.
+        // La coordonnée, elle, reste portée par le repère — sans s'afficher.
         await expect(page.locator('point-marker')).toHaveAttribute(
-            'title',
-            /^Coordonnée : -?\d+\.\d{4}, -?\d+\.\d{4}$/,
+            'data-coordonnee',
+            /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/,
         );
         await expect(page.locator('point-marker')).toHaveCount(1);
     });
@@ -123,7 +123,10 @@ test.describe('Géoréférencement des points', () => {
         await choisirUneCoordonneePourUnPoint(page, 150);
 
         // Assertion qui réessaie : la sauvegarde et le re-rendu sont asynchrones.
-        await expect(page.locator('point-marker').first()).not.toHaveAttribute('title', before);
+        await expect(page.locator('point-marker').first()).not.toHaveAttribute(
+            'data-coordonnee',
+            before,
+        );
     });
 
     test('Étant donné un point, quand je le déplace sur la carte via le bouton flottant sur le marqueur, alors sa coordonnée change', async ({
@@ -139,7 +142,10 @@ test.describe('Géoréférencement des points', () => {
             .click();
         await choisirUneCoordonneePourUnPoint(page, 150);
 
-        await expect(page.locator('point-marker').first()).not.toHaveAttribute('title', before);
+        await expect(page.locator('point-marker').first()).not.toHaveAttribute(
+            'data-coordonnee',
+            before,
+        );
     });
 
     test('Étant donné un point, quand je le supprime et confirme, alors liste et marqueur disparaissent', async ({
@@ -304,8 +310,8 @@ test.describe('Géoréférencement des points', () => {
         await page.getByRole('button', { name: 'Valider' }).click();
 
         await expect(page.locator('point-marker')).toHaveAttribute(
-            'title',
-            'Coordonnée : 46.5802, 0.3404',
+            'data-coordonnee',
+            '46.5802,0.3404',
         );
     });
 });

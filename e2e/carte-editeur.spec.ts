@@ -42,7 +42,10 @@ test.describe("Carte de l'éditeur (tous les points du trajet)", () => {
         await page.mouse.up();
 
         // Assertion qui réessaie : la sauvegarde et le re-rendu sont asynchrones.
-        await expect(page.locator('point-marker').first()).not.toHaveAttribute('title', before);
+        await expect(page.locator('point-marker').first()).not.toHaveAttribute(
+            'data-coordonnee',
+            before,
+        );
     });
 
     test('Étant donné un aller-retour par le suivi, quand je rouvre l’éditeur, alors sa carte est toujours vivante', async ({

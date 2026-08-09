@@ -9,7 +9,6 @@ import { SchemaPageElement, createSchemaPage } from '../../shared/SchemaPage';
 import { defineScreen } from '../../shared/screen';
 import type { Coordonnee } from '../domain/Coordonnee';
 import type { FractionVerticale } from '../domain/FractionVerticale';
-import { pointCoordonneeText } from '../domain/presentation';
 import type { ImageDeTrajet, ImageFile, Point, Trajet } from '../domain/Trajet';
 import type { ImageId, PointId, TrajetId } from '../domain/ids';
 import type { TrajetRepository } from '../ports/TrajetRepository';
@@ -523,10 +522,7 @@ function mount(
                             pointId: point.id,
                             number,
                             fraction: point.fraction.value,
-                            coordonnee: pointCoordonneeText(
-                                point.coordonnee.latitude,
-                                point.coordonnee.longitude,
-                            ),
+                            coordonnee: point.coordonnee,
                         })),
                 }),
             ),

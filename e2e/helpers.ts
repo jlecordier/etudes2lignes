@@ -42,16 +42,17 @@ export async function ouvrirUnTrajetAvecUnePage(page: Page): Promise<void> {
 }
 
 /**
- * La coordonnée d'un point, telle que son repère la donne en infobulle.
+ * La coordonnée d'un point, telle que son repère la porte : « 44.826,-0.556 ».
  *
- * Elle ne s'écrit nulle part en clair — la carte, à côté, la montre mieux — et
- * c'est ici que les scénarios la relisent : « Coordonnée : 44.8260, -0.5560 ».
- * L'index compte les repères dans l'ordre du document, de haut en bas.
+ * Elle ne s'affiche nulle part — ni en clair dans l'écran, ni au survol : une
+ * suite de décimales n'apprend rien à qui la lit. Elle reste sur le repère, où
+ * le point est posé, et c'est ici que les scénarios la relisent. L'index compte
+ * les repères dans l'ordre du document, de haut en bas.
  */
 export async function coordonneeDuPoint(page: Page, index = 0): Promise<string> {
     return requireDefined(
-        await page.locator('point-marker').nth(index).getAttribute('title'),
-        `infobulle du repère ${String(index + 1)}`,
+        await page.locator('point-marker').nth(index).getAttribute('data-coordonnee'),
+        `coordonnée du repère ${String(index + 1)}`,
     );
 }
 
