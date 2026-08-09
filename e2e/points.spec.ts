@@ -375,6 +375,29 @@ test.describe('Géoréférencement des points', () => {
         await expect(carte).toBeInViewport({ ratio: 0.9 });
     });
 
+    test('Étant donné un grand écran où la carte est déjà à côté de la pile, quand je clique la pastille d’un point, alors elle reste à sa place sans jamais couvrir le schéma', async ({
+        page,
+    }) => {
+        test.skip(
+            requireDefined(page.viewportSize(), 'viewport').width < 900,
+            'Sous 900 px la carte est repliée : c’est le scénario précédent qui la met par-dessus le schéma.',
+        );
+        await ouvrirUnTrajetAvecUnePage(page);
+        await ajouterUnPoint(page, 0.5, 0);
+        const carte = page.locator('#carte-points');
+        const avant = requireDefined(await carte.boundingBox(), 'cadre de la carte avant le clic');
+
+        await page.getByRole('button', { name: 'Voir le point 1 sur la carte' }).click();
+
+        // Poser `carte-ouverte` ici la mettrait en plein écran — sa règle
+        // l'emporte en spécificité sur celle du grand écran, qui l'épingle à
+        // côté de la pile. Le cadre inchangé dit qu'elle y est restée ; le
+        // recentrage lui-même est déjà prouvé, sur ce même écran, par le
+        // scénario « la carte se cale sur lui » plus haut.
+        const apres = requireDefined(await carte.boundingBox(), 'cadre de la carte après le clic');
+        expect(apres).toEqual(avant);
+    });
+
     test('Étant donné un placement en cours, quand je clique la pastille d’un point déjà posé, alors un point s’y pose au lieu de partir à la carte', async ({
         page,
     }) => {
