@@ -26,6 +26,13 @@ reports/
 .claude/settings.json
 .claude/settings.local.json
 
+# Worktrees ouverts par l'outil natif du harnais (EnterWorktree), qui les pose
+# ici. Ce sont des copies de travail, pas des sources. `git worktree add` échoue
+# sous le sandbox — il doit matérialiser le `.mcp.json` suivi, refusé en
+# écriture —, mais l'outil natif n'est pas une commande Bash : rien ne le
+# confine, et lui y parvient.
+.claude/worktrees/
+
 # IDE et système
 .idea/
 .DS_Store

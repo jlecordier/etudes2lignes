@@ -103,12 +103,20 @@ than sit in the line.
 
 Frictions specific to this repo, worth knowing before you start:
 
-- **`using-git-worktrees` works, but only by its first route.** Its step 1a
-  prefers a native worktree tool and names `EnterWorktree`, which this harness
-  provides and which the Bash sandbox does not confine. Its `git worktree add`
-  fallback is what fails: a worktree under the working directory must
-  materialise the tracked `.mcp.json`, write-protected by the same deny that
-  breaks `pnpm mutation`. The skill's own fallback then applies — work in place.
+- **`using-git-worktrees` works, but only by its first route** — and both halves
+  of that are measured, not deduced. Its step 1a prefers a native worktree tool
+  and names `EnterWorktree`, which this harness provides: it lands a complete
+  worktree in `.claude/worktrees/<name>` on a `worktree-<name>` branch,
+  **`.mcp.json` included**, because it is not a Bash command and nothing confines
+  it. Its `git worktree add` fallback is what fails, and says so:
+  `error: unable to create file .mcp.json: Operation not permitted`, then
+  `fatal: Could not reset index file to revision 'HEAD'` — a worktree under the
+  working directory must materialise that tracked file, write-protected by the
+  same deny that breaks `pnpm mutation`. So the skill's work-in-place fallback is
+  a last resort here, not the normal outcome: reach for the native tool.
+- `.claude/worktrees/` **is** in `.gitignore`, unlike the line below: nothing
+  self-ignores it, and a worktree opened under the working directory would
+  otherwise show up as untracked.
 - `subagent-driven-development` writes its ledger to `.superpowers/sdd/<plan>/`,
   which self-ignores; nothing to add to `.gitignore`.
 
@@ -274,6 +282,19 @@ it with an `ask` rule.
   install dies at the last package. Creating the directory is allowed; writing a
   file inside it is not, which is why changing `package-import-method` does not
   help. It is excluded for that reason alone.
+- **`.git/config` is write-protected, and `.git/` is not.** Measured: `touch`ing
+  a file directly in `.git/` succeeds, while both `.git/config` and its
+  `.git/config.lock` answer `Operation not permitted`. This is the deny that
+  covers `settings.json` and `.mcp.json`, applied for the same reason —
+  `core.hooksPath` and aliases make a config file into arbitrary code, run by
+  the next `git` command. Its cost is not uniform: `git config`,
+  `git remote add` and `git branch --set-upstream-to` fail outright, whereas
+  `git branch -d` and `-m` print `could not lock config file .git/config` and
+  **do the work anyway** — the ref lives outside the config, and no stale
+  `[branch]` section is left behind (checked). An `allowWrite` entry for those
+  two paths did not lift the deny within a running session; whether a restart
+  changes that is untested. The remaining recourse is `excludedCommands`, at
+  the price the section above spells out.
 - **`ps` and `pgrep` are denied** by Seatbelt. To find a stray dev server, use
   `lsof -ti:4173`.
 
