@@ -311,8 +311,26 @@ it with an `ask` rule.
   planted in `.git/config` becomes live code — which is the same bargain the
   `pnpm` entries already strike, and rests on the same thing: trusting this
   repository.
-- **`ps` and `pgrep` are denied** by Seatbelt. To find a stray dev server, use
-  `lsof -ti:4173`.
+- **`ps` and `pgrep` are denied** by Seatbelt, and **so is `kill`**
+  (`operation not permitted`): a stray dev server can be found from here, but
+  not stopped — that part is a job for your own terminal. Beware of suppressing
+  the error, too. A `kill … 2>/dev/null` that is followed by a free port has
+  not necessarily done anything: Playwright tears its own `webServer` down, and
+  the timing makes a failed `kill` look like it worked.
+- **Do not look for that server on a fixed port.** `pnpm dev` defaults to 5173
+  and `pnpm preview` to 4173, but vite walks to the next free one when its
+  default is taken — only `playwright.config.ts` pins a port, with
+  `--strictPort`. Measured while writing this line: a leftover preview was
+  holding **4174**, invisible to the `lsof -ti:4173` this file used to
+  recommend. Ask for the listeners instead:
+
+    ```sh
+    lsof -a -c node -i -P | grep LISTEN
+    ```
+
+    `-a` is the load-bearing flag. lsof ORs its selectors by default, so
+    `lsof -c node -i` lists every socket on the machine _and_ every file any
+    node process has open — several hundred lines, none of them an answer.
 
 The global profile is switched with `claude-safe` / `claude-sandbox`
 (`~/.claude/profils.sh`); `~/.claude/settings.json` is a symlink to whichever
