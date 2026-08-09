@@ -291,10 +291,15 @@ it with an `ask` rule.
   `git remote add` and `git branch --set-upstream-to` fail outright, whereas
   `git branch -d` and `-m` print `could not lock config file .git/config` and
   **do the work anyway** — the ref lives outside the config, and no stale
-  `[branch]` section is left behind (checked). An `allowWrite` entry for those
-  two paths did not lift the deny within a running session; whether a restart
-  changes that is untested. The remaining recourse is `excludedCommands`, at
-  the price the section above spells out.
+  `[branch]` section is left behind (checked). **A
+  `sandbox.filesystem.allowWrite` entry for those two paths does not lift it** —
+  measured, restart included: a permission granted in a repository's settings
+  cannot re-open what the sandbox protects to keep a confined command from
+  rewriting its own rules. Note that `!` in the prompt runs in this session, so
+  it is confined too: a human cannot work around this from inside Claude Code,
+  only from their own terminal. The one recourse is `excludedCommands`, at the
+  price the section above spells out — and pairing it with an `ask` rule is what
+  keeps that price visible.
 - **`ps` and `pgrep` are denied** by Seatbelt. To find a stray dev server, use
   `lsof -ti:4173`.
 
