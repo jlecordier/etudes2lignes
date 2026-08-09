@@ -130,11 +130,11 @@ browser from the command line by accessibility-tree refs, and its
 `run-code` even does `grantPermissions(['geolocation'])`, which a GPS-tracking
 PWA needs. But `excludedCommands` lists `pnpm test:e2e*`, `pnpm exec playwright *`
 and `pnpm icons*` — **not** `playwright-cli *`. So on macOS it stays confined and
-its Chromium cannot start. Reach for `pnpm exec playwright` instead — and know
-what you are reaching for: unlike the `git` and `docker` entries, the `pnpm`
-ones carry **no mirroring `ask` rule**, so they auto-approve _and_ run
-unconfined. Restoring that pairing — for them, and for any `playwright-cli *`
-you add — is what the Isolation section below calls the invariant to preserve.
+its Chromium cannot start. Reach for `pnpm exec playwright` instead — which is
+excluded from the sandbox, and, being in `permissions.allow` rather than
+`permissions.ask`, runs unconfined without stopping to say so. Adding
+`playwright-cli *` means choosing the same regime knowingly; the Isolation
+section below spells out what it costs.
 
 **`hexagonal-architecture` is the one to invoke with your eyes open.** Its
 principles are this repo's principles — domain depends on nothing, every external
@@ -230,11 +230,26 @@ or `--settings` scope. Treat egress as open.
 
 `allowUnsandboxedCommands` is **false**, so `dangerouslyDisableSandbox` is
 ignored and a command the sandbox breaks simply fails. The only way out is
-`excludedCommands` — and every entry there has a mirroring `permissions.ask`
-rule, because an `ask` rule beats an `allow` rule in every mode. That pairing is
-the invariant to preserve: **leaving the sandbox always costs a prompt.** Without
-it, `Bash(pnpm exec *)` silently auto-approves the very commands that run
-unconfined.
+`excludedCommands`, and **it says nothing about prompting** — that is
+`permissions`, a separate mechanism. Leaving the sandbox and being asked about it
+are two decisions, and this repo takes them differently depending on the command.
+
+- The `git` and `docker` entries also sit in `permissions.ask`, so they leave the
+  sandbox **and** stop to ask. An `ask` rule beats an `allow` rule in every mode,
+  which is what makes that pairing hold.
+- The `pnpm` entries — `test:e2e`, `exec playwright`, `icons`, `mutation`,
+  `install` — sit in `permissions.allow` instead. **They leave the sandbox in
+  silence, and that is deliberate**: they are the everyday commands, and a prompt
+  on each would be paid several times an hour.
+
+Be clear about what the second regime buys. Those commands execute
+repository-authored code unconfined and unannounced — `vite.config.ts` and its
+plugins through `playwright.config.ts`, `stryker.config.mjs`,
+`scripts/generate-icons.mjs`, and the install scripts of every dependency. All of
+them are files an agent can write. Nothing stands between that and your system
+except the fact that you trust this repository. Add an entry to
+`excludedCommands` only for a command you would also let run unwatched, or pair
+it with an `ask` rule.
 
 - **`git` over SSH cannot work sandboxed.** The proxy hands SSH a
   `ProxyCommand` built on `nc -X 5`, which cannot present the SOCKS credentials
@@ -247,13 +262,18 @@ unconfined.
   (`scripts/generate-icons.mjs` drives Chromium's canvas). **The e2e exclusion is
   a real hole, and wider than the specs**: `playwright.config.ts` starts
   `pnpm build && pnpm preview`, so `vite.config.ts` and its plugins run
-  unconfined too — all files an agent can write. The prompt is what stands
-  between that and your system. The dev container closes it: browsers run fine
-  under Linux.
+  unconfined too — all files an agent can write, and with no prompt to notice it
+  happening. The dev container closes it: browsers run fine under Linux.
 - **`pnpm mutation` is excluded for a different reason.** Stryker copies the
   project into `.stryker-tmp/`, and the sandbox denies writes to `**/.mcp.json`
   and `**/.idea/**` _inside_ the working directory, so the copy dies. The same
   deny blocks `git worktree add`, which must materialise the tracked `.mcp.json`.
+- **`pnpm install` is the third face of that deny**, and the least expected: the
+  `tunnel` tarball on npm — a transitive dependency of Stryker — ships an
+  `.idea/` folder, so unpacking it into `node_modules` is refused and the whole
+  install dies at the last package. Creating the directory is allowed; writing a
+  file inside it is not, which is why changing `package-import-method` does not
+  help. It is excluded for that reason alone.
 - **`ps` and `pgrep` are denied** by Seatbelt. To find a stray dev server, use
   `lsof -ti:4173`.
 
