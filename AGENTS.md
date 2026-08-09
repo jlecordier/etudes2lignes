@@ -40,8 +40,9 @@ points into it instead of duplicating it. Claude Code specifics live in
 A ready-made environment for all of the above lives in
 [`.devcontainer/`](.devcontainer/) — Node and pnpm inside one container, so the
 commands run there rather than on your machine. It is the only supported path on
-native Windows. It ships no browsers, so `pnpm test:e2e` and `pnpm icons` stay on
-the host. See [CLAUDE.md](CLAUDE.md#isolation).
+native Windows. It installs the Playwright browsers at create time, so
+`pnpm test:e2e` and `pnpm icons` run there too. See
+[CLAUDE.md](CLAUDE.md#isolation).
 
 ## Architecture rules (hard constraints)
 

@@ -19,7 +19,7 @@
 
     // pnpm épinglé à la version de l'hôte : package.json ne déclare pas de
     // champ `packageManager`, donc corepack en choisirait une autre.
-    "postCreateCommand": "sudo chown node:node node_modules $HOME/.claude && npm i -g pnpm@9.9.0 && pnpm install --frozen-lockfile",
+    "postCreateCommand": "sudo chown node:node node_modules $HOME/.claude && npm i -g pnpm@9.9.0 && pnpm install --frozen-lockfile && pnpm exec playwright install --with-deps chromium firefox webkit",
 
     // 5173 : pnpm dev — 4173 : pnpm preview.
     "forwardPorts": [5173, 4173]

@@ -17,16 +17,16 @@ toolchain gotchas. This file only adds **Claude Code specifics**.
 Two layers, and they answer different questions. Pick by what you need
 contained.
 
-|                   | Dev container                    | Built-in Bash sandbox      |
-| ----------------- | -------------------------------- | -------------------------- |
-| What is inside    | the whole Claude process         | Bash and its children only |
-| Edit/Write, hooks | contained                        | **not** contained          |
-| `fallow` MCP      | contained                        | **not** contained          |
-| Network egress    | **unrestricted**                 | **unrestricted**           |
-| `pnpm test:e2e`   | no browsers — run it on the host | escapes the sandbox to run |
-| Platforms         | anywhere Docker runs             | macOS, Linux, WSL2         |
-| Native Windows    | yes                              | **no**                     |
-| Cost              | Docker, rebuilds                 | nothing, already on        |
+|                   | Dev container            | Built-in Bash sandbox      |
+| ----------------- | ------------------------ | -------------------------- |
+| What is inside    | the whole Claude process | Bash and its children only |
+| Edit/Write, hooks | contained                | **not** contained          |
+| `fallow` MCP      | contained                | **not** contained          |
+| Network egress    | **unrestricted**         | **unrestricted**           |
+| `pnpm test:e2e`   | runs inside              | escapes the sandbox to run |
+| Platforms         | anywhere Docker runs     | macOS, Linux, WSL2         |
+| Native Windows    | yes                      | **no**                     |
+| Cost              | Docker, rebuilds         | nothing, already on        |
 
 The Bash sandbox is the everyday default; the container is what you want on
 Windows, or when the MCP-and-hooks gap matters.
@@ -35,7 +35,7 @@ Windows, or when the MCP-and-hooks gap matters.
 
 [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json) is the
 stock recipe from Anthropic's docs — a base image plus the Claude Code feature —
-with three additions this repo needs. Open the folder in any editor supporting
+with the additions this repo needs. Open the folder in any editor supporting
 the Dev Containers spec and choose _Reopen in Container_.
 
 - **`node_modules` is a named volume, never the host directory.** `esbuild` and
@@ -46,10 +46,11 @@ the Dev Containers spec and choose _Reopen in Container_.
   field and the pin can go.
 - **`CLAUDE_CONFIG_DIR` points into the `~/.claude` volume**, otherwise
   `~/.claude.json` stays outside it and every rebuild logs you out.
+- **The Playwright browsers are installed at create time**, so `pnpm test:e2e`
+  and `pnpm icons` run in the container too — not only on the host.
 
-Two things it deliberately does **not** do, so don't assume them: there is no
-egress firewall — a session inside can reach any host — and there are no
-Playwright browsers, so `pnpm test:e2e` and `pnpm icons` belong on the host. A
+One thing it deliberately does **not** do, so don't assume it: there is no
+egress firewall — a session inside can reach any host. A
 container without an egress allowlist is not a safe home for
 `--dangerously-skip-permissions`. And per Anthropic's own warning, a container
 never stops a malicious repository from exfiltrating what it can reach: it
