@@ -4,13 +4,167 @@ The project's agent guidance lives in **[AGENTS.md](AGENTS.md)** — read it
 first. It covers the stack, architecture rules, conventions, commands, and
 toolchain gotchas. This file only adds **Claude Code specifics**.
 
+## What this repo expects of an agent
+
+Nothing, to build it. `pnpm quality` mentions no agent, and neither `.github/`
+nor `.husky/` contains the string `mcp`, `skill` or `superpowers` — contributing
+by hand needs none of what follows.
+
+They are the tooling of _writing_ this repo with an agent, and only one piece of
+it travels with a clone. Which piece, and why the line falls there, is
+[ADR 0010](docs/adr/0010-outillage-des-agents.md).
+
 ## MCP servers
 
-- Project-scoped [`.mcp.json`](.mcp.json) declares **fallow** (`fallow-mcp`).
-  Prefer its tools (`audit`, `analyze`, `trace_export`, `guard`,
-  `get_blast_radius`, …) over re-deriving dead code / impact by hand.
-- `context7` (up-to-date library docs) and `playwright` MCP servers come from the
-  user's global config, not this repo.
+**Only the first one is declared by this repo.**
+
+| Server       | Declared in                            | What it buys here                                                    |
+| ------------ | -------------------------------------- | -------------------------------------------------------------------- |
+| `fallow`     | [`.mcp.json`](.mcp.json) — **tracked** | the same binary as `pnpm fallow`, opened up as MCP tools             |
+| `context7`   | your own user config                   | current docs for RxJS, Leaflet, `idb`, `vite-plugin-pwa`, Playwright |
+| `playwright` | your own user config                   | drives a real browser — the only way to _look_ at the PWA            |
+
+**fallow — prefer it to re-deriving anything by hand.** `trace_export` (file +
+export name) answers _why_ an export counts as used, which is the direct cure
+for the adapter false positives of
+[ADR 0003](docs/adr/0003-fallow-garde-fou-qualite.md); `guard` (files) reports
+the rules that apply **before** you edit them; `impact_closure` (path) gives what
+a change reaches but the diff does not show. Then `inspect_target`,
+`find_dupes`, `check_health`, `decision_surface`, `list_suppressions`.
+
+**Only `fix_apply` touches your source** — the one tool annotated
+`destructiveHint`, and the only one whose `readOnlyHint` is `false`;
+`fix_preview` is its dry-run twin. That is not the same as being the only one
+that writes: any analysis materialises a `.fallow/` cache at the root
+(self-ignoring), and `analyze`, `check_changed`, `check_health` and `find_dupes`
+each drop a file wherever `save_baseline` / `save_regression_baseline` /
+`save_snapshot` point — `code_execute` included, since it exposes those same
+tools. It refuses the mutating ones (`fix` → `unsupported code mode fallow tool`),
+which is not the same as being read-only on disk.
+
+**`get_blast_radius` is not the impact tool here, despite the name.** Called with
+no argument it answers, verbatim,
+``failed to deserialize parameters: missing field `coverage` ``. It wants a V8 or
+Istanbul _runtime_ coverage dump, and this repo produces none — no
+`NODE_V8_COVERAGE`, no `coverage-final.json`, anywhere. `check_runtime_coverage`,
+`get_hot_paths`, `get_importance` and `get_cleanup_candidates` refuse for the
+same reason. The static, free tool that answers the same intent is
+**`impact_closure`**; for design tokens it is `get_token_blast_radius`. Both work
+with no coverage at all.
+
+**Being tracked is not the same as travelling.** `.mcp.json` is in git, but
+approving the server it declares is `enabledMcpjsonServers` in
+`.claude/settings.local.json` — gitignored, like every `settings.json` here. A
+fresh clone gets the declaration and is asked anyway. (`fallow-mcp` is not an npm
+package, by the way: it is one of the binaries the `fallow` dependency ships, so
+its version follows `package.json` like any other — a caret range there, and the
+lockfile is what actually pins it.)
+
+**The playwright MCP goes where `pnpm test:e2e` cannot.** The Bash sandbox
+contains Bash and its children; an MCP server is spawned by Claude Code itself,
+so it is not one of them. That asymmetry is why `.playwright-mcp/` (gitignored)
+fills up with page snapshots, console logs and screenshots taken on a machine
+where a sandboxed Chromium cannot even start. On the host it is therefore the
+shortest way to actually _look_ at the app; in the dev container the question
+does not arise, since nothing there escapes to a confined host in the first
+place.
+
+## Skills
+
+`.claude/skills/` in this repo is **empty, and meant to stay so** — everything
+below comes from your own configuration, and none of it is a build prerequisite.
+
+### superpowers — why `docs/superpowers/` exists, and is called that
+
+`/plugin install superpowers@claude-plugins-official` (v6.2.0 here; marketplace
+`anthropics/claude-plugins-official`, upstream `obra/superpowers`, MIT). It ships
+**skills only — no agents, no slash commands** — plus a `SessionStart` hook that
+injects `using-superpowers` into context.
+
+The folder name is **inherited, not imposed**:
+`docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` is the `brainstorming`
+skill's default location and `docs/superpowers/plans/YYYY-MM-DD-<feature>.md` is
+`writing-plans`', and both say on the very next line that a user preference
+overrides it. This repo took the default.
+
+**The directory is what tells a spec from a plan**, not the `-design` suffix:
+`specs/` comes from `brainstorming`, `plans/` from `writing-plans`. The suffix is
+part of the spec default but is no reliable marker here — the
+`2026-07-30-refonte-*` series does without it. It earns its keep only where a
+spec and its plan share a basename.
+
+The chain that produced this repo: `brainstorming` (a design, questions asked one
+at a time, and the founding spec records how many it took) → `writing-plans`
+(tasks with the code to write, `Run:` /
+`Expected:`) → `subagent-driven-development` or `executing-plans` →
+`finishing-a-development-branch`. `test-driven-development`,
+`systematic-debugging` and `verification-before-completion` hang off it rather
+than sit in the line.
+
+Frictions specific to this repo, worth knowing before you start:
+
+- **`using-git-worktrees` works, but only by its first route.** Its step 1a
+  prefers a native worktree tool and names `EnterWorktree`, which this harness
+  provides and which the Bash sandbox does not confine. Its `git worktree add`
+  fallback is what fails: a worktree under the working directory must
+  materialise the tracked `.mcp.json`, write-protected by the same deny that
+  breaks `pnpm mutation`. The skill's own fallback then applies — work in place.
+- `subagent-driven-development` writes its ledger to `.superpowers/sdd/<plan>/`,
+  which self-ignores; nothing to add to `.gitignore`.
+
+### The standalone skills, and where some of them fight this repo
+
+| Skill                         | Verdict here                                                                                   |
+| ----------------------------- | ---------------------------------------------------------------------------------------------- |
+| `playwright-cli`              | the most useful on substance — **and sandbox-blocked**, see below                              |
+| `hexagonal-architecture`      | right vocabulary, **layout contradicts [ADR 0001](docs/adr/0001-hexagone-sans-framework.md)**  |
+| `modern-architecture-…-skill` | re-litigates a decision already taken; read its own "match the surrounding architecture" rule  |
+| `clean-code-skill`            | fine as a smell detector; silent on this repo's own rules, and its only code examples are Java |
+| `context7-mcp`                | redundant — the same instruction is already a global rule                                      |
+| `find-skills`                 | off-topic for code, and its `npx skills add` step is refused by the sandbox                    |
+
+**`playwright-cli`** (Microsoft, byte-identical to `@playwright/cli`) drives a
+browser from the command line by accessibility-tree refs, and its
+`references/playwright-tests.md` describes exactly the loop this repo wants:
+`npx playwright test --debug=cli`, then `attach` onto the failing test's page.
+`run-code` even does `grantPermissions(['geolocation'])`, which a GPS-tracking
+PWA needs. But `excludedCommands` lists `pnpm test:e2e*`, `pnpm exec playwright *`
+and `pnpm icons*` — **not** `playwright-cli *`. So on macOS it stays confined and
+its Chromium cannot start. Reach for `pnpm exec playwright` instead — and know
+what you are reaching for: unlike the `git` and `docker` entries, the `pnpm`
+ones carry **no mirroring `ask` rule**, so they auto-approve _and_ run
+unconfined. Restoring that pairing — for them, and for any `playwright-cli *`
+you add — is what the Isolation section below calls the invariant to preserve.
+
+**`hexagonal-architecture` is the one to invoke with your eyes open.** Its
+principles are this repo's principles — domain depends on nothing, every external
+dependency is a port, ports model capabilities rather than technologies. Its
+**structure is not**: it prescribes `src/features/<feature>/application/ports/…`,
+an `application` layer, a use-case class between the inbound adapter and the
+domain, a `composition/<feature>Container.ts` per feature (even while its own
+Core Concepts still demand a _single_, centralized wiring location), English
+names throughout its examples, and asserting on port interactions in tests. This
+repo has `src/<capability>/{domain,ports,adapters,ui}` — an outline, not a rule:
+`suivi` has them all, `carte` only `adapters` and `ports`, `trajets` adds a
+`serialization/`, and a flat `src/shared/` sits beside them — with the business
+at the first level, no application layer, screens as inbound adapters that reach
+ports directly, a **single** composition root in `src/main.ts`, French domain names
+([ADR 0007](docs/adr/0007-langue-du-code-metier-francais-technique-anglais.md))
+and no spies ([AGENTS.md](AGENTS.md#conventions)). Its "Migration Playbook" would
+propose to strangle an architecture that an accepted ADR already settled. Read it
+for principles; ignore its layout.
+
+Same caution, milder, for **`modern-architecture-design-patterns-skill`**: its
+default is Vertical Slice, and its Hexagonal "Avoid when" list opens on "there is
+only one simple UI and one simple database" — half of which fits. Its other
+warnings do not: this repo has ports over Geolocation, wake lock, foreground,
+IndexedDB and Leaflet, and `PositionSource` carries a real and a simulated
+implementation behind a shared contract suite. And the _good fit_ list in that same
+section names "testing the application core without frameworks is important",
+which is [ADR 0001](docs/adr/0001-hexagone-sans-framework.md)'s own reason for
+the hexagon. Its first rule for existing codebases ("match the surrounding
+architecture … do not introduce a different style just because it is
+theoretically cleaner") is the part that applies.
 
 ## Isolation
 

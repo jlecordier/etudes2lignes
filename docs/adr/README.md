@@ -21,3 +21,4 @@ d'ADR dédié pour éviter la duplication.
 | [0007](0007-langue-du-code-metier-francais-technique-anglais.md) | Langue du code : métier français, technique anglais  | Acceptée |
 | [0008](0008-interface-en-custom-elements-natifs.md)              | Interface en custom elements natifs                  | Acceptée |
 | [0009](0009-flux-du-temps-en-rxjs.md)                            | Les flux du temps en RxJS                            | Acceptée |
+| [0010](0010-outillage-des-agents.md)                             | Outillage des agents : déclaré, versionné, documenté | Acceptée |
