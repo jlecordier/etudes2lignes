@@ -77,6 +77,7 @@ class FakeCarteDesPoints implements CarteDesPoints {
     private displayed: readonly DisplayedPoint[] = [];
     private onShow: ((id: PointId) => void) | null = null;
     private remesures = 0;
+    private readonly centres: Coordonnee[] = [];
 
     mount(container: HTMLElement): void {
         this.container = container;
@@ -96,6 +97,10 @@ class FakeCarteDesPoints implements CarteDesPoints {
         this.remesures++;
     }
 
+    centerOn(coordonnee: Coordonnee): void {
+        this.centres.push(coordonnee);
+    }
+
     /** Rejoue le clic de l'utilisateur sur le marqueur d'un point de la carte. */
     designerLePoint(number: number): void {
         const vise = this.displayed.find((point) => point.number === number);
@@ -107,6 +112,11 @@ class FakeCarteDesPoints implements CarteDesPoints {
 
     remesuresDemandees(): number {
         return this.remesures;
+    }
+
+    /** Les coordonnées sur lesquelles la carte a été calée, dans l'ordre. */
+    centrages(): Coordonnee[] {
+        return this.centres;
     }
 
     chooseCoordonnee(): Promise<Coordonnee | null> {

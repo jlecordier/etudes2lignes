@@ -124,6 +124,15 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
         this.mountedCarte().invalidateSize();
     }
 
+    /**
+     * Amène la carte sur un point désigné depuis le schéma. Le zoom d'un point
+     * unique, et non le cadrage courant : on arrive d'ailleurs, il n'y a pas
+     * d'échelle réglée par l'utilisateur à lui voler.
+     */
+    centerOn(coordonnee: Coordonnee): void {
+        centerOnCoordonnee(this.mountedCarte(), coordonnee);
+    }
+
     chooseCoordonnee(initialCoordonnee: Coordonnee | null): Promise<Coordonnee | null> {
         this.cancelChoice();
         const carte = this.mountedCarte();

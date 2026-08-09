@@ -20,6 +20,10 @@ export interface DisplayedPoint {
  * - `onShow` rapporte le point qu'un clic sur son marqueur désigne. Leaflet ne
  *   confond pas ce clic avec un glisser : en deçà de trois pixels rien ne bouge,
  *   et un glisser accompli supprime le clic qui le suit.
+ * - `centerOn` cale la carte sur une coordonnée, au zoom d'un point unique : le
+ *   pendant de `onShow`, pour le geste inverse. Le schéma désigne un point, la
+ *   carte vient à lui — on arrive d'ailleurs, il n'y a donc pas de cadrage
+ *   courant à préserver.
  * - `resized` demande à la carte de se remesurer : son conteneur a changé de
  *   taille sans que la fenêtre bouge (la carte passe en plein écran, et en
  *   revient). Sans cela elle garderait l'échelle de la vignette qu'elle était.
@@ -46,6 +50,7 @@ export interface CarteDesPoints {
         onMove: (id: PointId, coordonnee: Coordonnee) => void,
         onShow: (id: PointId) => void,
     ): void;
+    centerOn(coordonnee: Coordonnee): void;
     resized(): void;
     chooseCoordonnee(initialCoordonnee: Coordonnee | null): Promise<Coordonnee | null>;
     cancelChoice(): void;

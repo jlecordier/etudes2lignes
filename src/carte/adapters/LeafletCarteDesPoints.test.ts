@@ -324,4 +324,27 @@ describe('Carte des points de l’éditeur', () => {
             ]);
         });
     });
+
+    describe('Étant donné un point que l’écran demande de montrer sur la carte', () => {
+        it('alors la carte se cale dessus, au zoom d’un point unique', () => {
+            const { carteDesPoints, show, carte } = testBed();
+            show([point(1, PARIS), point(2, BORDEAUX)]);
+
+            carteDesPoints.centerOn(BORDEAUX);
+
+            expect(carte().getCenter().lat).toBeCloseTo(BORDEAUX.latitude, 6);
+            expect(carte().getCenter().lng).toBeCloseTo(BORDEAUX.longitude, 6);
+            expect(carte().getZoom()).toBe(12);
+        });
+
+        it('alors le demander à une carte démontée est refusé, en le disant', () => {
+            const { carteDesPoints } = testBed();
+
+            carteDesPoints.unmount();
+
+            expect(() => {
+                carteDesPoints.centerOn(PARIS);
+            }).toThrow('n’est pas montée');
+        });
+    });
 });
