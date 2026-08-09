@@ -793,27 +793,31 @@ test('Étant donné un petit écran où la carte est repliée, quand je clique l
     await expect(carte).toBeInViewport({ ratio: 0.9 });
 });
 
-test('Étant donné un placement en cours, quand je vise la hauteur d’un point déjà posé, alors un point s’y pose au lieu de partir à la carte', async ({
+test('Étant donné un placement en cours, quand je clique la pastille d’un point déjà posé, alors un point s’y pose au lieu de partir à la carte', async ({
     page,
 }) => {
     await ouvrirUnTrajetAvecUnePage(page);
     await ajouterUnPoint(page, 0.5, 0);
-    const hauteur = await hauteurDuRepere(page);
 
-    // Le repère du point 1 traverse la page à cette hauteur : c'est lui qu'on
-    // vise, et le mode placement doit le laisser passer.
+    // La cible est la pastille elle-même, pas le centre de l'image : le
+    // trait du repère est inerte au clic en permanence
+    // (`pointer-events: none` sur `point-marker`), seule la pastille l'est
+    // *pendant un placement*. C'est donc elle qu'il faut viser pour que le
+    // clic mette réellement le garde à l'épreuve.
     await page.locator('.action-bar').getByRole('button', { name: 'Ajouter un point' }).click();
-    await cliquerSurLImage(page, 0.5);
+    const pastilleDuPoint1 = page.locator('point-marker .point-number');
+    await pastilleDuPoint1.scrollIntoViewIfNeeded();
+    const pastille = requireDefined(await pastilleDuPoint1.boundingBox(), 'pastille du point 1');
+    await page.mouse.click(pastille.x + pastille.width / 2, pastille.y + pastille.height / 2);
     await choisirUneCoordonneePourUnPoint(page, 150);
 
-    // Un second point est né à la même hauteur — la carte n'a pas été
-    // convoquée à sa place.
+    // Le clic visé sur la pastille a traversé jusqu'à l'image plutôt que de
+    // caler la carte sur le point existant : un second marqueur est né.
     await expect(page.locator('point-marker')).toHaveCount(2);
-    await expect.poll(() => hauteurDuRepere(page)).toBe(hauteur);
 });
 ```
 
-Ce troisième scénario vise le **trait** du repère, pas la pastille : `cliquerSurLImage` clique au centre horizontal de la zone, et la pastille est calée à gauche (`left: 0.25rem`). Il prouve donc que le repère ne vole pas le placement à sa hauteur ; le témoin direct de la pastille, lui, est le test unitaire des Steps 1-4, qui passe par l'état plutôt que par le CSS.
+Ce troisième scénario visait d'abord le **trait** du repère, pas la pastille : `cliquerSurLImage` cliquait au centre horizontal de la zone, sur un trait rendu inerte au clic **en permanence** (`pointer-events: none` sur `point-marker`, sans condition de mode) — le scénario passait à l'identique que la règle CSS `.placement-active .point-number` ou le garde d'état `placementMode !== null` soient présents ou supprimés. Il ne mettait donc à l'épreuve ni l'un ni l'autre. Corrigé par le commit `793b62e`, il vise maintenant la **boîte de la pastille elle-même** — le seul endroit que le garde de placement rend réellement transparent — et regarde le seul signal qui distingue les deux issues : un second marqueur, ou aucun.
 
 - [ ] **Step 6 : Lancer les scénarios pour les voir passer**
 
