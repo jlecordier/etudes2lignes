@@ -444,6 +444,11 @@ function mount(
      *
      * La bascule demande la remesure, et le centrage vient après : l'inverse
      * calerait la carte sur la taille de la vignette qu'elle vient de quitter.
+     *
+     * La coordonnée est résolue avant d'ouvrir quoi que ce soit : `trajetPoint`
+     * lève si le point n'appartient pas au trajet, et le fait avant que la carte
+     * n'ait bougé — sans quoi un point disparu laisserait la carte ouverte sur
+     * le schéma sans jamais se caler, le pire des deux issues.
      */
     function showPointOnCarte(pointId: PointId): void {
         const currentTrajet = trajet;
@@ -457,10 +462,11 @@ function mount(
         if (placementMode !== null) {
             return;
         }
+        const coordonnee = trajetPoint(currentTrajet, pointId).coordonnee;
         if (!isLargeScreen() && !root.classList.contains('carte-ouverte')) {
             toggleCarte();
         }
-        carteDesPoints.centerOn(trajetPoint(currentTrajet, pointId).coordonnee);
+        carteDesPoints.centerOn(coordonnee);
     }
 
     /**
