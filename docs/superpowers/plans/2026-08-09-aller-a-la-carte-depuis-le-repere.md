@@ -817,7 +817,7 @@ Ce troisième scénario vise le **trait** du repère, pas la pastille : `cliquer
 
 - [ ] **Step 6 : Lancer les scénarios pour les voir passer**
 
-Run: `pnpm test:e2e -- points.spec.ts`
+Run: `pnpm test:e2e points.spec.ts` (le `--` ne transmet pas le filtre : `test:e2e` vaut `playwright test`, et pnpm passe déjà les arguments suivants)
 Expected: PASS sur les cinq navigateurs. Le second scénario est marqué `skipped` sur `chromium`, `webkit` et `firefox`, qui tournent à 1280 px.
 
 - [ ] **Step 7 : Mettre les exigences d'accord**
