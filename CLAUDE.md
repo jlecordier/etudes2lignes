@@ -242,9 +242,15 @@ ignored and a command the sandbox breaks simply fails. The only way out is
 `permissions`, a separate mechanism. Leaving the sandbox and being asked about it
 are two decisions, and this repo takes them differently depending on the command.
 
-- The `git` and `docker` entries also sit in `permissions.ask`, so they leave the
-  sandbox **and** stop to ask. An `ask` rule beats an `allow` rule in every mode,
-  which is what makes that pairing hold.
+- `docker`, the five network `git` subcommands, and `git config` / `git remote`
+  also sit in `permissions.ask`, so they leave the sandbox **and** stop to ask.
+  An `ask` rule beats an `allow` rule in every mode, which is what makes that
+  pairing hold. The two config writers earn it by reaching outside this
+  repository: `git config --global` and `git remote set-url` do not stop at the
+  working directory.
+- `git branch *` is excluded **without** an `ask` rule, and that is the one
+  deliberate silence on the git side: it is frequent, and what it writes is refs
+  plus a `[branch]` section — no reach beyond `.git/`.
 - The `pnpm` entries — `test:e2e`, `exec playwright`, `icons`, `mutation`,
   `install` — sit in `permissions.allow` instead. **They leave the sandbox in
   silence, and that is deliberate**: they are the everyday commands, and a prompt
@@ -297,9 +303,14 @@ it with an `ask` rule.
   cannot re-open what the sandbox protects to keep a confined command from
   rewriting its own rules. Note that `!` in the prompt runs in this session, so
   it is confined too: a human cannot work around this from inside Claude Code,
-  only from their own terminal. The one recourse is `excludedCommands`, at the
-  price the section above spells out — and pairing it with an `ask` rule is what
-  keeps that price visible.
+  only from their own terminal. The one recourse is `excludedCommands`, and this
+  repo takes it — `git branch`, `git config` and `git remote` are excluded, the
+  last two paired with an `ask` rule. **That list reloads live**, unlike
+  `allowWrite`: the deny lifts on the very next command, no restart. What it
+  costs is that git then runs unconfined, so an alias or a `core.hooksPath`
+  planted in `.git/config` becomes live code — which is the same bargain the
+  `pnpm` entries already strike, and rests on the same thing: trusting this
+  repository.
 - **`ps` and `pgrep` are denied** by Seatbelt. To find a stray dev server, use
   `lsof -ti:4173`.
 
