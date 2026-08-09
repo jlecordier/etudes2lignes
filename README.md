@@ -17,12 +17,12 @@ pour suivre votre position GPS.
   tactile, où le clic droit n'existe pas. Points modifiables (sur l'image, sur
   la carte, boutons flottants sur chaque marqueur) et supprimables.
 - **Deux vues, et rien entre les deux** : les points vivent là où ils sont — sur
-  le schéma (pastille rouge numérotée, ses trois actions, sa coordonnée en
-  infobulle) et sur la carte (les mêmes numéros, dans le monde). Pas de liste à
-  part : elle ne disait rien que ces deux-là ne montrent mieux. **Désigner un
-  point sur la carte amène son repère à l'écran**, sans le chercher dans une pile
-  de plusieurs milliers de pixels. Chaque page porte son numéro, compté depuis le
-  haut de la pile, dans un coin de l'image.
+  le schéma (pastille rouge numérotée et ses trois actions) et sur la carte (les
+  mêmes numéros, dans le monde). Pas de liste à part : elle ne disait rien que
+  ces deux-là ne montrent mieux. Et l'on passe de l'une à l'autre par le point
+  lui-même : **désigner un point sur la carte amène son repère à l'écran**,
+  **cliquer le numéro d'un repère cale la carte sur ce point**. Chaque page porte
+  son numéro, compté depuis le haut de la pile, dans un coin de l'image.
 - **Aiguillage carte / schéma** : sous 900 px, la carte défile avec la page et
   disparaît dès qu'on travaille sur le schéma ; un bouton flottant la ramène
   par-dessus, et désigner un point l'en retire. Au-dessus de 900 px les deux sont

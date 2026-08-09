@@ -6,6 +6,7 @@ import {
     coordonneeDuPoint,
     clicDroitSurLImage,
     cliquerSurLImage,
+    ecartAuCentreDeLaCarte,
     mesuresDuRepere,
     pngFile,
     requireDefined,
@@ -313,5 +314,78 @@ test.describe('Géoréférencement des points', () => {
             'data-coordonnee',
             '46.5802,0.3404',
         );
+    });
+
+    test('Étant donné un point posé sur le schéma, quand je clique sa pastille, alors la carte se cale sur lui', async ({
+        page,
+    }) => {
+        await ouvrirUnTrajetAvecUnePage(page);
+        // Deux points, et c'est essentiel : avec un seul, la carte se serait
+        // déjà cadrée dessus toute seule et le geste ne prouverait rien. À deux,
+        // le cadrage d'ensemble les met de part et d'autre du centre.
+        await ajouterUnPoint(page, 0.8, 0);
+        await ajouterUnPoint(page, 0.2, 150);
+        // Le document se lit de bas en haut : le point le plus bas sur la page
+        // ouvre le voyage, c'est donc lui le numéro 1.
+        await expect.poll(() => ecartAuCentreDeLaCarte(page, '1')).toBeGreaterThan(10);
+
+        await page.getByRole('button', { name: 'Voir le point 1 sur la carte' }).click();
+
+        // « Zéro quand la carte est calée sur ce point » : quelques pixels de
+        // tolérance pour l'arrondi au pixel des marqueurs Leaflet. La pastille
+        // en fait 26 : à 4 px, elle couvre toujours le centre.
+        await expect.poll(() => ecartAuCentreDeLaCarte(page, '1')).toBeLessThanOrEqual(4);
+    });
+
+    test('Étant donné un petit écran où la carte est repliée, quand je clique la pastille d’un point, alors la carte vient par-dessus le schéma', async ({
+        page,
+    }) => {
+        test.skip(
+            requireDefined(page.viewportSize(), 'viewport').width >= 900,
+            'Au-dessus de 900 px la carte est déjà à côté de la pile : rien à mettre par-dessus.',
+        );
+        await ouvrirUnTrajetAvecUnePage(page);
+        // Deux pages de plus : sans un document plus haut que l'écran, la carte
+        // resterait visible et le geste ne prouverait rien.
+        await page
+            .locator('#input-images')
+            .setInputFiles([pngFile('page-2.png'), pngFile('page-3.png')]);
+        await expect(page.locator('.image-name')).toHaveCount(3);
+        // Le point se pose sur la page du bas — la plus loin de la carte, qui
+        // est tout en haut : le repère est à l'écran, la carte non.
+        await clicDroitSurLImage(page, 0.5, 2);
+        await choisirUneCoordonneePourUnPoint(page);
+        await expect(page.locator('point-marker')).toHaveCount(1);
+        await page.evaluate(() => {
+            window.scrollTo(0, document.body.scrollHeight);
+        });
+        const carte = page.locator('#carte-points');
+        await expect(carte).not.toBeInViewport();
+
+        await page.getByRole('button', { name: 'Voir le point 1 sur la carte' }).click();
+
+        // Par-dessus le schéma, quel que soit le défilement. Le centrage, lui,
+        // est prouvé par le scénario précédent : avec un seul point, la carte
+        // s'était déjà cadrée dessus et l'assertion ne dirait rien.
+        await expect(carte).toBeInViewport({ ratio: 0.9 });
+    });
+
+    test('Étant donné un placement en cours, quand je vise la hauteur d’un point déjà posé, alors un point s’y pose au lieu de partir à la carte', async ({
+        page,
+    }) => {
+        await ouvrirUnTrajetAvecUnePage(page);
+        await ajouterUnPoint(page, 0.5, 0);
+        const hauteur = await hauteurDuRepere(page);
+
+        // Le repère du point 1 traverse la page à cette hauteur : c'est lui qu'on
+        // vise, et le mode placement doit le laisser passer.
+        await page.locator('.action-bar').getByRole('button', { name: 'Ajouter un point' }).click();
+        await cliquerSurLImage(page, 0.5);
+        await choisirUneCoordonneePourUnPoint(page, 150);
+
+        // Un second point est né à la même hauteur — la carte n'a pas été
+        // convoquée à sa place.
+        await expect(page.locator('point-marker')).toHaveCount(2);
+        await expect.poll(() => hauteurDuRepere(page)).toBe(hauteur);
     });
 });

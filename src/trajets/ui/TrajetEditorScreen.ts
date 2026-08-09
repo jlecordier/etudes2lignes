@@ -450,6 +450,13 @@ function mount(
         if (currentTrajet === null) {
             return;
         }
+        // La feuille de style rend déjà la pastille transparente aux clics
+        // pendant le placement ; le clavier ne connaît pas `pointer-events`, et
+        // partir à la carte au milieu d'une visée cacherait l'image qu'on
+        // cherchait à cliquer. L'état tranche, pas seulement le CSS.
+        if (placementMode !== null) {
+            return;
+        }
         if (!isLargeScreen() && !root.classList.contains('carte-ouverte')) {
             toggleCarte();
         }

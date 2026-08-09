@@ -585,6 +585,19 @@ describe('trajet-editor-screen', () => {
             expect(carteDesPoints.remesuresDemandees()).toBe(1);
             expect(carteDesPoints.centrages()).toHaveLength(1);
         });
+
+        it('quand un placement est en cours, alors la pastille n’emmène nulle part', async () => {
+            const element = await attacherLEcran();
+            // La feuille de style rend la pastille transparente aux clics tant
+            // qu'on vise une hauteur ; le clavier, lui, ne connaît pas
+            // `pointer-events`. Les deux doivent dire la même chose.
+            cliquerLAction(element, 'Ajouter un point');
+
+            cliquerLaPastille(element, 1);
+
+            expect(carteDesPoints.centrages()).toEqual([]);
+            expect(element.classList.contains('carte-ouverte')).toBe(false);
+        });
     });
 
     describe('Étant donné un petit écran, quand je bascule sur la carte', () => {
