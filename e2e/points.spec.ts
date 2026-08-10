@@ -423,4 +423,56 @@ test.describe('Géoréférencement des points', () => {
         // caler la carte sur le point existant : un second marqueur est né.
         await expect(page.locator('point-marker')).toHaveCount(2);
     });
+
+    test('Étant donné un point sur le schéma, quand je glisse sa pastille, alors il change de hauteur', async ({
+        page,
+    }) => {
+        await ouvrirUnTrajetAvecUnePage(page);
+        await ajouterUnPoint(page, 0.3, 0);
+        const avant = await hauteurDuRepere(page);
+
+        const pastille = requireDefined(
+            await page.locator('point-marker .point-number').boundingBox(),
+            'pastille du point 1',
+        );
+        const zone = requireDefined(
+            await page.locator('.image-area').boundingBox(),
+            'cadre de la page',
+        );
+        await page.mouse.move(pastille.x + pastille.width / 2, pastille.y + pastille.height / 2);
+        await page.mouse.down();
+        // Vers le bas d'un quart de page, en plusieurs pas : un saut unique
+        // n'émet qu'un `pointermove`, et le geste doit tenir sur un vrai
+        // mouvement.
+        await page.mouse.move(pastille.x + pastille.width / 2, zone.y + zone.height * 0.6, {
+            steps: 10,
+        });
+        await page.mouse.up();
+
+        // Assertion qui réessaie : l'enregistrement et le re-rendu sont asynchrones.
+        await expect.poll(() => hauteurDuRepere(page)).toBeGreaterThan(avant + 10);
+    });
+
+    test('Étant donné un glisser achevé, alors le clic qui le suit n’emmène pas à la carte', async ({
+        page,
+    }) => {
+        test.skip(
+            requireDefined(page.viewportSize(), 'viewport').width >= 900,
+            'Au-dessus de 900 px la carte est déjà à côté de la pile : son ouverture ne prouverait rien.',
+        );
+        await ouvrirUnTrajetAvecUnePage(page);
+        await ajouterUnPoint(page, 0.3, 0);
+
+        const pastille = requireDefined(
+            await page.locator('point-marker .point-number').boundingBox(),
+            'pastille du point 1',
+        );
+        await page.mouse.move(pastille.x + pastille.width / 2, pastille.y + pastille.height / 2);
+        await page.mouse.down();
+        await page.mouse.move(pastille.x + pastille.width / 2, pastille.y + 80, { steps: 10 });
+        await page.mouse.up();
+
+        // Si le clic passait, la carte viendrait par-dessus le schéma.
+        await expect(page.locator('trajet-editor-screen')).not.toHaveClass(/carte-ouverte/);
+    });
 });
