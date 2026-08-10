@@ -12,6 +12,14 @@
         display: block;
         width: 100%;
         height: auto;
+        /* Sans cela, Safari ignore encore l'attribut `draggable` ci-dessous :
+           l'image reste une source de glisser natif. */
+        -webkit-user-drag: none;
     }
 </style>
-<img alt="" loading="lazy" decoding="async" />
+<!-- Une image est glissable nativement par défaut : sans `draggable="false"`,
+     saisir la pastille d'un point posée dessus et bouger la souris fait
+     démarrer le glisser natif de l'image, que le navigateur annonce par un
+     `pointercancel` — le geste de `glisserUnPointSurLaPile` s'arrête net, quel
+     que soit l'élément qui a reçu le `pointerdown`. -->
+<img alt="" loading="lazy" decoding="async" draggable="false" />
