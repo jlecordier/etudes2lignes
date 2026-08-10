@@ -12,8 +12,12 @@
         display: block;
         width: 100%;
         height: auto;
-        /* Sans cela, Safari ignore encore l'attribut `draggable` ci-dessous :
-           l'image reste une source de glisser natif. */
+        /* Précaution, pas mesure : certaines versions de WebKit ignorent
+           `draggable="false"` seul sur une image. Des lancements répétés du
+           scénario de glisser (e2e/points.spec.ts) sur `webkit` se sont
+           montrés sensibles à la façon de les enchaîner dans cet
+           environnement — trop bruité pour isoler cette ligne à elle seule —
+           donc gardée par défense plutôt que retirée sans certitude. */
         -webkit-user-drag: none;
     }
 </style>

@@ -72,6 +72,19 @@ describe('schema-page', () => {
             expect(image(element).getAttribute('loading')).toBe('lazy');
             expect(image(element).getAttribute('decoding')).toBe('async');
         });
+
+        it('alors l’image n’est pas glissable nativement', () => {
+            const element = createSchemaPage(page('a'), urls);
+
+            container.append(element);
+
+            // Une image l'est par défaut : sans ce `false`, saisir la pastille
+            // d'un point posée dessus et bouger la souris démarre le glisser
+            // natif de l'image plutôt que celui du point — le navigateur répond
+            // par un `pointercancel` qui tue le geste avant son premier
+            // mouvement (mesuré sur cinq navigateurs, voir SchemaPage.html).
+            expect(image(element).draggable).toBe(false);
+        });
     });
 
     describe('Étant donné une page attachée, quand je la détache', () => {
