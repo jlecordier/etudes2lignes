@@ -1,4 +1,4 @@
-import { query } from '../../shared/dom';
+import { query, requireConfiguration } from '../../shared/dom';
 import { createButton, type Button } from '../../shared/elements';
 import type { SchemaPageElement } from '../../shared/SchemaPage';
 import { createTemplate } from '../../shared/template';
@@ -28,13 +28,30 @@ export interface FramedPage {
 const content = createTemplate(html);
 
 /** Une page du schéma, entourée de sa barre d'outils et de ses repères. */
-export class ImageFrameElement extends HTMLElement {}
+export class ImageFrameElement extends HTMLElement {
+    #imageId: ImageId | null = null;
+
+    set imageId(value: ImageId) {
+        this.#imageId = value;
+    }
+
+    /**
+     * L'image que ce cadre encadre. C'est ce que le glisser d'un point
+     * interroge pour nommer la page sous le doigt : la `<schema-page>` qu'il
+     * contient porte le même identifiant, mais typé `string` là où `ImageId`
+     * est marqué — le lire de là demanderait un `as`.
+     */
+    get imageId(): ImageId {
+        return requireConfiguration(this.#imageId, this);
+    }
+}
 
 customElements.define('image-frame', ImageFrameElement);
 
 export function createImageFrame(framed: FramedPage): ImageFrameElement {
     const element = new ImageFrameElement();
     element.append(content());
+    element.imageId = framed.imageId;
 
     query('.image-name', HTMLSpanElement, element).textContent = framed.nom;
     query('.image-bar', HTMLDivElement, element).append(

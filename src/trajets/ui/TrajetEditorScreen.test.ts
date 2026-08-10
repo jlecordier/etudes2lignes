@@ -13,6 +13,8 @@ import { Trajet } from '../domain/Trajet';
 import type { TrajetRepository, TrajetSummary } from '../ports/TrajetRepository';
 import { PointMarkerElement } from './PointMarker';
 import { createTrajetEditorScreen, type TrajetEditorDependencies } from './TrajetEditorScreen';
+import { SchemaPageElement } from '../../shared/SchemaPage';
+import { ImageFrameElement } from './ImageFrame';
 
 /**
  * Dépôt en mémoire qui rend à chaque lecture un agrégat **neuf**, reconstruit
@@ -345,6 +347,17 @@ describe('trajet-editor-screen', () => {
             // s'affiche en haut de la pile.
             expect(pagesAffichees(element)).toEqual(['p3.png', 'p2.png', 'p1.png']);
             expect(marqueurs(element)).toHaveLength(1);
+        });
+
+        it("alors chaque cadre dit l'identifiant de son image, celui-là même que porte sa page", async () => {
+            const element = await attacherLEcran();
+
+            // Trois cadres, trois identifiants distincts : l'assertion ne peut
+            // pas passer par un accesseur qui rendrait toujours la même chose.
+            const cadres = queryAll('image-frame', ImageFrameElement, element);
+            const pages = queryAll('schema-page', SchemaPageElement, element);
+            expect(cadres.map((cadre) => cadre.imageId)).toEqual(pages.map((page) => page.pageId));
+            expect(new Set(cadres.map((cadre) => cadre.imageId)).size).toBe(3);
         });
 
         it('alors chaque repère porte la coordonnée de son point, sans jamais la montrer', async () => {
