@@ -16,6 +16,15 @@ import { createTrajetEditorScreen, type TrajetEditorDependencies } from './Traje
 import { SchemaPageElement } from '../../shared/SchemaPage';
 import { ImageFrameElement } from './ImageFrame';
 
+/** jsdom ne connaît pas `PointerEvent` : un `MouseEvent` qui porte son identifiant suffit. */
+class FauxPointerEvent extends MouseEvent {
+    readonly pointerId = 1;
+
+    constructor(type: string, clientY: number) {
+        super(type, { clientY, bubbles: true });
+    }
+}
+
 /**
  * Dépôt en mémoire qui rend à chaque lecture un agrégat **neuf**, reconstruit
  * depuis ce qui est stocké : c'est ainsi qu'on distingue ce que l'écran a en
@@ -205,6 +214,9 @@ let telechargements: { nom: string; url: string }[];
 let montres: Element[];
 
 beforeEach(async () => {
+    Element.prototype.setPointerCapture = function setPointerCapture() {
+        // jsdom ne l'implémente pas ; le geste n'en dépend pas pour être testé.
+    };
     // Vider la scène **avant** de remettre les compteurs à zéro : les pages du
     // test précédent libèrent leurs URL à la microtâche suivant leur
     // détachement, et compteraient sinon dans le test qui commence.
@@ -298,6 +310,29 @@ function cliquerLaBascule(element: HTMLElement): void {
 /** Clique la pastille numérotée d'un repère : le geste « emmène-moi à la carte ». */
 function cliquerLaPastille(element: HTMLElement, numero: number): void {
     cliquerLAction(element, `Voir le point ${String(numero)} sur la carte`);
+}
+
+/**
+ * Rejoue un glisser de pastille dans l'écran monté. jsdom ne mesure rien : le
+ * cadre de la page est posé à la main, sinon la fraction ne peut pas se calculer.
+ */
+function glisserLaPastille(element: HTMLElement, numero: number, de: number, vers: number): void {
+    for (const zone of queryAll('.image-area', HTMLDivElement, element)) {
+        zone.getBoundingClientRect = () => new DOMRect(0, 0, 800, 1000);
+    }
+    const pastille = queryAll('point-marker .point-number', HTMLButtonElement, element).find(
+        (candidate) => candidate.textContent === String(numero),
+    );
+    if (pastille === undefined) {
+        throw new Error(`Aucune pastille ${String(numero)} dans l’écran.`);
+    }
+    pastille.dispatchEvent(new FauxPointerEvent('pointerdown', de));
+    query('#images-stack', HTMLDivElement, element).dispatchEvent(
+        new FauxPointerEvent('pointermove', vers),
+    );
+    query('#images-stack', HTMLDivElement, element).dispatchEvent(
+        new FauxPointerEvent('pointerup', vers),
+    );
 }
 
 function exporter(element: HTMLElement): void {
@@ -659,6 +694,32 @@ describe('trajet-editor-screen', () => {
 
             expect(element.classList.contains('carte-ouverte')).toBe(false);
             expect(elementsMontres()).toEqual(['point-marker 2']);
+        });
+    });
+
+    describe('Étant donné un point posé à mi-hauteur de sa page', () => {
+        it('quand je glisse sa pastille au quart, alors c’est là qu’il est enregistré', async () => {
+            const element = await attacherLEcran();
+
+            glisserLaPastille(element, 1, 500, 250);
+            await laisserLesPromessesSAchever();
+
+            // Le rendu suit l'enregistrement : la hauteur relue est celle que
+            // l'agrégat a retenue, pas celle que le geste avait peinte.
+            expect(marqueurs(element).map((marqueur) => marqueur.style.top)).toEqual(['25%']);
+            expect(echecs).toEqual([]);
+        });
+
+        it('quand je glisse, alors la carte n’est pas convoquée par le clic qui suit', async () => {
+            const element = await attacherLEcran();
+
+            glisserLaPastille(element, 1, 500, 250);
+            query('point-marker .point-number', HTMLButtonElement, element).dispatchEvent(
+                new MouseEvent('click', { bubbles: true }),
+            );
+            await laisserLesPromessesSAchever();
+
+            expect(carteDesPoints.centrages()).toEqual([]);
         });
     });
 

@@ -311,6 +311,16 @@ point-marker .point-number {
     top: calc((var(--point-line-thickness) + var(--point-badge-size)) / -2);
     /* Le repère est transparent aux clics ; la pastille, elle, en attend un. */
     pointer-events: auto;
+    /* Sans quoi le doigt posé dessus fait défiler la page au lieu de glisser le
+       point. On y perd d'amorcer un défilement depuis ces 26 px. */
+    touch-action: none;
+}
+
+/* Le curseur reste `pointer` au survol — la pastille annonce d'abord ce qu'un
+   clic en fait — et ne confirme le glisser qu'au moment où il commence. Écart
+   assumé avec le marqueur de la carte, qui montre `grab` dès le survol. */
+point-marker .point-number:active {
+    cursor: grabbing;
 }
 
 /* Le numéro de la page, compté depuis le haut de la pile. Gris, pour ne pas se
