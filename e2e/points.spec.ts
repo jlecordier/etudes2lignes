@@ -429,7 +429,6 @@ test.describe('Géoréférencement des points', () => {
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
         await ajouterUnPoint(page, 0.3, 0);
-        const avant = await hauteurDuRepere(page);
 
         const pastille = requireDefined(
             await page.locator('point-marker .point-number').boundingBox(),
@@ -441,16 +440,21 @@ test.describe('Géoréférencement des points', () => {
         );
         await page.mouse.move(pastille.x + pastille.width / 2, pastille.y + pastille.height / 2);
         await page.mouse.down();
-        // Vers le bas d'un quart de page, en plusieurs pas : un saut unique
-        // n'émet qu'un `pointermove`, et le geste doit tenir sur un vrai
-        // mouvement.
+        // Vers 60 % de la page, en plusieurs pas : un saut unique n'émet qu'un
+        // `pointermove`, et le geste doit tenir sur un vrai mouvement.
         await page.mouse.move(pastille.x + pastille.width / 2, zone.y + zone.height * 0.6, {
             steps: 10,
         });
         await page.mouse.up();
 
+        // Fenêtre 58–62, comme le clic droit à la même fraction plus haut dans
+        // ce fichier : assez large pour l'arrondi pixel de `hauteurDuRepere`
+        // (et pour la lecture prise pendant qu'un rendu est encore en cours),
+        // assez étroite pour rater un point resté proche de son départ (30) ou
+        // parti bien au-delà de sa cible.
         // Assertion qui réessaie : l'enregistrement et le re-rendu sont asynchrones.
-        await expect.poll(() => hauteurDuRepere(page)).toBeGreaterThan(avant + 10);
+        await expect.poll(() => hauteurDuRepere(page)).toBeGreaterThanOrEqual(58);
+        expect(await hauteurDuRepere(page)).toBeLessThanOrEqual(62);
     });
 
     test('Étant donné un glisser achevé, alors le clic qui le suit n’emmène pas à la carte', async ({
@@ -462,6 +466,13 @@ test.describe('Géoréférencement des points', () => {
         );
         await ouvrirUnTrajetAvecUnePage(page);
         await ajouterUnPoint(page, 0.3, 0);
+        // Lecture réessayée avant de la garder comme référence : `ajouterUnPoint`
+        // ne garantit pas que le repère est déjà rendu (voir la doc de
+        // `hauteurDuRepere`, e2e/helpers.ts) — une valeur prise trop tôt
+        // pourrait rendre -1, et la comparaison plus bas serait satisfaite par
+        // n'importe quelle hauteur, y compris celle d'un point qui n'a pas bougé.
+        await expect.poll(() => hauteurDuRepere(page)).toBeGreaterThanOrEqual(0);
+        const avant = await hauteurDuRepere(page);
 
         const pastille = requireDefined(
             await page.locator('point-marker .point-number').boundingBox(),
@@ -471,6 +482,13 @@ test.describe('Géoréférencement des points', () => {
         await page.mouse.down();
         await page.mouse.move(pastille.x + pastille.width / 2, pastille.y + 80, { steps: 10 });
         await page.mouse.up();
+
+        // Le geste a bien déplacé le point : sans ce témoin, tout ce qui
+        // avorterait le glisser avant le clic de compatibilité (un
+        // `pointercancel`, par exemple) laisserait passer l'assertion
+        // suivante pour la mauvaise raison — un geste mort n'avale aucun clic
+        // non plus, faute d'en avoir émis un à avaler.
+        await expect.poll(() => hauteurDuRepere(page)).toBeGreaterThan(avant);
 
         // Si le clic passait, la carte viendrait par-dessus le schéma.
         await expect(page.locator('trajet-editor-screen')).not.toHaveClass(/carte-ouverte/);
