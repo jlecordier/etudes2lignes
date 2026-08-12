@@ -379,6 +379,11 @@ Expected: FAIL — le module n'existe pas (`Failed to resolve import`).
 
 - [ ] **Step 3 : Écrire le module**
 
+> **⚠️ Bloc de code dépassé — ne pas le recopier.** Il montre le module tel
+> qu'écrit à cette étape, avant que quatre revues ne le corrigent. Voir
+> [« Ce que l'exécution a corrigé »](#ce-que-lexécution-a-corrigé) à la fin de
+> ce fichier pour ce qui a réellement été livré.
+
 Créer `src/trajets/ui/dragPointOnStack.ts` :
 
 ```ts
@@ -557,7 +562,12 @@ function avalerLeProchainClic(stack: HTMLElement): void {
 Run: `pnpm test -- src/trajets/ui/dragPointOnStack.test.ts`
 Expected: PASS — les huit tests.
 
-Si le test du « clic d'après » échoue, c'est que le `setTimeout` n'a pas eu lieu : Vitest exécute les tests en microtâches, et le retrait est une macrotâche. Insérer alors `await new Promise((resolve) => setTimeout(resolve, 0));` entre le premier clic et le second, et rendre le test `async`.
+> **⚠️ Note dépassée.** Cette note décrivait une fragilité du `setTimeout(0)`
+> du bloc ci-dessus — remplacé depuis par un désarmement au `pointerdown`
+> suivant, qui ne dépend d'aucun minuteur. Voir
+> [« Ce que l'exécution a corrigé »](#ce-que-lexécution-a-corrigé).
+>
+> Si le test du « clic d'après » échoue, c'est que le `setTimeout` n'a pas eu lieu : Vitest exécute les tests en microtâches, et le retrait est une macrotâche. Insérer alors `await new Promise((resolve) => setTimeout(resolve, 0));` entre le premier clic et le second, et rendre le test `async`.
 
 - [ ] **Step 5 : Vérifier l'ensemble et committer**
 
@@ -878,3 +888,51 @@ Deux vérifications qu'aucun test ne porte, et qui demandent un vrai appareil :
 
 - **Le glisser au doigt**, que Playwright ne sait piloter qu'à la souris : `touch-action: none` n'est éprouvé par aucun témoin automatique.
 - **Le franchissement de page**, qui suppose deux pages visibles à la fois — rare sur téléphone, et c'est précisément là que l'auto-défilement manquera.
+
+---
+
+## Ce que l'exécution a corrigé
+
+Ce plan documente ce qui a été **écrit** à chaque étape — Step 3 de la Task 2
+compris, marqué ci-dessus comme dépassé. Quatre revues successives y ont
+trouvé des défauts que ce plan ne prescrivait pas de corriger, et une
+découverte qu'il ne mentionnait pas du tout. Les cinq deltas, entre ce bloc et
+ce qui a réellement été livré :
+
+1. **La capture du pointeur se posait à l'appui, pas au franchissement du
+   seuil.** `pile.setPointerCapture(depart.pointerId);` s'exécutait dès le
+   `pointerdown` — avant même de savoir si le maintien deviendrait un glisser.
+   Un simple clic prenait donc la capture lui aussi, et retargetait les
+   événements souris de compatibilité qu'un clic en dérive. La version livrée
+   ne pose la capture qu'au premier `pointermove` qui franchit les 3 px.
+2. **Aucun filtre sur `pointerId`.** `pointermove`/`pointerup`/`pointercancel`
+   s'écoutaient sans distinguer quel doigt les avait produits : un second
+   doigt qui bouge ou se lève pendant le geste pouvait donc piloter — ou
+   terminer — le geste du premier. La version livrée filtre chaque flux par
+   `duMemeDoigt`.
+3. **`pointercancel` fusionné dans le même `takeUntil` que `pointerup`, sans
+   garde ni restauration.** Ce bloc traite une reprise du pointeur par le
+   système comme un relâchement ordinaire : le repère restait à la dernière
+   position survolée, et rien n'empêchait cette position d'être enregistrée.
+   La version livrée distingue les deux : `pointercancel` restaure le repère
+   à sa position d'origine, lève un drapeau `annule`, et le flux n'émet rien
+   quand il est posé.
+4. **Le clic suivant était désarmé par un `setTimeout(0)`.** La note du
+   Step 4 en documentait déjà la fragilité sous Vitest ; en dehors des tests,
+   ce minuteur pouvait retirer le piège avant qu'un clic tactile de
+   compatibilité, dispatché dans une tâche postérieure, ne l'atteigne — le
+   piège aurait alors laissé passer un clic qui visait encore la pastille
+   déplacée. La version livrée désarme au `pointerdown` de l'interaction
+   suivante, qui précède toujours son propre clic (et, depuis, au `keydown`
+   d'une activation clavier — voir la revue finale).
+5. **`draggable="false"` sur l'image, non anticipé par ce plan.** Une image
+   est glissable nativement par défaut : saisir la pastille d'un point posée
+   dessus et bouger la souris démarrait le glisser natif de l'image, que le
+   navigateur annonce par un `pointercancel` — le geste s'arrêtait net, quel
+   que soit l'élément qui avait reçu le `pointerdown`. La découverte et son
+   correctif vivent dans `src/shared/SchemaPage.html`, hors de ce plan : la
+   revue finale l'a jugée la trouvaille la plus importante de la branche.
+
+Le module a aussi été renommé après coup (`glisserUnPointSurLaPile` →
+`dragPointOnStack`) pour respecter l'entrée close du glossaire sur « pile » —
+un défaut de nommage, pas un bug, donc distinct des cinq deltas ci-dessus.
