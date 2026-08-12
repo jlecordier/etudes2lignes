@@ -19,7 +19,7 @@
 - **Le temps est un flux** ([ADR 0009](../../adr/0009-flux-du-temps-en-rxjs.md)) : cadence et concurrence se disent par des opérateurs nommés. Tout `subscribe` d'écran passe par `takeUntil(parti$)`.
 - **Règle de dépendance** : `domain` ne dépend de rien ; `adapters`/`ui` des ports + domaine ; seul `src/main.ts` instancie les adapters concrets.
 - **Seuil de glisser : 3 px**, écrit une seule fois, en constante nommée. C'est le `clickTolerance` de Leaflet, pour que les deux pastilles tranchent pareil.
-- **Nom du module, verbatim** : `src/trajets/ui/glisserUnPointSurLaPile.ts`, exportant `glissersSurLaPile(pile: HTMLElement): Observable<PointDepose>`.
+- **Nom du module, verbatim** : `src/trajets/ui/dragPointOnStack.ts`, exportant `dragsOnStack(stack: HTMLElement): Observable<DroppedPoint>`.
 - **Chaque tâche finit par un commit**, message en français, disant _pourquoi_. Le hook de pré-commit lance `fallow fix --yes`, `lint-staged`, `typecheck` puis `test`.
 - **`pnpm quality`** doit être vert avant de déclarer une tâche finie.
 
@@ -27,13 +27,13 @@
 
 ## Structure des fichiers
 
-| Fichier                                     | Responsabilité après ce plan                                              |
-| ------------------------------------------- | ------------------------------------------------------------------------- |
-| `src/trajets/ui/ImageFrame.ts`              | dit enfin l'identifiant de l'image qu'il encadre                          |
-| `src/trajets/ui/glisserUnPointSurLaPile.ts` | **créé** — le geste, du `pointerdown` à la dépose, et le clic qu'il avale |
-| `src/trajets/ui/TrajetEditorScreen.ts`      | s'abonne au flux, enregistre au relâchement                               |
-| `src/style.css`                             | `touch-action` et le curseur du maintien                                  |
-| `e2e/points.spec.ts`, `docs/EXIGENCES.md`   | les témoins de bout en bout, et la ligne d'exigence                       |
+| Fichier                                   | Responsabilité après ce plan                                              |
+| ----------------------------------------- | ------------------------------------------------------------------------- |
+| `src/trajets/ui/ImageFrame.ts`            | dit enfin l'identifiant de l'image qu'il encadre                          |
+| `src/trajets/ui/dragPointOnStack.ts`      | **créé** — le geste, du `pointerdown` à la dépose, et le clic qu'il avale |
+| `src/trajets/ui/TrajetEditorScreen.ts`    | s'abonne au flux, enregistre au relâchement                               |
+| `src/style.css`                           | `touch-action` et le curseur du maintien                                  |
+| `e2e/points.spec.ts`, `docs/EXIGENCES.md` | les témoins de bout en bout, et la ligne d'exigence                       |
 
 **Quatre tâches**, chacune relisable seule :
 
@@ -152,17 +152,17 @@ EOF
 
 **Files:**
 
-- Create: `src/trajets/ui/glisserUnPointSurLaPile.ts`
-- Test: `src/trajets/ui/glisserUnPointSurLaPile.test.ts`
+- Create: `src/trajets/ui/dragPointOnStack.ts`
+- Test: `src/trajets/ui/dragPointOnStack.test.ts`
 
 **Interfaces:**
 
 - Consumes: `ImageFrameElement.imageId` (Task 1). `PointMarkerElement.pointId: PointId` et `createPointMarker(marker: DisplayedMarker): PointMarkerElement` de `./PointMarker` — `DisplayedMarker` vaut `{ pointId, number, fraction: number, coordonnee: Coordonnee }`. `eventsOf(target, type)` de `../../shared/events`. `query` / `queryAll` de `../../shared/dom`. `FractionVerticale.fromHeight(distance, hauteur)`, qui **borne déjà à [0, 1]** et **lève si la hauteur est nulle**.
-- Produces: `PointDepose { pointId: PointId; imageId: ImageId; fraction: FractionVerticale }` et `glissersSurLaPile(pile: HTMLElement): Observable<PointDepose>`. La Task 3 s'y abonne.
+- Produces: `DroppedPoint { pointId: PointId; imageId: ImageId; fraction: FractionVerticale }` et `dragsOnStack(stack: HTMLElement): Observable<DroppedPoint>`. La Task 3 s'y abonne.
 
 - [ ] **Step 1 : Écrire les tests qui échouent**
 
-Créer `src/trajets/ui/glisserUnPointSurLaPile.test.ts` :
+Créer `src/trajets/ui/dragPointOnStack.test.ts` :
 
 ```ts
 // @vitest-environment jsdom
@@ -170,7 +170,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { query } from '../../shared/dom';
 import { Coordonnee } from '../domain/Coordonnee';
 import { newImageId, newPointId, type ImageId, type PointId } from '../domain/ids';
-import { glissersSurLaPile, type PointDepose } from './glisserUnPointSurLaPile';
+import { dragsOnStack, type DroppedPoint } from './dragPointOnStack';
 import { ImageFrameElement } from './ImageFrame';
 import { createPointMarker, PointMarkerElement } from './PointMarker';
 
@@ -195,7 +195,7 @@ interface Scene {
     pointId: PointId;
     hautId: ImageId;
     basId: ImageId;
-    deposes: PointDepose[];
+    deposes: DroppedPoint[];
 }
 
 /**
@@ -234,8 +234,8 @@ function scene(): Scene {
     });
     haut.append(repere);
 
-    const deposes: PointDepose[] = [];
-    glissersSurLaPile(pile).subscribe((depose) => deposes.push(depose));
+    const deposes: DroppedPoint[] = [];
+    dragsOnStack(pile).subscribe((depose) => deposes.push(depose));
 
     return {
         pile,
@@ -374,12 +374,12 @@ describe('Glisser un point sur la pile', () => {
 
 - [ ] **Step 2 : Lancer les tests pour les voir échouer**
 
-Run: `pnpm test -- src/trajets/ui/glisserUnPointSurLaPile.test.ts`
+Run: `pnpm test -- src/trajets/ui/dragPointOnStack.test.ts`
 Expected: FAIL — le module n'existe pas (`Failed to resolve import`).
 
 - [ ] **Step 3 : Écrire le module**
 
-Créer `src/trajets/ui/glisserUnPointSurLaPile.ts` :
+Créer `src/trajets/ui/dragPointOnStack.ts` :
 
 ```ts
 import {
@@ -402,7 +402,7 @@ import { ImageFrameElement } from './ImageFrame';
 import { PointMarkerElement } from './PointMarker';
 
 /** Un point là où le doigt l'a laissé : de quoi appeler l'agrégat, rien de plus. */
-export interface PointDepose {
+export interface DroppedPoint {
     readonly pointId: PointId;
     readonly imageId: ImageId;
     readonly fraction: FractionVerticale;
@@ -425,7 +425,7 @@ interface Depart {
 /** La page visée, et la dépose qu'elle produirait. */
 interface Cible {
     readonly zone: HTMLDivElement;
-    readonly depose: PointDepose;
+    readonly depose: DroppedPoint;
 }
 
 /**
@@ -436,29 +436,29 @@ interface Cible {
  * relâchement, et seulement si le seuil a été franchi : en deçà, c'était un
  * clic, et il doit atteindre la pastille.
  */
-export function glissersSurLaPile(pile: HTMLElement): Observable<PointDepose> {
-    return eventsOf(pile, 'pointerdown').pipe(
+export function dragsOnStack(stack: HTMLElement): Observable<DroppedPoint> {
+    return eventsOf(stack, 'pointerdown').pipe(
         // `exhaustMap` et non `switchMap` : un second doigt posé pendant un
         // glisser est ignoré, il n'en démarre pas un autre.
         exhaustMap((event) => {
             const depart = departDeGlisser(event);
-            return depart === null ? EMPTY : glisser(pile, depart);
+            return depart === null ? EMPTY : glisser(stack, depart);
         }),
     );
 }
 
-function glisser(pile: HTMLElement, depart: Depart): Observable<PointDepose> {
+function glisser(stack: HTMLElement, depart: Depart): Observable<DroppedPoint> {
     // La capture se pose sur la pile, pas sur le repère : celui-ci change de
     // parent dès qu'il passe sur une autre page, et un élément retiré du
     // document perd sa capture.
-    pile.setPointerCapture(depart.pointerId);
-    let derniere: PointDepose | null = null;
+    stack.setPointerCapture(depart.pointerId);
+    let derniere: DroppedPoint | null = null;
 
-    return eventsOf(pile, 'pointermove').pipe(
-        takeUntil(merge(eventsOf(pile, 'pointerup'), eventsOf(pile, 'pointercancel'))),
+    return eventsOf(stack, 'pointermove').pipe(
+        takeUntil(merge(eventsOf(stack, 'pointerup'), eventsOf(stack, 'pointercancel'))),
         skipWhile((move) => Math.abs(move.clientY - depart.y) < SEUIL_DE_GLISSER),
         map((move) => {
-            const cible = cibleSousLeDoigt(pile, depart.repere, move.clientY);
+            const cible = cibleSousLeDoigt(stack, depart.repere, move.clientY);
             // Aucune page sous le doigt — un interstice, ou hors de la pile :
             // le repère reste où il était, et c'est cette position-là qui sera
             // enregistrée. Un geste abouti ne doit pas se perdre.
@@ -475,7 +475,7 @@ function glisser(pile: HTMLElement, depart: Depart): Observable<PointDepose> {
             if (depose === null) {
                 return EMPTY;
             }
-            avalerLeProchainClic(pile);
+            avalerLeProchainClic(stack);
             return of(depose);
         }),
     );
@@ -499,11 +499,11 @@ function departDeGlisser(event: PointerEvent): Depart | null {
  * sont empilées en pleine largeur.
  */
 function cibleSousLeDoigt(
-    pile: HTMLElement,
+    stack: HTMLElement,
     repere: PointMarkerElement,
     clientY: number,
 ): Cible | null {
-    for (const cadre of queryAll('image-frame', ImageFrameElement, pile)) {
+    for (const cadre of queryAll('image-frame', ImageFrameElement, stack)) {
         const zone = query('.image-area', HTMLDivElement, cadre);
         const boite = zone.getBoundingClientRect();
         // Une page sans hauteur n'a pas de fraction : `fromHeight` lève plutôt
@@ -538,23 +538,23 @@ function poserLeRepere(repere: PointMarkerElement, cible: Cible): void {
  * l'écouteur de la pastille n'est jamais atteint — et le repère n'a rien à
  * savoir du geste qui le déplace.
  */
-function avalerLeProchainClic(pile: HTMLElement): void {
+function avalerLeProchainClic(stack: HTMLElement): void {
     const avaler = (event: Event): void => {
         event.stopPropagation();
     };
-    pile.addEventListener('click', avaler, { capture: true, once: true });
+    stack.addEventListener('click', avaler, { capture: true, once: true });
     // Désarmé au tour suivant. Le navigateur dispatche le clic dans la foulée du
     // `pointerup` ; sans ce retrait, un glisser au doigt — qui n'en produit
     // aucun — laisserait le piège armé pour un clic sans rapport.
     setTimeout(() => {
-        pile.removeEventListener('click', avaler, { capture: true });
+        stack.removeEventListener('click', avaler, { capture: true });
     }, 0);
 }
 ```
 
 - [ ] **Step 4 : Lancer les tests pour les voir passer**
 
-Run: `pnpm test -- src/trajets/ui/glisserUnPointSurLaPile.test.ts`
+Run: `pnpm test -- src/trajets/ui/dragPointOnStack.test.ts`
 Expected: PASS — les huit tests.
 
 Si le test du « clic d'après » échoue, c'est que le `setTimeout` n'a pas eu lieu : Vitest exécute les tests en microtâches, et le retrait est une macrotâche. Insérer alors `await new Promise((resolve) => setTimeout(resolve, 0));` entre le premier clic et le second, et rendre le test `async`.
@@ -565,7 +565,7 @@ Run: `pnpm quality`
 Expected: PASS.
 
 ```bash
-git add src/trajets/ui/glisserUnPointSurLaPile.ts src/trajets/ui/glisserUnPointSurLaPile.test.ts
+git add src/trajets/ui/dragPointOnStack.ts src/trajets/ui/dragPointOnStack.test.ts
 git commit -F - <<'EOF'
 Fait du glisser d'une pastille un flux
 
@@ -595,7 +595,7 @@ EOF
 
 **Interfaces:**
 
-- Consumes: `glissersSurLaPile(pile)` et `PointDepose` (Task 2). Dans l'écran : `pagesContainer` (le `#images-stack`), `parti$`, `run`, et `applyToTrajetAndSave(modification)` — **le seul chemin d'écriture**, qui met en file, enregistre, resynchronise sur échec puis réaffiche.
+- Consumes: `dragsOnStack(stack)` et `DroppedPoint` (Task 2). Dans l'écran : `pagesContainer` (le `#images-stack`), `parti$`, `run`, et `applyToTrajetAndSave(modification)` — **le seul chemin d'écriture**, qui met en file, enregistre, resynchronise sur échec puis réaffiche.
 - Produces: rien que d'autres tâches consomment.
 
 - [ ] **Step 1 : Écrire les tests qui échouent**
@@ -640,7 +640,7 @@ class FauxPointerEvent extends MouseEvent {
 }
 ```
 
-Oui, cette classe existe aussi dans `glisserUnPointSurLaPile.test.ts`, et c'est
+Oui, cette classe existe aussi dans `dragPointOnStack.test.ts`, et c'est
 délibéré : six lignes d'échafaudage propre à chaque fichier de test, contre un
 module partagé qui ferait dépendre un test d'un autre. Si une troisième copie
 apparaissait un jour, ce serait le moment de l'extraire.
@@ -696,7 +696,7 @@ Dans `src/trajets/ui/TrajetEditorScreen.ts`, ajouter l'abonnement après celui d
 // Le glisser d'une pastille : il a déjà déplacé le repère à l'écran, il ne
 // reste qu'à enregistrer là où il l'a laissé. L'écriture n'a lieu qu'ici,
 // au relâchement — pendant le geste, un rendu arracherait le nœud déplacé.
-glissersSurLaPile(pagesContainer)
+dragsOnStack(pagesContainer)
     .pipe(takeUntil(parti$))
     .subscribe(({ pointId, imageId, fraction }) => {
         run(
@@ -711,7 +711,7 @@ glissersSurLaPile(pagesContainer)
 et l'import :
 
 ```ts
-import { glissersSurLaPile } from './glisserUnPointSurLaPile';
+import { dragsOnStack } from './dragPointOnStack';
 ```
 
 - [ ] **Step 4 : Rendre le geste possible au doigt**
@@ -847,7 +847,7 @@ Expected: PASS sur les cinq navigateurs. Le second est marqué `skipped` sur `ch
 Dans `docs/EXIGENCES.md`, ajouter après GR-15 :
 
 ```
-| GR-16 | Glisser la pastille d'un point le déplace sur le schéma, page voisine comprise, sans que le clic qui suit emmène à la carte | `U glisserUnPointSurLaPile.test.ts`, `U TrajetEditorScreen.test.ts`, `E e2e/points.spec.ts` |
+| GR-16 | Glisser la pastille d'un point le déplace sur le schéma, page voisine comprise, sans que le clic qui suit emmène à la carte | `U dragPointOnStack.test.ts`, `U TrajetEditorScreen.test.ts`, `E e2e/points.spec.ts` |
 ```
 
 - [ ] **Step 4 : Vérifier l'ensemble et committer**

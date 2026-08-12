@@ -64,31 +64,36 @@ Un glisser qui traverse les pages n'appartient pas au repère : une feuille ne
 connaît pas la pile. Le mettre dans `TrajetEditorScreen.ts`, déjà long, y
 ajouterait un geste à état.
 
-D'où un module dédié, `src/trajets/ui/glisserUnPointSurLaPile.ts`, qui expose un
+D'où un module dédié, `src/trajets/ui/dragPointOnStack.ts`, qui expose un
 **flux de glissers achevés** ; l'écran s'y abonne comme aux intentions, avec son
 `takeUntil(parti$)` :
 
 ```ts
 /** Un point là où le doigt l'a laissé : de quoi appeler l'agrégat, rien de plus. */
-export interface PointDepose {
+export interface DroppedPoint {
     readonly pointId: PointId;
     readonly imageId: ImageId;
     readonly fraction: FractionVerticale;
 }
 
-export function glissersSurLaPile(pile: HTMLElement): Observable<PointDepose>;
+export function dragsOnStack(stack: HTMLElement): Observable<DroppedPoint>;
 ```
+
+> `pile` n'apparaît dans aucun de ces deux noms : le glossaire ([Mots à double
+> vie](../../GLOSSAIRE.md#mots-à-double-vie)) le classe technique sans
+> exception, donc toujours `stack`. `glisser` et `dépose`, eux, sont simplement
+> absents du Lexique métier — anglais par défaut, d'où `drag` et `Dropped`.
 
 La forme suit l'[ADR 0009](../../adr/0009-flux-du-temps-en-rxjs.md) — un glisser
 _est_ un flux, et sa concurrence se dit par un opérateur nommé :
 
 ```ts
-eventsOf(pile, 'pointerdown').pipe(
+eventsOf(stack, 'pointerdown').pipe(
     map(pastilleVisee),
     filter(estDefinie),
     exhaustMap((depart) =>
-        eventsOf(pile, 'pointermove').pipe(
-            takeUntil(eventsOf(pile, 'pointerup')),
+        eventsOf(stack, 'pointermove').pipe(
+            takeUntil(eventsOf(stack, 'pointerup')),
             skipWhile((move) => ecart(move, depart) < SEUIL_DE_GLISSER),
             tap(poserLeRepere),
             takeLast(1),
@@ -157,14 +162,14 @@ Le mode placement ne demande rien de plus :
 
 ## Ce qui bouge
 
-| Fichier                                            | Nature                                      |
-| -------------------------------------------------- | ------------------------------------------- |
-| `src/trajets/ui/glisserUnPointSurLaPile.ts` + test | **créé** — le flux de glissers achevés      |
-| `src/trajets/ui/TrajetEditorScreen.ts` + test      | s'y abonne, enregistre au relâchement       |
-| `src/trajets/ui/ImageFrame.ts`                     | expose `imageId`, pour nommer la page visée |
-| `src/style.css`                                    | `touch-action`, `cursor: grabbing`          |
-| `e2e/points.spec.ts`                               | le glisser, et le clic qui ne déplace rien  |
-| `docs/EXIGENCES.md`                                | une ligne                                   |
+| Fichier                                       | Nature                                      |
+| --------------------------------------------- | ------------------------------------------- |
+| `src/trajets/ui/dragPointOnStack.ts` + test   | **créé** — le flux de glissers achevés      |
+| `src/trajets/ui/TrajetEditorScreen.ts` + test | s'y abonne, enregistre au relâchement       |
+| `src/trajets/ui/ImageFrame.ts`                | expose `imageId`, pour nommer la page visée |
+| `src/style.css`                               | `touch-action`, `cursor: grabbing`          |
+| `e2e/points.spec.ts`                          | le glisser, et le clic qui ne déplace rien  |
+| `docs/EXIGENCES.md`                           | une ligne                                   |
 
 `PointMarker.ts` **ne bouge pas** : le clic à supprimer est intercepté à la
 capture, avant de l'atteindre. Le repère reste une feuille qui annonce, sans rien
@@ -175,11 +180,11 @@ déjà là et fait déjà exactement ça.
 
 ## Ce que les tests prouvent
 
-| Fichier                           | Ce qu'il prouve                                                                                                                                                                                                                            |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `glisserUnPointSurLaPile.test.ts` | Un mouvement de 2 px n'émet rien ; 40 px émettent la fraction d'arrivée ; passer sur une autre page émet **son** identifiant ; relâcher hors de la pile garde la dernière cible valide ; un second doigt ne démarre pas un second glisser. |
-| `TrajetEditorScreen.test.ts`      | Un glisser achevé enregistre le déplacement et renumérote ; un clic net ouvre toujours la carte.                                                                                                                                           |
-| `e2e/points.spec.ts`              | Sur les cinq navigateurs : glisser le repère change sa hauteur ; un clic net ne le déplace pas.                                                                                                                                            |
+| Fichier                      | Ce qu'il prouve                                                                                                                                                                                                                            |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `dragPointOnStack.test.ts`   | Un mouvement de 2 px n'émet rien ; 40 px émettent la fraction d'arrivée ; passer sur une autre page émet **son** identifiant ; relâcher hors de la pile garde la dernière cible valide ; un second doigt ne démarre pas un second glisser. |
+| `TrajetEditorScreen.test.ts` | Un glisser achevé enregistre le déplacement et renumérote ; un clic net ouvre toujours la carte.                                                                                                                                           |
+| `e2e/points.spec.ts`         | Sur les cinq navigateurs : glisser le repère change sa hauteur ; un clic net ne le déplace pas.                                                                                                                                            |
 
 **Les cadres sont posés à la main dans les tests unitaires.** `getBoundingClientRect`
 rend zéro sous jsdom — le piège qui a déjà mordu une fois sur cette pile, où un

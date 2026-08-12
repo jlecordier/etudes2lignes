@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { query } from '../../shared/dom';
 import { Coordonnee } from '../domain/Coordonnee';
 import { newImageId, newPointId, type ImageId, type PointId } from '../domain/ids';
-import { glissersSurLaPile, type PointDepose } from './glisserUnPointSurLaPile';
+import { dragsOnStack, type DroppedPoint } from './dragPointOnStack';
 import { ImageFrameElement } from './ImageFrame';
 import { createPointMarker, PointMarkerElement } from './PointMarker';
 
@@ -28,7 +28,7 @@ interface Scene {
     pointId: PointId;
     hautId: ImageId;
     basId: ImageId;
-    deposes: PointDepose[];
+    deposes: DroppedPoint[];
 }
 
 /**
@@ -67,8 +67,8 @@ function scene(): Scene {
     });
     haut.append(repere);
 
-    const deposes: PointDepose[] = [];
-    glissersSurLaPile(pile).subscribe((depose) => deposes.push(depose));
+    const deposes: DroppedPoint[] = [];
+    dragsOnStack(pile).subscribe((depose) => deposes.push(depose));
 
     return {
         pile,

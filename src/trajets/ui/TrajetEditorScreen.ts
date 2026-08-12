@@ -13,7 +13,7 @@ import type { ImageDeTrajet, ImageFile, Point, Trajet } from '../domain/Trajet';
 import type { ImageId, PointId, TrajetId } from '../domain/ids';
 import type { TrajetRepository } from '../ports/TrajetRepository';
 import { downloadTrajet } from './downloadTrajet';
-import { glissersSurLaPile } from './glisserUnPointSurLaPile';
+import { dragsOnStack } from './dragPointOnStack';
 import { createImageFrame } from './ImageFrame';
 import type { PageAimIntent } from './intents';
 import { PointMarkerElement } from './PointMarker';
@@ -181,7 +181,7 @@ function mount(
     // Le glisser d'une pastille : il a déjà déplacé le repère à l'écran, il ne
     // reste qu'à enregistrer là où il l'a laissé. L'écriture n'a lieu qu'ici,
     // au relâchement — pendant le geste, un rendu arracherait le nœud déplacé.
-    glissersSurLaPile(pagesContainer)
+    dragsOnStack(pagesContainer)
         .pipe(takeUntil(parti$))
         .subscribe(({ pointId, imageId, fraction }) => {
             run(
