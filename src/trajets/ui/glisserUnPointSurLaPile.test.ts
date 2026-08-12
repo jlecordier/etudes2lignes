@@ -15,8 +15,8 @@ import { createPointMarker, PointMarkerElement } from './PointMarker';
 class FauxPointerEvent extends MouseEvent {
     readonly pointerId: number;
 
-    constructor(type: string, clientY: number, pointerId = 1) {
-        super(type, { clientY, bubbles: true });
+    constructor(type: string, clientY: number, pointerId = 1, button = 0) {
+        super(type, { clientY, bubbles: true, button });
         this.pointerId = pointerId;
     }
 }
@@ -311,6 +311,66 @@ describe('Glisser un point sur la pile', () => {
             scene1.pastille.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
             expect(clics).toEqual(['pastille']);
+        });
+    });
+
+    describe('Étant donné un relâchement sous le seuil qui n’atteint pas la pile', () => {
+        it('alors un second doigt peut quand même démarrer un glisser', () => {
+            const scene1 = scene();
+
+            // Un maintien sans jamais franchir le seuil, relâché en dehors de
+            // la pile — sur `document.body`, qui n'est ni la pile ni l'un de
+            // ses descendants : ce `pointerup` ne peut atteindre un écouteur
+            // posé sur la pile elle-même. C'est exactement ce qui arrive
+            // quand le doigt s'échappe de la pile à l'horizontale (la carte,
+            // sur un grand écran) avant d'avoir bougé de 3 px.
+            scene1.pastille.dispatchEvent(new FauxPointerEvent('pointerdown', 500, 1));
+            document.body.dispatchEvent(new FauxPointerEvent('pointerup', 500, 1));
+
+            // Un second doigt, d'un identifiant différent : si le premier
+            // geste n'est jamais retombé, `exhaustMap` ignore ce nouvel appui
+            // avant même de regarder à qui il appartient — aucun glisser n'en
+            // ressortirait, quoi que ce doigt fasse ensuite.
+            evenementPointeur(scene1.pastille, 'pointerdown', 500, 2);
+            evenementPointeur(scene1.pile, 'pointermove', 520, 2);
+            evenementPointeur(scene1.pile, 'pointermove', 250, 2);
+            evenementPointeur(scene1.pile, 'pointerup', 250, 2);
+
+            expect(scene1.deposes).toHaveLength(1);
+        });
+    });
+
+    describe('Étant donné un glisser achevé, quand l’activation suivante vient du clavier', () => {
+        it('alors le clic qu’elle produit atteint quand même la pastille', () => {
+            const scene1 = scene();
+            const clics: string[] = [];
+            scene1.pastille.addEventListener('click', () => clics.push('pastille'));
+
+            glisser(scene1, 500, 520, 250);
+            // Une pastille activée au clavier (Tab puis Entrée) dispatche un
+            // `keydown` puis le `click` qu'il produit — jamais de
+            // `pointerdown` entre les deux, le clavier n'en émettant pas.
+            scene1.pastille.dispatchEvent(
+                new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }),
+            );
+            scene1.pastille.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+            expect(clics).toEqual(['pastille']);
+        });
+    });
+
+    describe('Étant donné un appui du bouton droit sur la pastille, suivi d’une dérive', () => {
+        it('alors aucun glisser ne démarre', () => {
+            const scene1 = scene();
+
+            // Bouton 2 : le droit. Sans le garde, cette dérive de 400 px
+            // déplacerait le point en plus d'ouvrir le menu contextuel
+            // d'ajout que le `contextmenu` d'un clic droit ferait remonter.
+            scene1.pastille.dispatchEvent(new FauxPointerEvent('pointerdown', 500, 1, 2));
+            scene1.pile.dispatchEvent(new FauxPointerEvent('pointermove', 900, 1, 2));
+            scene1.pile.dispatchEvent(new FauxPointerEvent('pointerup', 900, 1, 2));
+
+            expect(scene1.deposes).toEqual([]);
         });
     });
 });
