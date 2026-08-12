@@ -15,7 +15,10 @@ pour suivre votre position GPS.
   au choix de la coordonnée. Un bouton « Ajouter un point » flottant (bas de
   l'écran) reste accessible quel que soit le défilement — indispensable au
   tactile, où le clic droit n'existe pas. Points modifiables (sur l'image, sur
-  la carte, boutons flottants sur chaque marqueur) et supprimables.
+  la carte, boutons flottants sur chaque marqueur) et supprimables. Sur le
+  schéma, maintenir la pastille d'un point et glisser le déplace directement,
+  en direct et page voisine comprise — c'est désormais le chemin principal
+  pour ce geste-là, les boutons restant le seul chemin au clavier.
 - **Deux vues, et rien entre les deux** : les points vivent là où ils sont — sur
   le schéma (pastille rouge numérotée et ses trois actions) et sur la carte (les
   mêmes numéros, dans le monde). Pas de liste à part : elle ne disait rien que

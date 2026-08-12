@@ -180,11 +180,11 @@ déjà là et fait déjà exactement ça.
 
 ## Ce que les tests prouvent
 
-| Fichier                      | Ce qu'il prouve                                                                                                                                                                                                                            |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `dragPointOnStack.test.ts`   | Un mouvement de 2 px n'émet rien ; 40 px émettent la fraction d'arrivée ; passer sur une autre page émet **son** identifiant ; relâcher hors de la pile garde la dernière cible valide ; un second doigt ne démarre pas un second glisser. |
-| `TrajetEditorScreen.test.ts` | Un glisser achevé enregistre le déplacement et renumérote ; un clic net ouvre toujours la carte.                                                                                                                                           |
-| `e2e/points.spec.ts`         | Sur les cinq navigateurs : glisser le repère change sa hauteur ; un clic net ne le déplace pas.                                                                                                                                            |
+| Fichier                      | Ce qu'il prouve                                                                                                                                                                                                                                               |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dragPointOnStack.test.ts`   | Un mouvement de 2 px n'émet rien ; 40 px émettent la fraction d'arrivée ; passer sur une autre page émet **son** identifiant ; relâcher dans l'interstice entre deux pages garde la dernière cible valide ; un second doigt ne démarre pas un second glisser. |
+| `TrajetEditorScreen.test.ts` | Un glisser achevé enregistre le déplacement ; un clic net ouvre toujours la carte.                                                                                                                                                                            |
+| `e2e/points.spec.ts`         | Sur les cinq navigateurs : glisser le repère change sa hauteur ; un clic net ne le déplace pas.                                                                                                                                                               |
 
 **Les cadres sont posés à la main dans les tests unitaires.** `getBoundingClientRect`
 rend zéro sous jsdom — le piège qui a déjà mordu une fois sur cette pile, où un

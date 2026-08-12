@@ -452,9 +452,17 @@ test.describe('Géoréférencement des points', () => {
         // (et pour la lecture prise pendant qu'un rendu est encore en cours),
         // assez étroite pour rater un point resté proche de son départ (30) ou
         // parti bien au-delà de sa cible.
-        // Assertion qui réessaie : l'enregistrement et le re-rendu sont asynchrones.
-        await expect.poll(() => hauteurDuRepere(page)).toBeGreaterThanOrEqual(58);
-        expect(await hauteurDuRepere(page)).toBeLessThanOrEqual(62);
+        //
+        // Les deux bornes dans le même `poll`, sur une lecture fraîche à chaque
+        // essai : une bascule sur une lecture non réessayée laisserait passer
+        // un `-1` (cadres pas encore montés, voir `hauteurDuRepere`) — `-1` ne
+        // satisfait pas la borne basse, mais satisferait la haute toute seule.
+        await expect
+            .poll(async () => {
+                const hauteur = await hauteurDuRepere(page);
+                return hauteur >= 58 && hauteur <= 62;
+            })
+            .toBe(true);
     });
 
     test('Étant donné un glisser achevé, alors le clic qui le suit n’emmène pas à la carte', async ({
