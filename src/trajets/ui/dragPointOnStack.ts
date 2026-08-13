@@ -36,23 +36,23 @@ export interface DroppedPoint {
  * qui laisse un doigt s'échapper de la pile à l'horizontale sans jamais
  * franchir le seuil.
  */
-const SEUIL_DE_GLISSER = 3;
+const DRAG_THRESHOLD = 3;
 
 /** Le repère saisi, et la hauteur où le doigt s'est posé. */
-interface Depart {
-    readonly repere: PointMarkerElement;
+interface DragStart {
+    readonly marker: PointMarkerElement;
     readonly pointerId: number;
     readonly y: number;
 }
 
 /** La page visée, et la dépose qu'elle produirait. */
-interface Cible {
-    readonly zone: HTMLDivElement;
-    readonly depose: DroppedPoint;
+interface Target {
+    readonly area: HTMLDivElement;
+    readonly drop: DroppedPoint;
 }
 
 /** Où le repère se trouvait avant le geste — ce qu'une annulation lui rend. */
-interface Origine {
+interface Origin {
     readonly parent: Element;
     readonly top: string;
 }
@@ -72,13 +72,13 @@ export function dragsOnStack(stack: HTMLElement): Observable<DroppedPoint> {
         // `exhaustMap` et non `switchMap` : un second doigt posé pendant un
         // glisser est ignoré, il n'en démarre pas un autre.
         exhaustMap((event) => {
-            const depart = departDeGlisser(event);
-            return depart === null ? EMPTY : glisser(stack, depart);
+            const start = dragStart(event);
+            return start === null ? EMPTY : drag(stack, start);
         }),
     );
 }
 
-function glisser(stack: HTMLElement, depart: Depart): Observable<DroppedPoint> {
+function drag(stack: HTMLElement, start: DragStart): Observable<DroppedPoint> {
     // Le corps ne s'exécute qu'à l'abonnement, pas à l'appel : `exhaustMap`
     // n'a aujourd'hui qu'un seul abonné et un seul geste actif à la fois, donc
     // ça ne change rien d'observable — mais ça rend la création de l'état
@@ -86,76 +86,77 @@ function glisser(stack: HTMLElement, depart: Depart): Observable<DroppedPoint> {
     return defer(() => {
         // Capturée avant tout déplacement : c'est la seule position que
         // `pointercancel` peut restaurer, le parent ayant pu changer depuis.
-        const origine = origineDuRepere(depart.repere);
-        let derniere: DroppedPoint | null = null;
-        let capture = false;
-        let annule = false;
+        const origin = markerOrigin(start.marker);
+        let last: DroppedPoint | null = null;
+        let captured = false;
+        let cancelled = false;
 
         // Un second doigt a ses propres `pointermove`/`pointerup`/`pointercancel` :
         // la capture ne fait que retarger ceux du premier, elle ne les empêche pas
         // d'atteindre la pile. Sans ce filtre, le doigt qui a saisi la pastille
         // n'est plus celui qui pilote — ni celui qui termine — son propre geste.
-        const duMemeDoigt = (event: PointerEvent): boolean => event.pointerId === depart.pointerId;
+        const fromSameFinger = (event: PointerEvent): boolean =>
+            event.pointerId === start.pointerId;
 
         // Écoutés sur le document, pas sur la pile : sous le seuil, la capture
         // n'est pas encore posée (elle ne l'est qu'au franchissement, plus bas),
         // donc rien ne garantit que le relâchement retarge la pile. Un doigt qui
         // sort de la pile à l'horizontale — en deçà du seuil vertical, voir le
-        // commentaire de `SEUIL_DE_GLISSER` — et se lève ailleurs dans le
+        // commentaire de `DRAG_THRESHOLD` — et se lève ailleurs dans le
         // document (la carte, sur un grand écran) ne dispatcherait alors son
         // `pointerup` sur aucun ancêtre de la pile : ce flux ne se
         // terminerait jamais, et l'`exhaustMap` qui l'attend resterait
         // souscrit pour de bon — plus aucun glisser ne redémarrerait ensuite.
         // `stack.ownerDocument.documentElement` reste un ancêtre de tout ce
         // que le document affiche, capture ou pas.
-        const finDuGeste = stack.ownerDocument.documentElement;
-        const relachements$ = eventsOf(finDuGeste, 'pointerup').pipe(filter(duMemeDoigt));
-        const annulations$ = eventsOf(finDuGeste, 'pointercancel').pipe(
-            filter(duMemeDoigt),
+        const gestureEnd = stack.ownerDocument.documentElement;
+        const releases$ = eventsOf(gestureEnd, 'pointerup').pipe(filter(fromSameFinger));
+        const cancels$ = eventsOf(gestureEnd, 'pointercancel').pipe(
+            filter(fromSameFinger),
             tap(() => {
-                annule = true;
-                origine.parent.append(depart.repere);
-                depart.repere.style.top = origine.top;
+                cancelled = true;
+                origin.parent.append(start.marker);
+                start.marker.style.top = origin.top;
             }),
         );
 
         return eventsOf(stack, 'pointermove').pipe(
-            filter(duMemeDoigt),
-            takeUntil(merge(relachements$, annulations$)),
-            skipWhile((move) => Math.abs(move.clientY - depart.y) < SEUIL_DE_GLISSER),
+            filter(fromSameFinger),
+            takeUntil(merge(releases$, cancels$)),
+            skipWhile((move) => Math.abs(move.clientY - start.y) < DRAG_THRESHOLD),
             tap(() => {
                 // La capture n'est posée qu'ici, au premier mouvement qui franchit
                 // le seuil — jamais à l'appui : un simple clic la prendrait aussi,
                 // et elle retargeterait alors les événements souris de compatibilité
                 // dont ce clic dérive sa cible.
-                if (!capture) {
-                    capture = true;
-                    stack.setPointerCapture(depart.pointerId);
+                if (!captured) {
+                    captured = true;
+                    stack.setPointerCapture(start.pointerId);
                 }
             }),
             map((move) => {
-                const cible = cibleSousLeDoigt(stack, depart.repere, move.clientY);
+                const target = targetUnderFinger(stack, start.marker, move.clientY);
                 // Aucune page sous le doigt — un interstice, ou hors de la pile :
                 // le repère reste où il était, et c'est cette position-là qui sera
                 // enregistrée. Un geste abouti ne doit pas se perdre.
-                if (cible !== null) {
-                    poserLeRepere(depart.repere, cible);
-                    derniere = cible.depose;
+                if (target !== null) {
+                    placeMarker(start.marker, target);
+                    last = target.drop;
                 }
-                return derniere;
+                return last;
             }),
             // Rien n'est passé par `skipWhile` : le seuil n'a jamais été franchi,
             // donc rien n'est émis et le clic suit son cours.
             takeLast(1),
-            concatMap((depose) => {
+            concatMap((drop) => {
                 // Une annulation prime sur toute position survolée : le geste n'a
                 // pas abouti, quoi que le doigt ait montré avant que le système ne
                 // reprenne le pointeur.
-                if (depose === null || annule) {
+                if (drop === null || cancelled) {
                     return EMPTY;
                 }
-                avalerLeProchainClic(stack);
-                return of(depose);
+                swallowNextClick(stack);
+                return of(drop);
             }),
         );
     });
@@ -167,18 +168,18 @@ function glisser(stack: HTMLElement, depart: Depart): Observable<DroppedPoint> {
  * n'est jamais qu'une garde inatteignable, posée pour la même raison que
  * `requireConfiguration` : `!` est banni.
  */
-function origineDuRepere(repere: PointMarkerElement): Origine {
-    const parent = repere.parentElement;
+function markerOrigin(marker: PointMarkerElement): Origin {
+    const parent = marker.parentElement;
     if (parent === null) {
         throw new Error(
             "Le repère saisi n'a pas de parent : il devrait déjà être monté sur une page.",
         );
     }
-    return { parent, top: repere.style.top };
+    return { parent, top: marker.style.top };
 }
 
 /** Le repère saisi, ou rien si l'appui ne visait pas une pastille. */
-function departDeGlisser(event: PointerEvent): Depart | null {
+function dragStart(event: PointerEvent): DragStart | null {
     // Aligné sur `Draggable` de Leaflet, qui ignore tout bouton autre que le
     // principal (`button === 2` exclu) : sans ce garde, un clic droit qui
     // dérive de 3 px déplacerait le point **et** ferait remonter son
@@ -188,51 +189,51 @@ function departDeGlisser(event: PointerEvent): Depart | null {
     if (event.button !== 0) {
         return null;
     }
-    const cible = event.target;
-    if (!(cible instanceof HTMLElement) || !cible.classList.contains('point-number')) {
+    const pressed = event.target;
+    if (!(pressed instanceof HTMLElement) || !pressed.classList.contains('point-number')) {
         return null;
     }
-    const repere = cible.closest('point-marker');
-    if (!(repere instanceof PointMarkerElement)) {
+    const marker = pressed.closest('point-marker');
+    if (!(marker instanceof PointMarkerElement)) {
         return null;
     }
-    return { repere, pointerId: event.pointerId, y: event.clientY };
+    return { marker, pointerId: event.pointerId, y: event.clientY };
 }
 
 /**
  * La page dont le cadre contient cette hauteur. Le X ne compte pas : les pages
  * sont empilées en pleine largeur.
  */
-function cibleSousLeDoigt(
+function targetUnderFinger(
     stack: HTMLElement,
-    repere: PointMarkerElement,
+    marker: PointMarkerElement,
     clientY: number,
-): Cible | null {
-    for (const cadre of queryAll('image-frame', ImageFrameElement, stack)) {
-        const zone = query('.image-area', HTMLDivElement, cadre);
-        const boite = zone.getBoundingClientRect();
+): Target | null {
+    for (const frame of queryAll('image-frame', ImageFrameElement, stack)) {
+        const area = query('.image-area', HTMLDivElement, frame);
+        const rect = area.getBoundingClientRect();
         // Une page sans hauteur n'a pas de fraction : `fromHeight` lève plutôt
         // que de diviser par zéro, et jsdom rend justement des cadres nuls.
-        if (boite.height <= 0 || clientY < boite.top || clientY > boite.bottom) {
+        if (rect.height <= 0 || clientY < rect.top || clientY > rect.bottom) {
             continue;
         }
         return {
-            zone,
-            depose: {
-                pointId: repere.pointId,
-                imageId: cadre.imageId,
-                fraction: FractionVerticale.fromHeight(clientY - boite.top, boite.height),
+            area,
+            drop: {
+                pointId: marker.pointId,
+                imageId: frame.imageId,
+                fraction: FractionVerticale.fromHeight(clientY - rect.top, rect.height),
             },
         };
     }
     return null;
 }
 
-function poserLeRepere(repere: PointMarkerElement, cible: Cible): void {
-    if (repere.parentElement !== cible.zone) {
-        cible.zone.append(repere);
+function placeMarker(marker: PointMarkerElement, target: Target): void {
+    if (marker.parentElement !== target.area) {
+        target.area.append(marker);
     }
-    repere.style.top = `${String(cible.depose.fraction.value * 100)}%`;
+    marker.style.top = `${String(target.drop.fraction.value * 100)}%`;
 }
 
 /**
@@ -243,11 +244,11 @@ function poserLeRepere(repere: PointMarkerElement, cible: Cible): void {
  * l'écouteur de la pastille n'est jamais atteint — et le repère n'a rien à
  * savoir du geste qui le déplace.
  */
-function avalerLeProchainClic(stack: HTMLElement): void {
-    const avaler = (event: Event): void => {
+function swallowNextClick(stack: HTMLElement): void {
+    const swallow = (event: Event): void => {
         event.stopPropagation();
     };
-    stack.addEventListener('click', avaler, { capture: true, once: true });
+    stack.addEventListener('click', swallow, { capture: true, once: true });
     // Désarmé par l'interaction suivante, pas par un délai : au tactile, le
     // clic synthétique peut atterrir dans une tâche postérieure à un minuteur
     // à 0 ms, qui désarmerait alors le piège trop tôt et laisserait passer un
@@ -259,9 +260,9 @@ function avalerLeProchainClic(stack: HTMLElement): void {
     // seulement un `keydown` puis le `click` qu'il produit. Sans ce second
     // désarmeur, cette activation-là restait avalée par le piège du glisser
     // précédent.
-    const desarmer = (): void => {
-        stack.removeEventListener('click', avaler, { capture: true });
+    const disarm = (): void => {
+        stack.removeEventListener('click', swallow, { capture: true });
     };
-    stack.addEventListener('pointerdown', desarmer, { once: true });
-    stack.addEventListener('keydown', desarmer, { once: true });
+    stack.addEventListener('pointerdown', disarm, { once: true });
+    stack.addEventListener('keydown', disarm, { once: true });
 }

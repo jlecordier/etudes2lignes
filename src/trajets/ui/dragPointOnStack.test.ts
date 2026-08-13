@@ -23,7 +23,7 @@ class FauxPointerEvent extends MouseEvent {
 
 /** Une pile de deux pages mesurées, et le repère posé sur celle du haut. */
 interface Scene {
-    pile: HTMLElement;
+    stack: HTMLElement;
     pastille: HTMLElement;
     pointId: PointId;
     hautId: ImageId;
@@ -39,24 +39,24 @@ interface Scene {
  * 100 px entre les deux est délibéré : c'est lui qui met à l'épreuve « relâcher
  * hors de toute page garde la dernière position ».
  */
-function cadre(imageId: ImageId, top: number, hauteur: number): ImageFrameElement {
+function frame(imageId: ImageId, top: number, hauteur: number): ImageFrameElement {
     const element = new ImageFrameElement();
     element.imageId = imageId;
-    const zone = document.createElement('div');
-    zone.className = 'image-area';
-    zone.getBoundingClientRect = () => new DOMRect(0, top, 800, hauteur);
-    element.append(zone);
+    const area = document.createElement('div');
+    area.className = 'image-area';
+    area.getBoundingClientRect = () => new DOMRect(0, top, 800, hauteur);
+    element.append(area);
     return element;
 }
 
 function scene(): Scene {
-    const pile = document.createElement('div');
+    const stack = document.createElement('div');
     const hautId = newImageId();
     const basId = newImageId();
-    const haut = cadre(hautId, 0, 1000);
-    const bas = cadre(basId, 1100, 1000);
-    pile.append(haut, bas);
-    document.body.replaceChildren(pile);
+    const haut = frame(hautId, 0, 1000);
+    const bas = frame(basId, 1100, 1000);
+    stack.append(haut, bas);
+    document.body.replaceChildren(stack);
 
     const pointId = newPointId();
     const repere = createPointMarker({
@@ -68,10 +68,10 @@ function scene(): Scene {
     haut.append(repere);
 
     const deposes: DroppedPoint[] = [];
-    dragsOnStack(pile).subscribe((depose) => deposes.push(depose));
+    dragsOnStack(stack).subscribe((depose) => deposes.push(depose));
 
     return {
-        pile,
+        stack,
         pastille: query('.point-number', HTMLButtonElement, repere),
         pointId,
         hautId,
@@ -84,9 +84,9 @@ function scene(): Scene {
 function glisser(scene: Scene, depart: number, ...etapes: number[]): void {
     scene.pastille.dispatchEvent(new FauxPointerEvent('pointerdown', depart));
     for (const y of etapes) {
-        scene.pile.dispatchEvent(new FauxPointerEvent('pointermove', y));
+        scene.stack.dispatchEvent(new FauxPointerEvent('pointermove', y));
     }
-    scene.pile.dispatchEvent(new FauxPointerEvent('pointerup', etapes.at(-1) ?? depart));
+    scene.stack.dispatchEvent(new FauxPointerEvent('pointerup', etapes.at(-1) ?? depart));
 }
 
 /**
@@ -135,7 +135,7 @@ describe('Glisser un point sur la pile', () => {
         it('alors c’est un glisser : le point est déposé', () => {
             const scene1 = scene();
 
-            // 500 → 503 : un écart de 3 px pile, la limite de `SEUIL_DE_GLISSER`.
+            // 500 → 503 : un écart de 3 px pile, la limite de `DRAG_THRESHOLD`.
             glisser(scene1, 500, 503);
 
             expect(scene1.deposes).toHaveLength(1);
@@ -160,7 +160,7 @@ describe('Glisser un point sur la pile', () => {
 
             glisser(scene1, 500, 520, 250);
 
-            const repere = query('point-marker', PointMarkerElement, scene1.pile);
+            const repere = query('point-marker', PointMarkerElement, scene1.stack);
             expect(repere.style.top).toBe('25%');
         });
 
@@ -201,9 +201,9 @@ describe('Glisser un point sur la pile', () => {
             const scene1 = scene();
 
             scene1.pastille.dispatchEvent(new FauxPointerEvent('pointerdown', 500));
-            scene1.pile.dispatchEvent(new FauxPointerEvent('pointermove', 300));
+            scene1.stack.dispatchEvent(new FauxPointerEvent('pointermove', 300));
             scene1.pastille.dispatchEvent(new FauxPointerEvent('pointerdown', 800, 2));
-            scene1.pile.dispatchEvent(new FauxPointerEvent('pointerup', 300));
+            scene1.stack.dispatchEvent(new FauxPointerEvent('pointerup', 300));
 
             expect(scene1.deposes).toHaveLength(1);
         });
@@ -214,13 +214,13 @@ describe('Glisser un point sur la pile', () => {
             const scene1 = scene();
 
             scene1.pastille.dispatchEvent(new FauxPointerEvent('pointerdown', 500, 1));
-            evenementPointeur(scene1.pile, 'pointermove', 520, 1);
+            evenementPointeur(scene1.stack, 'pointermove', 520, 1);
             // Le second doigt bouge, puis se lève — sans jamais avoir saisi la
             // pastille. Ni l'un ni l'autre ne doit toucher au premier geste.
-            evenementPointeur(scene1.pile, 'pointermove', 900, 2);
-            evenementPointeur(scene1.pile, 'pointerup', 900, 2);
-            evenementPointeur(scene1.pile, 'pointermove', 250, 1);
-            evenementPointeur(scene1.pile, 'pointerup', 250, 1);
+            evenementPointeur(scene1.stack, 'pointermove', 900, 2);
+            evenementPointeur(scene1.stack, 'pointerup', 900, 2);
+            evenementPointeur(scene1.stack, 'pointermove', 250, 1);
+            evenementPointeur(scene1.stack, 'pointerup', 250, 1);
 
             expect(scene1.deposes).toHaveLength(1);
             expect(scene1.deposes[0]?.fraction.value).toBeCloseTo(0.25, 6);
@@ -230,16 +230,16 @@ describe('Glisser un point sur la pile', () => {
     describe('Étant donné un glisser annulé par le système (pointercancel)', () => {
         it('alors le repère retourne à sa position d’origine, et rien n’est déposé', () => {
             const scene1 = scene();
-            const repere = query('point-marker', PointMarkerElement, scene1.pile);
+            const repere = query('point-marker', PointMarkerElement, scene1.stack);
             const parentDorigine = repere.parentElement;
 
             scene1.pastille.dispatchEvent(new FauxPointerEvent('pointerdown', 500));
-            evenementPointeur(scene1.pile, 'pointermove', 1600, 1);
+            evenementPointeur(scene1.stack, 'pointermove', 1600, 1);
             // La page voisine a bien été saisie : sans quoi l'annulation qui
             // suit ne prouverait rien, faute de parent à restaurer.
             expect(repere.parentElement).not.toBe(parentDorigine);
 
-            evenementPointeur(scene1.pile, 'pointercancel', 1600, 1);
+            evenementPointeur(scene1.stack, 'pointercancel', 1600, 1);
 
             expect(scene1.deposes).toEqual([]);
             expect(repere.parentElement).toBe(parentDorigine);
@@ -252,8 +252,8 @@ describe('Glisser un point sur la pile', () => {
             scene1.pastille.addEventListener('click', () => clics.push('pastille'));
 
             scene1.pastille.dispatchEvent(new FauxPointerEvent('pointerdown', 500));
-            evenementPointeur(scene1.pile, 'pointermove', 520, 1);
-            evenementPointeur(scene1.pile, 'pointercancel', 520, 1);
+            evenementPointeur(scene1.stack, 'pointermove', 520, 1);
+            evenementPointeur(scene1.stack, 'pointercancel', 520, 1);
             scene1.pastille.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
             expect(clics).toEqual(['pastille']);
@@ -264,9 +264,9 @@ describe('Glisser un point sur la pile', () => {
         it('alors aucun glisser ne démarre', () => {
             const scene1 = scene();
 
-            scene1.pile.dispatchEvent(new FauxPointerEvent('pointerdown', 500));
-            scene1.pile.dispatchEvent(new FauxPointerEvent('pointermove', 250));
-            scene1.pile.dispatchEvent(new FauxPointerEvent('pointerup', 250));
+            scene1.stack.dispatchEvent(new FauxPointerEvent('pointerdown', 500));
+            scene1.stack.dispatchEvent(new FauxPointerEvent('pointermove', 250));
+            scene1.stack.dispatchEvent(new FauxPointerEvent('pointerup', 250));
 
             expect(scene1.deposes).toEqual([]);
         });
@@ -307,7 +307,7 @@ describe('Glisser un point sur la pile', () => {
             // Aucun clic synthétique ici : un doigt qui glisse puis se lève
             // n'en produit pas toujours un — c'est justement le cas que le
             // piège doit survivre jusqu'à la prochaine interaction.
-            evenementPointeur(scene1.pile, 'pointerdown', 300, 1);
+            evenementPointeur(scene1.stack, 'pointerdown', 300, 1);
             scene1.pastille.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
             expect(clics).toEqual(['pastille']);
@@ -332,9 +332,9 @@ describe('Glisser un point sur la pile', () => {
             // avant même de regarder à qui il appartient — aucun glisser n'en
             // ressortirait, quoi que ce doigt fasse ensuite.
             evenementPointeur(scene1.pastille, 'pointerdown', 500, 2);
-            evenementPointeur(scene1.pile, 'pointermove', 520, 2);
-            evenementPointeur(scene1.pile, 'pointermove', 250, 2);
-            evenementPointeur(scene1.pile, 'pointerup', 250, 2);
+            evenementPointeur(scene1.stack, 'pointermove', 520, 2);
+            evenementPointeur(scene1.stack, 'pointermove', 250, 2);
+            evenementPointeur(scene1.stack, 'pointerup', 250, 2);
 
             expect(scene1.deposes).toHaveLength(1);
         });
@@ -367,8 +367,8 @@ describe('Glisser un point sur la pile', () => {
             // déplacerait le point en plus d'ouvrir le menu contextuel
             // d'ajout que le `contextmenu` d'un clic droit ferait remonter.
             scene1.pastille.dispatchEvent(new FauxPointerEvent('pointerdown', 500, 1, 2));
-            scene1.pile.dispatchEvent(new FauxPointerEvent('pointermove', 900, 1, 2));
-            scene1.pile.dispatchEvent(new FauxPointerEvent('pointerup', 900, 1, 2));
+            scene1.stack.dispatchEvent(new FauxPointerEvent('pointermove', 900, 1, 2));
+            scene1.stack.dispatchEvent(new FauxPointerEvent('pointerup', 900, 1, 2));
 
             expect(scene1.deposes).toEqual([]);
         });

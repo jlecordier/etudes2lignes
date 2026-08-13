@@ -99,7 +99,7 @@ eventsOf(stack, 'pointerdown').pipe(
             // prise qu'au franchissement du seuil —, un relâchement hors de
             // la pile ne la traverserait jamais, et le flux ne finirait pas.
             takeUntil(eventsOf(stack.ownerDocument.documentElement, 'pointerup')),
-            skipWhile((move) => ecart(move, depart) < SEUIL_DE_GLISSER),
+            skipWhile((move) => ecart(move, start) < DRAG_THRESHOLD),
             tap(poserLeRepere),
             takeLast(1),
             map(cibleFinale),
