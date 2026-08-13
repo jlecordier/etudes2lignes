@@ -18,7 +18,7 @@
 - **Tests BDD, par état** : `Étant donné / Quand / Alors`. **Pas de `vi.fn`, pas de `toHaveBeenCalled`** — des faux écrits à la main et des assertions sur les **valeurs produites**.
 - **Le temps est un flux** ([ADR 0009](../../adr/0009-flux-du-temps-en-rxjs.md)) : cadence et concurrence se disent par des opérateurs nommés. Tout `subscribe` d'écran passe par `takeUntil(parti$)`.
 - **Règle de dépendance** : `domain` ne dépend de rien ; `adapters`/`ui` des ports + domaine ; seul `src/main.ts` instancie les adapters concrets.
-- **Seuil de glisser : 3 px**, écrit une seule fois, en constante nommée. C'est le `clickTolerance` de Leaflet, pour que les deux pastilles tranchent pareil.
+- **Seuil de glisser : 3 px**, écrit une seule fois, en constante nommée. C'est la valeur du `clickTolerance` de Leaflet, mais pas sa mesure : Leaflet compare `|dx| + |dy|`, ici seulement `|dy|`. Même nombre, critère différent — et c'est cette asymétrie qui rend atteignable la sortie latérale sous le seuil.
 - **Nom du module, verbatim** : `src/trajets/ui/dragPointOnStack.ts`, exportant `dragsOnStack(stack: HTMLElement): Observable<DroppedPoint>`.
 - **Chaque tâche finit par un commit**, message en français, disant _pourquoi_. Le hook de pré-commit lance `fallow fix --yes`, `lint-staged`, `typecheck` puis `test`.
 - **`pnpm quality`** doit être vert avant de déclarer une tâche finie.

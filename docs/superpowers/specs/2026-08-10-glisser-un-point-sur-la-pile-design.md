@@ -43,9 +43,11 @@ clavier.
 
 ### Clic ou glisser : trois pixels
 
-Seuil de **3 px**, celui du `clickTolerance` de Leaflet. La pastille de la carte
-tranche déjà ainsi ; les deux vues se comporteront pareil, ce qui est la raison
-d'être du symbole commun.
+Seuil de **3 px**, la valeur du `clickTolerance` de Leaflet — mais pas sa
+mesure : Leaflet compare `|dx| + |dy|`, ici on ne compare que `|dy|`, la seule
+dimension qu'un point ait sur sa page. Les deux vues tranchent donc au même
+nombre sans trancher sur la même chose, et cette asymétrie a un coût — c'est
+elle qui rend atteignable la sortie latérale sous le seuil.
 
 Le tri se fait tout seul dans le flux : sous le seuil, rien n'est jamais émis, le
 flux se termine vide. **La suppression du clic qui suit devient donc « le flux
@@ -93,7 +95,10 @@ eventsOf(stack, 'pointerdown').pipe(
     filter(estDefinie),
     exhaustMap((depart) =>
         eventsOf(stack, 'pointermove').pipe(
-            takeUntil(eventsOf(stack, 'pointerup')),
+            // Sur le document, pas sur la pile : sans capture — qui n'est
+            // prise qu'au franchissement du seuil —, un relâchement hors de
+            // la pile ne la traverserait jamais, et le flux ne finirait pas.
+            takeUntil(eventsOf(stack.ownerDocument.documentElement, 'pointerup')),
             skipWhile((move) => ecart(move, depart) < SEUIL_DE_GLISSER),
             tap(poserLeRepere),
             takeLast(1),
