@@ -220,10 +220,10 @@ describe('suivi-screen', () => {
         it('alors l’aperçu montre autant de pages que la pile qui défile', async () => {
             const element = await attacherLEcran();
 
-            const pile = element.querySelectorAll('#suivi-stack schema-page');
-            const apercu = element.querySelectorAll('#overview-stack overview-page');
-            expect(apercu).toHaveLength(pile.length);
-            expect(apercu).toHaveLength(1);
+            const stack = element.querySelectorAll('#suivi-stack schema-page');
+            const overview = element.querySelectorAll('#overview-stack overview-page');
+            expect(overview).toHaveLength(stack.length);
+            expect(overview).toHaveLength(1);
         });
 
         it('alors l’aperçu n’ouvre aucune seconde image de la page', async () => {
