@@ -17,6 +17,7 @@ import {
 } from 'rxjs';
 import { Coordonnee } from '../../trajets/domain/Coordonnee';
 import { usableFix } from '../domain/precisionDuFix';
+import type { SourceStatus } from '../domain/sourceStatus';
 import {
     positionEvent,
     statusEvent,
@@ -97,6 +98,19 @@ function toCoordonnee(fix: GeolocationPosition): Coordonnee {
 }
 
 /**
+ * Ce qu'un fix trop grossier apprend quand même : de combien il l'est, **et où**.
+ * La coordonnée ne décide rien — `usableFix` a déjà refusé qu'elle cale la
+ * page —, mais elle situe, et une carte n'en demande pas plus.
+ */
+function impreciseStatus(fix: GeolocationPosition): SourceStatus {
+    return {
+        kind: 'imprecise',
+        imprecisionMetres: fix.coords.accuracy,
+        position: toCoordonnee(fix),
+    };
+}
+
+/**
  * Source de position branchée sur le GPS du navigateur.
  *
  * watchPosition (throttlé) plutôt que getCurrentPosition en boucle : pas de
@@ -163,8 +177,10 @@ export class GeolocationPositionSource implements PositionSource {
             concatMap((fix) => (usableFix(fix.coords.accuracy) ? of(fix) : EMPTY)),
             share(),
         );
-        const imprecisions$ = fixes$.pipe(
-            concatMap((fix) => (usableFix(fix.coords.accuracy) ? EMPTY : of(fix.coords.accuracy))),
+        // Le fix entier, et non sa seule imprécision : trop grossier pour caler
+        // la page ne veut pas dire sans valeur. Ce qui décide reste `usableFix`.
+        const coarseFixes$ = fixes$.pipe(
+            concatMap((fix) => (usableFix(fix.coords.accuracy) ? EMPTY : of(fix))),
             share(),
         );
 
@@ -189,11 +205,9 @@ export class GeolocationPositionSource implements PositionSource {
 
         return merge(
             positions$,
-            imprecisions$.pipe(
-                map((imprecisionMetres) => statusEvent({ kind: 'imprecise', imprecisionMetres })),
-            ),
+            coarseFixes$.pipe(map((fix) => statusEvent(impreciseStatus(fix)))),
             permissionDenied$,
-            this.watchdog(preciseFixes$, imprecisions$, permissionDenied$, restarts$),
+            this.watchdog(preciseFixes$, coarseFixes$, permissionDenied$, restarts$),
         ).pipe(
             // Le contrat le veut avant toute position : la source dit qu'elle
             // cherche, dès qu'on l'écoute.
@@ -216,7 +230,7 @@ export class GeolocationPositionSource implements PositionSource {
      */
     private watchdog(
         preciseFixes$: Observable<GeolocationPosition>,
-        imprecisions$: Observable<number>,
+        coarseFixes$: Observable<GeolocationPosition>,
         permissionDenied$: Observable<SourceEvent>,
         restarts$: Observable<unknown>,
     ): Observable<SourceEvent> {
@@ -233,13 +247,13 @@ export class GeolocationPositionSource implements PositionSource {
             ),
         );
 
-        // L'imprécision du dernier fix grossier, tant qu'elle est fraîche. Passé
-        // le silence toléré elle ne dit plus rien de l'instant : annoncer
-        // « ± 1 km » sur la foi d'un fix vieux d'une minute reviendrait à
-        // l'inventer, et on dit alors ce qu'on sait — le silence.
-        const freshImprecision$ = imprecisions$.pipe(
-            switchMap((imprecisionMetres) =>
-                concat(of(imprecisionMetres), timer(SILENCE_BEFORE_ALERT_MS).pipe(map(() => null))),
+        // Le dernier fix grossier, tant qu'il est frais. Passé le silence toléré
+        // il ne dit plus rien de l'instant : annoncer « ± 1 km » sur la foi d'un
+        // fix vieux d'une minute reviendrait à l'inventer — et poser un marqueur
+        // sur sa coordonnée reviendrait à inventer deux fois.
+        const freshCoarseFix$ = coarseFixes$.pipe(
+            switchMap((fix) =>
+                concat(of(fix), timer(SILENCE_BEFORE_ALERT_MS).pipe(map(() => null))),
             ),
             startWith(null),
         );
@@ -257,13 +271,13 @@ export class GeolocationPositionSource implements PositionSource {
         ).pipe(startWith(false));
 
         return silence$.pipe(
-            withLatestFrom(freshImprecision$, denied$),
+            withLatestFrom(freshCoarseFix$, denied$),
             filter(([, , denied]) => !denied),
-            map(([{ everFixed, ageMs }, imprecisionMetres]) => {
+            map(([{ everFixed, ageMs }, coarseFix]) => {
                 // Le GPS répond, mais trop grossièrement pour caler la page : le
                 // dire, plutôt que « signal perdu ».
-                if (imprecisionMetres !== null) {
-                    return statusEvent({ kind: 'imprecise', imprecisionMetres });
+                if (coarseFix !== null) {
+                    return statusEvent(impreciseStatus(coarseFix));
                 }
                 return statusEvent(everFixed ? { kind: 'perdue', ageMs } : { kind: 'attente' });
             }),

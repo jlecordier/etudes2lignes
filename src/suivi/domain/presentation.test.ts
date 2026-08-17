@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { Coordonnee } from '../../trajets/domain/Coordonnee';
 import { sourceStatusText, suiviStatusText } from './presentation';
 
 describe('suiviStatusText', () => {
@@ -36,15 +37,23 @@ describe('sourceStatusText', () => {
 
     describe('Étant donné un état « imprécise » à 2 400 m', () => {
         it('alors le texte donne l’imprécision en kilomètres arrondis', () => {
-            expect(sourceStatusText({ kind: 'imprecise', imprecisionMetres: 2_400 })).toBe(
-                'Position approximative (± 2 km) — trop imprécise pour caler la page.',
-            );
+            expect(
+                sourceStatusText({
+                    kind: 'imprecise',
+                    imprecisionMetres: 2_400,
+                    position: Coordonnee.create(46.58, 0.34),
+                }),
+            ).toBe('Position approximative (± 2 km) — trop imprécise pour caler la page.');
         });
 
         it('alors une imprécision inférieure au kilomètre s’annonce quand même « ± 1 km »', () => {
-            expect(sourceStatusText({ kind: 'imprecise', imprecisionMetres: 400 })).toBe(
-                'Position approximative (± 1 km) — trop imprécise pour caler la page.',
-            );
+            expect(
+                sourceStatusText({
+                    kind: 'imprecise',
+                    imprecisionMetres: 400,
+                    position: Coordonnee.create(46.58, 0.34),
+                }),
+            ).toBe('Position approximative (± 1 km) — trop imprécise pour caler la page.');
         });
     });
 

@@ -242,6 +242,25 @@ describe('GeolocationPositionSource', () => {
             expect(statuses(events).at(-1)).toEqual({
                 kind: 'imprecise',
                 imprecisionMetres: 5_000,
+                position: Coordonnee.create(46.58, 0.34),
+            });
+        });
+
+        it('alors la coordonnée du fix grossier survit : elle ne cale pas la page, mais elle situe', () => {
+            const testBed = unstartedSource();
+
+            const events = raconte(
+                [{ at: 1_000, fait: () => testBed.geolocation.emitFix(45.0, 1.5, 4_000) }],
+                5_000,
+                testBed,
+            );
+
+            const dernier = statuses(events).at(-1);
+            expect(dernier?.kind).toBe('imprecise');
+            expect(dernier).toEqual({
+                kind: 'imprecise',
+                imprecisionMetres: 4_000,
+                position: Coordonnee.create(45.0, 1.5),
             });
         });
 
@@ -262,6 +281,7 @@ describe('GeolocationPositionSource', () => {
             expect(statuses(events).at(-1)).toEqual({
                 kind: 'imprecise',
                 imprecisionMetres: 8_000,
+                position: Coordonnee.create(46.01, 0.11),
             });
         });
 
