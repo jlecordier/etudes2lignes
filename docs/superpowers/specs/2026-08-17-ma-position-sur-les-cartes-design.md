@@ -144,10 +144,17 @@ ouvrent deux sessions qui s'ignorent ») et sa suite de contrat le vérifie.
 
 Étant un `BehaviorSubject`, il rejoue sa dernière valeur **synchroniquement** à
 qui s'abonne : c'est ce qui fait marcher le cadrage « si déjà connue » sans le
-moindre test de nullité. Il est remis à `{ kind: 'inconnue', message: '' }` dans
-`resetSuivi`, avec les autres mémoires — sans quoi le bug déjà corrigé une fois
-reviendrait, cette fois sur une carte : une position simulée périmée lue comme la
-vraie.
+moindre test de nullité.
+
+La menace est connue et porte un nom : c'est le bug que `resetSuivi` a déjà
+corrigé une fois — une position simulée périmée relue comme la vraie —, et il
+reviendrait ici sur une carte. Mais **cette mémoire-là n'a rien à effacer**, et
+ce n'est pas un oubli : le contrat de `PositionSource` veut qu'une source
+_commence toujours par un état_, avant la moindre position. La source qui arrive
+annonce donc `attente`, ce qui écrase l'ancienne position d'elle-même, dans le
+même tour synchrone que la bascule. Une remise à zéro écrite en plus serait un
+mutant équivalent, et ce dépôt refuse d'en fabriquer. Ce qui protège la garantie
+dont elle dépend, c'est `positionSourceContract.ts`.
 
 L'écran d'édition, lui, gagne une dépendance `positionSource: PositionSource`,
 câblée dans `main.ts` sur le `realSource` déjà instancié. Une seule expression
