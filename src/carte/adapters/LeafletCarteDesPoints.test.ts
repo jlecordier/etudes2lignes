@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import * as L from 'leaflet';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { Subject } from 'rxjs';
 import { Coordonnee } from '../../trajets/domain/Coordonnee';
 import { newPointId, type PointId } from '../../trajets/domain/ids';
-import type { DisplayedPoint } from '../ports/CarteDesPointsPort';
+import type { DisplayedPoint, DisplayedPosition } from '../ports/CarteDesPointsPort';
 import { LeafletCarteDesPoints } from './LeafletCarteDesPoints';
 
 const PARIS = Coordonnee.create(48.8566, 2.3522);
@@ -93,6 +94,26 @@ function markers(carte: L.Map): L.Marker[] {
         }
     });
     return trouves;
+}
+
+function circles(carte: L.Map): L.Circle[] {
+    const trouves: L.Circle[] = [];
+    carte.eachLayer((couche) => {
+        if (couche instanceof L.Circle) {
+            trouves.push(couche);
+        }
+    });
+    return trouves;
+}
+
+/**
+ * Les marqueurs de « ma position », reconnus à la classe que la feuille de style
+ * vise — c'est-à-dire au seul signe qui compte pour l'utilisateur.
+ */
+function positionMarkers(carte: L.Map): L.Marker[] {
+    return markers(carte).filter(
+        (marker) => marker.getElement()?.classList.contains('carte-position-marker') === true,
+    );
 }
 
 beforeEach(() => {
@@ -322,6 +343,95 @@ describe('Carte des points de l’éditeur', () => {
             expect(moves.map(({ id, coordonnee }) => [id, coordonnee.longitude])).toEqual([
                 [aPoint.id, BORDEAUX.longitude],
             ]);
+        });
+    });
+
+    describe('Étant donné une position connue poussée dans le flux', () => {
+        it('alors un marqueur la montre, sans voler le cadrage', () => {
+            const { carteDesPoints, show, carte } = testBed();
+            show([point(1, PARIS)]);
+            const cadrage = { center: carte().getCenter(), zoom: carte().getZoom() };
+            const positions$ = new Subject<DisplayedPosition>();
+            carteDesPoints.showPosition(positions$);
+
+            positions$.next({ kind: 'connue', coordonnee: BORDEAUX });
+
+            expect(positionMarkers(carte()).map((marker) => marker.getLatLng().lat)).toEqual([
+                BORDEAUX.latitude,
+            ]);
+            expect(carte().getCenter()).toEqual(cadrage.center);
+            expect(carte().getZoom()).toBe(cadrage.zoom);
+        });
+    });
+
+    describe('Étant donné une position trop imprécise pour caler la page', () => {
+        it('alors elle est montrée quand même, cerclée de l’incertitude mesurée', () => {
+            const { carteDesPoints, show, carte } = testBed();
+            show([]);
+            const positions$ = new Subject<DisplayedPosition>();
+            carteDesPoints.showPosition(positions$);
+
+            positions$.next({
+                kind: 'approximative',
+                coordonnee: BORDEAUX,
+                imprecisionMetres: 8_000,
+                message: 'Position approximative (± 8 km).',
+            });
+
+            expect(positionMarkers(carte())).toHaveLength(1);
+            expect(circles(carte()).map((cercle) => cercle.getRadius())).toEqual([8_000]);
+        });
+    });
+
+    describe('Étant donné une position devenue inconnue', () => {
+        it('alors le marqueur et son cercle s’effacent tous les deux', () => {
+            const { carteDesPoints, show, carte } = testBed();
+            show([]);
+            const positions$ = new Subject<DisplayedPosition>();
+            carteDesPoints.showPosition(positions$);
+            positions$.next({
+                kind: 'approximative',
+                coordonnee: BORDEAUX,
+                imprecisionMetres: 8_000,
+                message: 'Position approximative (± 8 km).',
+            });
+
+            positions$.next({ kind: 'inconnue', message: 'Signal GPS perdu.' });
+
+            expect(positionMarkers(carte())).toEqual([]);
+            expect(circles(carte())).toEqual([]);
+        });
+    });
+
+    describe('Étant donné une position déjà connue, quand les points changent', () => {
+        it('alors le cadrage recalculé englobe les deux', () => {
+            const { carteDesPoints, carte } = testBed();
+            const positions$ = new Subject<DisplayedPosition>();
+            carteDesPoints.showPosition(positions$);
+            positions$.next({ kind: 'connue', coordonnee: BORDEAUX });
+
+            carteDesPoints.show(
+                [point(1, PARIS)],
+                () => undefined,
+                () => undefined,
+            );
+
+            const vue = carte().getBounds();
+            expect(vue.contains(L.latLng(PARIS.latitude, PARIS.longitude))).toBe(true);
+            expect(vue.contains(L.latLng(BORDEAUX.latitude, BORDEAUX.longitude))).toBe(true);
+        });
+    });
+
+    describe('Étant donné une carte qu’on démonte', () => {
+        it('alors elle n’écoute plus la position : plus personne n’observe le flux', () => {
+            const { carteDesPoints } = testBed();
+            const positions$ = new Subject<DisplayedPosition>();
+            carteDesPoints.showPosition(positions$);
+            expect(positions$.observed).toBe(true);
+
+            carteDesPoints.unmount();
+
+            expect(positions$.observed).toBe(false);
         });
     });
 

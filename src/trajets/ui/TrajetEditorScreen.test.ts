@@ -1,6 +1,11 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { CarteDesPoints, DisplayedPoint } from '../../carte/ports/CarteDesPointsPort';
+import type { Observable, Subscription } from 'rxjs';
+import type {
+    CarteDesPoints,
+    DisplayedPoint,
+    DisplayedPosition,
+} from '../../carte/ports/CarteDesPointsPort';
 import type { CoordonneeSelector } from '../../carte/ports/CoordonneeSelectorPort';
 import { requireElementAt } from '../../shared/array';
 import { query, queryAll } from '../../shared/dom';
@@ -91,6 +96,8 @@ class FakeCarteDesPoints implements CarteDesPoints {
     private readonly centres: Coordonnee[] = [];
     /** Journal ordonné des gestes demandés à la carte : remesure et centrage y écrivent chacun leur mot. */
     private readonly gestes: string[] = [];
+    private positionSubscription: Subscription | null = null;
+    private position: DisplayedPosition | null = null;
 
     mount(container: HTMLElement): void {
         this.container = container;
@@ -99,11 +106,25 @@ class FakeCarteDesPoints implements CarteDesPoints {
     unmount(): void {
         this.container = null;
         this.displayed = [];
+        this.positionSubscription?.unsubscribe();
+        this.positionSubscription = null;
     }
 
     show(points: readonly DisplayedPoint[], _onMove: unknown, onShow: (id: PointId) => void): void {
         this.displayed = points;
         this.onShow = onShow;
+    }
+
+    showPosition(position$: Observable<DisplayedPosition>): void {
+        this.positionSubscription?.unsubscribe();
+        this.positionSubscription = position$.subscribe((position) => {
+            this.position = position;
+        });
+    }
+
+    /** La dernière position que l'écran lui a donnée à montrer. */
+    displayedPosition(): DisplayedPosition | null {
+        return this.position;
     }
 
     resized(): void {

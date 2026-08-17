@@ -1,14 +1,19 @@
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Subject, firstValueFrom } from 'rxjs';
+import { Subject, firstValueFrom, type Observable, type Subscription } from 'rxjs';
 import type { Coordonnee } from '../../trajets/domain/Coordonnee';
 import type { PointId } from '../../trajets/domain/ids';
-import type { CarteDesPoints, DisplayedPoint } from '../ports/CarteDesPointsPort';
+import type {
+    CarteDesPoints,
+    DisplayedPoint,
+    DisplayedPosition,
+} from '../ports/CarteDesPointsPort';
 import { configureLeaflet } from './configureLeaflet';
 import { toCoordonnee, toLatLng } from './conversion';
 import { createOsmLayer, FRANCE_VIEW } from './osmLayer';
 import { numberedIcon } from './numberedIcon';
 import { centerOnCoordonnee, fitToPoints } from './fitting';
+import { PositionLayers } from './positionLayers';
 
 interface PlacedMarker {
     readonly marker: L.Marker;
@@ -33,6 +38,8 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
      */
     private readonly choix = new Subject<Coordonnee | null>();
     private teardown: AbortController | null = null;
+    private readonly positionLayers = new PositionLayers();
+    private positionSubscription: Subscription | null = null;
 
     /**
      * Monte la carte dans le conteneur que l'écran vient de créer.
@@ -73,6 +80,9 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
     /** Rend tout ce que la carte tenait. Se rappeler sans dommage. */
     unmount(): void {
         this.cancelChoice();
+        this.positionSubscription?.unsubscribe();
+        this.positionSubscription = null;
+        this.positionLayers.clear();
         this.teardown?.abort();
         this.teardown = null;
         this.markers.clear();
@@ -112,8 +122,21 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
             .join(',');
         if (ids !== this.displayedIds) {
             this.displayedIds = ids;
-            fitToPoints(carte, points, null);
+            fitToPoints(carte, points, this.positionLayers.coordonnee());
         }
+    }
+
+    /**
+     * S'abonner démarre, se désabonner arrête : l'abonnement meurt avec
+     * `unmount()`, et un nouvel appel referme le précédent — la carte n'écoute
+     * jamais deux flux à la fois.
+     */
+    showPosition(position$: Observable<DisplayedPosition>): void {
+        const carte = this.mountedCarte();
+        this.positionSubscription?.unsubscribe();
+        this.positionSubscription = position$.subscribe((position) => {
+            this.positionLayers.paint(carte, position);
+        });
     }
 
     /**

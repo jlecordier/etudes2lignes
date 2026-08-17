@@ -44,6 +44,8 @@ Légende : `U` = test unitaire (Vitest), `E` = test de bout en bout (Playwright)
 | GR-14 | Le repère laisse lire ce qu'il désigne : trait en pointillé, boutons au-dessus et non à cheval                                                 | `E e2e/points.spec.ts`                                                                    |
 | GR-15 | La pastille d'un point amène la carte sur lui ; sous 900 px, elle la met par-dessus le schéma ; pendant un placement, elle n'emmène nulle part | `U TrajetEditorScreen.test.ts`, `U LeafletCarteDesPoints.test.ts`, `E e2e/points.spec.ts` |
 | GR-16 | Glisser la pastille d'un point le déplace sur le schéma, page voisine comprise, sans que le clic qui suit emmène à la carte                    | `U dragPointOnStack.test.ts`, `U TrajetEditorScreen.test.ts`, `E e2e/points.spec.ts`      |
+| GR-18 | Une position trop imprécise pour caler la page s'affiche quand même, cerclée de son incertitude mesurée                                        | `U GeolocationPositionSource.test.ts`, `U LeafletCarteDesPoints.test.ts`                  |
+| GR-20 | Le cadrage englobe la position quand elle est déjà connue, et ne se refait jamais à l'arrivée d'une position                                   | `U fitting.test.ts`, `U LeafletCarteDesPoints.test.ts`                                    |
 
 ## Suivi
 

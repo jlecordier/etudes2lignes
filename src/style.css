@@ -22,6 +22,10 @@ body {
        commun. */
     --point-badge-size: 1.625rem;
     --point-line-thickness: 2px;
+
+    /* Le disque de « ma position ». Plus petit que la pastille d'un point : il
+       n'a pas de numéro à porter, et il ne doit pas couvrir ce qu'il côtoie. */
+    --position-badge-size: 1rem;
 }
 
 /* Un custom element est `inline` par défaut : les écrans-éléments doivent le
@@ -600,6 +604,38 @@ overview-page canvas {
 #carte-container .carte-marker {
     margin: calc(var(--point-badge-size) / -2) 0 0 calc(var(--point-badge-size) / -2);
     cursor: grab;
+}
+
+/* « Ma position » : un disque bleu cerclé de blanc — ni la pastille rouge
+   numérotée d'un point, ni l'épingle bleue du marqueur de sélection.
+
+   Même précaution de portée que la pastille : scopé sous son conteneur, parce
+   que leaflet.css arrive après dans le bundle et que son
+   `.leaflet-marker-icon { display: block }` écraserait un sélecteur de même
+   poids. Et même partage des rôles : la géométrie est ici, `positionLayers.ts`
+   neutralise l'`iconSize` pour ne pas l'écrire une seconde fois. */
+.carte-points .carte-position-marker,
+#carte-container .carte-position-marker {
+    width: var(--position-badge-size);
+    height: var(--position-badge-size);
+    background: #2563eb;
+    border: 3px solid white;
+    border-radius: 999px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    /* Tient le rôle de l'`iconAnchor` que Leaflet ne reçoit pas : le disque est
+       centré sur sa coordonnée, et non posé à sa droite. */
+    margin: calc(var(--position-badge-size) / -2) 0 0 calc(var(--position-badge-size) / -2);
+}
+
+/* Le cercle d'incertitude : une surface, pas un halo décoratif — c'est la zone
+   dans laquelle on se trouve réellement, au rayon que la source a mesuré. */
+.carte-points .carte-position-circle,
+#carte-container .carte-position-circle {
+    fill: #2563eb;
+    fill-opacity: 0.12;
+    stroke: #2563eb;
+    stroke-width: 1;
+    stroke-opacity: 0.5;
 }
 
 .awaiting-click,
