@@ -246,25 +246,25 @@ survit, et rouvrir la carte en mode GPS doit bien montrer le GPS.
 
 ## Ce qui bouge
 
-| Fichier                                                | Nature                                                                                     |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| `src/carte/ports/CarteDesPointsPort.ts`                | `DisplayedPosition` ; `showPosition(position$)` au port                                    |
-| `src/carte/ports/CoordonneeSelectorPort.ts`            | `choose` gagne `position$`, exigé ; au passage `choisir` → `choose` dans le contrat rédigé |
-| `src/carte/adapters/fitting.ts` + test                 | `fitToPoints` gagne la position                                                            |
-| `src/carte/adapters/positionMarker.ts` (nouveau)       | le `DivIcon` du marqueur et le cercle d'incertitude, communs aux deux cartes               |
-| `src/carte/adapters/LeafletCarteDesPoints.ts` + test   | `showPosition` ; marqueur, cercle ; l'abonnement meurt avec `unmount`                      |
-| `src/carte/adapters/LeafletCoordonneeSelector.ts` + t. | idem ; l'abonnement pend au `choix` ; barre et bouton câblés au constructeur               |
-| `src/suivi/domain/sourceStatus.ts`                     | `imprecise` porte la coordonnée qu'elle a mesurée                                          |
-| `src/suivi/adapters/GeolocationPositionSource.ts` + t. | `imprecisions$` garde le fix entier ; le chien de garde répète sa coordonnée               |
-| `src/suivi/ui/SuiviScreen.ts` + test                   | `maPosition$` rediffusé ; mode retenu ; `EMPTY` en simulation ; remise à zéro              |
-| `src/trajets/ui/TrajetEditorScreen.ts` + test          | `positionSource` injecté ; `carteRegardee$` ; barre de position ; écouteur `resize`        |
-| `src/trajets/ui/TrajetEditorScreen.html`               | la colonne de la carte et sa barre (message + bouton)                                      |
-| `src/main.ts`                                          | `realSource` injecté aussi dans l'éditeur                                                  |
-| `index.html`                                           | `.carte-bar` gagne le message et le bouton                                                 |
-| `src/style.css`                                        | marqueur, cercle, barre de position ; `.carte-ouverte` remonte sur la colonne              |
-| `docs/EXIGENCES.md`                                    | GR-17 à GR-23, CV-8                                                                        |
-| `docs/GLOSSAIRE.md`                                    | une ligne dans la table **Métier**, et rien d'autre (voir ci-dessous)                      |
-| `e2e/helpers.ts`, `e2e/gps.spec.ts`                    | la géolocalisation accordée, le marqueur relu                                              |
+| Fichier                                                | Nature                                                                                        |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| `src/carte/ports/CarteDesPointsPort.ts`                | `DisplayedPosition` ; `showPosition(position$)` au port                                       |
+| `src/carte/ports/CoordonneeSelectorPort.ts`            | `choose` gagne `position$`, exigé ; au passage `choisir` → `choose` dans le contrat rédigé    |
+| `src/carte/adapters/fitting.ts` + test                 | `fitToPoints` gagne la position                                                               |
+| `src/carte/adapters/positionLayers.ts` (nouveau)       | les couches de la position — disque et cercle —, posées par un seul code pour les deux cartes |
+| `src/carte/adapters/LeafletCarteDesPoints.ts` + test   | `showPosition` ; marqueur, cercle ; l'abonnement meurt avec `unmount`                         |
+| `src/carte/adapters/LeafletCoordonneeSelector.ts` + t. | idem ; l'abonnement pend au `choix` ; barre et bouton câblés au constructeur                  |
+| `src/suivi/domain/sourceStatus.ts`                     | `imprecise` porte la coordonnée qu'elle a mesurée                                             |
+| `src/suivi/adapters/GeolocationPositionSource.ts` + t. | `imprecisions$` garde le fix entier ; le chien de garde répète sa coordonnée                  |
+| `src/suivi/ui/SuiviScreen.ts` + test                   | `maPosition$` rediffusé ; mode retenu ; `EMPTY` en simulation ; remise à zéro                 |
+| `src/trajets/ui/TrajetEditorScreen.ts` + test          | `positionSource` injecté ; `carteRegardee$` ; barre de position ; écouteur `resize`           |
+| `src/trajets/ui/TrajetEditorScreen.html`               | la colonne de la carte et sa barre (message + bouton)                                         |
+| `src/main.ts`                                          | `realSource` injecté aussi dans l'éditeur                                                     |
+| `index.html`                                           | `.carte-bar` gagne le message et le bouton                                                    |
+| `src/style.css`                                        | marqueur, cercle, barre de position ; `.carte-ouverte` remonte sur la colonne                 |
+| `docs/EXIGENCES.md`                                    | GR-17 à GR-23, CV-8                                                                           |
+| `docs/GLOSSAIRE.md`                                    | une ligne dans la table **Métier**, et rien d'autre (voir ci-dessous)                         |
+| `e2e/helpers.ts`, `e2e/gps.spec.ts`                    | la géolocalisation accordée, le marqueur relu                                                 |
 
 **Piège de commit** : `LeafletCoordonneeSelector` fait ses `query` dans son
 constructeur, sur des éléments de `index.html`. Le fragment DOM de

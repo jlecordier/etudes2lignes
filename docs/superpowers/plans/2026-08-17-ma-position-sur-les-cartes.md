@@ -64,9 +64,9 @@ Elles s'appliquent à **toutes** les tâches, sans être répétées dans chacun
 
 **Créés**
 
-| Fichier                                | Responsabilité                                                                 |
-| -------------------------------------- | ------------------------------------------------------------------------------ |
-| `src/carte/adapters/positionMarker.ts` | le disque de « ma position » et son cercle d'incertitude, pour les deux cartes |
+| Fichier                                | Responsabilité                                                                                        |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `src/carte/adapters/positionLayers.ts` | les couches de « ma position » — disque et cercle —, posées par **un seul** code pour les deux cartes |
 
 **Modifiés**
 
@@ -429,7 +429,7 @@ ni identifiant ni numéro, et lui en fabriquer un serait un mensonge."
 **Fichiers :**
 
 - Modifier : `src/carte/ports/CarteDesPointsPort.ts`
-- Créer : `src/carte/adapters/positionMarker.ts`
+- Créer : `src/carte/adapters/positionLayers.ts`
 - Modifier : `src/carte/adapters/LeafletCarteDesPoints.ts`
 - Tester : `src/carte/adapters/LeafletCarteDesPoints.test.ts`
 - Modifier : `src/style.css`
@@ -443,9 +443,11 @@ ni identifiant ni numéro, et lui en fabriquer un serait un mensonge."
     - `type DisplayedPosition = { kind: 'connue'; coordonnee } | { kind: 'approximative'; coordonnee; imprecisionMetres; message } | { kind: 'inconnue'; message }`
       dans `src/carte/ports/CarteDesPointsPort.ts` ;
     - `CarteDesPoints.showPosition(position$: Observable<DisplayedPosition>): void` ;
-    - `createPositionMarker(coordonnee: Coordonnee): L.Marker` et
-      `createImprecisionCircle(coordonnee: Coordonnee, imprecisionMetres: number): L.Circle`
-      dans `src/carte/adapters/positionMarker.ts` — la tâche 4 s'en sert aussi.
+    - la classe `PositionLayers` dans `src/carte/adapters/positionLayers.ts`,
+      avec `paint(carte: L.Map, position: DisplayedPosition): void`, `clear(): void`
+      et `coordonnee(): Coordonnee | null`. **La tâche 4 s'en sert aussi**, et
+      c'est tout l'intérêt : les deux cartes posent leurs couches par le même
+      code, comme elles cadrent déjà par le même `fitToPoints`.
 
 - [ ] **Étape 1 : écrire les tests qui échouent**
 
@@ -626,17 +628,21 @@ Ajouter enfin au contrat rédigé en JSDoc de l'interface, après le point sur
  *   quand il se calcule. `inconnue` retire le marqueur.
 ```
 
-- [ ] **Étape 4 : le symbole et son cercle**
+- [ ] **Étape 4 : les couches de la position, écrites une fois pour les deux cartes**
 
-Créer `src/carte/adapters/positionMarker.ts` :
+Créer `src/carte/adapters/positionLayers.ts`. Les deux fabriques restent
+**privées au module** : rien hors d'ici n'a de raison de poser un marqueur de
+position à la main, et c'est ce qui garantit que les deux cartes ne pourront pas
+diverger — la leçon que `fitting.ts` porte déjà dans son en-tête.
 
 ```ts
 import * as L from 'leaflet';
 import type { Coordonnee } from '../../trajets/domain/Coordonnee';
+import type { DisplayedPosition } from '../ports/CarteDesPointsPort';
 import { toLatLng } from './conversion';
 
 /**
- * Le disque de « ma position », commun aux deux cartes.
+ * Le disque de « ma position ».
  *
  * Même règle que `numberedIcon`, et pour la même raison : `iconSize: undefined`
  * neutralise le `[12, 12]` que `DivIcon` inscrirait en style inline — lequel
@@ -653,28 +659,65 @@ function positionIcon(): L.DivIcon {
 }
 
 /**
- * Le marqueur de la position : **non interactif**, comme les repères et pour la
- * raison que le port écrit déjà — cliquer dessus doit revenir à cliquer la carte
- * à cet endroit, sans quoi il volerait le geste qui désigne une coordonnée.
+ * Les couches de « ma position » sur une carte : le disque, et le cercle
+ * d'incertitude quand la position en porte une.
+ *
+ * Posées et retirées ensemble, par **un seul** code pour les deux cartes. C'est
+ * exactement ce que `fitting.ts` a fait pour le cadrage, et pour la raison
+ * écrite dans son en-tête : les deux adapters avaient divergé, et le cadrage
+ * changeait selon l'écran.
  */
-export function createPositionMarker(coordonnee: Coordonnee): L.Marker {
-    return L.marker(toLatLng(coordonnee), { icon: positionIcon(), interactive: false });
-}
+export class PositionLayers {
+    private marker: L.Marker | null = null;
+    private circle: L.Circle | null = null;
+    private shown: Coordonnee | null = null;
 
-/**
- * Le cercle d'incertitude, au rayon que la source a mesuré — en mètres, ce que
- * `L.circle` attend. Il n'existe que pour une position approximative : une
- * position acceptée ne transporte aucune mesure d'incertitude.
- */
-export function createImprecisionCircle(
-    coordonnee: Coordonnee,
-    imprecisionMetres: number,
-): L.Circle {
-    return L.circle(toLatLng(coordonnee), {
-        radius: imprecisionMetres,
-        className: 'carte-position-circle',
-        interactive: false,
-    });
+    /** La coordonnée actuellement montrée, ou `null` — ce que le cadrage doit connaître. */
+    coordonnee(): Coordonnee | null {
+        return this.shown;
+    }
+
+    /**
+     * Refait les couches plutôt que de les déplacer : au mieux une position
+     * toutes les dix secondes, et un cercle change de rayon aussi souvent que de
+     * centre.
+     *
+     * Aucun recadrage ici, délibérément : une position qui arrive ne vole pas le
+     * cadrage. C'est le cadrage qui va la chercher, quand il se calcule.
+     */
+    paint(carte: L.Map, position: DisplayedPosition): void {
+        this.clear();
+        if (position.kind === 'inconnue') {
+            return;
+        }
+        this.shown = position.coordonnee;
+        // Non interactif, comme les repères et pour la raison que le port écrit
+        // déjà : cliquer dessus doit revenir à cliquer la carte à cet endroit,
+        // sans quoi il volerait le geste qui désigne une coordonnée.
+        this.marker = L.marker(toLatLng(position.coordonnee), {
+            icon: positionIcon(),
+            interactive: false,
+        }).addTo(carte);
+        if (position.kind === 'approximative') {
+            // Le rayon que la source a mesuré, en mètres — ce que `L.circle`
+            // attend. Une position acceptée n'en transporte aucune, et en
+            // inventer une serait mentir.
+            this.circle = L.circle(toLatLng(position.coordonnee), {
+                radius: position.imprecisionMetres,
+                className: 'carte-position-circle',
+                interactive: false,
+            }).addTo(carte);
+        }
+    }
+
+    /** Rend tout ce que la position tenait. Se rappeler sans dommage. */
+    clear(): void {
+        this.marker?.remove();
+        this.marker = null;
+        this.circle?.remove();
+        this.circle = null;
+        this.shown = null;
+    }
 }
 ```
 
@@ -689,20 +732,17 @@ import type {
     DisplayedPoint,
     DisplayedPosition,
 } from '../ports/CarteDesPointsPort';
-import { createImprecisionCircle, createPositionMarker } from './positionMarker';
+import { PositionLayers } from './positionLayers';
 ```
 
-Ajouter les quatre champs, après `private teardown`:
+Ajouter les deux champs, après `private teardown` :
 
 ```ts
-    private positionMarker: L.Marker | null = null;
-    private imprecisionCircle: L.Circle | null = null;
-    /** La position telle que le cadrage doit la connaître — pas les couches. */
-    private position: Coordonnee | null = null;
+    private readonly positionLayers = new PositionLayers();
     private positionSubscription: Subscription | null = null;
 ```
 
-Ajouter les deux méthodes, après `show` :
+Ajouter la méthode, après `show` :
 
 ```ts
     /**
@@ -714,55 +754,27 @@ Ajouter les deux méthodes, après `show` :
         const carte = this.mountedCarte();
         this.positionSubscription?.unsubscribe();
         this.positionSubscription = position$.subscribe((position) => {
-            this.paintPosition(carte, position);
+            this.positionLayers.paint(carte, position);
         });
     }
-
-    /**
-     * Pose, déplace ou retire les deux marques de la position. Les couches sont
-     * refaites plutôt que déplacées : au mieux une position toutes les dix
-     * secondes, et un cercle change de rayon aussi souvent que de centre.
-     *
-     * Aucun recadrage ici, délibérément : une position qui arrive ne vole pas le
-     * cadrage. C'est `show` qui va la chercher, quand il en calcule un.
-     */
-    private paintPosition(carte: L.Map, position: DisplayedPosition): void {
-        this.positionMarker?.remove();
-        this.positionMarker = null;
-        this.imprecisionCircle?.remove();
-        this.imprecisionCircle = null;
-        if (position.kind === 'inconnue') {
-            this.position = null;
-            return;
-        }
-        this.position = position.coordonnee;
-        this.positionMarker = createPositionMarker(position.coordonnee).addTo(carte);
-        if (position.kind === 'approximative') {
-            this.imprecisionCircle = createImprecisionCircle(
-                position.coordonnee,
-                position.imprecisionMetres,
-            ).addTo(carte);
-        }
-    }
 ```
 
-Dans `show`, le cadrage passe la position détenue :
+Dans `show`, le cadrage demande aux couches ce qu'elles montrent :
 
 ```ts
-fitToPoints(carte, points, this.position);
+fitToPoints(carte, points, this.positionLayers.coordonnee());
 ```
 
-Et `unmount` rend ce qu'il tient de plus — la carte emporte les couches avec
-elle, il ne reste que l'abonnement et la mémoire :
+Et `unmount` rend ce qu'il tient de plus. **L'ordre compte** : les couches se
+retirent avant que la carte ne parte, sinon elles resteraient accrochées à une
+carte détruite :
 
 ```ts
     unmount(): void {
         this.cancelChoice();
         this.positionSubscription?.unsubscribe();
         this.positionSubscription = null;
-        this.positionMarker = null;
-        this.imprecisionCircle = null;
-        this.position = null;
+        this.positionLayers.clear();
         this.teardown?.abort();
         this.teardown = null;
         this.markers.clear();
@@ -794,7 +806,7 @@ qui porte la marge négative (vers la ligne 599) :
    Même précaution de portée que la pastille : scopé sous son conteneur, parce
    que leaflet.css arrive après dans le bundle et que son
    `.leaflet-marker-icon { display: block }` écraserait un sélecteur de même
-   poids. Et même partage des rôles : la géométrie est ici, `positionMarker.ts`
+   poids. Et même partage des rôles : la géométrie est ici, `positionLayers.ts`
    neutralise l'`iconSize` pour ne pas l'écrire une seconde fois. */
 .carte-points .carte-position-marker,
 #carte-container .carte-position-marker {
@@ -904,7 +916,7 @@ suivi existe."
 
 **Interfaces :**
 
-- Consomme : `DisplayedPosition`, `createPositionMarker`, `createImprecisionCircle` (tâche 3) ;
+- Consomme : `DisplayedPosition` et la classe `PositionLayers` (tâche 3) ;
   `fitToPoints(carte, points, position)` (tâche 2).
 - Produit : `CoordonneeSelector.choose(initialCoordonnee, reperes, position$)`.
   Les tâches 5 et 6 lui passent leur flux.
@@ -1155,7 +1167,7 @@ export interface CoordonneeSelector {
 ```ts
 import { Subject, firstValueFrom, takeUntil, type Observable } from 'rxjs';
 import type { DisplayedPoint, DisplayedPosition } from '../ports/CarteDesPointsPort';
-import { createImprecisionCircle, createPositionMarker } from './positionMarker';
+import { PositionLayers } from './positionLayers';
 ```
 
 Champs, après `confirmButton` :
@@ -1163,9 +1175,7 @@ Champs, après `confirmButton` :
 ```ts
     private readonly positionStatus = query('#carte-position-status', HTMLParagraphElement);
     private readonly positionButton = query('#carte-position-button', HTMLButtonElement);
-    private position: Coordonnee | null = null;
-    private positionMarker: L.Marker | null = null;
-    private imprecisionCircle: L.Circle | null = null;
+    private readonly positionLayers = new PositionLayers();
 ```
 
 Constructeur — un écouteur de plus, à la suite des trois autres :
@@ -1199,7 +1209,7 @@ this.positionButton.addEventListener('click', () => {
         });
         if (initialCoordonnee === null) {
             // Se situer par rapport au trajet : recadrer sur ses points.
-            fitToPoints(carte, reperes, this.position);
+            fitToPoints(carte, reperes, this.positionLayers.coordonnee());
         } else {
             this.placeMarker(initialCoordonnee);
             centerOnCoordonnee(carte, initialCoordonnee);
@@ -1214,29 +1224,15 @@ Les trois méthodes qui vont avec, après `placeReperes` :
 
 ```ts
     /**
-     * Les deux marques de la position, et la phrase qui les remplace quand il
-     * n'y en a pas. Refaites plutôt que déplacées : au mieux une position toutes
-     * les dix secondes, et un cercle change de rayon aussi souvent que de centre.
+     * Ce que cette carte ajoute aux couches : la barre. Les marques elles-mêmes
+     * sont posées par le même code que sur la carte de l'éditeur — c'est ce qui
+     * empêche les deux de diverger, comme `fitToPoints` pour le cadrage.
      */
     private paintPosition(carte: L.Map, position: DisplayedPosition): void {
-        this.positionMarker?.remove();
-        this.positionMarker = null;
-        this.imprecisionCircle?.remove();
-        this.imprecisionCircle = null;
-        this.position = position.kind === 'inconnue' ? null : position.coordonnee;
-        this.positionButton.disabled = this.position === null;
+        this.positionLayers.paint(carte, position);
+        this.positionButton.disabled = this.positionLayers.coordonnee() === null;
         this.positionStatus.textContent = position.kind === 'connue' ? '' : position.message;
         this.positionStatus.hidden = position.kind === 'connue' || position.message === '';
-        if (this.position === null) {
-            return;
-        }
-        this.positionMarker = createPositionMarker(this.position).addTo(carte);
-        if (position.kind === 'approximative') {
-            this.imprecisionCircle = createImprecisionCircle(
-                this.position,
-                position.imprecisionMetres,
-            ).addTo(carte);
-        }
     }
 
     /**
@@ -1245,7 +1241,7 @@ Les trois méthodes qui vont avec, après `placeReperes` :
      * la main à voler.
      */
     private goToPosition(): void {
-        const position = this.position;
+        const position = this.positionLayers.coordonnee();
         if (position === null) {
             return;
         }
@@ -1254,11 +1250,7 @@ Les trois méthodes qui vont avec, après `placeReperes` :
 
     /** Ce que la position laisse derrière elle quand le choix se termine. */
     private clearPosition(): void {
-        this.positionMarker?.remove();
-        this.positionMarker = null;
-        this.imprecisionCircle?.remove();
-        this.imprecisionCircle = null;
-        this.position = null;
+        this.positionLayers.clear();
         this.positionButton.disabled = true;
         this.positionStatus.textContent = '';
         this.positionStatus.hidden = true;
