@@ -51,7 +51,7 @@ export class LeafletCoordonneeSelector implements CoordonneeSelector {
         this.placeReperes(reperes);
         if (initialCoordonnee === null) {
             // Se situer par rapport au trajet : recadrer sur ses points.
-            fitToPoints(carte, reperes);
+            fitToPoints(carte, reperes, null);
         } else {
             this.placeMarker(initialCoordonnee);
             centerOnCoordonnee(carte, initialCoordonnee);

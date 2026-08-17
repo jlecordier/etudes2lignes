@@ -112,7 +112,7 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
             .join(',');
         if (ids !== this.displayedIds) {
             this.displayedIds = ids;
-            fitToPoints(carte, points);
+            fitToPoints(carte, points, null);
         }
     }
 

@@ -19,16 +19,32 @@ const SINGLE_POINT_ZOOM = 12;
 const FIT_PADDING: [number, number] = [40, 40];
 
 /**
- * Cadre la carte sur tous les points donnés — sur la France entière quand il
- * n'y en a aucun. Un seul cadrage pour toutes les cartes de l'appli : les deux
+ * Cadre la carte sur tous les points donnés **et sur la position de
+ * l'utilisateur quand on la connaît** — sur la France entière quand il n'y a ni
+ * l'un ni l'autre. Un seul cadrage pour toutes les cartes de l'appli : les deux
  * adapters divergeaient, ce qui donnait un cadrage différent selon l'écran.
+ *
+ * La position est un troisième paramètre, et non un `DisplayedPoint` de plus :
+ * elle n'a ni identifiant ni numéro, et lui en fabriquer un serait un mensonge.
+ *
+ * Le cadrage n'utilise que ce qu'on sait à l'instant où il se calcule : une
+ * position qui arrive ensuite ne le refait pas — un saut deux secondes après
+ * l'ouverture, pour ce que le bouton « Ma position » donne à la demande.
  */
-export function fitToPoints(carte: L.Map, points: readonly DisplayedPoint[]): void {
-    if (points.length === 0) {
+export function fitToPoints(
+    carte: L.Map,
+    points: readonly DisplayedPoint[],
+    position: Coordonnee | null,
+): void {
+    const coordonnees = points.map((point) => point.coordonnee);
+    if (position !== null) {
+        coordonnees.push(position);
+    }
+    if (coordonnees.length === 0) {
         carte.setView(FRANCE_VIEW.center, FRANCE_VIEW.zoom, { animate: false });
         return;
     }
-    const bounds = L.latLngBounds(points.map((point) => toLatLng(point.coordonnee)));
+    const bounds = L.latLngBounds(coordonnees.map((coordonnee) => toLatLng(coordonnee)));
     carte.fitBounds(bounds, {
         padding: FIT_PADDING,
         maxZoom: SINGLE_POINT_ZOOM,
