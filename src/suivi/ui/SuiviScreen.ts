@@ -1,4 +1,4 @@
-import { Subject, merge, switchMap, takeUntil, tap } from 'rxjs';
+import { EMPTY, Subject, merge, switchMap, takeUntil, tap } from 'rxjs';
 import type { DisplayedPoint } from '../../carte/ports/CarteDesPointsPort';
 import type { CoordonneeSelector } from '../../carte/ports/CoordonneeSelectorPort';
 import { query, queryAll } from '../../shared/dom';
@@ -463,7 +463,11 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
         let coordonnee: Coordonnee | null;
         try {
             // Les points du trajet servent de repères pour viser une position.
-            coordonnee = await coordonneeSelector.choose(simulation.lastPosition, trajetReperes());
+            coordonnee = await coordonneeSelector.choose(
+                simulation.lastPosition,
+                trajetReperes(),
+                EMPTY,
+            );
         } finally {
             activeCoordonneeChoice = false;
         }

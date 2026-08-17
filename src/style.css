@@ -675,6 +675,17 @@ overview-page canvas {
     width: 8rem;
 }
 
+/* La phrase qui dit pourquoi la position manque prend sa propre ligne, en tête
+   de barre (`flex-wrap` est déjà posé plus haut). Elle a sa raison d'être ici et
+   nulle part ailleurs : cette carte recouvre l'écran de suivi, donc sa ligne
+   d'état avec — sans cette phrase, l'absence de marqueur ne s'expliquerait pas. */
+.carte-position-status {
+    flex: 1 0 100%;
+    margin: 0;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
 /* Écran de suivi */
 suivi-screen {
     padding: 0;

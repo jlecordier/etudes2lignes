@@ -26,6 +26,7 @@
         <section id="screen-carte" class="screen-carte" hidden>
             <div id="carte-container"></div>
             <div class="carte-bar">
+                <p id="carte-position-status" class="carte-position-status" hidden></p>
                 <input
                     id="latitude-input"
                     type="number"
@@ -43,6 +44,17 @@
                     aria-label="Longitude"
                 />
                 <button id="manual-place-button" type="button" class="secondary">📌 Placer</button>
+                <!-- Le libellé disparaît sous 560 px : c'est `aria-label` qui
+                     empêche le bouton de s'annoncer « 🎯 ». -->
+                <button
+                    id="carte-position-button"
+                    type="button"
+                    class="secondary"
+                    aria-label="Ma position"
+                    disabled
+                >
+                    🎯<span class="button-label">Ma position</span>
+                </button>
                 <button id="cancel-carte-button" type="button" class="secondary">✖️ Annuler</button>
                 <button id="confirm-carte-button" type="button" disabled>✅ Valider</button>
             </div>

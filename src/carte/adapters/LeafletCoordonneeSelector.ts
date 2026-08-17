@@ -1,15 +1,16 @@
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Subject, firstValueFrom } from 'rxjs';
+import { Subject, firstValueFrom, takeUntil, type Observable } from 'rxjs';
 import { query } from '../../shared/dom';
 import type { Coordonnee } from '../../trajets/domain/Coordonnee';
-import type { DisplayedPoint } from '../ports/CarteDesPointsPort';
+import type { DisplayedPoint, DisplayedPosition } from '../ports/CarteDesPointsPort';
 import type { CoordonneeSelector } from '../ports/CoordonneeSelectorPort';
 import { configureLeaflet } from './configureLeaflet';
 import { toCoordonnee, toLatLng } from './conversion';
 import { createOsmLayer } from './osmLayer';
 import { numberedIcon } from './numberedIcon';
 import { centerOnCoordonnee, fitToPoints } from './fitting';
+import { PositionLayers } from './positionLayers';
 import { INPUT_HINT, coordonneeFromInputs } from './saisieDeCoordonnee';
 
 /** Carte Leaflet plein écran (tuiles OSM) pour choisir une coordonnée. */
@@ -28,6 +29,9 @@ export class LeafletCoordonneeSelector implements CoordonneeSelector {
     private readonly latitudeInput = query('#latitude-input', HTMLInputElement);
     private readonly longitudeInput = query('#longitude-input', HTMLInputElement);
     private readonly confirmButton = query('#confirm-carte-button', HTMLButtonElement);
+    private readonly positionStatus = query('#carte-position-status', HTMLParagraphElement);
+    private readonly positionButton = query('#carte-position-button', HTMLButtonElement);
+    private readonly positionLayers = new PositionLayers();
 
     constructor() {
         query('#cancel-carte-button', HTMLButtonElement).addEventListener('click', () => {
@@ -39,27 +43,38 @@ export class LeafletCoordonneeSelector implements CoordonneeSelector {
         query('#manual-place-button', HTMLButtonElement).addEventListener('click', () => {
             this.placeFromInputs();
         });
+        this.positionButton.addEventListener('click', () => {
+            this.goToPosition();
+        });
     }
 
     choose(
         initialCoordonnee: Coordonnee | null,
         reperes: readonly DisplayedPoint[],
+        position$: Observable<DisplayedPosition>,
     ): Promise<Coordonnee | null> {
         this.screen.hidden = false;
         const carte = this.initializedCarte();
         this.clearSelection();
         this.placeReperes(reperes);
+        // **Avant** le cadrage : un flux qui garde sa dernière valeur la rejoue
+        // ici même, si bien que le cadrage la trouve déjà connue — c'est tout ce
+        // que « seulement si déjà connue » demande, sans un seul test de nullité.
+        // L'abonnement pend au choix : le geste qui le termine le referme, il
+        // n'y en a pas deux à faire, et rien ne survit à une carte qu'on ne
+        // détruit jamais.
+        position$.pipe(takeUntil(this.choix)).subscribe((position) => {
+            this.paintPosition(carte, position);
+        });
         if (initialCoordonnee === null) {
             // Se situer par rapport au trajet : recadrer sur ses points.
-            fitToPoints(carte, reperes, null);
+            fitToPoints(carte, reperes, this.positionLayers.coordonnee());
         } else {
             this.placeMarker(initialCoordonnee);
             centerOnCoordonnee(carte, initialCoordonnee);
         }
         // La carte vient d'être dévoilée : Leaflet doit remesurer son conteneur.
         setTimeout(() => carte.invalidateSize(), 0);
-        // La première valeur poussée termine l'attente, et le désabonnement suit
-        // tout seul : il n'y a rien à remettre à zéro.
         return firstValueFrom(this.choix);
     }
 
@@ -132,6 +147,39 @@ export class LeafletCoordonneeSelector implements CoordonneeSelector {
         );
     }
 
+    /**
+     * Ce que cette carte ajoute aux couches : la barre. Les marques elles-mêmes
+     * sont posées par le même code que sur la carte de l'éditeur — c'est ce qui
+     * empêche les deux de diverger, comme `fitToPoints` pour le cadrage.
+     */
+    private paintPosition(carte: L.Map, position: DisplayedPosition): void {
+        this.positionLayers.paint(carte, position);
+        this.positionButton.disabled = this.positionLayers.coordonnee() === null;
+        this.positionStatus.textContent = position.kind === 'connue' ? '' : position.message;
+        this.positionStatus.hidden = position.kind === 'connue' || position.message === '';
+    }
+
+    /**
+     * Le cadrage ne bouge jamais tout seul ; ici on le lui demande. Même zoom que
+     * « aller au point » : on arrive d'ailleurs, il n'y a pas d'échelle réglée à
+     * la main à voler.
+     */
+    private goToPosition(): void {
+        const position = this.positionLayers.coordonnee();
+        if (position === null) {
+            return;
+        }
+        centerOnCoordonnee(this.initializedCarte(), position);
+    }
+
+    /** Ce que la position laisse derrière elle quand le choix se termine. */
+    private clearPosition(): void {
+        this.positionLayers.clear();
+        this.positionButton.disabled = true;
+        this.positionStatus.textContent = '';
+        this.positionStatus.hidden = true;
+    }
+
     private clearSelection(): void {
         this.marker?.remove();
         this.marker = null;
@@ -142,6 +190,7 @@ export class LeafletCoordonneeSelector implements CoordonneeSelector {
 
     private terminer(result: Coordonnee | null): void {
         this.screen.hidden = true;
+        this.clearPosition();
         this.choix.next(result);
     }
 }

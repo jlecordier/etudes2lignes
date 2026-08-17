@@ -1,4 +1,4 @@
-import { merge, take, takeUntil } from 'rxjs';
+import { EMPTY, merge, take, takeUntil } from 'rxjs';
 import type { CarteDesPoints, DisplayedPoint } from '../../carte/ports/CarteDesPointsPort';
 import type { CoordonneeSelector } from '../../carte/ports/CoordonneeSelectorPort';
 import { query, queryAll } from '../../shared/dom';
@@ -383,7 +383,7 @@ function mount(
             trajet === null ? [] : trajet.numberedPointsInOrdreDuVoyage(),
         );
         if (!isLargeScreen()) {
-            return coordonneeSelector.choose(initial, reperes);
+            return coordonneeSelector.choose(initial, reperes, EMPTY);
         }
         hintText.textContent = 'Cliquez la coordonnée sur la carte…';
         hintBanner.hidden = false;
