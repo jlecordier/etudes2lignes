@@ -7,6 +7,7 @@ import {
     currentScroll,
     requireDefined,
     ouvrirUnTrajetAvecUnePage,
+    isLargeScreen,
 } from './helpers';
 
 // Géolocalisation mockée : la position du navigateur est pilotée par le test.
@@ -72,5 +73,34 @@ test.describe('Suivi avec le GPS du navigateur (mocké)', () => {
 
         // Le dernier fix vient d'arriver : l'état d'erreur est effacé.
         await expect(page.locator('#suivi-status')).toHaveText('', { timeout: 10_000 });
+    });
+
+    test("Étant donné ma position accordée, quand j'ouvre la carte de l'éditeur, alors mon marqueur y est", async ({
+        page,
+    }) => {
+        await ouvrirUnTrajetAvecUnePage(page);
+        await ajouterUnPoint(page, 0.8, 0);
+
+        // Sous 900 px la carte est repliée — et le GPS avec elle, délibérément.
+        if (!(await isLargeScreen(page))) {
+            await page.locator('#carte-button').click();
+        }
+
+        await expect(page.locator('#carte-points .carte-position-marker')).toBeVisible();
+        await expect(page.locator('#editor-position-button')).toBeEnabled();
+    });
+
+    test("Étant donné le suivi au GPS, quand j'ouvre la carte pour simuler, alors mon marqueur y est", async ({
+        page,
+    }) => {
+        await ouvrirUnTrajetAvecUnePage(page);
+        await ajouterUnPoint(page, 0.8, 0);
+        await ajouterUnPoint(page, 0.2, 150);
+        await page.getByRole('button', { name: 'Suivre' }).click();
+
+        await page.locator('#simuler-button').click();
+
+        await expect(page.locator('#screen-carte')).toBeVisible();
+        await expect(page.locator('#carte-container .carte-position-marker')).toBeVisible();
     });
 });
