@@ -41,6 +41,17 @@ function positionMarkers(carte: L.Map): L.Marker[] {
     return trouves;
 }
 
+/** Les cercles d'incertitude posés sur la carte : un fix grossier en porte un. */
+function positionCircles(carte: L.Map): L.Circle[] {
+    const trouves: L.Circle[] = [];
+    carte.eachLayer((couche) => {
+        if (couche instanceof L.Circle) {
+            trouves.push(couche);
+        }
+    });
+    return trouves;
+}
+
 /** L'écran de carte de index.html, réduit à ce dont l'adapter a besoin. */
 function mountCarteScreenDom(): void {
     document.body.innerHTML = `
@@ -161,78 +172,107 @@ describe("Carte plein écran de choix d'une coordonnée", () => {
             expect(await second).toBeNull();
         });
     });
-});
 
-describe("Étant donné une position connue avant l'ouverture", () => {
-    it("alors elle est montrée, et le cadrage d'ouverture l'englobe", async () => {
-        const selector = new LeafletCoordonneeSelector();
-        const positions$ = new BehaviorSubject<DisplayedPosition>({
-            kind: 'connue',
-            coordonnee: BORDEAUX,
+    describe("Étant donné une position connue avant l'ouverture", () => {
+        it("alors elle est montrée, et le cadrage d'ouverture l'englobe", async () => {
+            const selector = new LeafletCoordonneeSelector();
+            const positions$ = new BehaviorSubject<DisplayedPosition>({
+                kind: 'connue',
+                coordonnee: BORDEAUX,
+            });
+
+            const choice = selector.choose(null, [], positions$);
+
+            expect(
+                positionMarkers(carteCourante()).map((marker) => marker.getLatLng().lat),
+            ).toEqual([BORDEAUX.latitude]);
+            expect(carteCourante().getCenter().lat).toBeCloseTo(BORDEAUX.latitude, 4);
+            button('#cancel-carte-button').click();
+            expect(await choice).toBeNull();
         });
-
-        const choice = selector.choose(null, [], positions$);
-
-        expect(positionMarkers(carteCourante()).map((marker) => marker.getLatLng().lat)).toEqual([
-            BORDEAUX.latitude,
-        ]);
-        expect(carteCourante().getCenter().lat).toBeCloseTo(BORDEAUX.latitude, 4);
-        button('#cancel-carte-button').click();
-        expect(await choice).toBeNull();
     });
-});
 
-describe('Étant donné une position inconnue', () => {
-    it('alors aucun marqueur, mais la phrase qui dit pourquoi', async () => {
-        const selector = new LeafletCoordonneeSelector();
-        const positions$ = new BehaviorSubject<DisplayedPosition>({
-            kind: 'inconnue',
-            message: 'Accès à la position refusé.',
+    describe('Étant donné une position inconnue', () => {
+        it('alors aucun marqueur, mais la phrase qui dit pourquoi', async () => {
+            const selector = new LeafletCoordonneeSelector();
+            const positions$ = new BehaviorSubject<DisplayedPosition>({
+                kind: 'inconnue',
+                message: 'Accès à la position refusé.',
+            });
+
+            const choice = selector.choose(null, [], positions$);
+
+            expect(positionMarkers(carteCourante())).toEqual([]);
+            expect(query('#carte-position-status', HTMLParagraphElement).textContent).toBe(
+                'Accès à la position refusé.',
+            );
+            expect(button('#carte-position-button').disabled).toBe(true);
+            button('#cancel-carte-button').click();
+            expect(await choice).toBeNull();
         });
-
-        const choice = selector.choose(null, [], positions$);
-
-        expect(positionMarkers(carteCourante())).toEqual([]);
-        expect(query('#carte-position-status', HTMLParagraphElement).textContent).toBe(
-            'Accès à la position refusé.',
-        );
-        expect(button('#carte-position-button').disabled).toBe(true);
-        button('#cancel-carte-button').click();
-        expect(await choice).toBeNull();
     });
-});
 
-describe('Étant donné une position connue, quand on demande « Ma position »', () => {
-    it("alors la carte vient dessus, au zoom d'un point unique", async () => {
-        const selector = new LeafletCoordonneeSelector();
-        const positions$ = new BehaviorSubject<DisplayedPosition>({
-            kind: 'connue',
-            coordonnee: PARIS,
+    describe('Étant donné une position trop imprécise pour caler la page', () => {
+        it("alors elle est montrée quand même, cerclée de l'incertitude mesurée", async () => {
+            const selector = new LeafletCoordonneeSelector();
+            const positions$ = new BehaviorSubject<DisplayedPosition>({
+                kind: 'approximative',
+                coordonnee: BORDEAUX,
+                imprecisionMetres: 8_000,
+                message: 'Position approximative (± 8 km) — trop imprécise pour caler la page.',
+            });
+
+            const choice = selector.choose(null, [], positions$);
+
+            expect(
+                positionMarkers(carteCourante()).map((marker) => marker.getLatLng().lat),
+            ).toEqual([BORDEAUX.latitude]);
+            expect(positionCircles(carteCourante()).map((cercle) => cercle.getRadius())).toEqual([
+                8_000,
+            ]);
+            // La phrase dit l'approximation, et le bouton reste **actif** : une
+            // position à ± 8 km ne cale aucune page, mais on peut aller la voir.
+            expect(query('#carte-position-status', HTMLParagraphElement).textContent).toBe(
+                'Position approximative (± 8 km) — trop imprécise pour caler la page.',
+            );
+            expect(button('#carte-position-button').disabled).toBe(false);
+            button('#cancel-carte-button').click();
+            expect(await choice).toBeNull();
         });
-        const choice = selector.choose(null, [], positions$);
-        carteCourante().setView([0, 0], 3, { animate: false });
-
-        button('#carte-position-button').click();
-
-        expect(carteCourante().getCenter().lat).toBeCloseTo(PARIS.latitude, 4);
-        expect(carteCourante().getZoom()).toBe(12);
-        button('#cancel-carte-button').click();
-        expect(await choice).toBeNull();
     });
-});
 
-describe('Étant donné un choix terminé', () => {
-    it("alors la carte n'écoute plus la position et ne la montre plus", async () => {
-        const selector = new LeafletCoordonneeSelector();
-        const positions$ = new Subject<DisplayedPosition>();
-        const choice = selector.choose(null, [], positions$);
-        positions$.next({ kind: 'connue', coordonnee: PARIS });
-        expect(positions$.observed).toBe(true);
+    describe('Étant donné une position connue, quand on demande « Ma position »', () => {
+        it("alors la carte vient dessus, au zoom d'un point unique", async () => {
+            const selector = new LeafletCoordonneeSelector();
+            const positions$ = new BehaviorSubject<DisplayedPosition>({
+                kind: 'connue',
+                coordonnee: PARIS,
+            });
+            const choice = selector.choose(null, [], positions$);
+            carteCourante().setView([0, 0], 3, { animate: false });
 
-        button('#cancel-carte-button').click();
-        await choice;
+            button('#carte-position-button').click();
 
-        expect(positions$.observed).toBe(false);
-        expect(positionMarkers(carteCourante())).toEqual([]);
+            expect(carteCourante().getCenter().lat).toBeCloseTo(PARIS.latitude, 4);
+            expect(carteCourante().getZoom()).toBe(12);
+            button('#cancel-carte-button').click();
+            expect(await choice).toBeNull();
+        });
+    });
+
+    describe('Étant donné un choix terminé', () => {
+        it("alors la carte n'écoute plus la position et ne la montre plus", async () => {
+            const selector = new LeafletCoordonneeSelector();
+            const positions$ = new Subject<DisplayedPosition>();
+            const choice = selector.choose(null, [], positions$);
+            positions$.next({ kind: 'connue', coordonnee: PARIS });
+            expect(positions$.observed).toBe(true);
+
+            button('#cancel-carte-button').click();
+            await choice;
+
+            expect(positions$.observed).toBe(false);
+            expect(positionMarkers(carteCourante())).toEqual([]);
+        });
     });
 });

@@ -1577,6 +1577,12 @@ sans quoi une position simulée périmée se lirait comme la vraie."
 
 ## Tâche 6 : L'écran d'édition allume le GPS quand une carte est regardée
 
+> **⚠️ Tâche dépassée — ne pas recopier son code ni ses tests.** Elle repose sur
+> une prémisse fausse (« sous 900 px la carte de l'éditeur est repliée ») que la
+> feuille de style dément. Voir
+> [« Ce que l'exécution a corrigé »](#ce-que-lexécution-a-corrigé) à la fin de ce
+> fichier pour ce qui a réellement été livré.
+
 **Fichiers :**
 
 - Modifier : `src/trajets/ui/TrajetEditorScreen.ts`
@@ -2483,3 +2489,41 @@ des boutons que le cas QA-5 de `TrajetEditorScreen.test.ts` énumère, à laquel
 ajouter `'editor-position-button'`. Partout ailleurs les signatures, les noms de
 fabriques (`attacherLEcran`, `dependances`, `laisserLesPromessesSAchever`) et le
 rythme d'attente de chaque fichier sont recopiés du code.
+
+## Ce que l'exécution a corrigé
+
+**La tâche 6 partait d'une prémisse fausse, et son code est dépassé.** Elle
+suppose que « sous 900 px la carte de l'éditeur est repliée », d'où le prédicat
+`isEmbeddedCarteVisible()`, le drapeau `fullscreenChoice`, le `BehaviorSubject`
+`carteVisible$`, l'écouteur `resize` et le `switchMap` vers `EMPTY`. La feuille
+de style dit le contraire : `.carte-points` tient sa hauteur (`45vh`) **hors de
+toute media query**, et aucune règle ne retire jamais la carte de la mise en
+page — `carte-ouverte` la fait seulement _recouvrir_ le schéma. Sous 900 px, le
+prédicat répondait donc « aucune carte visible » alors que la carte était sous
+les yeux : sur téléphone, ouvrir l'éditeur n'affichait aucune position, et
+replier la carte laissait un marqueur périmé que `EMPTY` n'effaçait pas.
+
+La revue finale l'a mesuré et le propriétaire du dépôt a tranché : **le GPS
+tourne tant que l'écran d'édition est monté**, avec le coût assumé de demander
+la localisation dès l'ouverture d'un trajet sur mobile. Tout l'appareillage de
+visibilité a donc disparu — il n'est pas corrigé, il n'avait pas lieu d'être —
+et `maPosition$` s'abonne directement à `positionSource.events$`, partagé par
+`shareReplay({ bufferSize: 1, refCount: true })` entre la carte intégrée, la
+barre et la carte plein écran. Seul `isCarteOverSchema()` reste, pour ce qu'il
+dit vraiment. Les tests de la tâche 6 ont été réécrits en conséquence : une
+seule session à l'ouverture (le compte _en tout_ attrape la double souscription
+d'un flux froid), aucune à la sortie, et une position qui atteint la carte comme
+la barre.
+
+**La ligne GR-22 écrite par la tâche 6 promettait la même chose fausse** —
+« replier la carte referme la session, la déplier en rouvre une ». Elle dit
+désormais ce que le code fait ; la spec de conception porte le récit complet.
+
+**Le chemin `imprecise → approximative` n'avait de témoin nulle part** : les deux
+copies de `displayedPosition` pouvaient perdre leur bloc sans qu'un seul test
+tombe, alors que c'est la raison d'être de la tâche 1. `SuiviScreen.test.ts` et
+`TrajetEditorScreen.test.ts` le traversent maintenant chacun chez eux — le
+premier avec une fausse source pilotable **état par état**, que
+`SimulationPositionSource` ne sait pas être —, et `LeafletCoordonneeSelector`
+prouve le cercle, la phrase et le bouton actif d'une position seulement
+approximative.

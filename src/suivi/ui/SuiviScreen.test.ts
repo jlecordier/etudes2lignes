@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { NEVER, defer, finalize, take, type Observable } from 'rxjs';
+import { NEVER, Subject, defer, finalize, startWith, take, type Observable } from 'rxjs';
 import type { CoordonneeSelector } from '../../carte/ports/CoordonneeSelectorPort';
 import type { DisplayedPoint, DisplayedPosition } from '../../carte/ports/CarteDesPointsPort';
 import { query } from '../../shared/dom';
@@ -11,6 +11,7 @@ import { NomDeTrajet } from '../../trajets/domain/NomDeTrajet';
 import { Trajet } from '../../trajets/domain/Trajet';
 import type { TrajetRepository, TrajetSummary } from '../../trajets/ports/TrajetRepository';
 import { SimulationPositionSource } from '../adapters/SimulationPositionSource';
+import { statusEvent, type PositionSource, type SourceEvent } from '../ports/PositionSource';
 import type { ScreenWakeLock } from '../ports/ScreenWakeLockPort';
 import { createSuiviScreen, type SuiviDependencies } from './SuiviScreen';
 
@@ -81,6 +82,24 @@ class FakeScreenWakeLock implements ScreenWakeLock {
 
     isHeld(): boolean {
         return this.holders > 0;
+    }
+}
+
+/**
+ * Source pilotable **état par état**. `SimulationPositionSource` ne sait émettre
+ * que des positions, et un fix trop grossier n'en est justement pas une : c'est
+ * un état, qui porte quand même la coordonnée qu'il a mesurée.
+ */
+class FakePositionSource implements PositionSource {
+    private readonly emissions = new Subject<SourceEvent>();
+
+    // Le contrat du port : une source commence toujours par un état.
+    readonly events$: Observable<SourceEvent> = this.emissions.pipe(
+        startWith(statusEvent({ kind: 'attente' })),
+    );
+
+    emettre(event: SourceEvent): void {
+        this.emissions.next(event);
     }
 }
 
@@ -219,8 +238,13 @@ function dependances(): SuiviDependencies {
 }
 
 /** Attache l'écran et laisse le chargement du trajet s'achever. */
-async function attacherLEcran(): Promise<HTMLElement> {
-    const element = createSuiviScreen(dependances());
+function attacherLEcran(): Promise<HTMLElement> {
+    return attacherLEcranAvec(realSource);
+}
+
+/** Le même, sur une autre source réelle : tous les états ne se simulent pas. */
+async function attacherLEcranAvec(source: PositionSource): Promise<HTMLElement> {
+    const element = createSuiviScreen({ ...dependances(), realSource: source });
     document.body.append(element);
     await Promise.resolve();
     await Promise.resolve();
@@ -433,6 +457,35 @@ describe('suivi-screen', () => {
 
             expect(carte.positionsRecues()).toEqual([
                 { kind: 'connue', coordonnee: Coordonnee.create(44.83, -0.57) },
+            ]);
+        });
+    });
+
+    describe("Étant donné un fix trop grossier pour caler la page, quand j'ouvre la carte", () => {
+        it('alors elle reçoit quand même où je suis, et de combien près', async () => {
+            const gps = new FakePositionSource();
+            const element = await attacherLEcranAvec(gps);
+
+            gps.emettre(
+                statusEvent({
+                    kind: 'imprecise',
+                    imprecisionMetres: 8_000,
+                    position: Coordonnee.create(46.6, 2.4),
+                }),
+            );
+            query('#simuler-button', HTMLButtonElement, element).click();
+            await Promise.resolve();
+
+            // Une carte ne cale aucune page : ce fix ne fait pas défiler le
+            // schéma, mais il situe très bien sur une carte de France — cerclé
+            // de l'incertitude que la source a mesurée.
+            expect(carte.positionsRecues()).toEqual([
+                {
+                    kind: 'approximative',
+                    coordonnee: Coordonnee.create(46.6, 2.4),
+                    imprecisionMetres: 8_000,
+                    message: 'Position approximative (± 8 km) — trop imprécise pour caler la page.',
+                },
             ]);
         });
     });

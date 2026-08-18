@@ -1,14 +1,4 @@
-import {
-    BehaviorSubject,
-    EMPTY,
-    distinctUntilChanged,
-    map,
-    merge,
-    shareReplay,
-    switchMap,
-    take,
-    takeUntil,
-} from 'rxjs';
+import { map, merge, shareReplay, take, takeUntil } from 'rxjs';
 import type {
     CarteDesPoints,
     DisplayedPoint,
@@ -16,7 +6,7 @@ import type {
 } from '../../carte/ports/CarteDesPointsPort';
 import type { CoordonneeSelector } from '../../carte/ports/CoordonneeSelectorPort';
 import { query, queryAll } from '../../shared/dom';
-import { eventsOf, untilAborted, windowEventsOf } from '../../shared/events';
+import { eventsOf, untilAborted } from '../../shared/events';
 import { createQueue } from '../../shared/queue';
 import type { Run } from '../../shared/runner';
 import { SchemaPageElement, createSchemaPage } from '../../shared/SchemaPage';
@@ -103,35 +93,16 @@ function mount(
     const pagesContainer = query('#images-stack', HTMLDivElement, root);
     const positionStatus = query('#editor-position-status', HTMLSpanElement, root);
     const positionButton = query('#editor-position-button', HTMLButtonElement, root);
-    let derniereCoordonnee: Coordonnee | null = null;
-
-    /** Un choix est en cours sur la carte plein écran, qui recouvre cet écran. */
-    let fullscreenChoice = false;
-
-    /** La carte de l'éditeur est-elle passée par-dessus le schéma ? La classe est cet état. */
-    function isCarteOverSchema(): boolean {
-        return root.classList.contains('carte-ouverte');
-    }
+    let lastCoordonnee: Coordonnee | null = null;
 
     /**
-     * La carte intégrée est visible dès 900 px, où la feuille de style l'épingle
-     * à côté de la pile ; en dessous, seulement quand on l'a mise par-dessus le
-     * schéma.
+     * La carte de l'éditeur est-elle passée **par-dessus** le schéma ? La classe
+     * est cet état. Ce n'est pas une question de visibilité : la carte est en
+     * page dans les deux cas, `carte-ouverte` décide seulement lequel des deux —
+     * elle ou le schéma — recouvre l'autre.
      */
-    function isEmbeddedCarteVisible(): boolean {
-        return isLargeScreen() || isCarteOverSchema();
-    }
-
-    /** Une carte est-elle sous les yeux ? Le GPS ne tourne que dans ce cas. */
-    function isAnyCarteVisible(): boolean {
-        return isEmbeddedCarteVisible() || fullscreenChoice;
-    }
-
-    const carteVisible$ = new BehaviorSubject<boolean>(isAnyCarteVisible());
-
-    /** Une seule expression décide, et trois gestes la rejouent. */
-    function refreshCarteVisible(): void {
-        carteVisible$.next(isAnyCarteVisible());
+    function isCarteOverSchema(): boolean {
+        return root.classList.contains('carte-ouverte');
     }
 
     let trajet: Trajet | null = null;
@@ -144,18 +115,21 @@ function mount(
     /**
      * « Ma position », telle que les cartes de cet écran doivent la montrer.
      *
-     * Le `switchMap` est ce qui allume et éteint le GPS : replier la carte
-     * referme la session, la déplier en rouvre une — qui annonce `attente` avant
-     * toute position, et efface donc d'elle-même le marqueur périmé.
+     * **L'abonnement vit le temps de l'écran**, et le GPS avec lui. La carte de
+     * l'éditeur est toujours en page — la feuille de style ne la retire jamais,
+     * ni au-dessus ni en dessous des 900 px, et `carte-ouverte` ne fait que la
+     * mettre par-dessus le schéma. La regarder, c'est donc ouvrir cet écran :
+     * il n'y a pas d'état de visibilité à mesurer, et sur mobile ouvrir un
+     * trajet demande la localisation tout de suite.
      *
-     * `shareReplay` parce que deux consommateurs l'écoutent (la carte intégrée et
-     * la barre de position) et qu'ils doivent partager **une seule** session ; la
-     * dernière valeur est rejouée à qui arrive en retard — la carte plein écran,
-     * dont le cadrage d'ouverture la trouve ainsi déjà connue.
+     * `shareReplay` parce que trois consommateurs l'écoutent — la carte
+     * intégrée, la barre de position, et la carte plein écran le temps d'un
+     * choix — et que le flux d'une source est **froid** : sans lui, chacun
+     * ouvrirait sa propre session GPS. La dernière valeur est rejouée à qui
+     * arrive en retard — la carte plein écran, dont le cadrage d'ouverture la
+     * trouve ainsi déjà connue.
      */
-    const maPosition$ = carteVisible$.pipe(
-        distinctUntilChanged(),
-        switchMap((visible) => (visible ? positionSource.events$ : EMPTY)),
+    const maPosition$ = positionSource.events$.pipe(
         map(displayedPosition),
         shareReplay({ bufferSize: 1, refCount: true }),
         takeUntil(parti$),
@@ -174,14 +148,6 @@ function mount(
         .pipe(takeUntil(parti$))
         .subscribe(() => {
             goToPosition();
-        });
-
-    // Posé sur `window`, donc hors de l'écran : sans le `takeUntil`, il
-    // survivrait à la sortie et s'ajouterait une fois de plus à chaque visite.
-    windowEventsOf('resize')
-        .pipe(takeUntil(parti$))
-        .subscribe(() => {
-            refreshCarteVisible();
         });
 
     eventsOf(query('#back-to-list-button', HTMLButtonElement, root), 'click')
@@ -480,16 +446,7 @@ function mount(
             trajet === null ? [] : trajet.numberedPointsInOrdreDuVoyage(),
         );
         if (!isLargeScreen()) {
-            // La carte plein écran est une carte regardée, elle aussi : sans ce
-            // drapeau, le GPS resterait éteint tout le temps du choix sur mobile.
-            fullscreenChoice = true;
-            refreshCarteVisible();
-            try {
-                return await coordonneeSelector.choose(initial, reperes, maPosition$);
-            } finally {
-                fullscreenChoice = false;
-                refreshCarteVisible();
-            }
+            return coordonneeSelector.choose(initial, reperes, maPosition$);
         }
         renderHint('Cliquez la coordonnée sur la carte…');
         try {
@@ -529,16 +486,21 @@ function mount(
      * La barre de la carte : ce qu'on sait de la position, ou la phrase qui dit
      * pourquoi on n'en sait rien. C'est l'écran qui rédige — la carte, elle, ne
      * reçoit que des coordonnées.
+     *
+     * Cette barre-ci ne touche pas au `hidden` de sa phrase, là où `paintPosition`
+     * le fait sur la carte plein écran : **c'est voulu**. Le `<span>` de
+     * l'éditeur est toujours en page et se vide, tandis que le `<p>` plein écran
+     * doit rendre sa ligne de `flex-wrap` quand il n'a rien à dire.
      */
     function renderPositionBar(position: DisplayedPosition): void {
-        derniereCoordonnee = position.kind === 'inconnue' ? null : position.coordonnee;
-        positionButton.disabled = derniereCoordonnee === null;
+        lastCoordonnee = position.kind === 'inconnue' ? null : position.coordonnee;
+        positionButton.disabled = lastCoordonnee === null;
         positionStatus.textContent = position.kind === 'connue' ? '' : position.message;
     }
 
     /** Le cadrage ne bouge jamais tout seul ; ici on le lui demande. */
     function goToPosition(): void {
-        const coordonnee = derniereCoordonnee;
+        const coordonnee = lastCoordonnee;
         if (coordonnee === null) {
             return;
         }
@@ -560,7 +522,6 @@ function mount(
         // sans cela, la carte garderait ses tuiles et ses marqueurs à l'échelle
         // de la vignette qu'elle était.
         carteDesPoints.resized();
-        refreshCarteVisible();
     }
 
     /**
@@ -577,10 +538,10 @@ function mount(
 
     /**
      * Le geste inverse : un point désigné sur le schéma, et la carte vient à
-     * lui. Sous 900 px elle se met par-dessus le schéma — la laisser repliée
-     * n'emmènerait nulle part. Au-dessus, elle est déjà à côté de la pile :
-     * poser `carte-ouverte` la mettrait en plein écran, sa règle l'emportant en
-     * spécificité sur celle du grand écran.
+     * lui. Sous 900 px elle se met par-dessus le schéma — la laisser en vignette
+     * sous la pile n'emmènerait nulle part. Au-dessus, elle est déjà à côté de
+     * la pile : poser `carte-ouverte` la mettrait en plein écran, sa règle
+     * l'emportant en spécificité sur celle du grand écran.
      *
      * La bascule demande la remesure, et le centrage vient après : l'inverse
      * calerait la carte sur la taille de la vignette qu'elle vient de quitter.

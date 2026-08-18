@@ -694,7 +694,7 @@ describe('trajet-editor-screen', () => {
         });
     });
 
-    describe('Étant donné un petit écran où la carte est repliée', () => {
+    describe("Étant donné un petit écran où la carte n'est pas par-dessus le schéma", () => {
         it("quand je clique la pastille d'un point, alors la carte vient par-dessus le schéma", async () => {
             const element = await attacherLEcran();
 
@@ -810,48 +810,22 @@ describe('trajet-editor-screen', () => {
         });
     });
 
-    describe("Étant donné l'éditeur ouvert, carte repliée", () => {
-        it('alors le GPS ne tourne pas : personne ne regarde de carte', async () => {
+    describe("Étant donné l'éditeur ouvert", () => {
+        it('alors une session de position est ouverte, et une seule', async () => {
             await attacherLEcran();
 
-            expect(positionSource.sessionsOuvertes()).toBe(0);
-            expect(positionSource.sessionsEnTout()).toBe(0);
-        });
-    });
-
-    describe('Étant donné la carte dépliée par-dessus le schéma', () => {
-        it("alors une session s'ouvre, et se referme quand on la replie", async () => {
-            const element = await attacherLEcran();
-
-            query('#carte-button', HTMLButtonElement, element).click();
+            // La carte de l'éditeur est toujours en page : l'abonnement vit le
+            // temps de l'écran. Le compte en tout est ce qui attrape la double
+            // souscription d'un flux froid — la carte et la barre l'écoutent
+            // toutes deux, et sans partage chacune ouvrirait sa session.
             expect(positionSource.sessionsOuvertes()).toBe(1);
-
-            query('#carte-button', HTMLButtonElement, element).click();
-            expect(positionSource.sessionsOuvertes()).toBe(0);
-            // Une seule session en tout : replier n'en laisse pas une derrière,
-            // et n'en rouvre pas une de plus au passage.
             expect(positionSource.sessionsEnTout()).toBe(1);
-        });
-    });
-
-    describe('Étant donné une position reçue carte dépliée', () => {
-        it('alors la carte la reçoit à montrer', async () => {
-            const element = await attacherLEcran();
-            query('#carte-button', HTMLButtonElement, element).click();
-
-            positionSource.emettre(positionEvent(Coordonnee.create(44.83, -0.57)));
-
-            expect(carteDesPoints.displayedPosition()).toEqual({
-                kind: 'connue',
-                coordonnee: Coordonnee.create(44.83, -0.57),
-            });
         });
     });
 
     describe("Étant donné l'éditeur qu'on quitte", () => {
         it("alors plus aucune session de position n'est ouverte", async () => {
             const element = await attacherLEcran();
-            query('#carte-button', HTMLButtonElement, element).click();
 
             element.remove();
             await laisserLesPromessesSAchever();
@@ -860,10 +834,50 @@ describe('trajet-editor-screen', () => {
         });
     });
 
-    describe('Étant donné une position refusée, carte dépliée', () => {
+    describe('Étant donné une position reçue', () => {
+        it('alors la carte la montre, et la barre la connaît', async () => {
+            const element = await attacherLEcran();
+
+            positionSource.emettre(positionEvent(Coordonnee.create(44.83, -0.57)));
+
+            expect(carteDesPoints.displayedPosition()).toEqual({
+                kind: 'connue',
+                coordonnee: Coordonnee.create(44.83, -0.57),
+            });
+            // La barre l'a reçue aussi : sa phrase se vide, et son bouton s'anime.
+            expect(query('#editor-position-status', HTMLSpanElement, element).textContent).toBe('');
+            expect(query('#editor-position-button', HTMLButtonElement, element).disabled).toBe(
+                false,
+            );
+        });
+    });
+
+    describe('Étant donné un fix trop grossier pour caler la page', () => {
+        it("alors la carte le montre quand même, avec l'incertitude mesurée", async () => {
+            await attacherLEcran();
+
+            positionSource.emettre(
+                statusEvent({
+                    kind: 'imprecise',
+                    imprecisionMetres: 8_000,
+                    position: Coordonnee.create(46.6, 2.4),
+                }),
+            );
+
+            // Une carte ne cale aucune page : la coordonnée d'un fix à ± 8 km ne
+            // sert peut-être pas au suivi, elle situe très bien sur une carte.
+            expect(carteDesPoints.displayedPosition()).toEqual({
+                kind: 'approximative',
+                coordonnee: Coordonnee.create(46.6, 2.4),
+                imprecisionMetres: 8_000,
+                message: 'Position approximative (± 8 km) — trop imprécise pour caler la page.',
+            });
+        });
+    });
+
+    describe('Étant donné une position refusée', () => {
         it("alors l'écran dit pourquoi aucun marqueur n'apparaît", async () => {
             const element = await attacherLEcran();
-            query('#carte-button', HTMLButtonElement, element).click();
 
             positionSource.emettre(statusEvent({ kind: 'permission-refusee' }));
 
@@ -876,7 +890,6 @@ describe('trajet-editor-screen', () => {
     describe('Étant donné une position connue, quand je demande « Ma position »', () => {
         it('alors la carte vient dessus', async () => {
             const element = await attacherLEcran();
-            query('#carte-button', HTMLButtonElement, element).click();
             positionSource.emettre(positionEvent(Coordonnee.create(44.83, -0.57)));
 
             query('#editor-position-button', HTMLButtonElement, element).click();
@@ -888,11 +901,11 @@ describe('trajet-editor-screen', () => {
                     .at(-1),
             ).toEqual([44.83, -0.57]);
         });
+    });
 
-        it("alors le bouton reste inerte tant qu'aucune position n'est connue", async () => {
+    describe("Étant donné qu'aucune position n'est encore connue", () => {
+        it('alors le bouton « Ma position » reste inerte', async () => {
             const element = await attacherLEcran();
-
-            query('#carte-button', HTMLButtonElement, element).click();
 
             expect(query('#editor-position-button', HTMLButtonElement, element).disabled).toBe(
                 true,

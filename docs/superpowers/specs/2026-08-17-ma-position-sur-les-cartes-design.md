@@ -134,7 +134,7 @@ Le centrage sur une `initialCoordonnee` reste ce qu'il est — on y arrive
 d'ailleurs, il n'y a pas de cadrage à préserver. La position peut donc y tomber
 hors champ, et c'est le bouton qui la rattrape.
 
-### Le GPS ne tourne que tant qu'une carte est regardée
+### Une seule session de position par écran, et personne n'en ouvre une seconde
 
 L'écran de suivi n'ouvre **aucune** seconde session : il rediffuse ce qu'il reçoit
 déjà, dans un `BehaviorSubject<DisplayedPosition>` alimenté par l'abonnement
@@ -157,41 +157,45 @@ mutant équivalent, et ce dépôt refuse d'en fabriquer. Ce qui protège la gara
 dont elle dépend, c'est `positionSourceContract.ts`.
 
 L'écran d'édition, lui, gagne une dépendance `positionSource: PositionSource`,
-câblée dans `main.ts` sur le `realSource` déjà instancié. La règle de niveau de
-ce lot s'applique ici aussi : une lecture DOM brute (`classList.contains`) ne se
-mélange pas à un drapeau applicatif (`fullscreenChoice`) dans une même
-expression — chacun a son nom, et une troisième fonction compose les deux :
+câblée dans `main.ts` sur le `realSource` déjà instancié. **Son abonnement vit le
+temps de l'écran**, sans rien mesurer :
 
 ```ts
-function isCarteOverSchema(): boolean {
-    return root.classList.contains('carte-ouverte');
-}
-
-function isEmbeddedCarteVisible(): boolean {
-    return isLargeScreen() || isCarteOverSchema();
-}
-
-/** Une carte est-elle sous les yeux ? Le GPS ne tourne que dans ce cas. */
-function isAnyCarteVisible(): boolean {
-    return isEmbeddedCarteVisible() || fullscreenChoice;
-}
+const maPosition$ = positionSource.events$.pipe(
+    map(displayedPosition),
+    shareReplay({ bufferSize: 1, refCount: true }),
+    takeUntil(parti$),
+);
 ```
 
-poussée dans un `BehaviorSubject` (`carteVisible$`) par trois déclencheurs — la
-bascule carte/schéma, un redimensionnement de fenêtre qui traverse le seuil des
-900 px (nouvel écouteur, sous `takeUntil(parti$)`), et le `try`/`finally` qui
-encadre le choix sur la carte plein écran. Puis :
+C'est la feuille de style qui l'impose, et il a fallu la relire pour le voir :
+`.carte-points` tient sa hauteur (`45vh`) **hors de toute media query**, et
+**aucune règle ne retire jamais la carte de la mise en page**, des deux côtés du
+seuil des 900 px. `carte-ouverte` ne la _montre_ pas : elle la fait _recouvrir_
+le schéma (`position: fixed; inset: 0`). La carte de l'éditeur est donc toujours
+sous les yeux — la regarder, c'est ouvrir cet écran, et le GPS tourne tant qu'il
+est monté.
 
-```ts
-switchMap((visible) => (visible ? positionSource.events$ : EMPTY));
-```
+Le coût est accepté en connaissance de cause : sur mobile, ouvrir un trajet
+demande l'autorisation de localisation immédiatement. Le prédicat qui prétendait
+l'éviter, `isLargeScreen() || isCarteOverSchema()`, répondait « aucune carte
+visible » sous 900 px — précisément là où la carte est en page. Il éteignait le
+GPS sur la plateforme principale, et laissait derrière lui un marqueur périmé
+quand on refermait la carte, `EMPTY` n'émettant rien qui puisse l'effacer. Une
+mesure (`getBoundingClientRect().height > 0`) ne le sauverait pas : elle serait
+toujours vraie dans un navigateur, et toujours nulle en jsdom — de la machinerie
+morte qui ferait mentir les tests dans l'autre sens.
 
-la forme même que `SuiviScreen` emploie déjà pour changer de source. Replier la
-carte referme la session ; la déplier en rouvre une, qui annonce `attente` avant
-toute position et efface donc d'elle-même le marqueur périmé.
+`isCarteOverSchema()` reste, pour ce qu'il dit vraiment — qui de la carte ou du
+schéma recouvre l'autre —, et c'est ce dont `showPointFromCarte` et
+`showPointOnCarte` ont besoin.
 
-Le flux est partagé (`shareReplay`) entre la carte intégrée et le bandeau de
-l'écran : deux abonnés, une seule session.
+`shareReplay` est nécessaire : **trois** consommateurs écoutent ce flux — la
+carte intégrée, la barre de position, et la carte plein écran le temps d'un choix
+— et le flux d'une source est **froid**. Sans partage, chacun ouvrirait sa propre
+session GPS. `refCount: true` la referme avec le dernier abonné, et la dernière
+valeur est rejouée à qui arrive en retard : c'est ce qui fait entrer la position
+dans le cadrage d'ouverture de la carte plein écran.
 
 **La traduction `SourceEvent → DisplayedPosition` est écrite deux fois**, une par
 écran. C'est le choix que ce dépôt a déjà fait et documenté pour
@@ -256,25 +260,25 @@ survit, et rouvrir la carte en mode GPS doit bien montrer le GPS.
 
 ## Ce qui bouge
 
-| Fichier                                                | Nature                                                                                        |
-| ------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| `src/carte/ports/CarteDesPointsPort.ts`                | `DisplayedPosition` ; `showPosition(position$)` au port                                       |
-| `src/carte/ports/CoordonneeSelectorPort.ts`            | `choose` gagne `position$`, exigé ; au passage `choisir` → `choose` dans le contrat rédigé    |
-| `src/carte/adapters/fitting.ts` + test                 | `fitToPoints` gagne la position                                                               |
-| `src/carte/adapters/positionLayers.ts` (nouveau)       | les couches de la position — disque et cercle —, posées par un seul code pour les deux cartes |
-| `src/carte/adapters/LeafletCarteDesPoints.ts` + test   | `showPosition` ; marqueur, cercle ; l'abonnement meurt avec `unmount`                         |
-| `src/carte/adapters/LeafletCoordonneeSelector.ts` + t. | idem ; l'abonnement pend au `choix` ; barre et bouton câblés au constructeur                  |
-| `src/suivi/domain/sourceStatus.ts`                     | `imprecise` porte la coordonnée qu'elle a mesurée                                             |
-| `src/suivi/adapters/GeolocationPositionSource.ts` + t. | `imprecisions$` garde le fix entier ; le chien de garde répète sa coordonnée                  |
-| `src/suivi/ui/SuiviScreen.ts` + test                   | `maPosition$` rediffusé ; mode retenu ; `EMPTY` en simulation ; remise à zéro                 |
-| `src/trajets/ui/TrajetEditorScreen.ts` + test          | `positionSource` injecté ; `carteVisible$` ; barre de position ; écouteur `resize`            |
-| `src/trajets/ui/TrajetEditorScreen.html`               | la colonne de la carte et sa barre (message + bouton)                                         |
-| `src/main.ts`                                          | `realSource` injecté aussi dans l'éditeur                                                     |
-| `index.html`                                           | `.carte-bar` gagne le message et le bouton                                                    |
-| `src/style.css`                                        | marqueur, cercle, barre de position ; `.carte-ouverte` remonte sur la colonne                 |
-| `docs/EXIGENCES.md`                                    | GR-17 à GR-23, CV-8                                                                           |
-| `docs/GLOSSAIRE.md`                                    | une ligne dans la table **Métier**, et rien d'autre (voir ci-dessous)                         |
-| `e2e/helpers.ts`, `e2e/gps.spec.ts`                    | la géolocalisation accordée, le marqueur relu                                                 |
+| Fichier                                                | Nature                                                                                           |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `src/carte/ports/CarteDesPointsPort.ts`                | `DisplayedPosition` ; `showPosition(position$)` au port                                          |
+| `src/carte/ports/CoordonneeSelectorPort.ts`            | `choose` gagne `position$`, exigé ; au passage `choisir` → `choose` dans le contrat rédigé       |
+| `src/carte/adapters/fitting.ts` + test                 | `fitToPoints` gagne la position                                                                  |
+| `src/carte/adapters/positionLayers.ts` (nouveau)       | les couches de la position — disque et cercle —, posées par un seul code pour les deux cartes    |
+| `src/carte/adapters/LeafletCarteDesPoints.ts` + test   | `showPosition` ; marqueur, cercle ; l'abonnement meurt avec `unmount`                            |
+| `src/carte/adapters/LeafletCoordonneeSelector.ts` + t. | idem ; l'abonnement pend au `choix` ; barre et bouton câblés au constructeur                     |
+| `src/suivi/domain/sourceStatus.ts`                     | `imprecise` porte la coordonnée qu'elle a mesurée                                                |
+| `src/suivi/adapters/GeolocationPositionSource.ts` + t. | `imprecisions$` garde le fix entier ; le chien de garde répète sa coordonnée                     |
+| `src/suivi/ui/SuiviScreen.ts` + test                   | `maPosition$` rediffusé ; mode retenu ; `EMPTY` en simulation                                    |
+| `src/trajets/ui/TrajetEditorScreen.ts` + test          | `positionSource` injecté ; `maPosition$` partagé, vivant le temps de l'écran ; barre de position |
+| `src/trajets/ui/TrajetEditorScreen.html`               | la colonne de la carte et sa barre (message + bouton)                                            |
+| `src/main.ts`                                          | `realSource` injecté aussi dans l'éditeur                                                        |
+| `index.html`                                           | `.carte-bar` gagne le message et le bouton                                                       |
+| `src/style.css`                                        | marqueur, cercle, barre de position ; `.carte-ouverte` remonte sur la colonne                    |
+| `docs/EXIGENCES.md`                                    | GR-17 à GR-23, CV-8                                                                              |
+| `docs/GLOSSAIRE.md`                                    | une ligne dans la table **Métier**, et rien d'autre (voir ci-dessous)                            |
+| `e2e/gps.spec.ts`                                      | la géolocalisation y était déjà accordée (`test.use`) : le marqueur relu sur les deux cartes     |
 
 **Piège de commit** : `LeafletCoordonneeSelector` fait ses `query` dans son
 constructeur, sur des éléments de `index.html`. Le fragment DOM de
@@ -295,25 +299,26 @@ lit.
 
 ## Ce que les tests prouvent
 
-| Fichier                             | Ce qu'il prouve                                                                                                                                                                                   |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `fitting.test.ts`                   | Le cadrage englobe la position ; une position seule la centre ; ni points ni position ⇒ France.                                                                                                   |
-| `LeafletCarteDesPoints.test.ts`     | `connue` pose un marqueur non interactif à la coordonnée ; `approximative` y ajoute un cercle du rayon mesuré ; `inconnue` retire les deux. Une position qui arrive **ne recadre pas**.           |
-| `LeafletCoordonneeSelector.test.ts` | Les mêmes, plus : le cadrage d'ouverture englobe une position déjà connue ; le message atteint la barre ; le bouton reste inerte tant que la position est inconnue ; le choix résolu retire tout. |
-| `GeolocationPositionSource.test.ts` | Un fix trop grossier annonce désormais **où** il l'était, et le chien de garde répète cette coordonnée tant qu'elle est fraîche — puis se tait.                                                   |
-| `SuiviScreen.test.ts`               | En GPS le flux passé au sélecteur porte la position ; en simulation il ne porte rien ; changer de mode le remet à « inconnue ».                                                                   |
-| `TrajetEditorScreen.test.ts`        | Le message atteint le bandeau ; le bouton porte son nom accessible et amène la carte sur la position.                                                                                             |
-| `e2e/gps.spec.ts`                   | Sur les cinq navigateurs, géolocalisation accordée : le marqueur apparaît sur les deux cartes.                                                                                                    |
+| Fichier                             | Ce qu'il prouve                                                                                                                                                                                                                                                                            |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `fitting.test.ts`                   | Le cadrage englobe la position ; une position seule la centre ; ni points ni position ⇒ France.                                                                                                                                                                                            |
+| `LeafletCarteDesPoints.test.ts`     | `connue` pose un marqueur non interactif à la coordonnée ; `approximative` y ajoute un cercle du rayon mesuré ; `inconnue` retire les deux. Une position qui arrive **ne recadre pas**.                                                                                                    |
+| `LeafletCoordonneeSelector.test.ts` | Les mêmes, plus : le cadrage d'ouverture englobe une position déjà connue ; le message atteint la barre ; une position `approximative` y ajoute son cercle et laisse le bouton **actif** ; le bouton reste inerte tant que la position est inconnue ; le choix résolu retire tout.         |
+| `GeolocationPositionSource.test.ts` | Un fix trop grossier annonce désormais **où** il l'était, et le chien de garde répète cette coordonnée tant qu'elle est fraîche — puis se tait.                                                                                                                                            |
+| `SuiviScreen.test.ts`               | En GPS le flux passé au sélecteur porte la position ; en simulation il ne porte rien ; quitter la simulation fait remontrer le GPS et non la position simulée restée en mémoire ; un fix trop grossier y arrive quand même, avec son incertitude.                                          |
+| `TrajetEditorScreen.test.ts`        | Une session de position, et une seule, ouverte à l'arrivée sur l'écran et refermée en partant ; la position atteint la carte **et** la barre, fix trop grossier compris ; le bouton porte son nom accessible, amène la carte sur la position, et reste inerte tant qu'aucune n'est connue. |
+| `e2e/gps.spec.ts`                   | Sur les cinq navigateurs, géolocalisation accordée : le marqueur apparaît sur les deux cartes.                                                                                                                                                                                             |
 
 **Le désabonnement se constate par un état, jamais par un espion** : après
 `unmount()`, et après un choix résolu, le `Subject` qu'on a passé répond
 `observed === false`. C'est la même mesure que `LeafletCarteDesPoints` emploie
 déjà en interne sur son `choix`.
 
-**Que le GPS ne tourne pas carte repliée se prouve de même** : une fausse source
-qui compte ses sessions ouvertes **dans son état** — comme `heldResources()` de
-la suite de contrat, qui existe pour cela. Aucune session carte repliée, une
-seule carte dépliée, zéro à la sortie de l'écran.
+**Qu'une seule session s'ouvre se prouve de même** : une fausse source qui compte
+ses sessions ouvertes **dans son état** — comme `heldResources()` de la suite de
+contrat, qui existe pour cela. Une seule à l'ouverture de l'éditeur, et une seule
+_en tout_ : c'est ce second compte qui attrape la double souscription d'un flux
+froid, celle que `shareReplay` évite. Zéro à la sortie de l'écran.
 
 Deux angles morts connus, et déjà admis ailleurs. `isLargeScreen()` lit une
 variable CSS que jsdom ne calcule pas : **la branche grand écran n'a pas de
@@ -334,10 +339,12 @@ la déclare pareillement.
 - **GR-18 (nouvelle)** — Une position trop imprécise pour caler la page s'affiche
   quand même, cerclée de son incertitude mesurée. Témoins :
   `U GeolocationPositionSource.test.ts`, `U LeafletCarteDesPoints.test.ts`,
-  `U LeafletCoordonneeSelector.test.ts`.
+  `U LeafletCoordonneeSelector.test.ts`, `U SuiviScreen.test.ts`,
+  `U TrajetEditorScreen.test.ts` — les deux écrans traduisent l'état `imprecise`
+  en position `approximative`, et chacun le prouve chez lui.
 - **GR-19 (nouvelle)** — Sans position, aucun marqueur — et l'écran dit pourquoi,
   avec le texte d'état de la source. Témoins : `U TrajetEditorScreen.test.ts`,
-  `U LeafletCoordonneeSelector.test.ts`.
+  `U LeafletCoordonneeSelector.test.ts`, `U LeafletCarteDesPoints.test.ts`.
 - **GR-20 (nouvelle)** — Le cadrage englobe la position quand elle est déjà
   connue, et ne se refait jamais à l'arrivée d'une position. Témoins :
   `U fitting.test.ts`, `U LeafletCarteDesPoints.test.ts`,
@@ -346,9 +353,9 @@ la déclare pareillement.
   point unique, et reste inerte tant que la position est inconnue. Témoins :
   `U TrajetEditorScreen.test.ts`, `U LeafletCoordonneeSelector.test.ts`,
   `E e2e/gps.spec.ts`.
-- **GR-22 (nouvelle)** — Le GPS ne tourne que tant qu'une carte est regardée :
-  replier la carte referme la session, la déplier en rouvre une. Témoins :
-  `U TrajetEditorScreen.test.ts`.
+- **GR-22 (nouvelle)** — Une seule session de position par écran de carte :
+  l'éditeur en ouvre une à l'arrivée — sa carte est toujours en page — et la
+  referme en partant. Témoins : `U TrajetEditorScreen.test.ts`.
 - **GR-23 (nouvelle)** — En simulation, la carte plein écran n'ajoute pas un
   second marqueur là où celui de la sélection porte déjà la position. Témoin :
   `U SuiviScreen.test.ts`.
@@ -358,6 +365,11 @@ la déclare pareillement.
 
 ## Limites assumées
 
+- **Ouvrir un trajet demande la localisation tout de suite**, sur téléphone comme
+  ailleurs. La carte de l'éditeur est en page dès l'arrivée sur l'écran, donc le
+  GPS aussi. Ne l'allumer qu'à la demande supposerait un état de visibilité à
+  tenir ; le seul qui existe ici (`carte-ouverte`) dit qui recouvre qui, pas qui
+  est visible.
 - **Le marqueur saute, il ne glisse pas.** Le suivi traite au plus une position
   toutes les dix secondes, et le marqueur en hérite. Le lisser demanderait une
   cadence propre à la carte, donc une seconde vérité sur où l'on est.

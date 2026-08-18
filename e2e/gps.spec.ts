@@ -7,7 +7,6 @@ import {
     currentScroll,
     requireDefined,
     ouvrirUnTrajetAvecUnePage,
-    isLargeScreen,
 } from './helpers';
 
 // Géolocalisation mockée : la position du navigateur est pilotée par le test.
@@ -81,11 +80,8 @@ test.describe('Suivi avec le GPS du navigateur (mocké)', () => {
         await ouvrirUnTrajetAvecUnePage(page);
         await ajouterUnPoint(page, 0.8, 0);
 
-        // Sous 900 px la carte est repliée — et le GPS avec elle, délibérément.
-        if (!(await isLargeScreen(page))) {
-            await page.locator('#carte-button').click();
-        }
-
+        // Aucune bascule à opérer : la carte de l'éditeur est en page des deux
+        // côtés du seuil des 900 px, et le GPS tourne tant que l'écran est là.
         await expect(page.locator('#carte-points .carte-position-marker')).toBeVisible();
         await expect(page.locator('#editor-position-button')).toBeEnabled();
     });
