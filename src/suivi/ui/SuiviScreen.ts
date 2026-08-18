@@ -191,7 +191,7 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
     // Il ne reste **rien** à ranger en partant : le verrou d'écran se rend avec
     // son abonnement, les sources se referment avec le leur, et les pages
     // libèrent leurs URL d'objet en quittant le document avec l'écran.
-    run(charger(), 'l’ouverture du suivi');
+    run(charger(), "l'ouverture du suivi");
 
     async function charger(): Promise<void> {
         const loaded = await repository.load(trajetId);
@@ -270,7 +270,7 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
         overviewButton.hidden = !hasPages;
         if (hasPages) {
             root.style.setProperty('--overview-ratios-sum', String(ratiosSum(pages)));
-            run(paintOverview(vignettes), 'la construction de l’aperçu du trajet');
+            run(paintOverview(vignettes), "la construction de l'aperçu du trajet");
         }
     }
 

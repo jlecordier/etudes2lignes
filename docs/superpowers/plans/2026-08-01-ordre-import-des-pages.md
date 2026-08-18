@@ -73,8 +73,8 @@ function imageFile(nom = 'page-1.jpg'): ImageFile {
 Puis insérer ce `describe` juste après celui qui se termine ligne 68 (« quand j'ajoute des images ») :
 
 ```ts
-describe('Étant donné un trajet vierge, quand j’importe un lot de pages', () => {
-    it('alors la pile les lit dans l’ordre du lot, et la dernière ouvre le voyage', () => {
+describe("Étant donné un trajet vierge, quand j'importe un lot de pages", () => {
+    it("alors la pile les lit dans l'ordre du lot, et la dernière ouvre le voyage", () => {
         const trajet = newTrajet();
 
         trajet.addImagesInReadingOrder([
@@ -95,12 +95,12 @@ describe('Étant donné un trajet vierge, quand j’importe un lot de pages', ()
         const trajet = newTrajet();
 
         expect(() => trajet.addImagesInReadingOrder([{ ...imageFile(), largeur: 0 }])).toThrow(
-            'Dimensions d’image invalides',
+            "Dimensions d'image invalides",
         );
     });
 });
 
-describe('Étant donné un trajet qui a déjà des pages, quand j’importe un second lot', () => {
+describe("Étant donné un trajet qui a déjà des pages, quand j'importe un second lot", () => {
     it('alors il se lit sous les pages existantes, et sa dernière page ouvre le voyage', () => {
         const trajet = newTrajet();
         trajet.addImagesInReadingOrder([imageFile('page-1.jpg'), imageFile('page-2.jpg')]);
@@ -170,7 +170,7 @@ Remplacer `admitImage` (fin de classe) par :
      */
     private admitImage(image: ImageDeTrajet, place: 'voyage-start' | 'voyage-end'): void {
         if (!isDimension(image.largeur) || !isDimension(image.hauteur)) {
-            throw new Error(`Dimensions d’image invalides : ${image.largeur}×${image.hauteur}`);
+            throw new Error(`Dimensions d'image invalides : ${image.largeur}×${image.hauteur}`);
         }
         if (place === 'voyage-start') {
             this._images.unshift(image);

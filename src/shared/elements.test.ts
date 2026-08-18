@@ -56,7 +56,7 @@ describe('createButton', () => {
     });
 
     describe('Étant donné un descriptif sans libellé, quand je crée le bouton', () => {
-        it('alors il n’a pas d’élément de libellé du tout — il n’y a rien à masquer', () => {
+        it("alors il n'a pas d'élément de libellé du tout — il n'y a rien à masquer", () => {
             const button = createButton({
                 icon: '🔼',
                 ariaLabel: 'Monter page-1.png',

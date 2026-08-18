@@ -23,8 +23,8 @@ describe('Conversion entre Leaflet et le domaine', () => {
         });
     });
 
-    describe('Étant donné un point Leaflet juste au-delà de l’antiméridien', () => {
-        it('alors sa longitude repasse par l’autre bord du globe', () => {
+    describe("Étant donné un point Leaflet juste au-delà de l'antiméridien", () => {
+        it("alors sa longitude repasse par l'autre bord du globe", () => {
             const coordonnee = toCoordonnee(L.latLng(0, 190));
 
             expect(coordonnee.longitude).toBe(-170);
@@ -38,7 +38,7 @@ describe('Conversion entre Leaflet et le domaine', () => {
     });
 
     describe('Étant donné une coordonnée du domaine transmise à Leaflet', () => {
-        it('alors l’aller-retour la rend identique', () => {
+        it("alors l'aller-retour la rend identique", () => {
             const start = Coordonnee.create(-33.8688, 151.2093);
 
             const roundTrip = toCoordonnee(L.latLng(toLatLng(start)));

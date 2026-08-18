@@ -58,7 +58,7 @@ async function afficherLApercu(page: Page): Promise<void> {
 async function fractionDeLaBarre(page: Page): Promise<number> {
     const pile = requireDefined(
         await page.locator('#overview-stack').boundingBox(),
-        'cadre de la pile de l’aperçu',
+        "cadre de la pile de l'aperçu",
     );
     const barre = requireDefined(
         await page.locator('#overview-position').boundingBox(),
@@ -68,7 +68,7 @@ async function fractionDeLaBarre(page: Page): Promise<number> {
 }
 
 test.describe('Aperçu du trajet pendant le suivi', () => {
-    test('Étant donné une position simulée sur le premier point, alors la barre de l’aperçu tombe à la hauteur de ce point', async ({
+    test("Étant donné une position simulée sur le premier point, alors la barre de l'aperçu tombe à la hauteur de ce point", async ({
         page,
     }) => {
         await ouvrirLeSuiviDUnTrajetGeoreference(page);
@@ -83,7 +83,7 @@ test.describe('Aperçu du trajet pendant le suivi', () => {
         await expect.poll(async () => fractionDeLaBarre(page)).toBeCloseTo(0.8, 1);
     });
 
-    test('Étant donné la simulation quittée, alors la barre quitte l’aperçu', async ({ page }) => {
+    test("Étant donné la simulation quittée, alors la barre quitte l'aperçu", async ({ page }) => {
         await ouvrirLeSuiviDUnTrajetGeoreference(page);
         await afficherLApercu(page);
         await simulerSurLePremierRepere(page);
@@ -96,7 +96,7 @@ test.describe('Aperçu du trajet pendant le suivi', () => {
         await expect(page.locator('#overview-position')).toBeHidden();
     });
 
-    test('Étant donné un grand écran, alors l’aperçu est là sans bouton, et le trajet entier y tient', async ({
+    test("Étant donné un grand écran, alors l'aperçu est là sans bouton, et le trajet entier y tient", async ({
         page,
     }) => {
         await ouvrirLeSuiviDUnTrajetGeoreference(page);
@@ -107,7 +107,7 @@ test.describe('Aperçu du trajet pendant le suivi', () => {
 
         const pile = requireDefined(
             await page.locator('#overview-stack').boundingBox(),
-            'cadre de la pile de l’aperçu',
+            "cadre de la pile de l'aperçu",
         );
         const viewport = requireDefined(page.viewportSize(), 'viewport');
         expect(pile.height).toBeLessThanOrEqual(viewport.height);
@@ -118,7 +118,7 @@ test.describe('Aperçu du trajet pendant le suivi', () => {
         );
     });
 
-    test('Étant donné un petit écran, alors le bouton flottant déplie puis replie l’aperçu', async ({
+    test("Étant donné un petit écran, alors le bouton flottant déplie puis replie l'aperçu", async ({
         page,
     }) => {
         await ouvrirLeSuiviDUnTrajetGeoreference(page);
@@ -137,13 +137,13 @@ test.describe('Aperçu du trajet pendant le suivi', () => {
 });
 
 test.describe('Suivi du trajet (position simulée)', () => {
-    test('Étant donné une permission refusée (défaut Playwright), alors l’état l’explique', async ({
+    test("Étant donné une permission refusée (défaut Playwright), alors l'état l'explique", async ({
         page,
         browserName,
     }) => {
         test.skip(
             browserName === 'firefox',
-            'Firefox ne délivre aucun callback d’erreur sur refus de permission : l’état reste « En attente ».',
+            "Firefox ne délivre aucun callback d'erreur sur refus de permission : l'état reste « En attente ».",
         );
         await ouvrirLeSuiviDUnTrajetGeoreference(page);
 
@@ -152,7 +152,7 @@ test.describe('Suivi du trajet (position simulée)', () => {
         );
     });
 
-    test('Étant donné le suivi, quand j’ouvre la carte de simulation, alors les points du trajet y sont repérés', async ({
+    test("Étant donné le suivi, quand j'ouvre la carte de simulation, alors les points du trajet y sont repérés", async ({
         page,
     }) => {
         await ouvrirLeSuiviDUnTrajetGeoreference(page);
@@ -163,7 +163,7 @@ test.describe('Suivi du trajet (position simulée)', () => {
         await expect(page.locator('#carte-container .carte-marker')).toHaveText(['1', '2']);
     });
 
-    test('Étant donné une position simulée sur le premier point, alors la page se cale à 75 % et le bandeau s’affiche', async ({
+    test("Étant donné une position simulée sur le premier point, alors la page se cale à 75 % et le bandeau s'affiche", async ({
         page,
     }) => {
         await ouvrirLeSuiviDUnTrajetGeoreference(page);
@@ -225,7 +225,7 @@ test.describe('Suivi du trajet (position simulée)', () => {
         expect(await currentScroll(page)).toBeLessThan(15);
     });
 
-    test('Étant donné une position simulée très loin de la ligne, alors l’état affiche « Hors trajet »', async ({
+    test("Étant donné une position simulée très loin de la ligne, alors l'état affiche « Hors trajet »", async ({
         page,
     }) => {
         await ouvrirLeSuiviDUnTrajetGeoreference(page);
@@ -243,7 +243,7 @@ test.describe('Suivi du trajet (position simulée)', () => {
         );
     });
 
-    test('Étant donné un trajet à un seul point, alors l’état réclame au moins deux points', async ({
+    test("Étant donné un trajet à un seul point, alors l'état réclame au moins deux points", async ({
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);

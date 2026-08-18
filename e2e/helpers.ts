@@ -297,7 +297,7 @@ export async function expectedScroll(page: Page, imageFraction: number): Promise
             getComputedStyle(document.documentElement).getPropertyValue('--fraction-position'),
         );
         if (!Number.isFinite(screenFraction)) {
-            throw new Error('--fraction-position absente : l’écran de suivi ne l’a pas posée.');
+            throw new Error("--fraction-position absente : l'écran de suivi ne l'a pas posée.");
         }
         const frame = image.getBoundingClientRect();
         const target = frame.top + window.scrollY + fraction * frame.height;

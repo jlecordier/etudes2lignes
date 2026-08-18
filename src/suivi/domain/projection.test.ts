@@ -40,7 +40,7 @@ describe('calculerCibleDeScroll', () => {
     });
 
     describe('Étant donné une position exactement sur une étape', () => {
-        it('alors la cible est l’offset de cette étape', () => {
+        it("alors la cible est l'offset de cette étape", () => {
             const result = computeScrollTarget(etapesOnOnePage, vendome, null);
 
             expect(result.kind).toBe('sur-trajet');
@@ -96,7 +96,7 @@ describe('calculerCibleDeScroll', () => {
         // 0,1° de longitude à cette latitude ≈ 7,7 km d'écart avec une ligne à lon 0,2.
         const gapOf7700m = Coordonnee.create(46.12, 0.1);
 
-        it('alors ~7,7 km d’écart sur un segment court (~10 km) déclenchent « hors trajet »', () => {
+        it("alors ~7,7 km d'écart sur un segment court (~10 km) déclenchent « hors trajet »", () => {
             const segmentCourt: EtapeDuVoyage[] = [
                 { coordonnee: Coordonnee.create(46.16, 0.2), offset: 2000 },
                 { coordonnee: Coordonnee.create(46.07, 0.2), offset: 1000 },
@@ -237,7 +237,7 @@ describe('offsetAt', () => {
             }
         });
 
-        it('alors la rejouer dans le référentiel de l’aperçu y place le même endroit du trajet', () => {
+        it("alors la rejouer dans le référentiel de l'aperçu y place le même endroit du trajet", () => {
             const result = computeScrollTarget(etapesOnOnePage, milieu(massy, vendome), null);
 
             expect(result.kind).toBe('sur-trajet');
@@ -256,7 +256,7 @@ describe('offsetAt', () => {
 
 describe('calculerDefilement', () => {
     describe('Étant donné une cible au milieu du document', () => {
-        it('alors le défilement place la cible aux trois quarts de l’écran (un quart du bas)', () => {
+        it("alors le défilement place la cible aux trois quarts de l'écran (un quart du bas)", () => {
             // cible 5000, écran 800 → la cible doit être à 600 px du haut → scrollTop 4400.
             expect(computeScroll(5000, 800, 20000)).toBe(4400);
         });

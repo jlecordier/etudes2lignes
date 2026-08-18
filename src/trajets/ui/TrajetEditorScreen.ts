@@ -108,7 +108,7 @@ function mount(
     eventsOf(fileInput, 'change')
         .pipe(takeUntil(parti$))
         .subscribe(() => {
-            run(importFiles(), 'l’ajout des pages');
+            run(importFiles(), "l'ajout des pages");
         });
     eventsOf(carteButton, 'click')
         .pipe(takeUntil(parti$))
@@ -131,7 +131,7 @@ function mount(
             if (currentTrajet === null) {
                 return;
             }
-            run(downloadTrajet(currentTrajet), 'l’export du trajet');
+            run(downloadTrajet(currentTrajet), "l'export du trajet");
         });
     eventsOf(query('#cancel-placement-button', HTMLButtonElement, root), 'click')
         .pipe(takeUntil(parti$))
@@ -151,7 +151,7 @@ function mount(
     eventsOf(root, 'right-click-page')
         .pipe(takeUntil(parti$))
         .subscribe((event) => {
-            run(onImageRightClick(event.detail), 'l’ajout du point');
+            run(onImageRightClick(event.detail), "l'ajout du point");
         });
     eventsOf(root, 'move-image')
         .pipe(takeUntil(parti$))
@@ -207,7 +207,7 @@ function mount(
         carteDesPoints.unmount();
     });
 
-    run(charger(), 'l’ouverture du trajet');
+    run(charger(), "l'ouverture du trajet");
 
     async function charger(): Promise<void> {
         const loaded = await repository.load(trajetId);
@@ -645,7 +645,7 @@ async function imageDimensions(file: File): Promise<{ largeur: number; hauteur: 
     try {
         bitmap = await createImageBitmap(file);
     } catch {
-        throw new Error(`« ${file.name} » n’est pas une image lisible.`);
+        throw new Error(`« ${file.name} » n'est pas une image lisible.`);
     }
     try {
         return { largeur: bitmap.width, hauteur: bitmap.height };

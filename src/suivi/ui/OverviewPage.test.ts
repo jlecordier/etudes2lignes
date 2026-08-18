@@ -65,7 +65,7 @@ function livrerLeDecodage(): FauxBitmap {
 
 describe('createOverviewPage', () => {
     describe('Étant donné une page', () => {
-        it('alors la boîte de la vignette est réservée, et rien n’est décodé', () => {
+        it("alors la boîte de la vignette est réservée, et rien n'est décodé", () => {
             const element = createOverviewPage(unePage());
             document.body.append(element);
 
@@ -99,7 +99,7 @@ describe('createOverviewPage', () => {
 });
 
 describe('paintOverviewPage', () => {
-    describe('Étant donné une vignette qu’on peint', () => {
+    describe("Étant donné une vignette qu'on peint", () => {
         it('alors la page pleine taille est relâchée dès son décodage obtenu', async () => {
             const page = unePage();
             const element = createOverviewPage(page);

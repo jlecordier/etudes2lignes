@@ -443,7 +443,7 @@ sous Suivi, et une ligne de plus au cycle de vie :
 | `src/suivi/domain/overview.ts`          | **Neuf** — `ratiosSum(pages)`, pur                                                                 |
 | `src/suivi/domain/overview.test.ts`     | **Neuf**                                                                                           |
 | `src/suivi/ui/OverviewPage.ts`          | **Neuf** — la vignette : boîte réservée, peinte, décodage relâché                                  |
-| `src/shared/DisplayedPage.ts`           | **Neuf** — `DisplayablePage` déménage : aucun des deux éléments n’en est le propriétaire           |
+| `src/shared/DisplayedPage.ts`           | **Neuf** — `DisplayablePage` déménage : aucun des deux éléments n'en est le propriétaire           |
 | `src/shared/SchemaPage.ts`              | Importe le type au lieu de le déclarer                                                             |
 | `src/suivi/ui/OverviewPage.test.ts`     | **Neuf**                                                                                           |
 | `src/suivi/ui/SuiviScreen.html`         | `.suivi-body`, l'aperçu, la barre, le bouton flottant                                              |

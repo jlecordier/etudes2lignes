@@ -61,7 +61,7 @@ export function overviewPageId(element: OverviewPageElement): string {
     const pageId = element.dataset['pageId'];
     if (pageId === undefined) {
         throw new Error(
-            'Vignette d’aperçu sans identifiant de page : sa fabrique est le seul moyen d’en obtenir une.',
+            "Vignette d'aperçu sans identifiant de page : sa fabrique est le seul moyen d'en obtenir une.",
         );
     }
     return pageId;

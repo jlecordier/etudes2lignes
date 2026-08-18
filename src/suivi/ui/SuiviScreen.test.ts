@@ -200,8 +200,8 @@ function statut(element: HTMLElement): string {
 }
 
 describe('suivi-screen', () => {
-    describe('Étant donné un trajet, quand j’attache l’écran', () => {
-        it('alors ses pages sont montées et l’écran est gardé allumé', async () => {
+    describe("Étant donné un trajet, quand j'attache l'écran", () => {
+        it("alors ses pages sont montées et l'écran est gardé allumé", async () => {
             const element = await attacherLEcran();
 
             expect(element.querySelectorAll('#suivi-stack schema-page')).toHaveLength(1);
@@ -216,8 +216,8 @@ describe('suivi-screen', () => {
         });
     });
 
-    describe('Étant donné un trajet, quand j’attache l’écran', () => {
-        it('alors l’aperçu montre autant de pages que la pile qui défile', async () => {
+    describe("Étant donné un trajet, quand j'attache l'écran", () => {
+        it("alors l'aperçu montre autant de pages que la pile qui défile", async () => {
             const element = await attacherLEcran();
 
             const stack = element.querySelectorAll('#suivi-stack schema-page');
@@ -226,7 +226,7 @@ describe('suivi-screen', () => {
             expect(overview).toHaveLength(1);
         });
 
-        it('alors l’aperçu n’ouvre aucune seconde image de la page', async () => {
+        it("alors l'aperçu n'ouvre aucune seconde image de la page", async () => {
             const element = await attacherLEcran();
 
             // Une seule URL d'objet pour une page du trajet : celle de la pile qui
@@ -272,8 +272,8 @@ describe('suivi-screen', () => {
         });
     });
 
-    describe('Étant donné un trajet sans page, quand j’attache l’écran', () => {
-        it('alors il n’y a pas d’aperçu à proposer', async () => {
+    describe("Étant donné un trajet sans page, quand j'attache l'écran", () => {
+        it("alors il n'y a pas d'aperçu à proposer", async () => {
             trajet = Trajet.create(NomDeTrajet.create('Trajet vierge'));
             repository.put(trajet);
 
@@ -286,8 +286,8 @@ describe('suivi-screen', () => {
         });
     });
 
-    describe('Étant donné un écran attaché, quand je touche le bouton de l’aperçu', () => {
-        it('alors l’aperçu s’ouvre, et le bouton dit qu’il est enfoncé', async () => {
+    describe("Étant donné un écran attaché, quand je touche le bouton de l'aperçu", () => {
+        it("alors l'aperçu s'ouvre, et le bouton dit qu'il est enfoncé", async () => {
             const element = await attacherLEcran();
             const bouton = query('#overview-button', HTMLButtonElement, element);
 
@@ -310,7 +310,7 @@ describe('suivi-screen', () => {
     });
 
     describe('Étant donné un écran attaché, quand je touche « Éditer »', () => {
-        it('alors l’écran demande le retour, sans se démonter lui-même', async () => {
+        it("alors l'écran demande le retour, sans se démonter lui-même", async () => {
             const element = await attacherLEcran();
 
             query('#leave-suivi-button', HTMLButtonElement, element).click();
@@ -333,7 +333,7 @@ describe('suivi-screen', () => {
     });
 
     describe('Étant donné un écran attaché, quand je le détache', () => {
-        it('alors le verrou d’écran est relâché', async () => {
+        it("alors le verrou d'écran est relâché", async () => {
             const element = await attacherLEcran();
 
             element.remove();
@@ -363,7 +363,7 @@ describe('suivi-screen', () => {
             expect(resume.hidden).toBe(true);
         });
 
-        it('alors les pages libèrent ce qu’elles retenaient', async () => {
+        it("alors les pages libèrent ce qu'elles retenaient", async () => {
             const element = await attacherLEcran();
 
             element.remove();
@@ -373,8 +373,8 @@ describe('suivi-screen', () => {
         });
     });
 
-    describe('Étant donné un chargement encore en cours, quand je détache l’écran', () => {
-        it('alors rien n’est monté et aucun verrou n’est demandé', async () => {
+    describe("Étant donné un chargement encore en cours, quand je détache l'écran", () => {
+        it("alors rien n'est monté et aucun verrou n'est demandé", async () => {
             repository.suspendreLaLecture();
             const element = createSuiviScreen(dependances());
             document.body.append(element);

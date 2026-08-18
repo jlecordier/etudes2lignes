@@ -14,7 +14,7 @@ import {
 } from './helpers';
 
 test.describe('Géoréférencement des points', () => {
-    test('Étant donné une image, quand j’ajoute un point (image puis carte), alors il apparaît en liste et en marqueur', async ({
+    test("Étant donné une image, quand j'ajoute un point (image puis carte), alors il apparaît en liste et en marqueur", async ({
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
@@ -38,7 +38,7 @@ test.describe('Géoréférencement des points', () => {
         await expect(page.locator('point-marker')).toHaveCount(1);
     });
 
-    test('Étant donné un point posé sur l’image, alors son numéro porte le symbole de la carte, centré sur son trait', async ({
+    test("Étant donné un point posé sur l'image, alors son numéro porte le symbole de la carte, centré sur son trait", async ({
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
@@ -59,7 +59,7 @@ test.describe('Géoréférencement des points', () => {
         expect(Math.abs(repere.pastille.milieu - repere.trait.milieu)).toBeLessThanOrEqual(1);
     });
 
-    test('Étant donné un point posé sur l’image, alors ses boutons se tiennent au-dessus du trait, sans couvrir ce qu’il désigne', async ({
+    test("Étant donné un point posé sur l'image, alors ses boutons se tiennent au-dessus du trait, sans couvrir ce qu'il désigne", async ({
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
@@ -76,7 +76,7 @@ test.describe('Géoréférencement des points', () => {
         expect(repere.boutons.height).toBeGreaterThanOrEqual(repere.pastille.height);
     });
 
-    test('Étant donné un point, quand je le déplace sur l’image, alors sa hauteur change sans ouvrir la carte', async ({
+    test("Étant donné un point, quand je le déplace sur l'image, alors sa hauteur change sans ouvrir la carte", async ({
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
@@ -93,7 +93,7 @@ test.describe('Géoréférencement des points', () => {
         expect(await hauteurDuRepere(page)).toBeLessThanOrEqual(76);
     });
 
-    test('Étant donné un point, quand je le déplace sur l’image via le bouton flottant sur le marqueur, alors sa hauteur change sans remonter à la liste', async ({
+    test("Étant donné un point, quand je le déplace sur l'image via le bouton flottant sur le marqueur, alors sa hauteur change sans remonter à la liste", async ({
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
@@ -197,7 +197,7 @@ test.describe('Géoréférencement des points', () => {
         await expect(page.locator('point-marker')).toHaveCount(1);
     });
 
-    test('Étant donné un long défilement dans la page, quand j’ajoute un point via le bouton flottant, alors il reste accessible sans remonter en haut et le point est créé', async ({
+    test("Étant donné un long défilement dans la page, quand j'ajoute un point via le bouton flottant, alors il reste accessible sans remonter en haut et le point est créé", async ({
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
@@ -228,7 +228,7 @@ test.describe('Géoréférencement des points', () => {
         await expect(page.locator('point-marker')).toHaveCount(1);
     });
 
-    test('Étant donné un point loin dans la pile, quand je le désigne sur la carte, alors son repère vient à l’écran', async ({
+    test("Étant donné un point loin dans la pile, quand je le désigne sur la carte, alors son repère vient à l'écran", async ({
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
@@ -259,7 +259,7 @@ test.describe('Géoréférencement des points', () => {
         await expect(pastille).toBeInViewport();
     });
 
-    test('Étant donné un petit écran, quand je bascule sur la carte, alors elle couvre le schéma et un point désigné l’en retire', async ({
+    test("Étant donné un petit écran, quand je bascule sur la carte, alors elle couvre le schéma et un point désigné l'en retire", async ({
         page,
     }) => {
         test.skip(
@@ -342,7 +342,7 @@ test.describe('Géoréférencement des points', () => {
         await expect.poll(() => ecartAuCentreDeLaCarte(page, '1')).toBeLessThanOrEqual(4);
     });
 
-    test('Étant donné un petit écran où la carte est repliée, quand je clique la pastille d’un point, alors la carte vient par-dessus le schéma', async ({
+    test("Étant donné un petit écran où la carte est repliée, quand je clique la pastille d'un point, alors la carte vient par-dessus le schéma", async ({
         page,
     }) => {
         test.skip(
@@ -375,12 +375,12 @@ test.describe('Géoréférencement des points', () => {
         await expect(carte).toBeInViewport({ ratio: 0.9 });
     });
 
-    test('Étant donné un grand écran où la carte est déjà à côté de la pile, quand je clique la pastille d’un point, alors elle reste à sa place sans jamais couvrir le schéma', async ({
+    test("Étant donné un grand écran où la carte est déjà à côté de la pile, quand je clique la pastille d'un point, alors elle reste à sa place sans jamais couvrir le schéma", async ({
         page,
     }) => {
         test.skip(
             requireDefined(page.viewportSize(), 'viewport').width < 900,
-            'Sous 900 px la carte est repliée : c’est le scénario précédent qui la met par-dessus le schéma.',
+            "Sous 900 px la carte est repliée : c'est le scénario précédent qui la met par-dessus le schéma.",
         );
         await ouvrirUnTrajetAvecUnePage(page);
         await ajouterUnPoint(page, 0.5, 0);
@@ -398,7 +398,7 @@ test.describe('Géoréférencement des points', () => {
         expect(apres).toEqual(avant);
     });
 
-    test('Étant donné un placement en cours, quand je clique la pastille d’un point déjà posé, alors un point s’y pose au lieu de partir à la carte', async ({
+    test("Étant donné un placement en cours, quand je clique la pastille d'un point déjà posé, alors un point s'y pose au lieu de partir à la carte", async ({
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
@@ -465,7 +465,7 @@ test.describe('Géoréférencement des points', () => {
             .toBe(true);
     });
 
-    test('Étant donné un glisser achevé, alors le clic qui le suit n’emmène pas à la carte', async ({
+    test("Étant donné un glisser achevé, alors le clic qui le suit n'emmène pas à la carte", async ({
         page,
     }) => {
         test.skip(

@@ -60,10 +60,10 @@
 
 - [ ] **Step 1 : Écrire le test qui échoue**
 
-Dans `src/trajets/ui/TrajetEditorScreen.test.ts`, ajouter au `describe('Étant donné un trajet, quand j’attache l’écran', …)` :
+Dans `src/trajets/ui/TrajetEditorScreen.test.ts`, ajouter au `describe("Étant donné un trajet, quand j'attache l'écran", …)` :
 
 ```ts
-it('alors chaque cadre dit l’identifiant de son image, celui-là même que porte sa page', async () => {
+it("alors chaque cadre dit l'identifiant de son image, celui-là même que porte sa page", async () => {
     const element = await attacherLEcran();
 
     // Trois cadres, trois identifiants distincts : l'assertion ne peut
@@ -265,7 +265,7 @@ beforeEach(() => {
 
 describe('Glisser un point sur la pile', () => {
     describe('Étant donné un maintien qui ne dépasse pas le seuil', () => {
-        it('alors rien n’est déposé : c’était un clic', () => {
+        it("alors rien n'est déposé : c'était un clic", () => {
             const scene1 = scene();
 
             glisser(scene1, 500, 502);
@@ -274,8 +274,8 @@ describe('Glisser un point sur la pile', () => {
         });
     });
 
-    describe('Étant donné un glisser franc à l’intérieur de la page', () => {
-        it('alors le point est déposé à la fraction d’arrivée, sur la même image', () => {
+    describe("Étant donné un glisser franc à l'intérieur de la page", () => {
+        it("alors le point est déposé à la fraction d'arrivée, sur la même image", () => {
             const scene1 = scene();
 
             glisser(scene1, 500, 520, 250);
@@ -298,7 +298,7 @@ describe('Glisser un point sur la pile', () => {
     });
 
     describe('Étant donné un glisser qui passe sur la page voisine', () => {
-        it('alors c’est l’identifiant de cette page-là qui est déposé', () => {
+        it("alors c'est l'identifiant de cette page-là qui est déposé", () => {
             const scene1 = scene();
 
             glisser(scene1, 500, 900, 1600);
@@ -308,7 +308,7 @@ describe('Glisser un point sur la pile', () => {
         });
     });
 
-    describe('Étant donné un doigt relâché dans l’interstice entre deux pages', () => {
+    describe("Étant donné un doigt relâché dans l'interstice entre deux pages", () => {
         it('alors la dernière position survolée est conservée', () => {
             const scene1 = scene();
 
@@ -346,7 +346,7 @@ describe('Glisser un point sur la pile', () => {
     });
 
     describe('Étant donné un glisser achevé, quand le navigateur dispatche le clic qui suit', () => {
-        it('alors ce clic n’atteint pas la pastille', () => {
+        it("alors ce clic n'atteint pas la pastille", () => {
             const scene1 = scene();
             const clics: string[] = [];
             scene1.pastille.addEventListener('click', () => clics.push('pastille'));
@@ -357,7 +357,7 @@ describe('Glisser un point sur la pile', () => {
             expect(clics).toEqual([]);
         });
 
-        it('alors le clic d’après, lui, passe : le piège n’est armé qu’une fois', () => {
+        it("alors le clic d'après, lui, passe : le piège n'est armé qu'une fois", () => {
             const scene1 = scene();
             const clics: string[] = [];
             scene1.pastille.addEventListener('click', () => clics.push('pastille'));
@@ -625,7 +625,7 @@ function glisserLaPastille(element: HTMLElement, numero: number, de: number, ver
         (candidate) => candidate.textContent === String(numero),
     );
     if (pastille === undefined) {
-        throw new Error(`Aucune pastille ${String(numero)} dans l’écran.`);
+        throw new Error(`Aucune pastille ${String(numero)} dans l'écran.`);
     }
     pastille.dispatchEvent(new FauxPointerEvent('pointerdown', de));
     query('#images-stack', HTMLDivElement, element).dispatchEvent(
@@ -659,7 +659,7 @@ Puis les deux tests, après le `describe` du petit écran :
 
 ```ts
 describe('Étant donné un point posé à mi-hauteur de sa page', () => {
-    it('quand je glisse sa pastille au quart, alors c’est là qu’il est enregistré', async () => {
+    it("quand je glisse sa pastille au quart, alors c'est là qu'il est enregistré", async () => {
         const element = await attacherLEcran();
 
         glisserLaPastille(element, 1, 500, 250);
@@ -671,7 +671,7 @@ describe('Étant donné un point posé à mi-hauteur de sa page', () => {
         expect(echecs).toEqual([]);
     });
 
-    it('quand je glisse, alors la carte n’est pas convoquée par le clic qui suit', async () => {
+    it("quand je glisse, alors la carte n'est pas convoquée par le clic qui suit", async () => {
         const element = await attacherLEcran();
 
         glisserLaPastille(element, 1, 500, 250);
@@ -819,7 +819,7 @@ test('Étant donné un point sur le schéma, quand je glisse sa pastille, alors 
     await expect.poll(() => hauteurDuRepere(page)).toBeGreaterThan(avant + 10);
 });
 
-test('Étant donné un glisser achevé, alors le clic qui le suit n’emmène pas à la carte', async ({
+test("Étant donné un glisser achevé, alors le clic qui le suit n'emmène pas à la carte", async ({
     page,
 }) => {
     test.skip(

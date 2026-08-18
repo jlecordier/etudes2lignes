@@ -17,7 +17,7 @@ test.use({
 });
 
 test.describe('Suivi avec le GPS du navigateur (mocké)', () => {
-    test('Étant donné une position accordée, quand j’ouvre le suivi, alors la page se cale dessus', async ({
+    test("Étant donné une position accordée, quand j'ouvre le suivi, alors la page se cale dessus", async ({
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);

@@ -324,7 +324,7 @@ Dans `src/carte/adapters/fitting.test.ts`, ajouter `, null` aux six appels
 existants de `fitToPoints`, puis ajouter deux cas avant le dernier `describe` :
 
 ```ts
-describe('Étant donné les points d’un trajet et la position de l’utilisateur', () => {
+describe("Étant donné les points d'un trajet et la position de l'utilisateur", () => {
     it('alors les deux tiennent dans la vue', () => {
         const carte = testCarte();
 
@@ -504,7 +504,7 @@ describe('Étant donné une position connue poussée dans le flux', () => {
 });
 
 describe('Étant donné une position trop imprécise pour caler la page', () => {
-    it('alors elle est montrée quand même, cerclée de l’incertitude mesurée', () => {
+    it("alors elle est montrée quand même, cerclée de l'incertitude mesurée", () => {
         const { carteDesPoints, show, carte } = testBed();
         show([]);
         const positions$ = new Subject<DisplayedPosition>();
@@ -523,7 +523,7 @@ describe('Étant donné une position trop imprécise pour caler la page', () => 
 });
 
 describe('Étant donné une position devenue inconnue', () => {
-    it('alors le marqueur et son cercle s’effacent tous les deux', () => {
+    it("alors le marqueur et son cercle s'effacent tous les deux", () => {
         const { carteDesPoints, show, carte } = testBed();
         show([]);
         const positions$ = new Subject<DisplayedPosition>();
@@ -561,8 +561,8 @@ describe('Étant donné une position déjà connue, quand les points changent', 
     });
 });
 
-describe('Étant donné une carte qu’on démonte', () => {
-    it('alors elle n’écoute plus la position : plus personne n’observe le flux', () => {
+describe("Étant donné une carte qu'on démonte", () => {
+    it("alors elle n'écoute plus la position : plus personne n'observe le flux", () => {
         const { carteDesPoints } = testBed();
         const positions$ = new Subject<DisplayedPosition>();
         carteDesPoints.showPosition(positions$);
@@ -945,7 +945,7 @@ L.Map.addInitHook(function (this: L.Map) {
 function carteCourante(): L.Map {
     const last = createdCartes.at(-1);
     if (last === undefined) {
-        throw new Error('Aucune carte Leaflet créée : l’adapter n’a pas été sollicité.');
+        throw new Error("Aucune carte Leaflet créée : l'adapter n'a pas été sollicité.");
     }
     return last;
 }
@@ -985,8 +985,8 @@ Ajouter `, EMPTY` aux six appels existants de `selector.choose(...)`, puis les
 quatre cas :
 
 ```ts
-describe('Étant donné une position connue avant l’ouverture', () => {
-    it('alors elle est montrée, et le cadrage d’ouverture l’englobe', async () => {
+describe("Étant donné une position connue avant l'ouverture", () => {
+    it("alors elle est montrée, et le cadrage d'ouverture l'englobe", async () => {
         const selector = new LeafletCoordonneeSelector();
         const positions$ = new BehaviorSubject<DisplayedPosition>({
             kind: 'connue',
@@ -1025,7 +1025,7 @@ describe('Étant donné une position inconnue', () => {
 });
 
 describe('Étant donné une position connue, quand on demande « Ma position »', () => {
-    it('alors la carte vient dessus, au zoom d’un point unique', async () => {
+    it("alors la carte vient dessus, au zoom d'un point unique", async () => {
         const selector = new LeafletCoordonneeSelector();
         const positions$ = new BehaviorSubject<DisplayedPosition>({
             kind: 'connue',
@@ -1044,7 +1044,7 @@ describe('Étant donné une position connue, quand on demande « Ma position »'
 });
 
 describe('Étant donné un choix terminé', () => {
-    it('alors la carte n’écoute plus la position et ne la montre plus', async () => {
+    it("alors la carte n'écoute plus la position et ne la montre plus", async () => {
         const selector = new LeafletCoordonneeSelector();
         const positions$ = new Subject<DisplayedPosition>();
         const choice = selector.choose(null, [], positions$);
@@ -1372,7 +1372,7 @@ dans le `beforeEach` (`carte = new FakeCoordonneeSelector();`) et écrire
 Puis les trois cas :
 
 ```ts
-describe('Étant donné le suivi au GPS, quand j’ouvre la carte pour simuler', () => {
+describe("Étant donné le suivi au GPS, quand j'ouvre la carte pour simuler", () => {
     it('alors elle reçoit ma position réelle', async () => {
         const element = await attacherLEcran();
         realSource.simulate(Coordonnee.create(44.83, -0.57));
@@ -1403,7 +1403,7 @@ describe('Étant donné le suivi déjà en simulation, quand je rouvre la carte'
     });
 });
 
-describe('Étant donné une simulation qu’on quitte', () => {
+describe("Étant donné une simulation qu'on quitte", () => {
     it('alors la carte remontre le GPS, jamais la position simulée restée en mémoire', async () => {
         const element = await attacherLEcran();
         realSource.simulate(Coordonnee.create(44.83, -0.57));
@@ -1636,7 +1636,7 @@ l'instancier dans le `beforeEach` (`positionSource = new FakePositionSource();`)
 et l'ajouter à `dependances()`. Puis les quatre cas :
 
 ```ts
-describe('Étant donné l’éditeur ouvert, carte repliée', () => {
+describe("Étant donné l'éditeur ouvert, carte repliée", () => {
     it('alors le GPS ne tourne pas : personne ne regarde de carte', async () => {
         await attacherLEcran();
 
@@ -1646,7 +1646,7 @@ describe('Étant donné l’éditeur ouvert, carte repliée', () => {
 });
 
 describe('Étant donné la carte dépliée par-dessus le schéma', () => {
-    it('alors une session s’ouvre, et se referme quand on la replie', async () => {
+    it("alors une session s'ouvre, et se referme quand on la replie", async () => {
         const element = await attacherLEcran();
 
         query('#carte-button', HTMLButtonElement, element).click();
@@ -1674,8 +1674,8 @@ describe('Étant donné une position reçue carte dépliée', () => {
     });
 });
 
-describe('Étant donné l’éditeur qu’on quitte', () => {
-    it('alors plus aucune session de position n’est ouverte', async () => {
+describe("Étant donné l'éditeur qu'on quitte", () => {
+    it("alors plus aucune session de position n'est ouverte", async () => {
         const element = await attacherLEcran();
         query('#carte-button', HTMLButtonElement, element).click();
 
@@ -1941,7 +1941,7 @@ autres endroits qui interrogeaient le DOM passent par le même nom."
 
 ```ts
 describe('Étant donné une position refusée, carte dépliée', () => {
-    it('alors l’écran dit pourquoi aucun marqueur n’apparaît', async () => {
+    it("alors l'écran dit pourquoi aucun marqueur n'apparaît", async () => {
         const element = await attacherLEcran();
         query('#carte-button', HTMLButtonElement, element).click();
 
@@ -1969,7 +1969,7 @@ describe('Étant donné une position connue, quand je demande « Ma position »'
         ).toEqual([44.83, -0.57]);
     });
 
-    it('alors le bouton reste inerte tant qu’aucune position n’est connue', async () => {
+    it("alors le bouton reste inerte tant qu'aucune position n'est connue", async () => {
         const element = await attacherLEcran();
 
         query('#carte-button', HTMLButtonElement, element).click();
@@ -2215,7 +2215,7 @@ position ; c'est le seul, et c'est pourquoi les scénarios vont là. Ajouter aux
 imports `isLargeScreen`, puis, dans le `describe` existant :
 
 ```ts
-test('Étant donné ma position accordée, quand j’ouvre la carte de l’éditeur, alors mon marqueur y est', async ({
+test("Étant donné ma position accordée, quand j'ouvre la carte de l'éditeur, alors mon marqueur y est", async ({
     page,
 }) => {
     await ouvrirUnTrajetAvecUnePage(page);
@@ -2230,7 +2230,7 @@ test('Étant donné ma position accordée, quand j’ouvre la carte de l’édit
     await expect(page.locator('#editor-position-button')).toBeEnabled();
 });
 
-test('Étant donné le suivi au GPS, quand j’ouvre la carte pour simuler, alors mon marqueur y est', async ({
+test("Étant donné le suivi au GPS, quand j'ouvre la carte pour simuler, alors mon marqueur y est", async ({
     page,
 }) => {
     await ouvrirUnTrajetAvecUnePage(page);

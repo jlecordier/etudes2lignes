@@ -76,14 +76,14 @@ export function importTrajetFromJson(text: string): Trajet {
     const trajet = Trajet.create(NomDeTrajet.create(string(donnees['nom'], 'nom')));
     const imageIds = tableau(donnees['images'], 'images').map((image, index) => {
         const inputs = objet(image, `images[${index}]`);
-        const donneesBase64 = string(inputs['donneesBase64'], 'données d’image');
+        const donneesBase64 = string(inputs['donneesBase64'], "données d'image");
         if (donneesBase64 === '') {
-            throw new Error('Fichier incomplet : données d’image manquantes.');
+            throw new Error("Fichier incomplet : données d'image manquantes.");
         }
         return trajet.addImage({
-            nom: string(inputs['nom'], 'nom d’image'),
+            nom: string(inputs['nom'], "nom d'image"),
             blob: new Blob([fromBase64(donneesBase64)], {
-                type: string(inputs['type'], 'type d’image'),
+                type: string(inputs['type'], "type d'image"),
             }),
             largeur: nombre(inputs['largeur'], 'largeur'),
             hauteur: nombre(inputs['hauteur'], 'hauteur'),
@@ -91,7 +91,7 @@ export function importTrajetFromJson(text: string): Trajet {
     });
     for (const [index, point] of tableau(donnees['points'], 'points').entries()) {
         const inputs = objet(point, `points[${index}]`);
-        const imageId = imageIds[nombre(inputs['image'], 'index d’image')];
+        const imageId = imageIds[nombre(inputs['image'], "index d'image")];
         if (imageId === undefined) {
             throw new Error('Fichier incohérent : un point vise une image absente du fichier.');
         }
@@ -113,14 +113,14 @@ function parseJson(text: string): unknown {
     try {
         return JSON.parse(text);
     } catch {
-        throw new Error('Fichier illisible : ce n’est pas un fichier JSON.');
+        throw new Error("Fichier illisible : ce n'est pas un fichier JSON.");
     }
 }
 
 function validateEnvelope(content: unknown): Record<string, unknown> {
     const enveloppe = objet(content, 'fichier');
     if (enveloppe['application'] !== APPLICATION) {
-        throw new Error('Ce fichier ne vient pas d’Etudes2Lignes.');
+        throw new Error("Ce fichier ne vient pas d'Etudes2Lignes.");
     }
     if (enveloppe['version'] !== VERSION) {
         throw new Error(
@@ -177,7 +177,7 @@ function fromBase64(donnees: string): Uint8Array<ArrayBuffer> {
     try {
         binaire = atob(donnees);
     } catch {
-        throw new Error('Fichier incomplet : données d’image illisibles.');
+        throw new Error("Fichier incomplet : données d'image illisibles.");
     }
     const bytes = new Uint8Array(new ArrayBuffer(binaire.length));
     for (let position = 0; position < binaire.length; position++) {

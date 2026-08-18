@@ -51,7 +51,7 @@ describe('FractionVerticale', () => {
         });
     });
 
-    describe('Étant donné une distance qui n’est pas un nombre', () => {
+    describe("Étant donné une distance qui n'est pas un nombre", () => {
         it('alors la fraction depuis la hauteur est refusée', () => {
             expect(() => FractionVerticale.fromHeight(Number.NaN, 600)).toThrow(
                 'Fraction verticale invalide',

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { clamp } from './number';
 
 describe('clamp', () => {
-    describe('Étant donné une valeur dans l’intervalle', () => {
+    describe("Étant donné une valeur dans l'intervalle", () => {
         it('alors elle est renvoyée telle quelle', () => {
             expect(clamp(0.42, 0, 1)).toBe(0.42);
             expect(clamp(0, 0, 1)).toBe(0);

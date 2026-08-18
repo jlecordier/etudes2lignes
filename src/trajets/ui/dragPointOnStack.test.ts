@@ -114,7 +114,7 @@ beforeEach(() => {
 
 describe('Glisser un point sur la pile', () => {
     describe('Étant donné un maintien qui ne dépasse pas le seuil', () => {
-        it('alors rien n’est déposé : c’était un clic', () => {
+        it("alors rien n'est déposé : c'était un clic", () => {
             const scene1 = scene();
 
             glisser(scene1, 500, 502);
@@ -122,7 +122,7 @@ describe('Glisser un point sur la pile', () => {
             expect(scene1.deposes).toEqual([]);
         });
 
-        it('alors la capture du pointeur n’est jamais posée', () => {
+        it("alors la capture du pointeur n'est jamais posée", () => {
             const scene1 = scene();
 
             glisser(scene1, 500, 502);
@@ -132,7 +132,7 @@ describe('Glisser un point sur la pile', () => {
     });
 
     describe('Étant donné un maintien qui atteint exactement le seuil', () => {
-        it('alors c’est un glisser : le point est déposé', () => {
+        it("alors c'est un glisser : le point est déposé", () => {
             const scene1 = scene();
 
             // 500 → 503 : un écart de 3 px pile, la limite de `DRAG_THRESHOLD`.
@@ -142,8 +142,8 @@ describe('Glisser un point sur la pile', () => {
         });
     });
 
-    describe('Étant donné un glisser franc à l’intérieur de la page', () => {
-        it('alors le point est déposé à la fraction d’arrivée, sur la même image', () => {
+    describe("Étant donné un glisser franc à l'intérieur de la page", () => {
+        it("alors le point est déposé à la fraction d'arrivée, sur la même image", () => {
             const scene1 = scene();
 
             glisser(scene1, 500, 520, 250);
@@ -174,7 +174,7 @@ describe('Glisser un point sur la pile', () => {
     });
 
     describe('Étant donné un glisser qui passe sur la page voisine', () => {
-        it('alors c’est l’identifiant de cette page-là qui est déposé', () => {
+        it("alors c'est l'identifiant de cette page-là qui est déposé", () => {
             const scene1 = scene();
 
             glisser(scene1, 500, 900, 1600);
@@ -184,7 +184,7 @@ describe('Glisser un point sur la pile', () => {
         });
     });
 
-    describe('Étant donné un doigt relâché dans l’interstice entre deux pages', () => {
+    describe("Étant donné un doigt relâché dans l'interstice entre deux pages", () => {
         it('alors la dernière position survolée est conservée', () => {
             const scene1 = scene();
 
@@ -210,7 +210,7 @@ describe('Glisser un point sur la pile', () => {
     });
 
     describe('Étant donné un second doigt qui bouge puis se lève pendant un glisser', () => {
-        it('alors le premier geste l’ignore, et se conclut à la position que le premier doigt avait posée', () => {
+        it("alors le premier geste l'ignore, et se conclut à la position que le premier doigt avait posée", () => {
             const scene1 = scene();
 
             scene1.pastille.dispatchEvent(new FauxPointerEvent('pointerdown', 500, 1));
@@ -228,7 +228,7 @@ describe('Glisser un point sur la pile', () => {
     });
 
     describe('Étant donné un glisser annulé par le système (pointercancel)', () => {
-        it('alors le repère retourne à sa position d’origine, et rien n’est déposé', () => {
+        it("alors le repère retourne à sa position d'origine, et rien n'est déposé", () => {
             const scene1 = scene();
             const repere = query('point-marker', PointMarkerElement, scene1.stack);
             const parentDorigine = repere.parentElement;
@@ -246,7 +246,7 @@ describe('Glisser un point sur la pile', () => {
             expect(repere.style.top).toBe('50%');
         });
 
-        it('alors le piège du clic n’a pas été armé : le clic suivant atteint la pastille', () => {
+        it("alors le piège du clic n'a pas été armé : le clic suivant atteint la pastille", () => {
             const scene1 = scene();
             const clics: string[] = [];
             scene1.pastille.addEventListener('click', () => clics.push('pastille'));
@@ -273,7 +273,7 @@ describe('Glisser un point sur la pile', () => {
     });
 
     describe('Étant donné un glisser achevé, quand le navigateur dispatche le clic qui suit', () => {
-        it('alors ce clic n’atteint pas la pastille', () => {
+        it("alors ce clic n'atteint pas la pastille", () => {
             const scene1 = scene();
             const clics: string[] = [];
             scene1.pastille.addEventListener('click', () => clics.push('pastille'));
@@ -284,7 +284,7 @@ describe('Glisser un point sur la pile', () => {
             expect(clics).toEqual([]);
         });
 
-        it('alors le clic d’après, lui, passe : le piège n’est armé qu’une fois', () => {
+        it("alors le clic d'après, lui, passe : le piège n'est armé qu'une fois", () => {
             const scene1 = scene();
             const clics: string[] = [];
             scene1.pastille.addEventListener('click', () => clics.push('pastille'));
@@ -297,7 +297,7 @@ describe('Glisser un point sur la pile', () => {
         });
     });
 
-    describe('Étant donné un glisser qui n’a produit aucun clic', () => {
+    describe("Étant donné un glisser qui n'a produit aucun clic", () => {
         it('alors la pression suivante atteint quand même la pastille', () => {
             const scene1 = scene();
             const clics: string[] = [];
@@ -314,7 +314,7 @@ describe('Glisser un point sur la pile', () => {
         });
     });
 
-    describe('Étant donné un relâchement sous le seuil qui n’atteint pas la pile', () => {
+    describe("Étant donné un relâchement sous le seuil qui n'atteint pas la pile", () => {
         it('alors un second doigt peut quand même démarrer un glisser', () => {
             const scene1 = scene();
 
@@ -340,8 +340,8 @@ describe('Glisser un point sur la pile', () => {
         });
     });
 
-    describe('Étant donné un glisser achevé, quand l’activation suivante vient du clavier', () => {
-        it('alors le clic qu’elle produit atteint quand même la pastille', () => {
+    describe("Étant donné un glisser achevé, quand l'activation suivante vient du clavier", () => {
+        it("alors le clic qu'elle produit atteint quand même la pastille", () => {
             const scene1 = scene();
             const clics: string[] = [];
             scene1.pastille.addEventListener('click', () => clics.push('pastille'));
@@ -359,7 +359,7 @@ describe('Glisser un point sur la pile', () => {
         });
     });
 
-    describe('Étant donné un appui du bouton droit sur la pastille, suivi d’une dérive', () => {
+    describe("Étant donné un appui du bouton droit sur la pastille, suivi d'une dérive", () => {
         it('alors aucun glisser ne démarre', () => {
             const scene1 = scene();
 

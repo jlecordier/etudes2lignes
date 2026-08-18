@@ -43,8 +43,8 @@ describe('Trajet', () => {
         });
     });
 
-    describe('Étant donné un trajet, quand j’ajoute des images', () => {
-        it('alors elles apparaissent dans l’ordre d’ajout (ordre du voyage)', () => {
+    describe("Étant donné un trajet, quand j'ajoute des images", () => {
+        it("alors elles apparaissent dans l'ordre d'ajout (ordre du voyage)", () => {
             const trajet = newTrajet();
 
             trajet.addImage(imageFile('page-1.jpg'));
@@ -57,13 +57,13 @@ describe('Trajet', () => {
             const trajet = newTrajet();
 
             expect(() => trajet.addImage({ ...imageFile(), largeur: 0 })).toThrow(
-                'Dimensions d’image invalides',
+                "Dimensions d'image invalides",
             );
         });
     });
 
-    describe('Étant donné un trajet vierge, quand j’importe un lot de pages', () => {
-        it('alors la pile les lit dans l’ordre du lot, et la dernière ouvre le voyage', () => {
+    describe("Étant donné un trajet vierge, quand j'importe un lot de pages", () => {
+        it("alors la pile les lit dans l'ordre du lot, et la dernière ouvre le voyage", () => {
             const trajet = newTrajet();
 
             trajet.addImagesInReadingOrder([
@@ -84,12 +84,12 @@ describe('Trajet', () => {
             const trajet = newTrajet();
 
             expect(() => trajet.addImagesInReadingOrder([{ ...imageFile(), largeur: 0 }])).toThrow(
-                'Dimensions d’image invalides',
+                "Dimensions d'image invalides",
             );
         });
     });
 
-    describe('Étant donné un trajet qui a déjà des pages, quand j’importe un second lot', () => {
+    describe("Étant donné un trajet qui a déjà des pages, quand j'importe un second lot", () => {
         it('alors il se lit sous les pages existantes, et sa dernière page ouvre le voyage', () => {
             const trajet = newTrajet();
             trajet.addImagesInReadingOrder([imageFile('page-1.jpg'), imageFile('page-2.jpg')]);
@@ -132,7 +132,7 @@ describe('Trajet', () => {
             expect(imageNoms(trajet.images)).toEqual(['a.jpg', 'c.jpg', 'b.jpg']);
         });
 
-        it('quand j’avance la première dans le voyage, alors elle passe deuxième', () => {
+        it("quand j'avance la première dans le voyage, alors elle passe deuxième", () => {
             const trajet = newTrajet();
             const idA = trajet.addImage(imageFile('a.jpg'));
             trajet.addImage(imageFile('b.jpg'));
@@ -155,7 +155,7 @@ describe('Trajet', () => {
             expect(imageNoms(trajet.images)).toEqual(['a.jpg', 'b.jpg', 'c.jpg']);
         });
 
-        it('quand je demande les images dans l’ordre de lecture, alors la première du voyage vient en dernier (tout en bas de la pile)', () => {
+        it("quand je demande les images dans l'ordre de lecture, alors la première du voyage vient en dernier (tout en bas de la pile)", () => {
             const trajet = newTrajet();
             trajet.addImage(imageFile('a.jpg'));
             trajet.addImage(imageFile('b.jpg'));
@@ -188,7 +188,7 @@ describe('Trajet', () => {
     });
 
     describe('Étant donné un trajet à deux images portant chacune des points', () => {
-        it('quand je demande les points de la première image, alors je n’obtiens que les siens', () => {
+        it("quand je demande les points de la première image, alors je n'obtiens que les siens", () => {
             const trajet = newTrajet();
             const page1 = trajet.addImage(imageFile('page-1.jpg'));
             const page2 = trajet.addImage(imageFile('page-2.jpg'));
@@ -208,7 +208,7 @@ describe('Trajet', () => {
     });
 
     describe('Étant donné une image absente du trajet', () => {
-        it('quand je demande ses points, alors c’est refusé', () => {
+        it("quand je demande ses points, alors c'est refusé", () => {
             const otherTrajet = newTrajet('Autre');
             const imageAilleurs = otherTrajet.addImage(imageFile());
             const trajet = newTrajet();
@@ -219,7 +219,7 @@ describe('Trajet', () => {
     });
 
     describe('Étant donné un trajet à trois points sur deux images', () => {
-        it('quand je demande les points numérotés, alors les numéros suivent l’ordre du voyage sans trou', () => {
+        it("quand je demande les points numérotés, alors les numéros suivent l'ordre du voyage sans trou", () => {
             const trajet = newTrajet();
             const page1 = trajet.addImage(imageFile('page-1.jpg'));
             const page2 = trajet.addImage(imageFile('page-2.jpg'));
@@ -249,8 +249,8 @@ describe('Trajet', () => {
         });
     });
 
-    describe('Étant donné un point visant une image qui n’appartient pas au trajet', () => {
-        it('alors l’ajout est refusé', () => {
+    describe("Étant donné un point visant une image qui n'appartient pas au trajet", () => {
+        it("alors l'ajout est refusé", () => {
             const otherTrajet = newTrajet('Autre');
             const imageAilleurs = otherTrajet.addImage(imageFile());
             const trajet = newTrajet();
@@ -266,7 +266,7 @@ describe('Trajet', () => {
     });
 
     describe('Étant donné un trajet avec un point', () => {
-        it('quand je déplace le point sur l’image, alors sa hauteur (et son image) changent', () => {
+        it("quand je déplace le point sur l'image, alors sa hauteur (et son image) changent", () => {
             const trajet = newTrajet();
             const idA = trajet.addImage(imageFile('a.jpg'));
             const idB = trajet.addImage(imageFile('b.jpg'));
@@ -316,7 +316,7 @@ describe('Trajet', () => {
     });
 
     describe('Étant donné des points répartis sur deux pages lues de bas en haut', () => {
-        it('alors l’ordre du voyage va du bas de la première page au haut de la dernière', () => {
+        it("alors l'ordre du voyage va du bas de la première page au haut de la dernière", () => {
             const trajet = newTrajet();
             const page1 = trajet.addImage(imageFile('page-1.jpg'));
             const page2 = trajet.addImage(imageFile('page-2.jpg'));
@@ -341,7 +341,7 @@ describe('Trajet', () => {
             expect(ordre).toEqual([bottomPage1, topPage1, bottomPage2]);
         });
 
-        it('quand je réordonne les images, alors l’ordre du voyage suit le nouvel ordre', () => {
+        it("quand je réordonne les images, alors l'ordre du voyage suit le nouvel ordre", () => {
             const trajet = newTrajet();
             const page1 = trajet.addImage(imageFile('page-1.jpg'));
             const page2 = trajet.addImage(imageFile('page-2.jpg'));
@@ -364,7 +364,7 @@ describe('Trajet', () => {
             ]);
         });
 
-        it('quand je supprime la première page, alors l’ordre du voyage ne garde que les points des pages restantes', () => {
+        it("quand je supprime la première page, alors l'ordre du voyage ne garde que les points des pages restantes", () => {
             const trajet = newTrajet();
             const page1 = trajet.addImage(imageFile('page-1.jpg'));
             const page2 = trajet.addImage(imageFile('page-2.jpg'));
@@ -411,7 +411,7 @@ describe('Trajet', () => {
             ]);
         });
 
-        it('quand j’avance une page dans le voyage, alors son numéro décroît : elle monte dans la pile', () => {
+        it("quand j'avance une page dans le voyage, alors son numéro décroît : elle monte dans la pile", () => {
             const trajet = newTrajet();
             const idA = trajet.addImage(imageFile('a.jpg'));
             trajet.addImage(imageFile('b.jpg'));
@@ -471,7 +471,7 @@ describe('Trajet', () => {
             ).toThrow('Image inconnue');
         });
 
-        it('alors un enregistrement d’image de largeur 0 est refusé, dimensions nommées', () => {
+        it("alors un enregistrement d'image de largeur 0 est refusé, dimensions nommées", () => {
             const original = newTrajet();
             const idA = original.addImage(imageFile());
 
@@ -491,7 +491,7 @@ describe('Trajet', () => {
                     ],
                     points: [],
                 }),
-            ).toThrow('Dimensions d’image invalides : 0×3508');
+            ).toThrow("Dimensions d'image invalides : 0×3508");
         });
     });
 });

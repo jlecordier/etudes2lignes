@@ -31,9 +31,9 @@ async function flushMicrotasks(): Promise<void> {
     }
 }
 
-describe('file d’attente', () => {
-    describe('Étant donné deux travaux mis en file coup sur coup, quand le premier n’est pas fini', () => {
-        it('alors le second n’a pas commencé', async () => {
+describe("file d'attente", () => {
+    describe("Étant donné deux travaux mis en file coup sur coup, quand le premier n'est pas fini", () => {
+        it("alors le second n'a pas commencé", async () => {
             const log: string[] = [];
             const enqueue = createQueue();
             const first = heldTask(log, 'premier');
@@ -46,7 +46,7 @@ describe('file d’attente', () => {
             expect(log).toEqual(['début premier']);
         });
 
-        it('alors le second s’exécute une fois le premier achevé, dans l’ordre d’arrivée', async () => {
+        it("alors le second s'exécute une fois le premier achevé, dans l'ordre d'arrivée", async () => {
             const log: string[] = [];
             const enqueue = createQueue();
             const first = heldTask(log, 'premier');
@@ -64,7 +64,7 @@ describe('file d’attente', () => {
     });
 
     describe('Étant donné un travail qui échoue, quand je le mets en file', () => {
-        it('alors son appelant reçoit l’échec', async () => {
+        it("alors son appelant reçoit l'échec", async () => {
             const enqueue = createQueue();
 
             await expect(
@@ -72,7 +72,7 @@ describe('file d’attente', () => {
             ).rejects.toThrow('Stockage plein');
         });
 
-        it('alors les travaux suivants s’exécutent quand même', async () => {
+        it("alors les travaux suivants s'exécutent quand même", async () => {
             const log: string[] = [];
             const enqueue = createQueue();
 
@@ -89,7 +89,7 @@ describe('file d’attente', () => {
     });
 
     describe('Étant donné trois travaux immédiats, quand je les mets en file', () => {
-        it('alors ils s’achèvent dans leur ordre d’arrivée', async () => {
+        it("alors ils s'achèvent dans leur ordre d'arrivée", async () => {
             const log: string[] = [];
             const enqueue = createQueue();
 

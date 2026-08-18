@@ -35,7 +35,7 @@ beforeEach(() => {
     liberees = [];
     URL.createObjectURL = (objet: Blob | MediaSource) => {
         if (!(objet instanceof Blob)) {
-            throw new Error('Ce test n’attend que des Blob.');
+            throw new Error("Ce test n'attend que des Blob.");
         }
         const url = `blob:${String(blobsParUrl.size + 1)}`;
         blobsParUrl.set(url, objet);
@@ -77,7 +77,7 @@ describe('downloadTrajet', () => {
             });
         });
 
-        it('alors l’URL de l’objet n’est pas libérée dans le tick courant', async () => {
+        it("alors l'URL de l'objet n'est pas libérée dans le tick courant", async () => {
             await downloadTrajet(trajetNomme('Paris → Bordeaux'));
 
             // Safari/iOS et Firefox lisent le blob après le tick courant : le

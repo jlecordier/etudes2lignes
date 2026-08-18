@@ -100,8 +100,8 @@ function messageDErreur(element: HTMLElement): string | null {
 }
 
 describe('trajets-list-screen', () => {
-    describe('Étant donné des trajets enregistrés, quand j’attache l’écran', () => {
-        it('alors il les liste avec leurs comptes d’images et de points', async () => {
+    describe("Étant donné des trajets enregistrés, quand j'attache l'écran", () => {
+        it("alors il les liste avec leurs comptes d'images et de points", async () => {
             repository.contient(summary('Paris → Bordeaux', 6, 4), summary('Tours → Nantes', 2, 2));
 
             const element = await attacherLEcran();
@@ -114,7 +114,7 @@ describe('trajets-list-screen', () => {
         });
     });
 
-    describe('Étant donné aucun trajet, quand j’attache l’écran', () => {
+    describe("Étant donné aucun trajet, quand j'attache l'écran", () => {
         it('alors il invite à en créer un', async () => {
             const element = await attacherLEcran();
 
@@ -124,7 +124,7 @@ describe('trajets-list-screen', () => {
     });
 
     describe('Étant donné une ligne de trajet, quand je touche son nom', () => {
-        it('alors l’écran demande l’ouverture de ce trajet-là', async () => {
+        it("alors l'écran demande l'ouverture de ce trajet-là", async () => {
             const paris = summary('Paris → Bordeaux');
             repository.contient(summary('Tours → Nantes'), paris);
             const element = await attacherLEcran();
@@ -135,7 +135,7 @@ describe('trajets-list-screen', () => {
         });
     });
 
-    describe('Étant donné un dépôt illisible, quand j’attache l’écran', () => {
+    describe("Étant donné un dépôt illisible, quand j'attache l'écran", () => {
         it('alors il dit ce qui se passe au lieu de rester vide', async () => {
             repository.tomberEnPanne('Base bloquée par un autre onglet.');
 

@@ -60,7 +60,7 @@ export function verifyPositionSourceContract(
     createTestBed: () => SourceTestBed,
 ): void {
     describe(`Contrat de PositionSource — ${nom}`, () => {
-        describe('Étant donné une source que personne n’écoute', () => {
+        describe("Étant donné une source que personne n'écoute", () => {
             it('alors elle ne tient rien : le flux est froid', () => {
                 const testBed = createTestBed();
 
@@ -68,8 +68,8 @@ export function verifyPositionSourceContract(
             });
         });
 
-        describe('Étant donné un abonné, quand aucune position n’est encore arrivée', () => {
-            it('alors elle annonce l’attente, sous forme d’état du domaine et non de phrase', () => {
+        describe("Étant donné un abonné, quand aucune position n'est encore arrivée", () => {
+            it("alors elle annonce l'attente, sous forme d'état du domaine et non de phrase", () => {
                 const testBed = createTestBed();
 
                 const listener = listen(testBed.source);
@@ -80,7 +80,7 @@ export function verifyPositionSourceContract(
         });
 
         describe('Étant donné un abonné qui se retire, quand la plateforme émet encore une position', () => {
-            it('alors il n’entend plus rien et plus aucune ressource n’est tenue', () => {
+            it("alors il n'entend plus rien et plus aucune ressource n'est tenue", () => {
                 const testBed = createTestBed();
                 const listener = listen(testBed.source);
                 testBed.emitPosition(poitiers);
@@ -94,7 +94,7 @@ export function verifyPositionSourceContract(
             });
         });
 
-        describe('Étant donné une source qu’on se remet à écouter', () => {
+        describe("Étant donné une source qu'on se remet à écouter", () => {
             it('alors elle émet à nouveau', () => {
                 const testBed = createTestBed();
                 const first = listen(testBed.source);
@@ -109,7 +109,7 @@ export function verifyPositionSourceContract(
         });
 
         describe('Étant donné deux abonnés en même temps', () => {
-            it('alors chacun entend la position, sans que l’un prive l’autre', () => {
+            it("alors chacun entend la position, sans que l'un prive l'autre", () => {
                 const testBed = createTestBed();
                 const first = listen(testBed.source);
 
@@ -120,7 +120,7 @@ export function verifyPositionSourceContract(
                 expect(latitudes(second.positions)).toEqual([poitiers.latitude]);
             });
 
-            it('alors le départ de l’un ne coupe pas l’autre, et le dernier rend tout', () => {
+            it("alors le départ de l'un ne coupe pas l'autre, et le dernier rend tout", () => {
                 const testBed = createTestBed();
                 const first = listen(testBed.source);
                 const second = listen(testBed.source);

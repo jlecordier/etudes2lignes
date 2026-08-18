@@ -16,14 +16,14 @@ describe('fixUtilisable', () => {
     });
 
     describe('Étant donné un fix pile à la limite de précision', () => {
-        it('alors il est encore utilisable, et un mètre au-delà ne l’est plus', () => {
+        it("alors il est encore utilisable, et un mètre au-delà ne l'est plus", () => {
             expect(usableFix(PRECISION_MAXIMALE_METRES)).toBe(true);
             expect(usableFix(PRECISION_MAXIMALE_METRES + 1)).toBe(false);
         });
     });
 
     describe('Étant donné le lien entre la précision tolérée et le seuil « hors trajet »', () => {
-        it('alors le pire fix utilisable reste en-deçà du seuil « hors trajet » : son imprécision seule ne peut pas faire croire qu’on a quitté la ligne', () => {
+        it("alors le pire fix utilisable reste en-deçà du seuil « hors trajet » : son imprécision seule ne peut pas faire croire qu'on a quitté la ligne", () => {
             expect(PRECISION_MAXIMALE_METRES).toBeLessThan(SEUIL_MINIMUM_METRES);
             expect(usableFix(SEUIL_MINIMUM_METRES)).toBe(false);
         });

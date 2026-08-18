@@ -79,6 +79,12 @@ native Windows. It installs the Playwright browsers at create time, so
   titles), the e2e scenario steps, and **persisted keys** (IndexedDB
   stores/indexes, v1 JSON keys, `localStorage`), which are user data, not
   identifiers.
+- **French spelling is complete, and the apostrophe is ASCII.** Every accent and
+  diacritic is written out — never `etat` for `état`, never `precision` for
+  `précision`. The one deliberate exception is the apostrophe: `'`, never the
+  typographic `’`, everywhere — prose, UI strings, test titles, CSS, HTML.
+  It was a tacit convention until a review round was spent arguing about it, so
+  it is written here now.
 - **No non-null assertions (`!`), no shape `as`** — they hide upstream typing
   problems ([ADR 0002](docs/adr/0002-lint-type-aware-strict.md)). Instead:
     - indexed access → `requireElementAt(array, i)` (`src/shared/array.ts`);

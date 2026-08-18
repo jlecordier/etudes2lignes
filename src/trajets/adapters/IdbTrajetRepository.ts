@@ -223,12 +223,12 @@ function openDatabase(name: string): Promise<IDBPDatabase<Schema>> {
             console.warn(
                 `Base « ${name} » bloquée : une autre fenêtre garde la version ` +
                     `${openedVersion} ouverte, la version ${expectedVersion ?? '?'} attend. ` +
-                    `Fermez les autres onglets d’Etudes2Lignes.`,
+                    `Fermez les autres onglets d'Etudes2Lignes.`,
             );
         },
         blocking(openedVersion, expectedVersion) {
             console.warn(
-                `Cette fenêtre (version ${openedVersion}) empêche une autre d’ouvrir la ` +
+                `Cette fenêtre (version ${openedVersion}) empêche une autre d'ouvrir la ` +
                     `version ${expectedVersion ?? '?'} de la base « ${name} » : rechargez la page.`,
             );
         },
@@ -268,7 +268,7 @@ function databaseObject(value: unknown, label: string): Record<string, unknown> 
 }
 
 function toCheckedTrajet(record: unknown): CheckedTrajet {
-    const fields = databaseObject(record, 'l’enregistrement du trajet');
+    const fields = databaseObject(record, "l'enregistrement du trajet");
     return {
         id: field(fields, 'id', isString),
         nom: field(fields, 'nom', isString),
@@ -322,7 +322,7 @@ function toDomainImage(imageId: string, record: Record<string, unknown>): ImageD
 }
 
 function toDomainPoint(record: unknown): Point {
-    const fields = databaseObject(record, 'l’enregistrement d’un point');
+    const fields = databaseObject(record, "l'enregistrement d'un point");
     return {
         id: field(fields, 'id', isString) as PointId,
         imageId: field(fields, 'imageId', isString) as ImageId,

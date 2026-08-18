@@ -48,7 +48,7 @@ test.describe("Carte de l'éditeur (tous les points du trajet)", () => {
         );
     });
 
-    test('Étant donné un aller-retour par le suivi, quand je rouvre l’éditeur, alors sa carte est toujours vivante', async ({
+    test("Étant donné un aller-retour par le suivi, quand je rouvre l'éditeur, alors sa carte est toujours vivante", async ({
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
@@ -67,7 +67,7 @@ test.describe("Carte de l'éditeur (tous les points du trajet)", () => {
         await expect(page.locator('#carte-points .carte-marker')).toHaveText(['1', '2']);
     });
 
-    test('Étant donné l’éditeur, alors la carte est à côté des images sur grand écran et au-dessus sur mobile', async ({
+    test("Étant donné l'éditeur, alors la carte est à côté des images sur grand écran et au-dessus sur mobile", async ({
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
@@ -77,7 +77,7 @@ test.describe("Carte de l'éditeur (tous les points du trajet)", () => {
         );
         const stack = requireDefined(
             await page.locator('#images-stack').boundingBox(),
-            'pile d’images',
+            "pile d'images",
         );
 
         if (requireDefined(page.viewportSize(), 'viewport').width >= 900) {

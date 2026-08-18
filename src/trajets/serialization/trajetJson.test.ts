@@ -65,7 +65,7 @@ describe('exporterTrajetEnJson / importerTrajetDepuisJson', () => {
             expect(requireElementAt(points, 1).coordonnee.longitude).toBe(0.1562);
         });
 
-        it('alors une image binaire réelle (tous les octets 0 à 255) fait l’aller-retour bit à bit', async () => {
+        it("alors une image binaire réelle (tous les octets 0 à 255) fait l'aller-retour bit à bit", async () => {
             // Un vrai JPEG contient des octets ≥ 128 et des 0x00 : le faux blob
             // « texte » des autres tests ne prouverait pas que l'encodage base64
             // par tranches ne corrompt pas ces octets.
@@ -100,7 +100,7 @@ describe('exporterTrajetEnJson / importerTrajetDepuisJson', () => {
     });
 
     describe('Étant donné le format du fichier', () => {
-        it('alors il déclare l’application et la version, et les images sont en base64', async () => {
+        it("alors il déclare l'application et la version, et les images sont en base64", async () => {
             const json = await exportTrajetToJson(fullTrajet());
             const content: unknown = JSON.parse(json);
 
@@ -117,7 +117,7 @@ describe('exporterTrajetEnJson / importerTrajetDepuisJson', () => {
         });
     });
 
-    describe('Étant donné un champ mal formé, quand j’importe le fichier', () => {
+    describe("Étant donné un champ mal formé, quand j'importe le fichier", () => {
         const validImage = {
             nom: 'page-1.jpg',
             type: 'image/jpeg',
@@ -142,53 +142,53 @@ describe('exporterTrajetEnJson / importerTrajetDepuisJson', () => {
             ['le nom du trajet', { nom: 42, images: [], points: [] }, 'nom'],
             ['la liste des images', { nom: 'X', images: 'aucune', points: [] }, 'images'],
             [
-                'les données d’une image',
+                "les données d'une image",
                 { nom: 'X', images: [{ ...validImage, donneesBase64: 42 }], points: [] },
-                'données d’image',
+                "données d'image",
             ],
             [
-                'le nom d’une image',
+                "le nom d'une image",
                 { nom: 'X', images: [{ ...validImage, nom: 42 }], points: [] },
-                'nom d’image',
+                "nom d'image",
             ],
             [
-                'le type d’une image',
+                "le type d'une image",
                 { nom: 'X', images: [{ ...validImage, type: 42 }], points: [] },
-                'type d’image',
+                "type d'image",
             ],
             [
-                'la largeur d’une image',
+                "la largeur d'une image",
                 { nom: 'X', images: [{ ...validImage, largeur: 'grand' }], points: [] },
                 'largeur',
             ],
             [
-                'la hauteur d’une image',
+                "la hauteur d'une image",
                 { nom: 'X', images: [{ ...validImage, hauteur: null }], points: [] },
                 'hauteur',
             ],
             ['la liste des points', { nom: 'X', images: [], points: 'aucun' }, 'points'],
             [
-                'un point qui n’est pas un objet, en le situant',
+                "un point qui n'est pas un objet, en le situant",
                 { nom: 'X', images: [validImage], points: ['pas un objet'] },
                 'points[0]',
             ],
             [
-                'l’index d’image d’un point',
+                "l'index d'image d'un point",
                 { nom: 'X', images: [validImage], points: [{ ...validPoint, image: 'la une' }] },
-                'index d’image',
+                "index d'image",
             ],
             [
-                'la fraction d’un point',
+                "la fraction d'un point",
                 { nom: 'X', images: [validImage], points: [{ ...validPoint, fraction: 'mi' }] },
                 'fraction',
             ],
             [
-                'la latitude d’un point',
+                "la latitude d'un point",
                 { nom: 'X', images: [validImage], points: [{ ...validPoint, latitude: 'nord' }] },
                 'latitude',
             ],
             [
-                'la longitude d’un point',
+                "la longitude d'un point",
                 { nom: 'X', images: [validImage], points: [{ ...validPoint, longitude: null }] },
                 'longitude',
             ],
@@ -199,8 +199,8 @@ describe('exporterTrajetEnJson / importerTrajetDepuisJson', () => {
         });
     });
 
-    describe('Étant donné un fichier invalide, quand je l’importe', () => {
-        it('alors des données d’image qui ne sont pas du base64 sont refusées', () => {
+    describe("Étant donné un fichier invalide, quand je l'importe", () => {
+        it("alors des données d'image qui ne sont pas du base64 sont refusées", () => {
             const json = JSON.stringify({
                 application: 'etudes2lignes',
                 version: 1,
@@ -220,17 +220,17 @@ describe('exporterTrajetEnJson / importerTrajetDepuisJson', () => {
             });
 
             expect(() => importTrajetFromJson(json)).toThrow(
-                'Fichier incomplet : données d’image illisibles.',
+                "Fichier incomplet : données d'image illisibles.",
             );
         });
 
-        it('alors un texte qui n’est pas du JSON est refusé avec un message clair', () => {
+        it("alors un texte qui n'est pas du JSON est refusé avec un message clair", () => {
             expect(() => importTrajetFromJson('pas du json')).toThrow(
-                'Fichier illisible : ce n’est pas un fichier JSON.',
+                "Fichier illisible : ce n'est pas un fichier JSON.",
             );
         });
 
-        it('alors un JSON qui n’est pas un objet (tableau, null) est refusé', () => {
+        it("alors un JSON qui n'est pas un objet (tableau, null) est refusé", () => {
             expect(() => importTrajetFromJson('[]')).toThrow(
                 'Fichier incomplet : fichier manquant ou invalide.',
             );
@@ -251,9 +251,9 @@ describe('exporterTrajetEnJson / importerTrajetDepuisJson', () => {
             );
         });
 
-        it('alors un JSON d’une autre application est refusé', () => {
+        it("alors un JSON d'une autre application est refusé", () => {
             expect(() => importTrajetFromJson('{"application":"autre"}')).toThrow(
-                'Ce fichier ne vient pas d’Etudes2Lignes.',
+                "Ce fichier ne vient pas d'Etudes2Lignes.",
             );
         });
 
@@ -299,7 +299,7 @@ describe('exporterTrajetEnJson / importerTrajetDepuisJson', () => {
             });
 
             expect(() => importTrajetFromJson(json)).toThrow(
-                'Fichier incomplet : données d’image manquantes.',
+                "Fichier incomplet : données d'image manquantes.",
             );
         });
     });

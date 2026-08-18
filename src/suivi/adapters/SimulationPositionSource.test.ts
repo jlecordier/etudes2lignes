@@ -53,8 +53,8 @@ describe('SimulationPositionSource', () => {
         });
     });
 
-    describe('Étant donné une source qu’on écoute sans position simulée', () => {
-        it('alors elle annonce l’attente, comme le GPS réel : la ligne d’état ne garde pas le dernier message', () => {
+    describe("Étant donné une source qu'on écoute sans position simulée", () => {
+        it("alors elle annonce l'attente, comme le GPS réel : la ligne d'état ne garde pas le dernier message", () => {
             const source = new SimulationPositionSource();
 
             const listener = listen(source);
@@ -64,7 +64,7 @@ describe('SimulationPositionSource', () => {
     });
 
     describe('Étant donné une position déjà simulée, quand on se remet à écouter', () => {
-        it('alors elle annonce l’attente puis rejoue la dernière position', () => {
+        it("alors elle annonce l'attente puis rejoue la dernière position", () => {
             const source = new SimulationPositionSource();
             const first = listen(source);
             source.simulate(angouleme);
@@ -77,7 +77,7 @@ describe('SimulationPositionSource', () => {
         });
     });
 
-    describe('Étant donné un abonné qui s’est retiré, quand je simule une position', () => {
+    describe("Étant donné un abonné qui s'est retiré, quand je simule une position", () => {
         it('alors rien ne lui est transmis', () => {
             const source = new SimulationPositionSource();
             const listener = listen(source);
@@ -89,7 +89,7 @@ describe('SimulationPositionSource', () => {
         });
     });
 
-    describe('Étant donné une position simulée puis l’abonné retiré', () => {
+    describe("Étant donné une position simulée puis l'abonné retiré", () => {
         it('alors la dernière position reste mémorisée, pour rouvrir la carte dessus', () => {
             const source = new SimulationPositionSource();
             const listener = listen(source);

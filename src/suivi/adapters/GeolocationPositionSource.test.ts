@@ -182,7 +182,7 @@ verifyPositionSourceContract('GeolocationPositionSource', () => {
 });
 
 describe('GeolocationPositionSource', () => {
-    describe('Étant donné l’abonnement à la plateforme', () => {
+    describe("Étant donné l'abonnement à la plateforme", () => {
         it('alors la source réclame la haute précision et refuse une position en cache', () => {
             const testBed = unstartedSource();
 
@@ -229,7 +229,7 @@ describe('GeolocationPositionSource', () => {
     });
 
     describe('Étant donné un fix vraiment trop imprécis (5 km)', () => {
-        it('alors il n’est pas transmis mais l’état mesure l’imprécision', () => {
+        it("alors il n'est pas transmis mais l'état mesure l'imprécision", () => {
             const testBed = unstartedSource();
 
             const events = raconte(
@@ -264,7 +264,7 @@ describe('GeolocationPositionSource', () => {
             });
         });
 
-        it('alors le chien de garde parle d’imprécision, jamais de signal perdu', () => {
+        it("alors le chien de garde parle d'imprécision, jamais de signal perdu", () => {
             const testBed = unstartedSource();
 
             // Un fix exploitable, puis plus que du grossier : le GPS parle
@@ -285,7 +285,7 @@ describe('GeolocationPositionSource', () => {
             });
         });
 
-        it('alors une imprécision périmée ne s’invente plus : c’est le silence qu’on annonce', () => {
+        it("alors une imprécision périmée ne s'invente plus : c'est le silence qu'on annonce", () => {
             const testBed = unstartedSource();
 
             // Le fix grossier est vieux de plus que le silence toléré quand le
@@ -323,7 +323,7 @@ describe('GeolocationPositionSource', () => {
     });
 
     describe('Étant donné une acquisition lente au démarrage (gare couverte)', () => {
-        it('alors un premier fix qui met 25 s à arriver n’est pas tué par le throttle', () => {
+        it("alors un premier fix qui met 25 s à arriver n'est pas tué par le throttle", () => {
             const testBed = unstartedSource();
 
             const events = raconte(
@@ -337,7 +337,7 @@ describe('GeolocationPositionSource', () => {
     });
 
     describe('Étant donné une permission refusée', () => {
-        it('alors l’état dit que la permission est refusée', () => {
+        it("alors l'état dit que la permission est refusée", () => {
             const testBed = unstartedSource();
 
             const events = raconte(
@@ -382,7 +382,7 @@ describe('GeolocationPositionSource', () => {
     });
 
     describe('Étant donné un appareil sans géolocalisation', () => {
-        it('alors l’écoute annonce l’indisponibilité et rien n’est mis en place', () => {
+        it("alors l'écoute annonce l'indisponibilité et rien n'est mis en place", () => {
             const foreground = new FakeForeground();
             // Aucune géolocalisation injectée et aucune sur la plateforme de test :
             // exactement la situation d'un navigateur en contexte non sécurisé.
@@ -397,7 +397,7 @@ describe('GeolocationPositionSource', () => {
     });
 
     describe('Étant donné une erreur passagère (position indisponible)', () => {
-        it('alors rien n’est signalé tant que le dernier fix est frais', () => {
+        it("alors rien n'est signalé tant que le dernier fix est frais", () => {
             const testBed = unstartedSource();
 
             const events = raconte(
@@ -414,7 +414,7 @@ describe('GeolocationPositionSource', () => {
             expect(statuses(events)).toEqual([{ kind: 'attente' }]);
         });
 
-        it('alors c’est le silence qui finit par parler, et il mesure l’ancienneté', () => {
+        it("alors c'est le silence qui finit par parler, et il mesure l'ancienneté", () => {
             const testBed = unstartedSource();
 
             const events = raconte(
@@ -431,7 +431,7 @@ describe('GeolocationPositionSource', () => {
     });
 
     describe('Étant donné un long silence du GPS', () => {
-        it('alors, avant tout fix, le chien de garde signale l’attente', () => {
+        it("alors, avant tout fix, le chien de garde signale l'attente", () => {
             const testBed = unstartedSource();
 
             const events = raconte([], 50_000, testBed);
@@ -445,7 +445,7 @@ describe('GeolocationPositionSource', () => {
             ]);
         });
 
-        it('alors, après un fix, l’état mesure l’ancienneté de la dernière position', () => {
+        it("alors, après un fix, l'état mesure l'ancienneté de la dernière position", () => {
             const testBed = unstartedSource();
 
             const events = raconte(
@@ -477,7 +477,7 @@ describe('GeolocationPositionSource', () => {
             expect(statuses(events)).toEqual([{ kind: 'attente' }]);
         });
 
-        it('alors chaque fix repousse l’alerte : un GPS bavard ne dit jamais « perdue »', () => {
+        it("alors chaque fix repousse l'alerte : un GPS bavard ne dit jamais « perdue »", () => {
             const testBed = unstartedSource();
 
             const events = raconte(
@@ -494,8 +494,8 @@ describe('GeolocationPositionSource', () => {
         });
     });
 
-    describe('Étant donné un abonné qui se retire alors qu’un fix est déjà en vol', () => {
-        it('alors ce fix en retard n’atteint plus l’écran', () => {
+    describe("Étant donné un abonné qui se retire alors qu'un fix est déjà en vol", () => {
+        it("alors ce fix en retard n'atteint plus l'écran", () => {
             const { geolocation, foreground, source } = unstartedSource();
             const events: SourceEvent[] = [];
             const subscription = source.events$.subscribe((event) => events.push(event));

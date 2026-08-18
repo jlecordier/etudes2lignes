@@ -75,7 +75,7 @@ query('#export-trajet-button', HTMLButtonElement, root).addEventListener(
         if (currentTrajet === null) {
             return;
         }
-        run(downloadTrajet(currentTrajet), 'l’export du trajet');
+        run(downloadTrajet(currentTrajet), "l'export du trajet");
     },
     { signal },
 );

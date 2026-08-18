@@ -51,8 +51,8 @@ beforeEach(() => {
 });
 
 describe('schema-page', () => {
-    describe('Étant donné une page, quand je l’attache au document', () => {
-        it('alors elle affiche l’image de la page, sous son nom', () => {
+    describe("Étant donné une page, quand je l'attache au document", () => {
+        it("alors elle affiche l'image de la page, sous son nom", () => {
             const element = createSchemaPage(page('a', 'page-1.jpg'), urls);
 
             container.append(element);
@@ -73,7 +73,7 @@ describe('schema-page', () => {
             expect(image(element).getAttribute('decoding')).toBe('async');
         });
 
-        it('alors l’image n’est pas glissable nativement', () => {
+        it("alors l'image n'est pas glissable nativement", () => {
             const element = createSchemaPage(page('a'), urls);
 
             container.append(element);
@@ -88,7 +88,7 @@ describe('schema-page', () => {
     });
 
     describe('Étant donné une page attachée, quand je la détache', () => {
-        it('alors son URL d’objet est libérée', async () => {
+        it("alors son URL d'objet est libérée", async () => {
             const element = createSchemaPage(page('a'), urls);
             container.append(element);
 
@@ -143,7 +143,7 @@ describe('schema-page', () => {
         });
     });
 
-    describe('Étant donné plusieurs pages rendues d’un coup', () => {
+    describe("Étant donné plusieurs pages rendues d'un coup", () => {
         it('alors remplacer la pile libère les anciennes et pas les nouvelles', async () => {
             container.replaceChildren(
                 createSchemaPage(page('a'), urls),

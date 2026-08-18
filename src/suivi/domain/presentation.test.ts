@@ -20,7 +20,7 @@ describe('suiviStatusText', () => {
     });
 
     describe('Étant donné une position sur le trajet', () => {
-        it('alors aucun texte d’état n’est affiché', () => {
+        it("alors aucun texte d'état n'est affiché", () => {
             expect(
                 suiviStatusText({ kind: 'sur-trajet', scrollTarget: 100, segmentIndex: 0, t: 0.5 }),
             ).toBe('');
@@ -30,13 +30,13 @@ describe('suiviStatusText', () => {
 
 describe('sourceStatusText', () => {
     describe('Étant donné une source qui attend encore sa première position', () => {
-        it('alors le texte annonce l’attente du signal', () => {
+        it("alors le texte annonce l'attente du signal", () => {
             expect(sourceStatusText({ kind: 'attente' })).toBe('En attente du signal GPS…');
         });
     });
 
     describe('Étant donné un état « imprécise » à 2 400 m', () => {
-        it('alors le texte donne l’imprécision en kilomètres arrondis', () => {
+        it("alors le texte donne l'imprécision en kilomètres arrondis", () => {
             expect(
                 sourceStatusText({
                     kind: 'imprecise',
@@ -46,7 +46,7 @@ describe('sourceStatusText', () => {
             ).toBe('Position approximative (± 2 km) — trop imprécise pour caler la page.');
         });
 
-        it('alors une imprécision inférieure au kilomètre s’annonce quand même « ± 1 km »', () => {
+        it("alors une imprécision inférieure au kilomètre s'annonce quand même « ± 1 km »", () => {
             expect(
                 sourceStatusText({
                     kind: 'imprecise',
@@ -58,13 +58,13 @@ describe('sourceStatusText', () => {
     });
 
     describe('Étant donné un état « perdue » depuis deux minutes', () => {
-        it('alors le texte donne l’ancienneté de la dernière position', () => {
+        it("alors le texte donne l'ancienneté de la dernière position", () => {
             expect(sourceStatusText({ kind: 'perdue', ageMs: 120_000 })).toBe(
                 'Signal GPS perdu — dernière position il y a 2 min.',
             );
         });
 
-        it('alors un silence de moins d’une minute s’annonce quand même « 1 min »', () => {
+        it("alors un silence de moins d'une minute s'annonce quand même « 1 min »", () => {
             expect(sourceStatusText({ kind: 'perdue', ageMs: 20_000 })).toBe(
                 'Signal GPS perdu — dernière position il y a 1 min.',
             );
@@ -82,7 +82,7 @@ describe('sourceStatusText', () => {
     describe('Étant donné un appareil sans géolocalisation', () => {
         it('alors le texte le dit sans jargon', () => {
             expect(sourceStatusText({ kind: 'indisponible' })).toBe(
-                'La géolocalisation n’est pas disponible sur cet appareil.',
+                "La géolocalisation n'est pas disponible sur cet appareil.",
             );
         });
     });

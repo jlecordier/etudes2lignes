@@ -230,7 +230,7 @@ describe('IdbTrajetRepository', () => {
             expect(requireElementAt(summaries, 1).imageCount).toBe(0);
         });
 
-        it('alors l’ordre vient des dates, jamais de l’ordre des clés en base', async () => {
+        it("alors l'ordre vient des dates, jamais de l'ordre des clés en base", async () => {
             // `getAll` rend les enregistrements dans l'ordre de leurs clés — des
             // identifiants aléatoires en production. On pose donc des clés dont
             // l'ordre ne suit ni les dates ni leur inverse : seul un vrai tri
@@ -261,7 +261,7 @@ describe('IdbTrajetRepository', () => {
             expect(summaries.map((summary) => summary.nom)).toEqual(['Ancien', 'Milieu', 'Récent']);
         });
 
-        it('quand j’en supprime un, alors lui seul disparaît, avec ses images et ses points', async () => {
+        it("quand j'en supprime un, alors lui seul disparaît, avec ses images et ses points", async () => {
             const toDelete = trajetWithImageAndPoint();
             const aGarder = trajetWithImageAndPoint();
             await repository.save(toDelete);
@@ -280,7 +280,7 @@ describe('IdbTrajetRepository', () => {
             expect(await repository.listSummaries()).toHaveLength(1);
         });
 
-        it('quand j’en supprime un, alors ses images et ses points quittent vraiment les magasins', async () => {
+        it("quand j'en supprime un, alors ses images et ses points quittent vraiment les magasins", async () => {
             const toDelete = trajetWithImageAndPoint();
             const aGarder = trajetWithImageAndPoint();
             await repository.save(toDelete);
@@ -308,8 +308,8 @@ describe('IdbTrajetRepository', () => {
         });
     });
 
-    describe('Étant donné deux sauvegardes du même trajet qui s’entrelacent', () => {
-        it('alors le magasin d’images ne garde que les images du trajet enregistré en dernier', async () => {
+    describe("Étant donné deux sauvegardes du même trajet qui s'entrelacent", () => {
+        it("alors le magasin d'images ne garde que les images du trajet enregistré en dernier", async () => {
             const trajet = trajetWithImageAndPoint();
             await repository.save(trajet);
             const copyA = await requireLoaded(trajet.id);
@@ -348,7 +348,7 @@ describe('IdbTrajetRepository', () => {
         });
     });
 
-    describe('Étant donné un enregistrement d’image que le trajet ne liste pas', () => {
+    describe("Étant donné un enregistrement d'image que le trajet ne liste pas", () => {
         it('alors il est ignoré : ni compté dans le résumé, ni chargé', async () => {
             const trajet = trajetWithImageAndPoint();
             await repository.save(trajet);
@@ -375,8 +375,8 @@ describe('IdbTrajetRepository', () => {
         });
     });
 
-    describe('Étant donné un enregistrement d’image invalide en base', () => {
-        it('alors une largeur qui n’est pas un nombre fait refuser le chargement', async () => {
+    describe("Étant donné un enregistrement d'image invalide en base", () => {
+        it("alors une largeur qui n'est pas un nombre fait refuser le chargement", async () => {
             const trajet = trajetWithImageAndPoint();
             await repository.save(trajet);
             const imageId = requireElementAt(trajet.images, 0).id;
@@ -390,7 +390,7 @@ describe('IdbTrajetRepository', () => {
             );
         });
 
-        it('alors des données qui ne sont pas un tampon d’octets font refuser le chargement', async () => {
+        it("alors des données qui ne sont pas un tampon d'octets font refuser le chargement", async () => {
             const trajet = trajetWithImageAndPoint();
             await repository.save(trajet);
             const imageId = requireElementAt(trajet.images, 0).id;

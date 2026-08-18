@@ -35,6 +35,6 @@ export function sourceStatusText(status: SourceStatus): string {
         case 'permission-refusee':
             return 'Accès à la position refusé — autorisez la localisation pour ce site puis revenez.';
         case 'indisponible':
-            return 'La géolocalisation n’est pas disponible sur cet appareil.';
+            return "La géolocalisation n'est pas disponible sur cet appareil.";
     }
 }

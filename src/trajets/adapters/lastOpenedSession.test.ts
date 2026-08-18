@@ -68,7 +68,7 @@ describe('derniereSessionOuverte', () => {
     });
 
     describe('Étant donné aucune mémoire, quand je restaure', () => {
-        it('alors je n’obtiens rien', () => {
+        it("alors je n'obtiens rien", () => {
             const session = createLastOpenedSession(new InMemoryStorage());
 
             expect(session.restore()).toBeNull();
@@ -76,7 +76,7 @@ describe('derniereSessionOuverte', () => {
     });
 
     describe('Étant donné un trajet mémorisé puis oublié, quand je restaure', () => {
-        it('alors je n’obtiens rien, et la clé a disparu du stockage', () => {
+        it("alors je n'obtiens rien, et la clé a disparu du stockage", () => {
             const storage = new InMemoryStorage();
             const session = createLastOpenedSession(storage);
             session.remember(newTrajetId());
@@ -93,7 +93,7 @@ describe('derniereSessionOuverte', () => {
             ['un texte quelconque', 'le-dernier'],
             ['une chaîne vide', ''],
             ['du JSON', '{"id":"abc"}'],
-        ])('alors %s est refusé au lieu d’être pris pour un identifiant', (_case, value) => {
+        ])("alors %s est refusé au lieu d'être pris pour un identifiant", (_case, value) => {
             const storage = new InMemoryStorage();
             storage.poser('dernierTrajetId', value);
             const session = createLastOpenedSession(storage);
@@ -102,8 +102,8 @@ describe('derniereSessionOuverte', () => {
         });
     });
 
-    describe('Étant donné un stockage indisponible, quand je m’en sers', () => {
-        it('alors se souvenir échoue en silence : l’application démarre quand même', () => {
+    describe("Étant donné un stockage indisponible, quand je m'en sers", () => {
+        it("alors se souvenir échoue en silence : l'application démarre quand même", () => {
             const session = createLastOpenedSession(new FailingStorage());
 
             expect(() => {

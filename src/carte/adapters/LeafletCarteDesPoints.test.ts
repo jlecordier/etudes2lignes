@@ -70,7 +70,7 @@ function testBed(): TestBed {
         carte: () => {
             const last = createdCartes.at(-1);
             if (last === undefined) {
-                throw new Error('Aucune carte Leaflet créée : l’adapter n’a pas été sollicité.');
+                throw new Error("Aucune carte Leaflet créée : l'adapter n'a pas été sollicité.");
             }
             return last;
         },
@@ -120,8 +120,8 @@ beforeEach(() => {
     createdCartes.length = 0;
 });
 
-describe('Carte des points de l’éditeur', () => {
-    describe('Étant donné les points d’un trajet à afficher', () => {
+describe("Carte des points de l'éditeur", () => {
+    describe("Étant donné les points d'un trajet à afficher", () => {
         it('alors chacun a son marqueur, à sa coordonnée', () => {
             const { show, carte } = testBed();
 
@@ -148,7 +148,7 @@ describe('Carte des points de l’éditeur', () => {
         });
     });
 
-    describe('Étant donné une carte que l’utilisateur a lui-même cadrée', () => {
+    describe("Étant donné une carte que l'utilisateur a lui-même cadrée", () => {
         it('alors réafficher les mêmes points ne lui vole pas son zoom', () => {
             const { show, carte } = testBed();
             const aPoint = point(1, PARIS);
@@ -162,7 +162,7 @@ describe('Carte des points de l’éditeur', () => {
         });
     });
 
-    describe('Étant donné un point existant, quand j’arme le choix avec sa position', () => {
+    describe("Étant donné un point existant, quand j'arme le choix avec sa position", () => {
         it('alors la carte est centrée sur elle', async () => {
             const { carteDesPoints, show, carte } = testBed();
             show([point(1, PARIS), point(2, BORDEAUX)]);
@@ -178,7 +178,7 @@ describe('Carte des points de l’éditeur', () => {
     });
 
     describe('Étant donné un nouveau point à placer (aucune position de départ)', () => {
-        it('alors le cadrage d’ensemble est conservé, et le clic est attendu', async () => {
+        it("alors le cadrage d'ensemble est conservé, et le clic est attendu", async () => {
             const { carteDesPoints, show, carte, container } = testBed();
             show([point(1, PARIS), point(2, BORDEAUX)]);
             const cadrage = { center: carte().getCenter(), zoom: carte().getZoom() };
@@ -193,8 +193,8 @@ describe('Carte des points de l’éditeur', () => {
         });
     });
 
-    describe('Étant donné un choix armé, quand l’utilisateur clique la carte', () => {
-        it('alors le choix rend la coordonnée cliquée et n’attend plus rien', async () => {
+    describe("Étant donné un choix armé, quand l'utilisateur clique la carte", () => {
+        it("alors le choix rend la coordonnée cliquée et n'attend plus rien", async () => {
             const { carteDesPoints, show, carte, container } = testBed();
             show([]);
 
@@ -240,7 +240,7 @@ describe('Carte des points de l’éditeur', () => {
     });
 
     describe('Étant donné un choix déjà armé, quand un second est armé par-dessus', () => {
-        it('alors le premier est abandonné et le clic ne sert qu’au second', async () => {
+        it("alors le premier est abandonné et le clic ne sert qu'au second", async () => {
             const { carteDesPoints, show, carte } = testBed();
             show([]);
 
@@ -253,7 +253,7 @@ describe('Carte des points de l’éditeur', () => {
         });
     });
 
-    describe('Étant donné un choix abandonné alors qu’aucun n’était armé', () => {
+    describe("Étant donné un choix abandonné alors qu'aucun n'était armé", () => {
         it('alors rien ne se passe : la carte reste utilisable', async () => {
             const { carteDesPoints, show, carte } = testBed();
             show([]);
@@ -266,8 +266,8 @@ describe('Carte des points de l’éditeur', () => {
         });
     });
 
-    describe('Étant donné une carte démontée, quand l’écran la remonte ailleurs', () => {
-        it('alors elle repart dans le nouveau conteneur, et lâche l’ancien', () => {
+    describe("Étant donné une carte démontée, quand l'écran la remonte ailleurs", () => {
+        it("alors elle repart dans le nouveau conteneur, et lâche l'ancien", () => {
             const { carteDesPoints, container, show, carte } = testBed();
             show([point(1, PARIS)]);
 
@@ -292,14 +292,14 @@ describe('Carte des points de l’éditeur', () => {
             expect(carte().getCenter().lat).toBeCloseTo(BORDEAUX.latitude, 4);
         });
 
-        it('alors se servir d’une carte démontée est refusé, en le disant', () => {
+        it("alors se servir d'une carte démontée est refusé, en le disant", () => {
             const { carteDesPoints, show } = testBed();
 
             carteDesPoints.unmount();
 
             expect(() => {
                 show([point(1, PARIS)]);
-            }).toThrow('n’est pas montée');
+            }).toThrow("n'est pas montée");
         });
     });
 
@@ -317,8 +317,8 @@ describe('Carte des points de l’éditeur', () => {
         });
     });
 
-    describe('Étant donné un marqueur que l’utilisateur désigne d’un clic', () => {
-        it('alors le point est rapporté, et rien n’a bougé', () => {
+    describe("Étant donné un marqueur que l'utilisateur désigne d'un clic", () => {
+        it("alors le point est rapporté, et rien n'a bougé", () => {
             const { show, carte, moves, shows } = testBed();
             const premier = point(1, PARIS);
             show([premier, point(2, BORDEAUX)]);
@@ -330,8 +330,8 @@ describe('Carte des points de l’éditeur', () => {
         });
     });
 
-    describe('Étant donné un marqueur que l’utilisateur fait glisser', () => {
-        it('alors le déplacement est rapporté avec la coordonnée d’arrivée', () => {
+    describe("Étant donné un marqueur que l'utilisateur fait glisser", () => {
+        it("alors le déplacement est rapporté avec la coordonnée d'arrivée", () => {
             const { show, carte, moves } = testBed();
             const aPoint = point(1, PARIS);
             show([aPoint]);
@@ -365,7 +365,7 @@ describe('Carte des points de l’éditeur', () => {
     });
 
     describe('Étant donné une position trop imprécise pour caler la page', () => {
-        it('alors elle est montrée quand même, cerclée de l’incertitude mesurée', () => {
+        it("alors elle est montrée quand même, cerclée de l'incertitude mesurée", () => {
             const { carteDesPoints, show, carte } = testBed();
             show([]);
             const positions$ = new Subject<DisplayedPosition>();
@@ -384,7 +384,7 @@ describe('Carte des points de l’éditeur', () => {
     });
 
     describe('Étant donné une position devenue inconnue', () => {
-        it('alors le marqueur et son cercle s’effacent tous les deux', () => {
+        it("alors le marqueur et son cercle s'effacent tous les deux", () => {
             const { carteDesPoints, show, carte } = testBed();
             show([]);
             const positions$ = new Subject<DisplayedPosition>();
@@ -422,8 +422,8 @@ describe('Carte des points de l’éditeur', () => {
         });
     });
 
-    describe('Étant donné une carte qu’on démonte', () => {
-        it('alors elle n’écoute plus la position : plus personne n’observe le flux', () => {
+    describe("Étant donné une carte qu'on démonte", () => {
+        it("alors elle n'écoute plus la position : plus personne n'observe le flux", () => {
             const { carteDesPoints } = testBed();
             const positions$ = new Subject<DisplayedPosition>();
             carteDesPoints.showPosition(positions$);
@@ -435,8 +435,8 @@ describe('Carte des points de l’éditeur', () => {
         });
     });
 
-    describe('Étant donné un point que l’écran demande de montrer sur la carte', () => {
-        it('alors la carte se cale dessus, au zoom d’un point unique', () => {
+    describe("Étant donné un point que l'écran demande de montrer sur la carte", () => {
+        it("alors la carte se cale dessus, au zoom d'un point unique", () => {
             const { carteDesPoints, show, carte } = testBed();
             show([point(1, PARIS), point(2, BORDEAUX)]);
 
@@ -454,7 +454,7 @@ describe('Carte des points de l’éditeur', () => {
 
             expect(() => {
                 carteDesPoints.centerOn(PARIS);
-            }).toThrow('n’est pas montée');
+            }).toThrow("n'est pas montée");
         });
     });
 });

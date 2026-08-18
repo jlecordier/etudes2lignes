@@ -40,7 +40,7 @@ test.describe('Import / export JSON', () => {
         });
     });
 
-    test('Étant donné un fichier exporté, quand je l’importe, alors un nouveau trajet identique apparaît', async ({
+    test("Étant donné un fichier exporté, quand je l'importe, alors un nouveau trajet identique apparaît", async ({
         page,
     }) => {
         await preparerUnTrajetEtRevenirALaListe(page);
@@ -60,7 +60,7 @@ test.describe('Import / export JSON', () => {
         await expect(page.locator('point-marker')).toHaveCount(1);
     });
 
-    test('Étant donné un trajet ouvert dans l’éditeur, quand je l’exporte, alors le fichier part sans repasser par la liste', async ({
+    test("Étant donné un trajet ouvert dans l'éditeur, quand je l'exporte, alors le fichier part sans repasser par la liste", async ({
         page,
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
@@ -92,7 +92,7 @@ test.describe('Import / export JSON', () => {
         await expect(page.getByRole('heading', { name: 'Paris → Bordeaux' })).toBeVisible();
     });
 
-    test('Étant donné un fichier qui n’est pas un export, quand je l’importe, alors un message l’explique et rien n’est créé', async ({
+    test("Étant donné un fichier qui n'est pas un export, quand je l'importe, alors un message l'explique et rien n'est créé", async ({
         page,
     }) => {
         await preparerLApplication(page);
@@ -106,7 +106,7 @@ test.describe('Import / export JSON', () => {
         });
         await page.locator('#input-import-trajet').setInputFiles(invalidFile);
 
-        await expect.poll(() => messages).toEqual(['Ce fichier ne vient pas d’Etudes2Lignes.']);
+        await expect.poll(() => messages).toEqual(["Ce fichier ne vient pas d'Etudes2Lignes."]);
         await expect(page.locator('#empty-list')).toBeVisible();
     });
 });

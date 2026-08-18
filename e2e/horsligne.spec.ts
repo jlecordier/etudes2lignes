@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { pngFile, preparerLApplication } from './helpers';
 
 test.describe('Hors ligne (service worker)', () => {
-    test('Étant donné l’appli visitée une fois, quand je recharge hors ligne, alors elle démarre avec mes données', async ({
+    test("Étant donné l'appli visitée une fois, quand je recharge hors ligne, alors elle démarre avec mes données", async ({
         page,
         context,
         browserName,

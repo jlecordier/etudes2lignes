@@ -219,7 +219,7 @@ export class Trajet {
      */
     private admitImage(image: ImageDeTrajet, place: 'voyage-start' | 'voyage-end'): void {
         if (!isDimension(image.largeur) || !isDimension(image.hauteur)) {
-            throw new Error(`Dimensions d’image invalides : ${image.largeur}×${image.hauteur}`);
+            throw new Error(`Dimensions d'image invalides : ${image.largeur}×${image.hauteur}`);
         }
         if (place === 'voyage-start') {
             this._images.unshift(image);

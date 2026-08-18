@@ -23,7 +23,7 @@ L.Map.addInitHook(function (this: L.Map) {
 function carteCourante(): L.Map {
     const last = createdCartes.at(-1);
     if (last === undefined) {
-        throw new Error('Aucune carte Leaflet créée : l’adapter n’a pas été sollicité.');
+        throw new Error("Aucune carte Leaflet créée : l'adapter n'a pas été sollicité.");
     }
     return last;
 }
@@ -81,9 +81,9 @@ beforeEach(() => {
     mountCarteScreenDom();
 });
 
-describe('Carte plein écran de choix d’une coordonnée', () => {
+describe("Carte plein écran de choix d'une coordonnée", () => {
     describe('Étant donné la carte ouverte et ses champs vides, quand on clique « Placer »', () => {
-        it('alors une consigne utilisable s’affiche et rien n’est sélectionné', async () => {
+        it("alors une consigne utilisable s'affiche et rien n'est sélectionné", async () => {
             const selector = new LeafletCoordonneeSelector();
             const choice = selector.choose(null, [], EMPTY);
 
@@ -97,7 +97,7 @@ describe('Carte plein écran de choix d’une coordonnée', () => {
     });
 
     describe('Étant donné une latitude hors du globe saisie à la main', () => {
-        it('alors la même consigne s’affiche, sans message technique du domaine', async () => {
+        it("alors la même consigne s'affiche, sans message technique du domaine", async () => {
             const selector = new LeafletCoordonneeSelector();
             const choice = selector.choose(null, [], EMPTY);
             input('#latitude-input').value = '200';
@@ -113,7 +113,7 @@ describe('Carte plein écran de choix d’une coordonnée', () => {
     });
 
     describe('Étant donné une coordonnée valide saisie à la main, puis validée', () => {
-        it('alors le choix rend cette coordonnée et l’écran se referme', async () => {
+        it("alors le choix rend cette coordonnée et l'écran se referme", async () => {
             const selector = new LeafletCoordonneeSelector();
             const choice = selector.choose(null, [], EMPTY);
             input('#latitude-input').value = '48.8566';
@@ -131,8 +131,8 @@ describe('Carte plein écran de choix d’une coordonnée', () => {
         });
     });
 
-    describe('Étant donné un point existant que l’on déplace (coordonnée initiale)', () => {
-        it('alors la carte s’ouvre avec ce point déjà sélectionné', async () => {
+    describe("Étant donné un point existant que l'on déplace (coordonnée initiale)", () => {
+        it("alors la carte s'ouvre avec ce point déjà sélectionné", async () => {
             const selector = new LeafletCoordonneeSelector();
 
             const choice = selector.choose(PARIS, [], EMPTY);
@@ -163,8 +163,8 @@ describe('Carte plein écran de choix d’une coordonnée', () => {
     });
 });
 
-describe('Étant donné une position connue avant l’ouverture', () => {
-    it('alors elle est montrée, et le cadrage d’ouverture l’englobe', async () => {
+describe("Étant donné une position connue avant l'ouverture", () => {
+    it("alors elle est montrée, et le cadrage d'ouverture l'englobe", async () => {
         const selector = new LeafletCoordonneeSelector();
         const positions$ = new BehaviorSubject<DisplayedPosition>({
             kind: 'connue',
@@ -203,7 +203,7 @@ describe('Étant donné une position inconnue', () => {
 });
 
 describe('Étant donné une position connue, quand on demande « Ma position »', () => {
-    it('alors la carte vient dessus, au zoom d’un point unique', async () => {
+    it("alors la carte vient dessus, au zoom d'un point unique", async () => {
         const selector = new LeafletCoordonneeSelector();
         const positions$ = new BehaviorSubject<DisplayedPosition>({
             kind: 'connue',
@@ -222,7 +222,7 @@ describe('Étant donné une position connue, quand on demande « Ma position »'
 });
 
 describe('Étant donné un choix terminé', () => {
-    it('alors la carte n’écoute plus la position et ne la montre plus', async () => {
+    it("alors la carte n'écoute plus la position et ne la montre plus", async () => {
         const selector = new LeafletCoordonneeSelector();
         const positions$ = new Subject<DisplayedPosition>();
         const choice = selector.choose(null, [], positions$);

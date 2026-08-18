@@ -53,7 +53,7 @@ function mount(
     eventsOf(importFileInput, 'change')
         .pipe(takeUntil(parti$))
         .subscribe(() => {
-            run(importTrajet(), 'l’import du trajet');
+            run(importTrajet(), "l'import du trajet");
         });
     eventsOf(query('#retry-list-button', HTMLButtonElement, root), 'click')
         .pipe(takeUntil(parti$))
@@ -76,7 +76,7 @@ function mount(
     eventsOf(root, 'export-trajet')
         .pipe(takeUntil(parti$))
         .subscribe((event) => {
-            run(exportTrajet(event.detail.summary), 'l’export du trajet');
+            run(exportTrajet(event.detail.summary), "l'export du trajet");
         });
     eventsOf(root, 'delete-trajet')
         .pipe(takeUntil(parti$))

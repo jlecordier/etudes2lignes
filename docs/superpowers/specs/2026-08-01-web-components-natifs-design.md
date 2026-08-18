@@ -204,7 +204,7 @@ class TrajetEditorScreenElement extends HTMLElement {
         this.#abort = abort;
         this.replaceChildren(gabarit());
         …câblage, chaque addEventListener recevant { signal: abort.signal }…
-        dependencies.run(charger(), 'l’ouverture du trajet');
+        dependencies.run(charger(), "l'ouverture du trajet");
     }
 
     disconnectedCallback(): void {

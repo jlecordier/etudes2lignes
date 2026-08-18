@@ -17,7 +17,7 @@ function defaultIconUrl(): string | undefined {
 // n'existe qu'un seul Leaflet par fichier de test.
 describe('Configuration de Leaflet', () => {
     describe('Étant donné les adapters de carte importés, mais aucune carte créée', () => {
-        it('alors Leaflet n’est pas configuré : ce n’est plus un effet de bord d’import', () => {
+        it("alors Leaflet n'est pas configuré : ce n'est plus un effet de bord d'import", () => {
             // Le devineur d'URL de Leaflet — celui que le bundler casse — est
             // encore en place, et l'icône n'est encore que le nom de fichier nu
             // livré par Leaflet, qu'aucun bundler ne sait résoudre.
@@ -27,7 +27,7 @@ describe('Configuration de Leaflet', () => {
     });
 
     describe('Étant donné Leaflet configuré deux fois de suite', () => {
-        it('alors les icônes du marqueur sont fournies explicitement, sans devineur d’URL', () => {
+        it("alors les icônes du marqueur sont fournies explicitement, sans devineur d'URL", () => {
             configureLeaflet();
             configureLeaflet();
 

@@ -16,7 +16,7 @@ async function importerDeuxPages(page: Page): Promise<void> {
 }
 
 test.describe("Éditeur d'un trajet — les images", () => {
-    test('Étant donné un trajet vierge, quand j’importe deux images, alors la première du voyage est en bas de la pile', async ({
+    test("Étant donné un trajet vierge, quand j'importe deux images, alors la première du voyage est en bas de la pile", async ({
         page,
     }) => {
         await ouvrirUnTrajetVierge(page);
@@ -66,7 +66,7 @@ test.describe("Éditeur d'un trajet — les images", () => {
         await expect(page.locator('#images-stack .point-number')).toHaveText(['2', '1']);
     });
 
-    test('Étant donné deux images, quand j’en supprime une et confirme, alors elle disparaît durablement', async ({
+    test("Étant donné deux images, quand j'en supprime une et confirme, alors elle disparaît durablement", async ({
         page,
     }) => {
         await ouvrirUnTrajetVierge(page);
@@ -82,7 +82,7 @@ test.describe("Éditeur d'un trajet — les images", () => {
         await expect(page.locator('.image-name')).toHaveText(['page-2.png']);
     });
 
-    test('Étant donné l’éditeur, quand je reviens à la liste, alors le compte d’images est à jour', async ({
+    test("Étant donné l'éditeur, quand je reviens à la liste, alors le compte d'images est à jour", async ({
         page,
     }) => {
         await ouvrirUnTrajetVierge(page);

@@ -179,7 +179,7 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
         const carte = this.carte;
         if (carte === null) {
             throw new Error(
-                'La carte des points n’est pas montée : l’écran doit la monter avant de s’en servir.',
+                "La carte des points n'est pas montée : l'écran doit la monter avant de s'en servir.",
             );
         }
         return carte;

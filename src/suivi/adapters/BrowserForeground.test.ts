@@ -61,7 +61,7 @@ describe('BrowserForeground', () => {
     });
 
     describe('Étant donné une page encore masquée, quand un réveil arrive', () => {
-        it('alors il n’est pas transmis : ce n’est pas un retour au premier plan', () => {
+        it("alors il n'est pas transmis : ce n'est pas un retour au premier plan", () => {
             const foreground = new BrowserForeground();
 
             const reveils = countWakeups(foreground, () => {
@@ -74,8 +74,8 @@ describe('BrowserForeground', () => {
         });
     });
 
-    describe('Étant donné personne d’abonné', () => {
-        it('alors rien n’écoute le navigateur : le flux est froid', () => {
+    describe("Étant donné personne d'abonné", () => {
+        it("alors rien n'écoute le navigateur : le flux est froid", () => {
             const foreground = new BrowserForeground();
             let reveils = 0;
 

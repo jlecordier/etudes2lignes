@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { newTrajetId, trajetIdFrom } from './ids';
 
 describe('trajetIdFrom', () => {
-    describe('Étant donné un identifiant que l’application a fabriqué, quand je le relis', () => {
+    describe("Étant donné un identifiant que l'application a fabriqué, quand je le relis", () => {
         it('alors il est reconnu', () => {
             const identifier = newTrajetId();
 
@@ -10,7 +10,7 @@ describe('trajetIdFrom', () => {
         });
     });
 
-    describe('Étant donné une chaîne qui n’est pas un identifiant, quand je la relis', () => {
+    describe("Étant donné une chaîne qui n'est pas un identifiant, quand je la relis", () => {
         it.each([
             ['une chaîne vide', ''],
             ['un mot', 'dernierTrajet'],

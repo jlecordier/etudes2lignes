@@ -77,7 +77,7 @@ describe('predicats', () => {
             expect(isStringArray(['a', null])).toBe(false);
         });
 
-        it('alors une chaîne seule n’est pas un tableau de chaînes', () => {
+        it("alors une chaîne seule n'est pas un tableau de chaînes", () => {
             expect(isStringArray('abc')).toBe(false);
         });
     });
@@ -101,13 +101,13 @@ describe('predicats', () => {
     });
 
     describe('isPositiveInteger', () => {
-        it('alors une dimension d’image plausible est reconnue', () => {
+        it("alors une dimension d'image plausible est reconnue", () => {
             expect(isPositiveInteger(2481)).toBe(true);
             expect(isPositiveInteger(1)).toBe(true);
         });
 
         it.each([
-            ['zéro — une image de largeur nulle n’en est pas une', 0],
+            ["zéro — une image de largeur nulle n'en est pas une", 0],
             ['un négatif', -100],
             ['un décimal', 1.5],
             ['NaN', Number.NaN],
@@ -142,7 +142,7 @@ describe('predicats', () => {
         });
 
         it.each([
-            ['une vue sur un tampon, qui n’en est pas un', new Uint8Array(8)],
+            ["une vue sur un tampon, qui n'en est pas un", new Uint8Array(8)],
             ['un Blob', new Blob(['x'])],
             ['null', null],
         ])('alors %s est refusé', (_case, value) => {

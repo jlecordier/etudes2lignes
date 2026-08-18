@@ -52,7 +52,7 @@ export const defaultRunner: Run = createRunner((message) => {
 function failureMessage(label: string, error: unknown): string {
     if (isQuotaExceeded(error)) {
         return (
-            `Échec de ${label} : l’espace de stockage de l’appareil est plein. ` +
+            `Échec de ${label} : l'espace de stockage de l'appareil est plein. ` +
             `Supprimez un trajet ou des pages, puis réessayez.`
         );
     }

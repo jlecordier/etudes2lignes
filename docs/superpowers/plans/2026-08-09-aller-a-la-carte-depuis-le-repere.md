@@ -69,11 +69,11 @@
 
 - [ ] **Step 1 : Écrire les tests qui échouent**
 
-Dans `src/carte/adapters/LeafletCarteDesPoints.test.ts`, à la fin du `describe('Carte des points de l’éditeur', …)`, après le bloc « Étant donné un marqueur que l'utilisateur fait glisser » :
+Dans `src/carte/adapters/LeafletCarteDesPoints.test.ts`, à la fin du `describe("Carte des points de l'éditeur", …)`, après le bloc « Étant donné un marqueur que l'utilisateur fait glisser » :
 
 ```ts
-describe('Étant donné un point que l’écran demande de montrer sur la carte', () => {
-    it('alors la carte se cale dessus, au zoom d’un point unique', () => {
+describe("Étant donné un point que l'écran demande de montrer sur la carte", () => {
+    it("alors la carte se cale dessus, au zoom d'un point unique", () => {
         const { carteDesPoints, show, carte } = testBed();
         show([point(1, PARIS), point(2, BORDEAUX)]);
 
@@ -91,7 +91,7 @@ describe('Étant donné un point que l’écran demande de montrer sur la carte'
 
         expect(() => {
             carteDesPoints.centerOn(PARIS);
-        }).toThrow('n’est pas montée');
+        }).toThrow("n'est pas montée");
     });
 });
 ```
@@ -224,7 +224,7 @@ function cliquerLaPastille(element: HTMLElement, numero: number): void {
 Puis, après le `describe('Étant donné deux points sur deux pages différentes', …)` existant, ajouter :
 
 ```ts
-describe('Étant donné deux points sur deux pages, quand je clique la pastille de l’un', () => {
+describe("Étant donné deux points sur deux pages, quand je clique la pastille de l'un", () => {
     it('alors la carte se cale sur SA coordonnée, pas celle de son voisin', async () => {
         repository = new FakeTrajetRepository(trajetDeDeuxPoints);
         const element = await attacherLEcran();
@@ -259,7 +259,7 @@ describe('Étant donné deux points sur deux pages, quand je clique la pastille 
 });
 
 describe('Étant donné un petit écran où la carte est repliée', () => {
-    it('quand je clique la pastille d’un point, alors la carte vient par-dessus le schéma', async () => {
+    it("quand je clique la pastille d'un point, alors la carte vient par-dessus le schéma", async () => {
         const element = await attacherLEcran();
 
         cliquerLaPastille(element, 1);
@@ -289,7 +289,7 @@ describe('Étant donné un petit écran où la carte est repliée', () => {
 - [ ] **Step 2 : Lancer les tests pour les voir échouer**
 
 Run: `pnpm test -- src/trajets/ui/TrajetEditorScreen.test.ts`
-Expected: FAIL — `Aucun bouton « Voir le point 2 sur la carte » dans l’écran.`
+Expected: FAIL — `Aucun bouton « Voir le point 2 sur la carte » dans l'écran.`
 
 - [ ] **Step 3 : Déclarer l'intention**
 
@@ -696,7 +696,7 @@ EOF
 Dans `src/trajets/ui/TrajetEditorScreen.test.ts`, ajouter au `describe('Étant donné un petit écran où la carte est repliée', …)` créé par la Task 2 :
 
 ```ts
-it('quand un placement est en cours, alors la pastille n’emmène nulle part', async () => {
+it("quand un placement est en cours, alors la pastille n'emmène nulle part", async () => {
     const element = await attacherLEcran();
     // La feuille de style rend la pastille transparente aux clics tant
     // qu'on vise une hauteur ; le clavier, lui, ne connaît pas
@@ -760,7 +760,7 @@ test('Étant donné un point posé sur le schéma, quand je clique sa pastille, 
     await expect.poll(() => ecartAuCentreDeLaCarte(page, '1')).toBeLessThanOrEqual(4);
 });
 
-test('Étant donné un petit écran où la carte est repliée, quand je clique la pastille d’un point, alors la carte vient par-dessus le schéma', async ({
+test("Étant donné un petit écran où la carte est repliée, quand je clique la pastille d'un point, alors la carte vient par-dessus le schéma", async ({
     page,
 }) => {
     test.skip(
@@ -793,7 +793,7 @@ test('Étant donné un petit écran où la carte est repliée, quand je clique l
     await expect(carte).toBeInViewport({ ratio: 0.9 });
 });
 
-test('Étant donné un placement en cours, quand je clique la pastille d’un point déjà posé, alors un point s’y pose au lieu de partir à la carte', async ({
+test("Étant donné un placement en cours, quand je clique la pastille d'un point déjà posé, alors un point s'y pose au lieu de partir à la carte", async ({
     page,
 }) => {
     await ouvrirUnTrajetAvecUnePage(page);

@@ -32,7 +32,7 @@ les images**, n'a aucun `catch`.
 Ajouter **une seule** couture dans `src/commun/` : `lancer(promesse, quoi)` qui
 attrape, journalise et affiche un message français unique mentionnant `quoi`, et
 `signalerLEchec(quoi, erreur)`. Remplacer chaque `void f()` par
-`lancer(f(), 'l’enregistrement du trajet')`. Conserver les messages spécifiques
+`lancer(f(), "l'enregistrement du trajet")`. Conserver les messages spécifiques
 existants là où ils sont déjà soignés (import, export) : ils sont meilleurs que
 le message générique.
 
@@ -296,7 +296,7 @@ Messages produits par l'adapter, à afficher tels quels via `erreur.message` :
 
 - `Trajet illisible : une image de ce trajet est introuvable dans la base (<id>).`
 - `Trajet illisible : le champ « largeur » est invalide dans la base.`
-- `Trajet illisible : l’enregistrement du trajet est illisible dans la base.`
+- `Trajet illisible : l'enregistrement du trajet est illisible dans la base.`
 
 Habillage attendu côté écran :
 
@@ -304,7 +304,7 @@ Habillage attendu côté écran :
 - éditeur / suivi : `Ce trajet ne peut pas être ouvert. <message> Réimportez-le
 depuis un fichier JSON, ou supprimez-le.` ;
 - ouverture de base impossible : `Le stockage local est indisponible. Fermez les
-autres onglets d’Etudes2Lignes puis rechargez la page.`
+autres onglets d'Etudes2Lignes puis rechargez la page.`
 
 ### B11 (nouveau, remonté par le lot 03). Sérialiser les sauvegardes
 

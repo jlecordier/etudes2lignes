@@ -252,7 +252,7 @@ beforeEach(async () => {
     telechargements = [];
     URL.createObjectURL = (objet: Blob | MediaSource) => {
         if (!(objet instanceof Blob)) {
-            throw new Error('Ce test n’attend que des Blob.');
+            throw new Error("Ce test n'attend que des Blob.");
         }
         const url = `blob:page-${String(urlsCreees.length + 1)}`;
         urlsCreees.push(url);
@@ -345,7 +345,7 @@ function glisserLaPastille(element: HTMLElement, numero: number, de: number, ver
         (candidate) => candidate.textContent === String(numero),
     );
     if (pastille === undefined) {
-        throw new Error(`Aucune pastille ${String(numero)} dans l’écran.`);
+        throw new Error(`Aucune pastille ${String(numero)} dans l'écran.`);
     }
     pastille.dispatchEvent(new FauxPointerEvent('pointerdown', de));
     query('#images-stack', HTMLDivElement, element).dispatchEvent(
@@ -365,7 +365,7 @@ function cliquerLAction(element: HTMLElement, intitule: string): void {
         (candidat) => candidat.getAttribute('aria-label') === intitule,
     );
     if (bouton === undefined) {
-        throw new Error(`Aucun bouton « ${intitule} » dans l’écran.`);
+        throw new Error(`Aucun bouton « ${intitule} » dans l'écran.`);
     }
     bouton.click();
 }
@@ -394,7 +394,7 @@ async function fichierPropose(): Promise<{ nom: string; contenu: unknown }> {
 }
 
 describe('trajet-editor-screen', () => {
-    describe('Étant donné un trajet, quand j’attache l’écran', () => {
+    describe("Étant donné un trajet, quand j'attache l'écran", () => {
         it('alors il affiche son nom, ses pages en ordre de lecture et ses points', async () => {
             const element = await attacherLEcran();
 
@@ -444,7 +444,7 @@ describe('trajet-editor-screen', () => {
             ).toEqual(['1', '2', '3']);
         });
 
-        it('alors la carte est montée sur le conteneur que l’écran vient de créer', async () => {
+        it("alors la carte est montée sur le conteneur que l'écran vient de créer", async () => {
             await attacherLEcran();
 
             expect(carteDesPoints.isMounted()).toBe(true);
@@ -463,8 +463,8 @@ describe('trajet-editor-screen', () => {
         });
     });
 
-    describe('Étant donné un dépôt qui refuse d’écrire, quand je déplace une page', () => {
-        it('alors l’échec est signalé à l’utilisateur', async () => {
+    describe("Étant donné un dépôt qui refuse d'écrire, quand je déplace une page", () => {
+        it("alors l'échec est signalé à l'utilisateur", async () => {
             const element = await attacherLEcran();
 
             repository.refuserLaProchaineEcriture();
@@ -474,7 +474,7 @@ describe('trajet-editor-screen', () => {
             expect(echecs).toEqual(['Échec de le déplacement de la page : Stockage plein.']);
         });
 
-        it('alors l’écran repart de ce qui est réellement stocké', async () => {
+        it("alors l'écran repart de ce qui est réellement stocké", async () => {
             const element = await attacherLEcran();
 
             repository.refuserLaProchaineEcriture();
@@ -489,8 +489,8 @@ describe('trajet-editor-screen', () => {
         });
     });
 
-    describe('Étant donné trois pages affichées, quand l’écran rend à nouveau', () => {
-        it('alors aucune page inchangée n’est redécodée', async () => {
+    describe("Étant donné trois pages affichées, quand l'écran rend à nouveau", () => {
+        it("alors aucune page inchangée n'est redécodée", async () => {
             const element = await attacherLEcran();
             expect(urlsCreees).toHaveLength(3);
 
@@ -531,8 +531,8 @@ describe('trajet-editor-screen', () => {
         });
     });
 
-    describe('Étant donné un trajet supprimé entre-temps, quand j’ouvre l’écran', () => {
-        it('alors il repart en arrière plutôt que d’afficher un écran vide', async () => {
+    describe("Étant donné un trajet supprimé entre-temps, quand j'ouvre l'écran", () => {
+        it("alors il repart en arrière plutôt que d'afficher un écran vide", async () => {
             repository.viderLeDepot();
 
             await attacherLEcran();
@@ -541,8 +541,8 @@ describe('trajet-editor-screen', () => {
         });
     });
 
-    describe('Étant donné un chargement encore en cours, quand je détache l’écran', () => {
-        it('alors rien ne s’affiche et la carte est rendue', async () => {
+    describe("Étant donné un chargement encore en cours, quand je détache l'écran", () => {
+        it("alors rien ne s'affiche et la carte est rendue", async () => {
             repository.suspendreLaLecture();
             const element = createTrajetEditorScreen(dependances());
             document.body.append(element);
@@ -580,7 +580,7 @@ describe('trajet-editor-screen', () => {
     });
 
     describe('Étant donné un chargement encore en cours, quand je clique sur « Exporter »', () => {
-        it('alors rien n’est proposé au téléchargement, et rien n’est signalé', async () => {
+        it("alors rien n'est proposé au téléchargement, et rien n'est signalé", async () => {
             repository.suspendreLaLecture();
             const element = createTrajetEditorScreen(dependances());
             document.body.append(element);
@@ -597,7 +597,7 @@ describe('trajet-editor-screen', () => {
     });
 
     describe('Étant donné deux points sur deux pages différentes', () => {
-        it('quand j’en désigne un sur la carte, alors c’est son repère qui est amené à l’écran', async () => {
+        it("quand j'en désigne un sur la carte, alors c'est son repère qui est amené à l'écran", async () => {
             repository = new FakeTrajetRepository(trajetDeDeuxPoints);
             const element = await attacherLEcran();
 
@@ -609,7 +609,7 @@ describe('trajet-editor-screen', () => {
             expect(element.isConnected).toBe(true);
         });
 
-        it('quand rien n’est désigné, alors rien ne défile', async () => {
+        it("quand rien n'est désigné, alors rien ne défile", async () => {
             repository = new FakeTrajetRepository(trajetDeDeuxPoints);
             await attacherLEcran();
 
@@ -617,7 +617,7 @@ describe('trajet-editor-screen', () => {
         });
     });
 
-    describe('Étant donné deux points sur deux pages, quand je clique la pastille de l’un', () => {
+    describe("Étant donné deux points sur deux pages, quand je clique la pastille de l'un", () => {
         it('alors la carte se cale sur SA coordonnée, pas celle de son voisin', async () => {
             repository = new FakeTrajetRepository(trajetDeDeuxPoints);
             const element = await attacherLEcran();
@@ -651,7 +651,7 @@ describe('trajet-editor-screen', () => {
     });
 
     describe('Étant donné un petit écran où la carte est repliée', () => {
-        it('quand je clique la pastille d’un point, alors la carte vient par-dessus le schéma', async () => {
+        it("quand je clique la pastille d'un point, alors la carte vient par-dessus le schéma", async () => {
             const element = await attacherLEcran();
 
             cliquerLaPastille(element, 1);
@@ -677,7 +677,7 @@ describe('trajet-editor-screen', () => {
             expect(carteDesPoints.centrages()).toHaveLength(1);
         });
 
-        it('quand un placement est en cours, alors la pastille n’emmène nulle part', async () => {
+        it("quand un placement est en cours, alors la pastille n'emmène nulle part", async () => {
             const element = await attacherLEcran();
             // La feuille de style rend la pastille transparente aux clics tant
             // qu'on vise une hauteur ; le clavier, lui, ne connaît pas
@@ -706,7 +706,7 @@ describe('trajet-editor-screen', () => {
             );
         });
 
-        it('alors désigner un point la referme, pour laisser voir ce qu’on demande', async () => {
+        it("alors désigner un point la referme, pour laisser voir ce qu'on demande", async () => {
             repository = new FakeTrajetRepository(trajetDeDeuxPoints);
             const element = await attacherLEcran();
             cliquerLaBascule(element);
@@ -719,7 +719,7 @@ describe('trajet-editor-screen', () => {
     });
 
     describe('Étant donné un point posé à mi-hauteur de sa page', () => {
-        it('quand je glisse sa pastille au quart, alors c’est là qu’il est enregistré', async () => {
+        it("quand je glisse sa pastille au quart, alors c'est là qu'il est enregistré", async () => {
             const element = await attacherLEcran();
 
             glisserLaPastille(element, 1, 500, 250);
@@ -731,7 +731,7 @@ describe('trajet-editor-screen', () => {
             expect(echecs).toEqual([]);
         });
 
-        it('quand je glisse, alors la carte n’est pas convoquée par le clic qui suit', async () => {
+        it("quand je glisse, alors la carte n'est pas convoquée par le clic qui suit", async () => {
             const element = await attacherLEcran();
 
             glisserLaPastille(element, 1, 500, 250);
@@ -744,7 +744,7 @@ describe('trajet-editor-screen', () => {
         });
     });
 
-    describe('Étant donné la barre d’actions de l’éditeur', () => {
+    describe("Étant donné la barre d'actions de l'éditeur", () => {
         it('alors chaque bouton porte un nom accessible, que le masquage de son libellé ne peut pas lui retirer', async () => {
             const element = await attacherLEcran();
 
