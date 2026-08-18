@@ -1753,7 +1753,7 @@ pas dans un même `||`. À poser juste après les `query` de `mount` :
 
 ```ts
 /** Un choix est en cours sur la carte plein écran, qui recouvre cet écran. */
-let choixPleinEcran = false;
+let fullscreenChoice = false;
 
 /** La carte de l'éditeur est-elle passée par-dessus le schéma ? La classe est cet état. */
 function isCarteOverSchema(): boolean {
@@ -1771,7 +1771,7 @@ function isEmbeddedCarteVisible(): boolean {
 
 /** Une carte est-elle sous les yeux ? Le GPS ne tourne que dans ce cas. */
 function isAnyCarteVisible(): boolean {
-    return isEmbeddedCarteVisible() || choixPleinEcran;
+    return isEmbeddedCarteVisible() || fullscreenChoice;
 }
 
 const carteVisible$ = new BehaviorSubject<boolean>(isAnyCarteVisible());
@@ -1852,12 +1852,12 @@ async function chooseCoordonnee(initial: Coordonnee | null): Promise<Coordonnee 
     if (!isLargeScreen()) {
         // La carte plein écran est une carte regardée, elle aussi : sans ce
         // drapeau, le GPS resterait éteint tout le temps du choix sur mobile.
-        choixPleinEcran = true;
+        fullscreenChoice = true;
         refreshCarteVisible();
         try {
             return await coordonneeSelector.choose(initial, reperes, maPosition$);
         } finally {
-            choixPleinEcran = false;
+            fullscreenChoice = false;
             refreshCarteVisible();
         }
     }
