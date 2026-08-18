@@ -48,6 +48,7 @@ Légende : `U` = test unitaire (Vitest), `E` = test de bout en bout (Playwright)
 | GR-19 | Sans position, aucun marqueur — et la phrase qui dit pourquoi s'affiche à côté de la carte                                                     | `U LeafletCoordonneeSelector.test.ts`                                                     |
 | GR-20 | Le cadrage englobe la position quand elle est déjà connue, et ne se refait jamais à l'arrivée d'une position                                   | `U fitting.test.ts`, `U LeafletCarteDesPoints.test.ts`                                    |
 | GR-21 | « Ma position » amène la carte sur elle, au zoom d'un point unique, et reste inerte tant qu'elle est inconnue                                  | `U LeafletCoordonneeSelector.test.ts`                                                     |
+| GR-23 | En simulation, la carte plein écran n'ajoute pas un second marqueur là où celui de la sélection porte déjà la position                         | `U SuiviScreen.test.ts`                                                                   |
 
 ## Suivi
 

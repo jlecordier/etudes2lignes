@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { NEVER, defer, finalize, type Observable } from 'rxjs';
+import { NEVER, defer, finalize, take, type Observable } from 'rxjs';
 import type { CoordonneeSelector } from '../../carte/ports/CoordonneeSelectorPort';
+import type { DisplayedPoint, DisplayedPosition } from '../../carte/ports/CarteDesPointsPort';
 import { query } from '../../shared/dom';
 import { createRunner, type Run } from '../../shared/runner';
 import { Coordonnee } from '../../trajets/domain/Coordonnee';
@@ -83,10 +84,39 @@ class FakeScreenWakeLock implements ScreenWakeLock {
     }
 }
 
-/** Carte qui n'ouvre jamais rien : aucun test d'ici ne choisit de coordonnée. */
-const carteMuette: CoordonneeSelector = {
-    choose: () => Promise.resolve(null),
-};
+/**
+ * Carte plein écran qui retient le flux qu'on lui confie et la coordonnée qu'on
+ * lui fait rendre : c'est par ce flux que l'écran dit ce qu'il veut montrer.
+ */
+class FakeCoordonneeSelector implements CoordonneeSelector {
+    private readonly recues: DisplayedPosition[] = [];
+    private reponse: Coordonnee | null = null;
+
+    /** Ce que l'utilisateur choisira au prochain passage sur la carte. */
+    repondra(coordonnee: Coordonnee): void {
+        this.reponse = coordonnee;
+    }
+
+    choose(
+        _initialCoordonnee: Coordonnee | null,
+        _reperes: readonly DisplayedPoint[],
+        position$: Observable<DisplayedPosition>,
+    ): Promise<Coordonnee | null> {
+        // Le temps d'un choix, et pas plus : `take(1)` se désabonne de lui-même,
+        // comme le vrai adapter le fait par son `takeUntil(this.choix)`.
+        position$.pipe(take(1)).subscribe((position) => {
+            this.recues.push(position);
+        });
+        const reponse = this.reponse;
+        this.reponse = null;
+        return Promise.resolve(reponse);
+    }
+
+    /** Ce que la carte a reçu à montrer, dans l'ordre. */
+    positionsRecues(): DisplayedPosition[] {
+        return this.recues;
+    }
+}
 
 /** Un trajet d'une page et deux points, autour de Bordeaux. */
 function trajetDeDeuxPoints(): Trajet {
@@ -113,6 +143,7 @@ function trajetDeDeuxPoints(): Trajet {
 let repository: FakeTrajetRepository;
 let realSource: SimulationPositionSource;
 let simulation: SimulationPositionSource;
+let carte: FakeCoordonneeSelector;
 let screenWakeLock: FakeScreenWakeLock;
 let echecs: string[];
 let run: Run;
@@ -163,6 +194,7 @@ beforeEach(async () => {
     // aucune différence entre les deux, c'est tout l'intérêt du port.
     realSource = new SimulationPositionSource();
     simulation = new SimulationPositionSource();
+    carte = new FakeCoordonneeSelector();
     screenWakeLock = new FakeScreenWakeLock();
     echecs = [];
     retours = 0;
@@ -176,7 +208,7 @@ function dependances(): SuiviDependencies {
         repository,
         realSource,
         simulation,
-        coordonneeSelector: carteMuette,
+        coordonneeSelector: carte,
         screenWakeLock,
         run,
         trajetId: trajet.id,
@@ -388,6 +420,57 @@ describe('suivi-screen', () => {
             // Le verrou est le vrai danger : demandé après la sortie, plus
             // personne n'était là pour le rendre.
             expect(screenWakeLock.isHeld()).toBe(false);
+        });
+    });
+
+    describe("Étant donné le suivi au GPS, quand j'ouvre la carte pour simuler", () => {
+        it('alors elle reçoit ma position réelle', async () => {
+            const element = await attacherLEcran();
+            realSource.simulate(Coordonnee.create(44.83, -0.57));
+
+            query('#simuler-button', HTMLButtonElement, element).click();
+            await Promise.resolve();
+
+            expect(carte.positionsRecues()).toEqual([
+                { kind: 'connue', coordonnee: Coordonnee.create(44.83, -0.57) },
+            ]);
+        });
+    });
+
+    describe('Étant donné le suivi déjà en simulation, quand je rouvre la carte', () => {
+        it('alors elle ne reçoit rien : le marqueur de sélection porte déjà cette position', async () => {
+            const element = await attacherLEcran();
+            // Le premier passage est ce qui fait entrer en simulation.
+            carte.repondra(Coordonnee.create(44.9, -0.5));
+            query('#simuler-button', HTMLButtonElement, element).click();
+            await Promise.resolve();
+            await Promise.resolve();
+
+            query('#simuler-button', HTMLButtonElement, element).click();
+            await Promise.resolve();
+
+            // Une seule position reçue : celle du premier passage, fait en GPS.
+            expect(carte.positionsRecues()).toHaveLength(1);
+        });
+    });
+
+    describe("Étant donné une simulation qu'on quitte", () => {
+        it('alors la carte remontre le GPS, jamais la position simulée restée en mémoire', async () => {
+            const element = await attacherLEcran();
+            realSource.simulate(Coordonnee.create(44.83, -0.57));
+            carte.repondra(Coordonnee.create(48.85, 2.35));
+            query('#simuler-button', HTMLButtonElement, element).click();
+            await Promise.resolve();
+            await Promise.resolve();
+            query('#leave-simulation-button', HTMLButtonElement, element).click();
+
+            query('#simuler-button', HTMLButtonElement, element).click();
+            await Promise.resolve();
+
+            expect(carte.positionsRecues().at(-1)).toEqual({
+                kind: 'connue',
+                coordonnee: Coordonnee.create(44.83, -0.57),
+            });
         });
     });
 });

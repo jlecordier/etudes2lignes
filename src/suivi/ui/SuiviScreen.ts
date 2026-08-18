@@ -1,5 +1,5 @@
-import { EMPTY, Subject, merge, switchMap, takeUntil, tap } from 'rxjs';
-import type { DisplayedPoint } from '../../carte/ports/CarteDesPointsPort';
+import { BehaviorSubject, EMPTY, Subject, merge, switchMap, takeUntil, tap } from 'rxjs';
+import type { DisplayedPoint, DisplayedPosition } from '../../carte/ports/CarteDesPointsPort';
 import type { CoordonneeSelector } from '../../carte/ports/CoordonneeSelectorPort';
 import { query, queryAll } from '../../shared/dom';
 import { eventsOf, untilAborted, windowEventsOf } from '../../shared/events';
@@ -22,7 +22,7 @@ import {
 } from '../domain/projection';
 import type { SourceStatus } from '../domain/sourceStatus';
 import type { ScreenWakeLock } from '../ports/ScreenWakeLockPort';
-import type { PositionSource } from '../ports/PositionSource';
+import type { PositionSource, SourceEvent } from '../ports/PositionSource';
 import type { PositionSimulator } from '../ports/PositionSimulator';
 import {
     createOverviewPage,
@@ -46,6 +46,9 @@ export interface SuiviDependencies {
 
 /** Où la position vient-elle ? Le mode n'est plus deviné d'un attribut du DOM. */
 type SuiviMode = 'gps' | 'simulation';
+
+/** Ce qu'une carte doit montrer quand l'écran ne sait encore rien. */
+const POSITION_INCONNUE: DisplayedPosition = { kind: 'inconnue', message: '' };
 
 /**
  * Écran de suivi : les pages du trajet empilées, et le document qui défile
@@ -99,6 +102,26 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
     // L'écran sait qu'il attend un choix sur la carte : il n'a pas à le déduire
     // de l'attribut `hidden` d'un écran appartenant à une autre capacité.
     let activeCoordonneeChoice = false;
+    /**
+     * Ce que l'écran a de plus frais sur « ma position », rediffusé aux cartes.
+     * Un `BehaviorSubject` parce qu'une carte qui s'ouvre doit trouver la valeur
+     * **tout de suite** : c'est ce qui fait entrer la position dans le cadrage
+     * d'ouverture sans que personne n'ait à tester une nullité.
+     *
+     * Aucune seconde souscription à la source : le flux est froid, et deux
+     * abonnés ouvriraient deux sessions GPS qui s'ignorent.
+     *
+     * Rien à effacer au changement de source, contrairement à `lastPosition` et
+     * `lastSurTrajet` : le contrat de `PositionSource` veut qu'une source
+     * **commence toujours par un état**, avant la moindre position — la nouvelle
+     * annonce donc `attente` et écrase l'ancienne position d'elle-même. Une
+     * remise à zéro dans `resetSuivi` serait un mutant équivalent, et
+     * `positionSourceContract.ts` est ce qui protège la garantie dont elle
+     * dépend.
+     */
+    const maPosition$ = new BehaviorSubject<DisplayedPosition>(POSITION_INCONNUE);
+    /** D'où vient la position à cet instant. La bascule reste au flux ; seul son dernier état se relit. */
+    let mode: SuiviMode | null = null;
 
     /** Le détachement de l'écran : ce qui referme tout ce qu'il a ouvert. */
     const parti$ = untilAborted(signal);
@@ -174,13 +197,15 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
      */
     mode$
         .pipe(
-            tap((mode) => {
-                resetSuivi(mode);
+            tap((nouveau) => {
+                mode = nouveau;
+                resetSuivi(nouveau);
             }),
-            switchMap((mode) => (mode === 'simulation' ? simulation : realSource).events$),
+            switchMap((courant) => (courant === 'simulation' ? simulation : realSource).events$),
             takeUntil(parti$),
         )
         .subscribe((event) => {
+            maPosition$.next(displayedPosition(event));
             if (event.kind === 'position') {
                 onPosition(event.position);
             } else {
@@ -235,13 +260,13 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
      * celle qu'on quitte —, et le texte d'attente non plus : la source annonce
      * elle-même son état, et `presentation.ts` le rédige.
      */
-    function resetSuivi(mode: SuiviMode): void {
+    function resetSuivi(nouveau: SuiviMode): void {
         lastPosition = null;
         lastSurTrajet = null;
         suiviAutomatique = true;
         resumeButton.hidden = true;
         positionBar.hidden = true;
-        simulationBanner.hidden = mode !== 'simulation';
+        simulationBanner.hidden = nouveau !== 'simulation';
         // Le bandeau vient de s'ajouter ou de partir : la barre a changé de hauteur.
         measureSuiviBar();
     }
@@ -466,7 +491,11 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
             coordonnee = await coordonneeSelector.choose(
                 simulation.lastPosition,
                 trajetReperes(),
-                EMPTY,
+                // En simulation, le marqueur de sélection **est** déjà « ma
+                // position » : la carte n'a rien à ajouter. Ne pas déduire ce cas
+                // de `lastPosition !== null` — elle survit à la sortie de la
+                // simulation, où la position à montrer redevient celle du GPS.
+                mode === 'simulation' ? EMPTY : maPosition$,
             );
         } finally {
             activeCoordonneeChoice = false;
@@ -489,4 +518,30 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
             .numberedPointsInOrdreDuVoyage()
             .map(({ point, number }) => ({ id: point.id, number, coordonnee: point.coordonnee }));
     }
+}
+
+/**
+ * La traduction vers le vocabulaire de la carte : où l'on est, ou pourquoi on
+ * l'ignore. La phrase est écrite ici, par l'écran, et non par la carte — c'est
+ * ce qui permet à la capacité `carte` de ne rien savoir d'une source de
+ * position.
+ *
+ * Elle est **écrite deux fois**, ici et dans l'écran d'édition, pour la raison
+ * déjà retenue pour `pointsForCarte` : la partager entre deux capacités ferait
+ * dépendre l'une de l'interface de l'autre.
+ */
+function displayedPosition(event: SourceEvent): DisplayedPosition {
+    if (event.kind === 'position') {
+        return { kind: 'connue', coordonnee: event.position };
+    }
+    const message = sourceStatusText(event.status);
+    if (event.status.kind === 'imprecise') {
+        return {
+            kind: 'approximative',
+            coordonnee: event.status.position,
+            imprecisionMetres: event.status.imprecisionMetres,
+            message,
+        };
+    }
+    return { kind: 'inconnue', message };
 }
