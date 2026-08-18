@@ -36,7 +36,28 @@
     <button id="cancel-placement-button" type="button" class="secondary">✖️ Annuler</button>
 </p>
 <div class="editor-body">
-    <div id="carte-points" class="carte-points"></div>
+    <div class="carte-column">
+        <div id="carte-points" class="carte-points"></div>
+        <!-- La phrase et le bouton restent avec la carte, y compris quand elle
+             couvre l'écran sous 900 px : c'est la colonne qui bascule, plus la
+             carte seule. -->
+        <!-- Des identifiants distincts de ceux de la carte plein écran : les deux
+             barres coexistent dans le document, et deux fois le même `id` n'est
+             pas un HTML valide — c'est aussi ce qui permet aux `query` scopés de
+             cet écran et à ceux du sélecteur de ne jamais se croiser. -->
+        <p class="carte-position-bar">
+            <span id="editor-position-status"></span>
+            <button
+                id="editor-position-button"
+                type="button"
+                class="secondary"
+                aria-label="Ma position"
+                disabled
+            >
+                🎯<span class="button-label">Ma position</span>
+            </button>
+        </p>
+    </div>
     <div class="images-column">
         <div id="images-stack"></div>
     </div>

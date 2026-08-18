@@ -399,12 +399,21 @@ point-marker .point-number:active {
 
 /* Par-dessus le schéma, et non plus au-dessus de lui : sous les boutons
    flottants (20), au-dessus de tout le reste. La carte reprend sa hauteur de
-   vignette dès qu'on la referme — c'est `resized()` qui la fait se remesurer. */
-.carte-ouverte .carte-points {
+   vignette dès qu'on la referme — c'est `resized()` qui la fait se remesurer.
+   C'est la **colonne** qui bascule, et non la carte seule : sa barre doit rester
+   avec elle, sans quoi la phrase qui explique l'absence de marqueur resterait
+   derrière l'écran que la carte recouvre. */
+.carte-ouverte .carte-column {
     position: fixed;
     inset: 0;
-    height: auto;
     z-index: 15;
+    background: white;
+    padding: 0.5rem;
+}
+
+.carte-ouverte .carte-points {
+    height: auto;
+    flex: 1;
     border: none;
     border-radius: 0;
 }
@@ -506,6 +515,12 @@ overview-page canvas {
     margin-top: 1rem;
 }
 
+.carte-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
 .carte-points {
     /* Indispensable : les panneaux Leaflet sont positionnés en absolu ; sans
        ancêtre positionné, ils échappent au overflow:hidden du conteneur et
@@ -516,6 +531,16 @@ overview-page canvas {
     border-radius: 0.375rem;
     /* Sous les boutons flottants et les écrans superposés. */
     z-index: 0;
+}
+
+.carte-position-bar {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0;
+    font-size: 0.875rem;
+    color: #6b7280;
 }
 
 .images-column {
@@ -535,11 +560,15 @@ overview-page canvas {
         align-items: flex-start;
     }
 
-    .carte-points {
+    .carte-column {
         /* Épinglée : elle ne bouge pas pendant le défilement des images. */
         position: sticky;
         top: 1rem;
         height: calc(100dvh - 2rem);
+        flex: 1;
+    }
+
+    .carte-points {
         flex: 1;
     }
 

@@ -101,6 +101,9 @@ function mount(
     const floatingAddPointButton = query('#floating-add-point-button', HTMLButtonElement, root);
     const fileInput = query('#input-images', HTMLInputElement, root);
     const pagesContainer = query('#images-stack', HTMLDivElement, root);
+    const positionStatus = query('#editor-position-status', HTMLSpanElement, root);
+    const positionButton = query('#editor-position-button', HTMLButtonElement, root);
+    let derniereCoordonnee: Coordonnee | null = null;
 
     /** Un choix est en cours sur la carte plein écran, qui recouvre cet écran. */
     let fullscreenChoice = false;
@@ -162,6 +165,16 @@ function mount(
     // peut pas être mémorisée d'une visite à l'autre, son conteneur non plus.
     carteDesPoints.mount(query('#carte-points', HTMLElement, root));
     carteDesPoints.showPosition(maPosition$);
+
+    maPosition$.pipe(takeUntil(parti$)).subscribe((position) => {
+        renderPositionBar(position);
+    });
+
+    eventsOf(positionButton, 'click')
+        .pipe(takeUntil(parti$))
+        .subscribe(() => {
+            goToPosition();
+        });
 
     // Posé sur `window`, donc hors de l'écran : sans le `takeUntil`, il
     // survivrait à la sortie et s'ajouterait une fois de plus à chaque visite.
@@ -478,12 +491,11 @@ function mount(
                 refreshCarteVisible();
             }
         }
-        hintText.textContent = 'Cliquez la coordonnée sur la carte…';
-        hintBanner.hidden = false;
+        renderHint('Cliquez la coordonnée sur la carte…');
         try {
             return await carteDesPoints.chooseCoordonnee(initial);
         } finally {
-            hintBanner.hidden = placementMode === null;
+            renderHint(hintFor(placementMode));
         }
     }
 
@@ -511,6 +523,26 @@ function mount(
             }),
             'la suppression du point',
         );
+    }
+
+    /**
+     * La barre de la carte : ce qu'on sait de la position, ou la phrase qui dit
+     * pourquoi on n'en sait rien. C'est l'écran qui rédige — la carte, elle, ne
+     * reçoit que des coordonnées.
+     */
+    function renderPositionBar(position: DisplayedPosition): void {
+        derniereCoordonnee = position.kind === 'inconnue' ? null : position.coordonnee;
+        positionButton.disabled = derniereCoordonnee === null;
+        positionStatus.textContent = position.kind === 'connue' ? '' : position.message;
+    }
+
+    /** Le cadrage ne bouge jamais tout seul ; ici on le lui demande. */
+    function goToPosition(): void {
+        const coordonnee = derniereCoordonnee;
+        if (coordonnee === null) {
+            return;
+        }
+        carteDesPoints.centerOn(coordonnee);
     }
 
     /**
@@ -603,12 +635,22 @@ function mount(
         changeMode({ type: 'ajout' });
     }
 
+    /** Ce que l'écran attend de l'utilisateur, en une phrase — ou rien du tout. */
+    function hintFor(mode: PlacementMode): string | null {
+        return mode === null ? null : "Touchez l'image à la hauteur voulue…";
+    }
+
+    /** Le seul endroit qui écrit le bandeau : `null` le retire. */
+    function renderHint(text: string | null): void {
+        hintBanner.hidden = text === null;
+        if (text !== null) {
+            hintText.textContent = text;
+        }
+    }
+
     function changeMode(mode: PlacementMode): void {
         placementMode = mode;
-        if (mode !== null) {
-            hintText.textContent = "Touchez l'image à la hauteur voulue…";
-        }
-        hintBanner.hidden = mode === null;
+        renderHint(hintFor(mode));
         pagesContainer.classList.toggle('placement-active', mode !== null);
     }
 

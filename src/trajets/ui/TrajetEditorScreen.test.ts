@@ -796,11 +796,16 @@ describe('trajet-editor-screen', () => {
             // nom accessible ne vit plus que dans `aria-label`. Sans lui, le
             // bouton s'annonce « 🖼️ » — et les parcours e2e joués sur iPhone et
             // Pixel, tous deux sous le seuil, ne le trouvent plus.
-            const boutons = queryAll('.action-bar button', HTMLButtonElement, element);
+            const boutons = queryAll(
+                '.action-bar button, #editor-position-button',
+                HTMLButtonElement,
+                element,
+            );
             expect(boutons.map((bouton) => bouton.getAttribute('aria-label'))).toEqual([
                 'Ajouter des images',
                 'Ajouter un point',
                 'Exporter',
+                'Ma position',
             ]);
         });
     });
@@ -852,6 +857,46 @@ describe('trajet-editor-screen', () => {
             await laisserLesPromessesSAchever();
 
             expect(positionSource.sessionsOuvertes()).toBe(0);
+        });
+    });
+
+    describe('Étant donné une position refusée, carte dépliée', () => {
+        it("alors l'écran dit pourquoi aucun marqueur n'apparaît", async () => {
+            const element = await attacherLEcran();
+            query('#carte-button', HTMLButtonElement, element).click();
+
+            positionSource.emettre(statusEvent({ kind: 'permission-refusee' }));
+
+            expect(query('#editor-position-status', HTMLSpanElement, element).textContent).toBe(
+                'Accès à la position refusé — autorisez la localisation pour ce site puis revenez.',
+            );
+        });
+    });
+
+    describe('Étant donné une position connue, quand je demande « Ma position »', () => {
+        it('alors la carte vient dessus', async () => {
+            const element = await attacherLEcran();
+            query('#carte-button', HTMLButtonElement, element).click();
+            positionSource.emettre(positionEvent(Coordonnee.create(44.83, -0.57)));
+
+            query('#editor-position-button', HTMLButtonElement, element).click();
+
+            expect(
+                carteDesPoints
+                    .centrages()
+                    .map((coordonnee) => [coordonnee.latitude, coordonnee.longitude])
+                    .at(-1),
+            ).toEqual([44.83, -0.57]);
+        });
+
+        it("alors le bouton reste inerte tant qu'aucune position n'est connue", async () => {
+            const element = await attacherLEcran();
+
+            query('#carte-button', HTMLButtonElement, element).click();
+
+            expect(query('#editor-position-button', HTMLButtonElement, element).disabled).toBe(
+                true,
+            );
         });
     });
 });
