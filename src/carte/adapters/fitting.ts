@@ -56,3 +56,12 @@ export function fitToPoints(
 export function centerOnCoordonnee(carte: L.Map, coordonnee: Coordonnee): void {
     carte.setView(toLatLng(coordonnee), SINGLE_POINT_ZOOM, { animate: false });
 }
+
+/**
+ * Remesure la carte à la microtâche suivante : son conteneur vient d'être
+ * dévoilé ou (dé)masqué avec son écran, et Leaflet ne mesure qu'au moment où on
+ * le lui demande. Écrit une fois pour les deux cartes — il l'était deux fois.
+ */
+export function remeasureAfterReveal(carte: L.Map): void {
+    setTimeout(() => carte.invalidateSize(), 0);
+}

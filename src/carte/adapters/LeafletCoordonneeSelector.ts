@@ -9,7 +9,7 @@ import { configureLeaflet } from './configureLeaflet';
 import { toCoordonnee, toLatLng } from './conversion';
 import { createOsmLayer } from './osmLayer';
 import { numberedIcon } from './numberedIcon';
-import { centerOnCoordonnee, fitToPoints } from './fitting';
+import { centerOnCoordonnee, fitToPoints, remeasureAfterReveal } from './fitting';
 import { PositionLayers } from './positionLayers';
 import { INPUT_HINT, coordonneeFromInputs } from './saisieDeCoordonnee';
 
@@ -73,8 +73,7 @@ export class LeafletCoordonneeSelector implements CoordonneeSelector {
             this.placeMarker(initialCoordonnee);
             centerOnCoordonnee(carte, initialCoordonnee);
         }
-        // La carte vient d'être dévoilée : Leaflet doit remesurer son conteneur.
-        setTimeout(() => carte.invalidateSize(), 0);
+        remeasureAfterReveal(carte);
         return firstValueFrom(this.choix);
     }
 

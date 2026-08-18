@@ -384,14 +384,20 @@ function mount(root: HTMLElement, dependencies: SuiviDependencies, signal: Abort
     }
 
     /**
+     * L'aperçu est-il déplié ? `display: none` ne mesure rien, et c'est la
+     * mesure qui répond — pas un seuil de largeur recopié ici. La feuille de
+     * style reste seule à décider.
+     */
+    function isOverviewVisible(): boolean {
+        return overviewStack.getBoundingClientRect().height > 0;
+    }
+
+    /**
      * La barre, dans le référentiel de l'aperçu — la même position sur le trajet,
      * réinterpolée sur les offsets de sa propre pile.
      */
     function placeOverviewPosition(currentTrajet: Trajet, last: SurTrajet): void {
-        // Aperçu replié : `display: none` ne mesure rien. On ne place donc rien —
-        // et surtout on ne prend pas ce 0 pour un offset. C'est une mesure, pas un
-        // seuil de largeur recopié : la feuille de style reste seule à décider.
-        if (overviewStack.getBoundingClientRect().height === 0) {
+        if (!isOverviewVisible()) {
             positionBar.hidden = true;
             return;
         }

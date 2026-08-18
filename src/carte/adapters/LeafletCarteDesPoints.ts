@@ -12,7 +12,7 @@ import { configureLeaflet } from './configureLeaflet';
 import { toCoordonnee, toLatLng } from './conversion';
 import { createOsmLayer, FRANCE_VIEW } from './osmLayer';
 import { numberedIcon } from './numberedIcon';
-import { centerOnCoordonnee, fitToPoints } from './fitting';
+import { centerOnCoordonnee, fitToPoints, remeasureAfterReveal } from './fitting';
 import { PositionLayers } from './positionLayers';
 
 interface PlacedMarker {
@@ -72,7 +72,7 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
             if (!this.choix.observed) {
                 return;
             }
-            carte.getContainer().classList.remove('awaiting-click');
+            this.awaitClick(false);
             this.choix.next(toCoordonnee(event.latlng));
         });
     }
@@ -113,8 +113,7 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
             this.placeOrUpdate(point);
         }
 
-        // La carte a pu être (dé)masquée avec l'écran : remesurer le conteneur.
-        setTimeout(() => carte.invalidateSize(), 0);
+        remeasureAfterReveal(carte);
 
         const ids = points
             .map((point) => point.id)
@@ -159,7 +158,7 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
     chooseCoordonnee(initialCoordonnee: Coordonnee | null): Promise<Coordonnee | null> {
         this.cancelChoice();
         const carte = this.mountedCarte();
-        carte.getContainer().classList.add('awaiting-click');
+        this.awaitClick(true);
         if (initialCoordonnee !== null) {
             // Déplacer un point : on part de là où il est, comme la carte plein
             // écran le fait sur mobile.
@@ -171,8 +170,17 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
     }
 
     cancelChoice(): void {
-        this.carte?.getContainer().classList.remove('awaiting-click');
+        this.awaitClick(false);
         this.choix.next(null);
+    }
+
+    /**
+     * Le curseur qui annonce qu'un clic est attendu. Un seul endroit le pose et
+     * le retire : il s'écrivait trois fois, en `add`, en `remove`, et par deux
+     * chemins d'accès différents à la même carte.
+     */
+    private awaitClick(awaiting: boolean): void {
+        this.carte?.getContainer().classList.toggle('awaiting-click', awaiting);
     }
 
     private mountedCarte(): L.Map {

@@ -28,8 +28,6 @@ body {
     --position-badge-size: 1rem;
 }
 
-/* Un custom element est `inline` par défaut : les écrans-éléments doivent le
-   dire, là où les <section> l'avaient d'office. */
 /* Un custom element est `inline` par défaut : les écrans doivent le dire, là où
    les <section> l'avaient d'office. */
 trajets-list-screen,
