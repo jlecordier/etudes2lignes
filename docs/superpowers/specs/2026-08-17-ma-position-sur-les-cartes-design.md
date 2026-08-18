@@ -157,23 +157,33 @@ mutant équivalent, et ce dépôt refuse d'en fabriquer. Ce qui protège la gara
 dont elle dépend, c'est `positionSourceContract.ts`.
 
 L'écran d'édition, lui, gagne une dépendance `positionSource: PositionSource`,
-câblée dans `main.ts` sur le `realSource` déjà instancié. Une seule expression
-décide de tout :
+câblée dans `main.ts` sur le `realSource` déjà instancié. La règle de niveau de
+ce lot s'applique ici aussi : une lecture DOM brute (`classList.contains`) ne se
+mélange pas à un drapeau applicatif (`fullscreenChoice`) dans une même
+expression — chacun a son nom, et une troisième fonction compose les deux :
 
 ```ts
+function isCarteOverSchema(): boolean {
+    return root.classList.contains('carte-ouverte');
+}
+
+function isEmbeddedCarteVisible(): boolean {
+    return isLargeScreen() || isCarteOverSchema();
+}
+
 /** Une carte est-elle sous les yeux ? Le GPS ne tourne que dans ce cas. */
-function carteRegardee(): boolean {
-    return isLargeScreen() || root.classList.contains('carte-ouverte') || choixPleinEcran;
+function isAnyCarteVisible(): boolean {
+    return isEmbeddedCarteVisible() || fullscreenChoice;
 }
 ```
 
-poussée dans un `BehaviorSubject` par trois déclencheurs — la bascule
-carte/schéma, un redimensionnement de fenêtre qui traverse le seuil des 900 px
-(nouvel écouteur, sous `takeUntil(parti$)`), et le `try`/`finally` qui encadre le
-choix sur la carte plein écran. Puis :
+poussée dans un `BehaviorSubject` (`carteVisible$`) par trois déclencheurs — la
+bascule carte/schéma, un redimensionnement de fenêtre qui traverse le seuil des
+900 px (nouvel écouteur, sous `takeUntil(parti$)`), et le `try`/`finally` qui
+encadre le choix sur la carte plein écran. Puis :
 
 ```ts
-switchMap((regardee) => (regardee ? positionSource.events$ : EMPTY));
+switchMap((visible) => (visible ? positionSource.events$ : EMPTY));
 ```
 
 la forme même que `SuiviScreen` emploie déjà pour changer de source. Replier la
@@ -257,7 +267,7 @@ survit, et rouvrir la carte en mode GPS doit bien montrer le GPS.
 | `src/suivi/domain/sourceStatus.ts`                     | `imprecise` porte la coordonnée qu'elle a mesurée                                             |
 | `src/suivi/adapters/GeolocationPositionSource.ts` + t. | `imprecisions$` garde le fix entier ; le chien de garde répète sa coordonnée                  |
 | `src/suivi/ui/SuiviScreen.ts` + test                   | `maPosition$` rediffusé ; mode retenu ; `EMPTY` en simulation ; remise à zéro                 |
-| `src/trajets/ui/TrajetEditorScreen.ts` + test          | `positionSource` injecté ; `carteRegardee$` ; barre de position ; écouteur `resize`           |
+| `src/trajets/ui/TrajetEditorScreen.ts` + test          | `positionSource` injecté ; `carteVisible$` ; barre de position ; écouteur `resize`            |
 | `src/trajets/ui/TrajetEditorScreen.html`               | la colonne de la carte et sa barre (message + bouton)                                         |
 | `src/main.ts`                                          | `realSource` injecté aussi dans l'éditeur                                                     |
 | `index.html`                                           | `.carte-bar` gagne le message et le bouton                                                    |

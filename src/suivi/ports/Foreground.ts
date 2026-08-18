@@ -11,8 +11,8 @@ import type { Observable } from 'rxjs';
  * **seulement page effectivement visible**. Les réveils sont bruyants — un même
  * retour en émet plusieurs, et certains arrivent alors que la page est encore
  * masquée : le port retient ces derniers, ses abonnés n'ont plus à s'en
- * défendre. Restent les rafales, que paie qui paie cher son réveil (`auditTime`
- * côté GPS, `exhaustMap` côté verrou).
+ * défendre. Restent les rafales, que paie qui paie cher son réveil
+ * (`throttleTime` côté GPS, `exhaustMap` côté verrou).
  */
 export interface Foreground {
     readonly returnToForeground$: Observable<void>;
