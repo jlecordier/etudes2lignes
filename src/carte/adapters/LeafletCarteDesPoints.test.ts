@@ -380,6 +380,46 @@ describe("Carte des points de l'éditeur", () => {
 
             expect(positionMarkers(carte())).toHaveLength(1);
             expect(circles(carte()).map((cercle) => cercle.getRadius())).toEqual([8_000]);
+            // La classe est ce que la feuille de style vise : sans elle, le
+            // cercle retombe sur le bleu par défaut de Leaflet au lieu de la
+            // surface discrète qu'on veut. Le marqueur, lui, est déjà reconnu à
+            // la sienne par `positionMarkers` — les deux couches se surveillent
+            // donc de la même façon.
+            expect(
+                circles(carte()).map((cercle) =>
+                    cercle.getElement()?.classList.contains('carte-position-circle'),
+                ),
+            ).toEqual([true]);
+        });
+
+        it('alors ni le disque ni son cercle n’intercepte le clic qui désigne une coordonnée', () => {
+            const { carteDesPoints, show, carte } = testBed();
+            show([]);
+            const positions$ = new Subject<DisplayedPosition>();
+            carteDesPoints.showPosition(positions$);
+
+            positions$.next({
+                kind: 'approximative',
+                coordonnee: BORDEAUX,
+                imprecisionMetres: 8_000,
+                message: 'Position approximative (± 8 km).',
+            });
+
+            // `leaflet-interactive` est ce que Leaflet pose sur une couche pour
+            // lui router les clics : sans elle, le clic traverse et atteint la
+            // carte. C'est la forme observable de l'`interactive: false` que le
+            // port exige — un marqueur qui avale le clic saboterait le seul
+            // geste que la carte plein écran existe pour recevoir.
+            const elements = [
+                ...positionMarkers(carte()).map((marker) => marker.getElement()),
+                ...circles(carte()).map((cercle) => cercle.getElement()),
+            ];
+            expect(elements).toHaveLength(2);
+            expect(
+                elements.filter(
+                    (element) => element?.classList.contains('leaflet-interactive') === true,
+                ),
+            ).toEqual([]);
         });
     });
 

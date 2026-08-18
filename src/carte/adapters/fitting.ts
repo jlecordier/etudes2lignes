@@ -18,6 +18,19 @@ const SINGLE_POINT_ZOOM = 12;
  */
 const FIT_PADDING: [number, number] = [40, 40];
 
+/*
+ * Aucun cadrage de ce fichier ne s'anime : on arrive d'ailleurs, et une carte
+ * qui glisse jusqu'à sa cible pendant que le schéma défile donne deux mouvements
+ * pour une seule décision.
+ *
+ * Mutants survivants assumés, sur les trois `animate: false` ci-dessous :
+ * les passer à `true`, ou retirer l'option entière, ne fait échouer aucun test.
+ * L'animation change le chemin, jamais la destination — et c'est la destination
+ * que les tests lisent (`getCenter`, `getZoom`). Le constater demanderait
+ * d'assérer sur les états internes d'animation de Leaflet, c'est-à-dire de
+ * tester la bibliothèque.
+ */
+
 /**
  * Cadre la carte sur tous les points donnés **et sur la position de
  * l'utilisateur quand on la connaît** — sur la France entière quand il n'y a ni
@@ -61,6 +74,12 @@ export function centerOnCoordonnee(carte: L.Map, coordonnee: Coordonnee): void {
  * Remesure la carte à la microtâche suivante : son conteneur vient d'être
  * dévoilé ou (dé)masqué avec son écran, et Leaflet ne mesure qu'au moment où on
  * le lui demande. Écrit une fois pour les deux cartes — il l'était deux fois.
+ *
+ * Mutant survivant assumé : vider ce corps ne fait échouer aucun test. jsdom ne
+ * calcule aucune mise en page, donc une carte qui ne se remesure pas y a
+ * exactement la taille d'une carte qui se remesure. Le seul témoin possible
+ * vivrait dans un vrai navigateur, où la conséquence est une carte restée à
+ * l'échelle de la vignette qu'elle venait de quitter.
  */
 export function remeasureAfterReveal(carte: L.Map): void {
     setTimeout(() => carte.invalidateSize(), 0);

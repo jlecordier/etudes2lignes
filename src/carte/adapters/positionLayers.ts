@@ -14,6 +14,10 @@ import { toLatLng } from './conversion';
  */
 function positionIcon(): L.DivIcon {
     return L.divIcon({
+        // Mutant survivant assumé sur `html` : y écrire du texte ne fait échouer
+        // aucun test. Le disque est une forme, pas un porteur de contenu — il
+        // n'a rien à annoncer, contrairement à la pastille d'un point qui porte
+        // son numéro. Assérer qu'une chaîne est vide n'apprendrait rien.
         className: 'carte-position-marker',
         html: '',
         iconSize: undefined,
