@@ -44,10 +44,12 @@ Légende : `U` = test unitaire (Vitest), `E` = test de bout en bout (Playwright)
 | GR-14 | Le repère laisse lire ce qu'il désigne : trait en pointillé, boutons au-dessus et non à cheval                                                 | `E e2e/points.spec.ts`                                                                    |
 | GR-15 | La pastille d'un point amène la carte sur lui ; sous 900 px, elle la met par-dessus le schéma ; pendant un placement, elle n'emmène nulle part | `U TrajetEditorScreen.test.ts`, `U LeafletCarteDesPoints.test.ts`, `E e2e/points.spec.ts` |
 | GR-16 | Glisser la pastille d'un point le déplace sur le schéma, page voisine comprise, sans que le clic qui suit emmène à la carte                    | `U dragPointOnStack.test.ts`, `U TrajetEditorScreen.test.ts`, `E e2e/points.spec.ts`      |
+| GR-17 | Les deux cartes montrent la position qui pilote l'appli : le GPS réel, ou la position simulée quand la simulation est active                   | `U SuiviScreen.test.ts`, `U TrajetEditorScreen.test.ts`                                   |
 | GR-18 | Une position trop imprécise pour caler la page s'affiche quand même, cerclée de son incertitude mesurée                                        | `U GeolocationPositionSource.test.ts`, `U LeafletCarteDesPoints.test.ts`                  |
 | GR-19 | Sans position, aucun marqueur — et la phrase qui dit pourquoi s'affiche à côté de la carte                                                     | `U LeafletCoordonneeSelector.test.ts`                                                     |
 | GR-20 | Le cadrage englobe la position quand elle est déjà connue, et ne se refait jamais à l'arrivée d'une position                                   | `U fitting.test.ts`, `U LeafletCarteDesPoints.test.ts`                                    |
 | GR-21 | « Ma position » amène la carte sur elle, au zoom d'un point unique, et reste inerte tant qu'elle est inconnue                                  | `U LeafletCoordonneeSelector.test.ts`                                                     |
+| GR-22 | Le GPS ne tourne que tant qu'une carte est regardée : replier la carte referme la session, la déplier en rouvre une                            | `U TrajetEditorScreen.test.ts`                                                            |
 | GR-23 | En simulation, la carte plein écran n'ajoute pas un second marqueur là où celui de la sélection porte déjà la position                         | `U SuiviScreen.test.ts`                                                                   |
 
 ## Suivi
@@ -119,6 +121,7 @@ disent ce que son départ doit avoir rendu.
 | CV-6 | Rouvrir l'éditeur remonte sa carte sur le conteneur neuf                                        | `U LeafletCarteDesPoints.test.ts`, `E e2e/carte-editeur.spec.ts` |
 
 | CV-7 | Une vignette d'aperçu relâche la page pleine taille dès qu'elle est peinte, et les pages se peignent une à une | `U OverviewPage.test.ts`, `U SuiviScreen.test.ts` |
+| CV-8 | Quitter l'éditeur, ou refermer la carte plein écran, referme l'abonnement à la position et retire son marqueur | `U TrajetEditorScreen.test.ts`, `U LeafletCarteDesPoints.test.ts`, `U LeafletCoordonneeSelector.test.ts` |
 
 ## Qualité (transverse)
 

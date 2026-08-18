@@ -43,6 +43,7 @@ function start(): void {
                 repository,
                 coordonneeSelector,
                 carteDesPoints,
+                positionSource: realSource,
                 run,
                 trajetId: id,
                 onBack: () => {

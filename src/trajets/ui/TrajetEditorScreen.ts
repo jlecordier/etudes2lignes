@@ -1,12 +1,28 @@
-import { EMPTY, merge, take, takeUntil } from 'rxjs';
-import type { CarteDesPoints, DisplayedPoint } from '../../carte/ports/CarteDesPointsPort';
+import {
+    BehaviorSubject,
+    EMPTY,
+    distinctUntilChanged,
+    map,
+    merge,
+    shareReplay,
+    switchMap,
+    take,
+    takeUntil,
+} from 'rxjs';
+import type {
+    CarteDesPoints,
+    DisplayedPoint,
+    DisplayedPosition,
+} from '../../carte/ports/CarteDesPointsPort';
 import type { CoordonneeSelector } from '../../carte/ports/CoordonneeSelectorPort';
 import { query, queryAll } from '../../shared/dom';
-import { eventsOf, untilAborted } from '../../shared/events';
+import { eventsOf, untilAborted, windowEventsOf } from '../../shared/events';
 import { createQueue } from '../../shared/queue';
 import type { Run } from '../../shared/runner';
 import { SchemaPageElement, createSchemaPage } from '../../shared/SchemaPage';
 import { defineScreen } from '../../shared/screen';
+import { sourceStatusText } from '../../suivi/domain/presentation';
+import type { PositionSource, SourceEvent } from '../../suivi/ports/PositionSource';
 import type { Coordonnee } from '../domain/Coordonnee';
 import type { FractionVerticale } from '../domain/FractionVerticale';
 import type { ImageDeTrajet, ImageFile, Point, Trajet } from '../domain/Trajet';
@@ -23,6 +39,8 @@ export interface TrajetEditorDependencies {
     repository: TrajetRepository;
     coordonneeSelector: CoordonneeSelector;
     carteDesPoints: CarteDesPoints;
+    /** D'où vient « ma position » sur les cartes de cet écran. Toujours le GPS réel : l'éditeur n'a pas de mode simulation. */
+    positionSource: PositionSource;
     run: Run;
     /** L'écran est fabriqué **pour** un trajet : il n'a pas de vie sans lui. */
     trajetId: TrajetId;
@@ -61,8 +79,16 @@ function mount(
     dependencies: TrajetEditorDependencies,
     signal: AbortSignal,
 ): void {
-    const { repository, coordonneeSelector, carteDesPoints, run, trajetId, onBack, onSuivi } =
-        dependencies;
+    const {
+        repository,
+        coordonneeSelector,
+        carteDesPoints,
+        positionSource,
+        run,
+        trajetId,
+        onBack,
+        onSuivi,
+    } = dependencies;
     const title = query('#trajet-title', HTMLHeadingElement, root);
     const carteButton = query('#carte-button', HTMLButtonElement, root);
     const hintBanner = query('#placement-hint', HTMLParagraphElement, root);
@@ -76,16 +102,74 @@ function mount(
     const fileInput = query('#input-images', HTMLInputElement, root);
     const pagesContainer = query('#images-stack', HTMLDivElement, root);
 
+    /** Un choix est en cours sur la carte plein écran, qui recouvre cet écran. */
+    let choixPleinEcran = false;
+
+    /** La carte de l'éditeur est-elle passée par-dessus le schéma ? La classe est cet état. */
+    function isCarteOverSchema(): boolean {
+        return root.classList.contains('carte-ouverte');
+    }
+
+    /**
+     * La carte intégrée est visible dès 900 px, où la feuille de style l'épingle
+     * à côté de la pile ; en dessous, seulement quand on l'a mise par-dessus le
+     * schéma.
+     */
+    function isEmbeddedCarteVisible(): boolean {
+        return isLargeScreen() || isCarteOverSchema();
+    }
+
+    /** Une carte est-elle sous les yeux ? Le GPS ne tourne que dans ce cas. */
+    function isAnyCarteVisible(): boolean {
+        return isEmbeddedCarteVisible() || choixPleinEcran;
+    }
+
+    const carteVisible$ = new BehaviorSubject<boolean>(isAnyCarteVisible());
+
+    /** Une seule expression décide, et trois gestes la rejouent. */
+    function refreshCarteVisible(): void {
+        carteVisible$.next(isAnyCarteVisible());
+    }
+
     let trajet: Trajet | null = null;
     let placementMode: PlacementMode = null;
     const saveQueue = createQueue();
 
+    /** Le détachement de l'écran : ce qui referme tout ce qu'il a ouvert. */
+    const parti$ = untilAborted(signal);
+
+    /**
+     * « Ma position », telle que les cartes de cet écran doivent la montrer.
+     *
+     * Le `switchMap` est ce qui allume et éteint le GPS : replier la carte
+     * referme la session, la déplier en rouvre une — qui annonce `attente` avant
+     * toute position, et efface donc d'elle-même le marqueur périmé.
+     *
+     * `shareReplay` parce que deux consommateurs l'écoutent (la carte intégrée et
+     * la barre de position) et qu'ils doivent partager **une seule** session ; la
+     * dernière valeur est rejouée à qui arrive en retard — la carte plein écran,
+     * dont le cadrage d'ouverture la trouve ainsi déjà connue.
+     */
+    const maPosition$ = carteVisible$.pipe(
+        distinctUntilChanged(),
+        switchMap((visible) => (visible ? positionSource.events$ : EMPTY)),
+        map(displayedPosition),
+        shareReplay({ bufferSize: 1, refCount: true }),
+        takeUntil(parti$),
+    );
+
     // La carte se monte sur le conteneur que cet écran vient de créer : elle ne
     // peut pas être mémorisée d'une visite à l'autre, son conteneur non plus.
     carteDesPoints.mount(query('#carte-points', HTMLElement, root));
+    carteDesPoints.showPosition(maPosition$);
 
-    /** Le détachement de l'écran : ce qui referme tout ce qu'il a ouvert. */
-    const parti$ = untilAborted(signal);
+    // Posé sur `window`, donc hors de l'écran : sans le `takeUntil`, il
+    // survivrait à la sortie et s'ajouterait une fois de plus à chaque visite.
+    windowEventsOf('resize')
+        .pipe(takeUntil(parti$))
+        .subscribe(() => {
+            refreshCarteVisible();
+        });
 
     eventsOf(query('#back-to-list-button', HTMLButtonElement, root), 'click')
         .pipe(takeUntil(parti$))
@@ -383,7 +467,16 @@ function mount(
             trajet === null ? [] : trajet.numberedPointsInOrdreDuVoyage(),
         );
         if (!isLargeScreen()) {
-            return coordonneeSelector.choose(initial, reperes, EMPTY);
+            // La carte plein écran est une carte regardée, elle aussi : sans ce
+            // drapeau, le GPS resterait éteint tout le temps du choix sur mobile.
+            choixPleinEcran = true;
+            refreshCarteVisible();
+            try {
+                return await coordonneeSelector.choose(initial, reperes, maPosition$);
+            } finally {
+                choixPleinEcran = false;
+                refreshCarteVisible();
+            }
         }
         hintText.textContent = 'Cliquez la coordonnée sur la carte…';
         hintBanner.hidden = false;
@@ -429,12 +522,13 @@ function mount(
      * interrupteur d'état.
      */
     function toggleCarte(): void {
-        const ouverte = root.classList.toggle('carte-ouverte');
-        carteButton.textContent = ouverte ? '🖼️ Schéma' : '🗺️ Carte';
+        const overSchema = root.classList.toggle('carte-ouverte');
+        carteButton.textContent = overSchema ? '🖼️ Schéma' : '🗺️ Carte';
         // Le conteneur vient de changer de taille sans que la fenêtre bouge :
         // sans cela, la carte garderait ses tuiles et ses marqueurs à l'échelle
         // de la vignette qu'elle était.
         carteDesPoints.resized();
+        refreshCarteVisible();
     }
 
     /**
@@ -443,7 +537,7 @@ function mount(
      * précisément ce qu'on vient de demander à voir.
      */
     function showPointFromCarte(pointId: PointId): void {
-        if (root.classList.contains('carte-ouverte')) {
+        if (isCarteOverSchema()) {
             toggleCarte();
         }
         scrollToMarker(pointId);
@@ -477,7 +571,7 @@ function mount(
             return;
         }
         const coordonnee = trajetPoint(currentTrajet, pointId).coordonnee;
-        if (!isLargeScreen() && !root.classList.contains('carte-ouverte')) {
+        if (!isLargeScreen() && !isCarteOverSchema()) {
             toggleCarte();
         }
         carteDesPoints.centerOn(coordonnee);
@@ -617,6 +711,32 @@ function pointsForCarte(numbers: readonly { point: Point; number: number }[]): D
         number,
         coordonnee: point.coordonnee,
     }));
+}
+
+/**
+ * La traduction vers le vocabulaire de la carte : où l'on est, ou pourquoi on
+ * l'ignore. La phrase est écrite ici, par l'écran, et non par la carte — c'est
+ * ce qui permet à la capacité `carte` de ne rien savoir d'une source de
+ * position.
+ *
+ * Elle est **écrite deux fois**, ici et dans l'écran de suivi, pour la raison
+ * déjà retenue pour `pointsForCarte` : la partager entre deux capacités ferait
+ * dépendre l'une de l'interface de l'autre.
+ */
+function displayedPosition(event: SourceEvent): DisplayedPosition {
+    if (event.kind === 'position') {
+        return { kind: 'connue', coordonnee: event.position };
+    }
+    const message = sourceStatusText(event.status);
+    if (event.status.kind === 'imprecise') {
+        return {
+            kind: 'approximative',
+            coordonnee: event.status.position,
+            imprecisionMetres: event.status.imprecisionMetres,
+            message,
+        };
+    }
+    return { kind: 'inconnue', message };
 }
 
 /**

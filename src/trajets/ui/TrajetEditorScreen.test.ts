@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { Observable, Subscription } from 'rxjs';
+import { Subject, defer, finalize, startWith, type Observable, type Subscription } from 'rxjs';
 import type {
     CarteDesPoints,
     DisplayedPoint,
@@ -10,6 +10,12 @@ import type { CoordonneeSelector } from '../../carte/ports/CoordonneeSelectorPor
 import { requireElementAt } from '../../shared/array';
 import { query, queryAll } from '../../shared/dom';
 import { createRunner, type Run } from '../../shared/runner';
+import {
+    positionEvent,
+    statusEvent,
+    type PositionSource,
+    type SourceEvent,
+} from '../../suivi/ports/PositionSource';
 import { Coordonnee } from '../domain/Coordonnee';
 import type { PointId } from '../domain/ids';
 import { FractionVerticale } from '../domain/FractionVerticale';
@@ -188,6 +194,41 @@ const carteMuette: CoordonneeSelector = {
     choose: () => Promise.resolve(null),
 };
 
+/**
+ * Source de position observable par son état : combien de sessions elle a
+ * ouvertes, et combien sont encore ouvertes. C'est le même procédé que
+ * `heldResources()` de la suite de contrat — aucun espion n'est requis pour
+ * voir qu'un flux froid a été souscrit.
+ */
+class FakePositionSource implements PositionSource {
+    private ouvertes = 0;
+    private total = 0;
+    private readonly emissions = new Subject<SourceEvent>();
+
+    readonly events$: Observable<SourceEvent> = defer(() => {
+        this.ouvertes++;
+        this.total++;
+        return this.emissions.pipe(
+            startWith(statusEvent({ kind: 'attente' })),
+            finalize(() => {
+                this.ouvertes--;
+            }),
+        );
+    });
+
+    emettre(event: SourceEvent): void {
+        this.emissions.next(event);
+    }
+
+    sessionsOuvertes(): number {
+        return this.ouvertes;
+    }
+
+    sessionsEnTout(): number {
+        return this.total;
+    }
+}
+
 /** Un trajet de trois pages et un point, dans l'ordre du voyage p1, p2, p3. */
 function trajetDeTroisPages(): Trajet {
     const trajet = Trajet.create(NomDeTrajet.create('Paris → Bordeaux'));
@@ -224,6 +265,7 @@ function page(nom: string): { nom: string; blob: Blob; largeur: number; hauteur:
 
 let repository: FakeTrajetRepository;
 let carteDesPoints: FakeCarteDesPoints;
+let positionSource: FakePositionSource;
 let echecs: string[];
 let run: Run;
 let retours: number;
@@ -275,6 +317,7 @@ beforeEach(async () => {
     };
     repository = new FakeTrajetRepository(trajetDeTroisPages);
     carteDesPoints = new FakeCarteDesPoints();
+    positionSource = new FakePositionSource();
     echecs = [];
     retours = 0;
     suivis = 0;
@@ -286,6 +329,7 @@ function dependances(): TrajetEditorDependencies {
         repository,
         coordonneeSelector: carteMuette,
         carteDesPoints,
+        positionSource,
         run,
         trajetId: Trajet.create(NomDeTrajet.create('peu importe')).id,
         onBack: () => {
@@ -758,6 +802,56 @@ describe('trajet-editor-screen', () => {
                 'Ajouter un point',
                 'Exporter',
             ]);
+        });
+    });
+
+    describe("Étant donné l'éditeur ouvert, carte repliée", () => {
+        it('alors le GPS ne tourne pas : personne ne regarde de carte', async () => {
+            await attacherLEcran();
+
+            expect(positionSource.sessionsOuvertes()).toBe(0);
+            expect(positionSource.sessionsEnTout()).toBe(0);
+        });
+    });
+
+    describe('Étant donné la carte dépliée par-dessus le schéma', () => {
+        it("alors une session s'ouvre, et se referme quand on la replie", async () => {
+            const element = await attacherLEcran();
+
+            query('#carte-button', HTMLButtonElement, element).click();
+            expect(positionSource.sessionsOuvertes()).toBe(1);
+
+            query('#carte-button', HTMLButtonElement, element).click();
+            expect(positionSource.sessionsOuvertes()).toBe(0);
+            // Une seule session en tout : replier n'en laisse pas une derrière,
+            // et n'en rouvre pas une de plus au passage.
+            expect(positionSource.sessionsEnTout()).toBe(1);
+        });
+    });
+
+    describe('Étant donné une position reçue carte dépliée', () => {
+        it('alors la carte la reçoit à montrer', async () => {
+            const element = await attacherLEcran();
+            query('#carte-button', HTMLButtonElement, element).click();
+
+            positionSource.emettre(positionEvent(Coordonnee.create(44.83, -0.57)));
+
+            expect(carteDesPoints.displayedPosition()).toEqual({
+                kind: 'connue',
+                coordonnee: Coordonnee.create(44.83, -0.57),
+            });
+        });
+    });
+
+    describe("Étant donné l'éditeur qu'on quitte", () => {
+        it("alors plus aucune session de position n'est ouverte", async () => {
+            const element = await attacherLEcran();
+            query('#carte-button', HTMLButtonElement, element).click();
+
+            element.remove();
+            await laisserLesPromessesSAchever();
+
+            expect(positionSource.sessionsOuvertes()).toBe(0);
         });
     });
 });
