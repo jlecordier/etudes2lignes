@@ -258,8 +258,15 @@ image-frame schema-page {
 }
 
 /* Le trait qui traverse la page à la hauteur du point. En pointillé : plein, il
-   effaçait sur toute la largeur la ligne de cotes qu'il est là pour désigner. */
-point-marker {
+   effaçait sur toute la largeur la ligne de cotes qu'il est là pour désigner.
+
+   Le fantôme d'un appui long porte **la même** déclaration, et non une cousine :
+   il sert à lire où le point va tomber, donc il doit se lire comme le trait qui
+   le remplacera. Deux règles jumelles auraient fini par diverger — c'est
+   l'argument qui a déjà réuni la pastille du schéma et celle de la carte. Ce qui
+   distingue le fantôme reste franc : ni pastille, ni boutons. */
+point-marker,
+.point-ghost {
     display: block;
     position: absolute;
     left: 0;
