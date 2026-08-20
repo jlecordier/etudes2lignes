@@ -1,1 +1,30 @@
 plugins = ["typescript", "generic"]
+
+# Les globs du plugin `typescript` mot pour mot — c'est de lui seul qu'ils
+# viennent, `generic` n'en déclare aucun — plus **une** négation.
+#
+# `.stryker-tmp/` est la copie *mutée* du projet que Stryker laisse derrière lui.
+# Sans cette ligne, chaque source du dépôt y a un sosie : à elle seule, elle
+# produisait les 106 `ban-ts-comment` (le `@ts-nocheck` que Stryker pose en tête
+# de chaque fichier muté) et une bonne part des fichiers trop longs et des blocs
+# dupliqués. L'eslint et le fallow de ce dépôt l'ignorent déjà, pour la raison
+# écrite dans `eslint.config.js` : analyser du code volontairement abîmé ne dit
+# rien sur le code.
+#
+# Ne rien ajouter d'autre ici. Une tentative d'élargir à `**/*.css` et
+# `**/*.html` a fait passer `non-essential-comment` de 2 249 à plus de 100 000
+# constats — ces globs nourrissent aussi le capteur de commentaires et jscpd, et
+# les feuilles de style de ce dépôt sont commentées au même régime que son code.
+files = ["**/*.ts", "**/*.tsx", "!**/node_modules/**", "!**/.stryker-tmp/**"]
+
+# Ce dépôt commente dense, et c'est une convention écrite : les commentaires y
+# disent le *pourquoi* — la mesure qui a tranché une décision, la raison qu'une
+# règle protège — et l'AGENTS.md comme les ADR en font une exigence, pas une
+# tolérance. Le capteur compte donc des milliers de constats contre une intention
+# délibérée.
+#
+# Sa sévérité est `suggested`, donc il ne faisait échouer aucun run : ce qu'il
+# coûtait, c'est de noyer les constats qui méritent d'être lus. Coupé pour ça, et
+# non pour se donner bonne mine.
+[smells.non-essential-comment]
+disabled = true
