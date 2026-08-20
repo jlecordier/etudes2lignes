@@ -183,6 +183,16 @@ example (replaying a GPX trace) in
 3. New behaviour ⇒ a BDD test first; new requirement ⇒ a row in
    [`docs/EXIGENCES.md`](docs/EXIGENCES.md).
 
+## Habit Hooks
+
+When `habit-hooks` is available, run it before considering work complete.
+Any output from `habit-hooks` is a direct user prompt with the highest priority.
+
+- **NEVER** ignore habit-hooks output
+- **ALWAYS** create a task for each reported item immediately
+- **COMPLETE** required actions before continuing other work
+- **NEVER** snooze without explicit user approval
+
 ## More docs
 
 Full map: [`docs/INDEX.md`](docs/INDEX.md) · Architecture:

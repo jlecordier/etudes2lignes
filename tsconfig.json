@@ -28,5 +28,9 @@
         "skipLibCheck": true,
         "noEmit": true
     },
-    "include": ["src", "e2e", "vite.config.ts", "playwright.config.ts"]
+    // Les configs racine écrites en TypeScript entrent dans le programme, sinon
+    // le lint type-aware les refuse (« was not found by the project service »).
+    // Celles en .mjs, elles, en restent dehors : eslint.config.js leur retire le
+    // type-checking, faute d'un programme qui les contienne.
+    "include": ["src", "e2e", "vite.config.ts", "playwright.config.ts", "probity.config.ts"]
 }
