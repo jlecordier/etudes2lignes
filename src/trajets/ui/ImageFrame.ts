@@ -2,9 +2,9 @@ import { query, requireConfiguration } from '../../shared/dom';
 import { createButton, type Button } from '../../shared/elements';
 import type { SchemaPageElement } from '../../shared/SchemaPage';
 import { createTemplate } from '../../shared/template';
-import { FractionVerticale } from '../domain/FractionVerticale';
 import type { ImageId } from '../domain/ids';
 import { emitIntent } from './intents';
+import { fractionInArea } from './pageFraction';
 import { createPointMarker, type DisplayedMarker } from './PointMarker';
 
 import html from './ImageFrame.html?raw';
@@ -66,7 +66,7 @@ export function createImageFrame(framed: FramedPage): ImageFrameElement {
     area.addEventListener('click', (event) => {
         emitIntent(element, 'click-page', {
             imageId: framed.imageId,
-            fraction: fractionFromPosition(area, event.clientY),
+            fraction: fractionInArea(area, event.clientY),
         });
     });
     // Le menu contextuel natif du navigateur est remplacé par l'ajout direct du point.
@@ -74,7 +74,7 @@ export function createImageFrame(framed: FramedPage): ImageFrameElement {
         event.preventDefault();
         emitIntent(element, 'right-click-page', {
             imageId: framed.imageId,
-            fraction: fractionFromPosition(area, event.clientY),
+            fraction: fractionInArea(area, event.clientY),
         });
     });
 
@@ -120,13 +120,4 @@ function pageButtons(host: HTMLElement, framed: FramedPage): Button[] {
             danger: true,
         },
     ];
-}
-
-/**
- * La page mesure sa propre boîte. L'écran n'a plus à le faire à sa place :
- * il ne connaît que la fraction, jamais les pixels.
- */
-function fractionFromPosition(area: HTMLElement, clientY: number): FractionVerticale {
-    const frame = area.getBoundingClientRect();
-    return FractionVerticale.fromHeight(clientY - frame.top, frame.height);
 }

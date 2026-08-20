@@ -13,11 +13,11 @@ import {
     takeUntil,
     tap,
 } from 'rxjs';
-import { query, queryAll } from '../../shared/dom';
 import { eventsOf } from '../../shared/events';
-import { FractionVerticale } from '../domain/FractionVerticale';
+import type { FractionVerticale } from '../domain/FractionVerticale';
 import type { ImageId, PointId } from '../domain/ids';
-import { ImageFrameElement } from './ImageFrame';
+import { placeAt } from './pageFraction';
+import { areaUnderFinger } from './pageUnderFinger';
 import { PointMarkerElement } from './PointMarker';
 
 /** Un point là où le doigt l'a laissé : de quoi appeler l'agrégat, rien de plus. */
@@ -140,7 +140,7 @@ function drag(stack: HTMLElement, start: DragStart): Observable<DroppedPoint> {
                 // le repère reste où il était, et c'est cette position-là qui sera
                 // enregistrée. Un geste abouti ne doit pas se perdre.
                 if (target !== null) {
-                    placeMarker(start.marker, target);
+                    placeAt(start.marker, target.area, target.drop.fraction);
                     last = target.drop;
                 }
                 return last;
@@ -201,39 +201,23 @@ function dragStart(event: PointerEvent): DragStart | null {
 }
 
 /**
- * La page dont le cadre contient cette hauteur. Le X ne compte pas : les pages
- * sont empilées en pleine largeur.
+ * La page visée sous le doigt, traduite en dépose pour ce point-ci. La
+ * recherche elle-même est partagée avec l'appui long, qui traîne un fantôme
+ * exactement de la même façon.
  */
 function targetUnderFinger(
     stack: HTMLElement,
     marker: PointMarkerElement,
     clientY: number,
 ): Target | null {
-    for (const frame of queryAll('image-frame', ImageFrameElement, stack)) {
-        const area = query('.image-area', HTMLDivElement, frame);
-        const rect = area.getBoundingClientRect();
-        // Une page sans hauteur n'a pas de fraction : `fromHeight` lève plutôt
-        // que de diviser par zéro, et jsdom rend justement des cadres nuls.
-        if (rect.height <= 0 || clientY < rect.top || clientY > rect.bottom) {
-            continue;
-        }
-        return {
-            area,
-            drop: {
-                pointId: marker.pointId,
-                imageId: frame.imageId,
-                fraction: FractionVerticale.fromHeight(clientY - rect.top, rect.height),
-            },
-        };
+    const vise = areaUnderFinger(stack, clientY);
+    if (vise === null) {
+        return null;
     }
-    return null;
-}
-
-function placeMarker(marker: PointMarkerElement, target: Target): void {
-    if (marker.parentElement !== target.area) {
-        target.area.append(marker);
-    }
-    marker.style.top = `${String(target.drop.fraction.value * 100)}%`;
+    return {
+        area: vise.area,
+        drop: { pointId: marker.pointId, imageId: vise.imageId, fraction: vise.fraction },
+    };
 }
 
 /**
