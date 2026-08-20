@@ -18,6 +18,7 @@ import type { FractionVerticale } from '../domain/FractionVerticale';
 import type { ImageDeTrajet, ImageFile, Point, Trajet } from '../domain/Trajet';
 import type { ImageId, PointId, TrajetId } from '../domain/ids';
 import type { TrajetRepository } from '../ports/TrajetRepository';
+import { addsOnStack } from './addPointOnStack';
 import { downloadTrajet } from './downloadTrajet';
 import { dragsOnStack } from './dragPointOnStack';
 import { createImageFrame } from './ImageFrame';
@@ -211,10 +212,13 @@ function mount(
         .subscribe((event) => {
             run(onImageClick(event.detail), 'le placement du point');
         });
-    eventsOf(root, 'right-click-page')
+    // Les trois gestes qui posent un point d'un seul coup — clic droit, appui
+    // long, tap à deux doigts. Un reconnaisseur, un seul abonnement : ce ne sont
+    // pas des intentions de feuille, c'est un geste sur la pile.
+    addsOnStack(pagesContainer)
         .pipe(takeUntil(parti$))
-        .subscribe((event) => {
-            run(onImageRightClick(event.detail), "l'ajout du point");
+        .subscribe((aim) => {
+            run(onDirectAdd(aim), "l'ajout du point");
         });
     eventsOf(root, 'move-image')
         .pipe(takeUntil(parti$))
@@ -414,10 +418,13 @@ function mount(
         await addPointAtFraction(imageId, fraction);
     }
 
-    // Clic droit : raccourci qui place directement un point à l'emplacement
-    // visé (sans passer par le bouton « Ajouter un point ») et enchaîne
-    // aussitôt sur le choix de la coordonnée.
-    async function onImageRightClick({ imageId, fraction }: PageAimIntent): Promise<void> {
+    /**
+     * Un geste qui vise un endroit et veut un point tout de suite : le point est
+     * posé là, sans passer par « Ajouter un point », et la coordonnée s'enchaîne
+     * aussitôt. Un placement en cours est abandonné — c'est ce que le clic droit
+     * faisait déjà avant d'avoir deux frères tactiles.
+     */
+    async function onDirectAdd({ imageId, fraction }: PageAimIntent): Promise<void> {
         changeMode(null);
         await addPointAtFraction(imageId, fraction);
     }

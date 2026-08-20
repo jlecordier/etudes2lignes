@@ -60,7 +60,6 @@ declare global {
         'move-point-on-carte': CustomEvent<PointIntent>;
         'delete-point': CustomEvent<PointIntent>;
         'click-page': CustomEvent<PageAimIntent>;
-        'right-click-page': CustomEvent<PageAimIntent>;
         'move-image': CustomEvent<PageMoveIntent>;
         'delete-image': CustomEvent<PageIntent>;
     }

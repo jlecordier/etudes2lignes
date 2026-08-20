@@ -69,14 +69,6 @@ export function createImageFrame(framed: FramedPage): ImageFrameElement {
             fraction: fractionInArea(area, event.clientY),
         });
     });
-    // Le menu contextuel natif du navigateur est remplacé par l'ajout direct du point.
-    area.addEventListener('contextmenu', (event) => {
-        event.preventDefault();
-        emitIntent(element, 'right-click-page', {
-            imageId: framed.imageId,
-            fraction: fractionInArea(area, event.clientY),
-        });
-    });
 
     return element;
 }
