@@ -2,9 +2,18 @@
     "$schema": "./node_modules/fallow/schema.json",
     // Points d'entrée réels de l'application (le reste des entrées est fourni
     // automatiquement par les plugins fallow : Vite, PWA, Playwright…).
-    "entry": ["src/main.ts", "scripts/*.mjs"],
+    // `probity.config.ts` en est un aussi : Probity le charge au démarrage de
+    // l'agent. Sans cette ligne, fallow le croit mort — il le rangeait dans
+    // « Unused files » — et propose de retirer les paquets qu'il est seul à
+    // importer, ce que le hook de pre-commit ferait en `--yes`.
+    "entry": ["src/main.ts", "scripts/*.mjs", "probity.config.ts"],
     // @typescript/native fournit le binaire `tsc` (TS 7 natif) des scripts
     // typecheck/build. fallow ne relie pas les binaires à leur paquet et le croit
     // inutilisé : on le garde explicitement pour que `fallow fix` n'y touche pas.
-    "ignoreDependencies": ["@typescript/native"],
+    //
+    // ts-morph est là pour une raison voisine mais pas identique : rien ne
+    // l'importe encore. `fallow fix` proposait de le supprimer (mesuré), et
+    // l'ignorer est le choix qui ne détruit rien — le retirer pour de bon est
+    // une décision d'outillage, pas de code.
+    "ignoreDependencies": ["@typescript/native", "ts-morph"],
 }
