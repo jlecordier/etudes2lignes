@@ -4,6 +4,7 @@
  */
 import './style.css';
 import { registerSW } from 'virtual:pwa-register';
+import { blockPinchZoom } from './shared/pinchZoom';
 import { LeafletCarteDesPoints } from './carte/adapters/LeafletCarteDesPoints';
 import { LeafletCoordonneeSelector } from './carte/adapters/LeafletCoordonneeSelector';
 import { query } from './shared/dom';
@@ -113,3 +114,6 @@ function enableOfflineMode(): void {
 
 start();
 enableOfflineMode();
+// De la coquille, pas d'un écran : le pincement doit être refusé quel que soit
+// l'écran monté, et personne n'a à s'en souvenir en partant.
+blockPinchZoom(window);
