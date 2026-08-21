@@ -41,6 +41,7 @@ interface Scene {
     /** La barre de la page du haut : hors de toute `.image-area`. */
     barre: HTMLElement;
     hautId: ImageId;
+    basId: ImageId;
     visees: PageAimIntent[];
     /**
      * Ce que fait l'écran qui se détache : son `takeUntil(parti$)` défait cet
@@ -86,8 +87,12 @@ const scenesOuvertes: Scene[] = [];
 function scene(): Scene {
     const stack = document.createElement('div');
     const hautId = newImageId();
+    const basId = newImageId();
     const haut = frame(hautId, 0, 1000);
-    stack.append(haut);
+    // Deux pages, et 100 px d'interstice délibéré entre elles : c'est là qu'un
+    // doigt n'est sur aucune page, ce que l'ajustement doit savoir traverser.
+    const bas = frame(basId, 1100, 1000);
+    stack.append(haut, bas);
     document.body.replaceChildren(stack);
 
     const visees: PageAimIntent[] = [];
@@ -100,6 +105,7 @@ function scene(): Scene {
         page: query('schema-page', HTMLElement, haut),
         barre: query('.image-bar', HTMLDivElement, haut),
         hautId,
+        basId,
         visees,
         detacher: () => {
             abonnement.unsubscribe();
@@ -174,6 +180,23 @@ function hauteurDuFantome(scene1: Scene): string | null {
     return fantome instanceof HTMLElement ? fantome.style.top : null;
 }
 
+/** L'image de la page où le fantôme se trouve, ou rien s'il n'est nulle part. */
+function pageDuFantome(scene1: Scene): ImageId | null {
+    const cadre = scene1.stack.querySelector('.point-ghost')?.closest('image-frame') ?? null;
+    return cadre instanceof ImageFrameElement ? cadre.imageId : null;
+}
+
+/**
+ * Un doigt qui glisse, vu par le tactile et non par le pointeur — c'est cet
+ * événement-là que le navigateur consulte pour décider s'il défile. Rendu pour
+ * qu'on puisse dire s'il a été retenu.
+ */
+function glisse(cible: HTMLElement): Event {
+    const evenement = new Event('touchmove', { bubbles: true, cancelable: true });
+    cible.dispatchEvent(evenement);
+    return evenement;
+}
+
 function clicDroit(cible: HTMLElement, clientY: number): MouseEvent {
     const evenement = new MouseEvent('contextmenu', {
         clientY,
@@ -182,6 +205,29 @@ function clicDroit(cible: HTMLElement, clientY: number): MouseEvent {
     });
     cible.dispatchEvent(evenement);
     return evenement;
+}
+
+/**
+ * Un vibreur de pacotille, posé sur le `navigator` de jsdom qui n'en a pas.
+ *
+ * Écrit à la main comme tous les doubles de ce dépôt : ce qu'on regarde ensuite
+ * est la **liste des motifs produits**, pas un appel qu'on aurait espionné.
+ */
+interface Vibreur {
+    /** Les durées demandées, en millisecondes et dans l'ordre. */
+    readonly motifs: number[];
+}
+
+function brancherLeVibreur(): Vibreur {
+    const motifs: number[] = [];
+    navigator.vibrate = (motif) => {
+        // Un motif est une durée seule ou une suite de durées, et les deux
+        // compilateurs de ce dépôt n'en donnent pas le même type (ADR 0004) : on
+        // range donc les durées, ce qui est aussi ce que le test veut lire.
+        motifs.push(...(typeof motif === 'number' ? [motif] : motif));
+        return true;
+    };
+    return { motifs };
 }
 
 beforeEach(() => {
@@ -197,6 +243,9 @@ afterEach(() => {
         scene1.detacher();
     }
     scenesOuvertes.length = 0;
+    // Un vrai navigateur de bureau n'a pas de vibreur, et jsdom non plus : celui
+    // qu'un test pose ne doit pas survivre au test qui l'a posé.
+    Reflect.deleteProperty(navigator, 'vibrate');
 });
 
 describe("Poser un point d'un seul geste", () => {
@@ -318,6 +367,199 @@ describe('Étant donné un appui long maintenu puis relâché sans bouger', () =
     });
 });
 
+describe("Étant donné un appui long qui atteint l'armement", () => {
+    it("alors le téléphone vibre une fois, à l'armement : « vous pouvez bouger »", () => {
+        const scene1 = scene();
+        const vibreur = brancherLeVibreur();
+        const comptes: number[] = [];
+
+        joue([
+            { at: 0, fait: pose(scene1.page, 250) },
+            // Avant les 500 ms rien n'est armé, donc rien n'a vibré.
+            {
+                at: 400,
+                fait: () => {
+                    comptes.push(vibreur.motifs.length);
+                },
+            },
+            { at: 600, fait: bouge(600) },
+            { at: 700, fait: leve(600) },
+        ]);
+        comptes.push(vibreur.motifs.length);
+
+        // Une fois, et à l'armement : ni à chaque mouvement de l'ajustement, ni au
+        // relâchement. Ça ne dit pas « c'est fait », ça dit « allez-y ».
+        expect(comptes).toEqual([0, 1]);
+        // Un tic, pas une alerte : l'ordre de grandeur du retour haptique d'un
+        // appui long, pas celui d'une notification.
+        expect(vibreur.motifs).toEqual([10]);
+    });
+});
+
+describe("Étant donné un doigt qui se déplace après l'armement", () => {
+    it('alors le fantôme le suit : la dérive est devenue la fonction du geste', () => {
+        const scene1 = scene();
+
+        joue([
+            { at: 0, fait: pose(scene1.page, 250) },
+            // 350 px, bien au-delà de `SLOP` : ce seuil ne garde plus que la
+            // fenêtre d'**avant** l'armement.
+            { at: 600, fait: bouge(600) },
+        ]);
+
+        // Le doigt est encore posé, donc le fantôme est encore là — et c'est lui
+        // qui dit où le point tombera.
+        expect(hauteurDuFantome(scene1)).toBe('60%');
+    });
+
+    it('alors le point se pose à la nouvelle hauteur, pas à celle du départ', () => {
+        const scene1 = scene();
+
+        joue([
+            { at: 0, fait: pose(scene1.page, 250) },
+            { at: 600, fait: bouge(600) },
+            { at: 700, fait: leve(600) },
+        ]);
+
+        expect(scene1.visees).toHaveLength(1);
+        expect(scene1.visees[0]?.fraction.value).toBeCloseTo(0.6, 6);
+    });
+
+    it("alors passer sur la page voisine change l'image visée", () => {
+        const scene1 = scene();
+
+        joue([
+            { at: 0, fait: pose(scene1.page, 250) },
+            // 1600 est sur la page du bas, qui occupe [1100, 2100] : le doigt a
+            // franchi l'interstice.
+            { at: 600, fait: bouge(1600) },
+            { at: 700, fait: leve(1600) },
+        ]);
+
+        expect(scene1.visees[0]?.imageId).toBe(scene1.basId);
+        expect(scene1.visees[0]?.fraction.value).toBeCloseTo(0.5, 6);
+    });
+
+    it("alors le fantôme a changé de page, et il n'en reste pas deux", () => {
+        const scene1 = scene();
+
+        joue([
+            { at: 0, fait: pose(scene1.page, 250) },
+            { at: 600, fait: bouge(1600) },
+        ]);
+
+        // Le fantôme change de zone comme `placeAt` déplace le vrai repère : il
+        // est déplacé, pas recopié.
+        expect(pageDuFantome(scene1)).toBe(scene1.basId);
+        expect(scene1.stack.querySelectorAll('.point-ghost')).toHaveLength(1);
+    });
+
+    it("alors relâcher dans l'interstice garde la dernière position valable", () => {
+        const scene1 = scene();
+
+        joue([
+            { at: 0, fait: pose(scene1.page, 250) },
+            { at: 600, fait: bouge(1600) },
+            // 1050 n'est sur aucune page : le fantôme reste où il était, et c'est
+            // cette position-là qui est enregistrée. Un geste abouti ne doit pas
+            // se perdre — la règle que le glisser a déjà tranchée.
+            { at: 700, fait: bouge(1050) },
+            { at: 800, fait: leve(1050) },
+        ]);
+
+        expect(scene1.visees[0]?.imageId).toBe(scene1.basId);
+        expect(scene1.visees[0]?.fraction.value).toBeCloseTo(0.5, 6);
+    });
+});
+
+describe("Étant donné deux appuis longs ajustés, l'un après l'autre", () => {
+    it('alors le second pose son point aussi : le premier geste avait fini', () => {
+        const scene1 = scene();
+
+        joue([
+            { at: 0, fait: pose(scene1.page, 250) },
+            { at: 600, fait: bouge(600) },
+            { at: 700, fait: leve(600) },
+            { at: 800, fait: pose(scene1.page, 250) },
+            { at: 1400, fait: leve(250) },
+        ]);
+
+        // L'`exhaustMap` du module n'ouvre un geste que si le précédent s'est
+        // achevé. Un suivi du doigt qui ne s'achève pas de lui-même le laisserait
+        // souscrit pour de bon : l'ajustement marcherait une fois, puis plus
+        // jamais.
+        expect(scene1.visees).toHaveLength(2);
+    });
+});
+
+describe('Étant donné le défilement de la page pendant un geste', () => {
+    it("alors un touchmove d'après l'armement est retenu : sinon le navigateur emporterait le doigt", () => {
+        const scene1 = scene();
+        const retenus: boolean[] = [];
+
+        joue([
+            { at: 0, fait: pose(scene1.page, 250) },
+            {
+                at: 600,
+                fait: () => {
+                    retenus.push(glisse(scene1.page).defaultPrevented);
+                },
+            },
+            { at: 700, fait: leve(250) },
+        ]);
+
+        // `touch-action: pan-x pan-y` autorise le pan : sans ce refus, le
+        // navigateur prendrait le pointeur au premier mouvement et émettrait
+        // `pointercancel` — le geste mourrait juste quand on commence à ajuster.
+        expect(retenus).toEqual([true]);
+    });
+
+    it("alors un touchmove d'avant l'armement n'est pas retenu : le doigt doit pouvoir défiler", () => {
+        const scene1 = scene();
+        const retenus: boolean[] = [];
+
+        joue([
+            { at: 0, fait: pose(scene1.page, 250) },
+            {
+                at: 200,
+                fait: () => {
+                    retenus.push(glisse(scene1.page).defaultPrevented);
+                },
+            },
+            { at: 700, fait: leve(250) },
+        ]);
+
+        expect(retenus).toEqual([false]);
+        // Et l'appui s'arme quand même. Un `touchmove` part au moindre pixel de
+        // tremblement — c'est le même mouvement que `pointermove` rapporte —, donc
+        // en faire une sortie du geste viderait `SLOP` de son sens et l'appui long
+        // ne s'armerait pour ainsi dire jamais sur du verre. Si le navigateur
+        // décide vraiment de défiler, c'est lui qui tue le geste, par le
+        // `pointercancel` que ce module écoute déjà.
+        expect(scene1.visees).toHaveLength(1);
+    });
+
+    it("alors le geste fini, le défilement n'est plus retenu : la pile ne reste pas sourde", () => {
+        const scene1 = scene();
+        const retenus: boolean[] = [];
+
+        joue([
+            { at: 0, fait: pose(scene1.page, 250) },
+            { at: 600, fait: leve(250) },
+            {
+                at: 700,
+                fait: () => {
+                    retenus.push(glisse(scene1.page).defaultPrevented);
+                },
+            },
+        ]);
+
+        // Un armement qu'on oublierait de défaire coûterait le défilement de
+        // l'écran pour tout le reste de sa vie, après un seul appui long.
+        expect(retenus).toEqual([false]);
+    });
+});
+
 describe("Étant donné un écran qui se détache alors qu'un appui est armé", () => {
     it('alors le fantôme part avec lui : rien ne reste sur la page', () => {
         const scene1 = scene();
@@ -384,6 +626,24 @@ describe('Étant donné un pointercancel avant les 500 ms', () => {
         joue([
             { at: 0, fait: pose(scene1.page, 250) },
             { at: 200, fait: reprend(250) },
+        ]);
+
+        expect(scene1.visees).toEqual([]);
+        expect(hauteurDuFantome(scene1)).toBeNull();
+    });
+});
+
+describe("Étant donné un pointercancel pendant l'ajustement", () => {
+    it("alors rien n'est posé, et aucun fantôme ne survit : ajuster n'a pas désarmé l'annulation", () => {
+        const scene1 = scene();
+
+        joue([
+            { at: 0, fait: pose(scene1.page, 250) },
+            { at: 600, fait: bouge(600) },
+            { at: 700, fait: reprend(600) },
+            // Le doigt finit toujours par quitter le verre, et ce relâchement-là
+            // ne pose plus rien.
+            { at: 800, fait: leve(600) },
         ]);
 
         expect(scene1.visees).toEqual([]);
