@@ -81,7 +81,7 @@ pareil, et il faut les deux comportements :
   la frontière du shadow DOM et atteignent l'`<img>` de `<schema-page>` sans
   qu'on écrive une ligne dans `SchemaPage.html`.
 - `touch-action` **ne s'hérite pas** — mais le navigateur intersecte les valeurs
-  de l'élément *et de ses ancêtres* jusqu'au conteneur défilant, donc `body`
+  de l'élément _et de ses ancêtres_ jusqu'au conteneur défilant, donc `body`
   gouverne quand même.
 
 La carte n'a pas à être exemptée : `leaflet.css` pose ses propres `touch-action`
@@ -215,7 +215,7 @@ Trois détails qui ne se devinent pas :
 - **`sorties$` avant l'armement, `abandons$` après.** Avant, un relâchement tue le
   geste — c'était un tap, et il doit atteindre `click-page`. Après, le relâchement
   est justement ce qu'on attend ; seules la dérive et l'annulation tuent encore.
-- **Le relâchement de *l'un des deux* doigts** termine un tap à deux doigts, pas
+- **Le relâchement de _l'un des deux_ doigts** termine un tap à deux doigts, pas
   seulement celui du premier. C'est le prédicat `fromSameFinger` du glisser,
   généralisé à l'ensemble des pointeurs du geste.
 - **Les sorties s'écoutent sur `documentElement`**, pas sur la pile, pour la
@@ -255,8 +255,10 @@ dès qu'il l'est.
 Deux contraintes mesurées dictent cette forme, et non une autre :
 
 - **sur la pile, pas sur le document** : Chrome force `passive: true` pour
-  `touchstart` et `touchmove` sur `window`, `document` et `body`, et un
-  `preventDefault` y serait ignoré ;
+  `touchstart` et `touchmove` sur `window`, `document`, `documentElement` et
+  `body`, et un `preventDefault` y serait ignoré. `documentElement` fait bien
+  partie de la liste, et c'est le membre qui compte ici : c'est lui que le geste
+  écoute pour les pointeurs ;
 - **posé d'avance, pas à l'armement** : `cancelable` bascule à `false` dès qu'un
   défilement est en cours, et le navigateur décide au `touchstart` s'il peut
   défiler sans consulter le fil principal.
@@ -283,7 +285,7 @@ qu'il ne compare qu'un écart **vertical**, et son commentaire dit que l'asymét
 est délibérée — c'est elle qui laisse un doigt s'échapper à l'horizontale. Ici les
 deux axes comptent, puisqu'un doigt qui part de côté ne tient pas un appui, et un
 doigt posé sur du verre tremble plus qu'une souris tenue. 10 px est l'ordre de
-grandeur du *touch slop* d'Android (8 dp).
+grandeur du _touch slop_ d'Android (8 dp).
 
 ### L'arbitrage du `contextmenu`
 
@@ -328,7 +330,7 @@ schéma et la carte : « les sélecteurs de la carte viennent la chercher ici pl
 que d'entretenir un sosie ».
 
 **Aucune atténuation** — pas d'`opacity`, même rouge, même pointillé. Le fantôme
-sert à *lire une hauteur* ; l'affaiblir la rendrait moins lisible, et ce qui le
+sert à _lire une hauteur_ ; l'affaiblir la rendrait moins lisible, et ce qui le
 distingue d'un vrai repère est déjà franc : ni pastille, ni boutons.
 
 **Pas de `setPointerCapture`.** Les mouvements s'écoutent sur `documentElement`,
@@ -344,19 +346,19 @@ c'est donc le fantôme seul qui le dit, d'où l'intérêt de l'avoir gardé fran
 
 ### Ce qui bouge dans l'existant
 
-| Fichier | Ce qui change |
-| --- | --- |
-| `index.html` | viewport : `maximum-scale=1, user-scalable=no` |
-| `src/style.css` | le blocage sur `body`, l'exception `input`, le sélecteur commun du pointillé |
-| `src/main.ts` | un appel à `blockPinchZoom(window)` |
-| `src/shared/pinchZoom.ts` | **nouveau** |
-| `src/trajets/ui/pageUnderFinger.ts` | **nouveau** — `fractionInArea`, `areaUnderFinger`, `placeAt` |
-| `src/trajets/ui/addPointOnStack.ts` | **nouveau** — le reconnaisseur |
-| `src/trajets/ui/dragPointOnStack.ts` | `targetUnderFinger` et `placeMarker` deviennent des appels au module partagé |
-| `src/trajets/ui/ImageFrame.ts` | perd l'écouteur `contextmenu` ; `fractionFromPosition` part dans le module partagé |
-| `src/trajets/ui/intents.ts` | perd `right-click-page` |
-| `src/trajets/ui/TrajetEditorScreen.ts` | s'abonne au nouveau flux ; `onImageRightClick` devient `onDirectAdd` |
-| `docs/EXIGENCES.md` | GR-22 à GR-25 |
+| Fichier                                | Ce qui change                                                                      |
+| -------------------------------------- | ---------------------------------------------------------------------------------- |
+| `index.html`                           | viewport : `maximum-scale=1, user-scalable=no`                                     |
+| `src/style.css`                        | le blocage sur `body`, l'exception `input`, le sélecteur commun du pointillé       |
+| `src/main.ts`                          | un appel à `blockPinchZoom(window)`                                                |
+| `src/shared/pinchZoom.ts`              | **nouveau**                                                                        |
+| `src/trajets/ui/pageUnderFinger.ts`    | **nouveau** — `fractionInArea`, `areaUnderFinger`, `placeAt`                       |
+| `src/trajets/ui/addPointOnStack.ts`    | **nouveau** — le reconnaisseur                                                     |
+| `src/trajets/ui/dragPointOnStack.ts`   | `targetUnderFinger` et `placeMarker` deviennent des appels au module partagé       |
+| `src/trajets/ui/ImageFrame.ts`         | perd l'écouteur `contextmenu` ; `fractionFromPosition` part dans le module partagé |
+| `src/trajets/ui/intents.ts`            | perd `right-click-page`                                                            |
+| `src/trajets/ui/TrajetEditorScreen.ts` | s'abonne au nouveau flux ; `onImageRightClick` devient `onDirectAdd`               |
+| `docs/EXIGENCES.md`                    | GR-22 à GR-25                                                                      |
 
 `areaUnderFinger` est extraite parce que l'ajustement traverse les pages, ce dont
 le geste sans ajustement n'aurait pas eu besoin. Les deux modules **ne sont pas
@@ -472,9 +474,9 @@ pour en faire taire un.
 
 À la suite de GR-21, section Géoréférencement de `docs/EXIGENCES.md` :
 
-| ID | Exigence |
-| --- | --- |
+| ID    | Exigence                                                                                                                                    |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | GR-22 | Zoom et sélection natifs neutralisés dans toute l'application ; les champs de saisie restent sélectionnables ; la carte garde son pincement |
-| GR-23 | Un appui long sur l'image arme un repère fantôme, que le doigt déplace jusqu'au relâchement, où le point se crée |
-| GR-24 | Un tap à deux doigts sur une même page crée un point à mi-hauteur entre les deux doigts |
-| GR-25 | Un seul geste ne crée jamais plus d'un point, `contextmenu` natif d'Android compris |
+| GR-23 | Un appui long sur l'image arme un repère fantôme, que le doigt déplace jusqu'au relâchement, où le point se crée                            |
+| GR-24 | Un tap à deux doigts sur une même page crée un point à mi-hauteur entre les deux doigts                                                     |
+| GR-25 | Un seul geste ne crée jamais plus d'un point, `contextmenu` natif d'Android compris                                                         |

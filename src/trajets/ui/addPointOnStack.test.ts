@@ -187,6 +187,16 @@ function pageDuFantome(scene1: Scene): ImageId | null {
 }
 
 /**
+ * Un trait fantôme fabriqué hors de tout geste, pour interroger l'écouteur non
+ * passif sans passer par un armement.
+ */
+function fantomeAlaMain(): HTMLDivElement {
+    const element = document.createElement('div');
+    element.className = 'point-ghost';
+    return element;
+}
+
+/**
  * Un doigt qui glisse, vu par le tactile et non par le pointeur — c'est cet
  * événement-là que le navigateur consulte pour décider s'il défile. Rendu pour
  * qu'on puisse dire s'il a été retenu.
@@ -372,24 +382,31 @@ describe("Étant donné un appui long qui atteint l'armement", () => {
         const scene1 = scene();
         const vibreur = brancherLeVibreur();
         const comptes: number[] = [];
+        const relever = (): void => {
+            comptes.push(vibreur.motifs.length);
+        };
 
         joue([
             { at: 0, fait: pose(scene1.page, 250) },
             // Avant les 500 ms rien n'est armé, donc rien n'a vibré.
-            {
-                at: 400,
-                fait: () => {
-                    comptes.push(vibreur.motifs.length);
-                },
-            },
+            { at: 400, fait: relever },
+            // Armé, et le doigt n'a encore rien bougé : le tic est déjà parti. Ce
+            // relevé-ci est le seul qui situe l'instant, et c'est lui qui distingue
+            // « à l'armement » de « au relâchement ».
+            { at: 550, fait: relever },
             { at: 600, fait: bouge(600) },
-            { at: 700, fait: leve(600) },
+            { at: 700, fait: bouge(700) },
+            // **Deux** mouvements, et toujours un seul tic : un vibreur appelé
+            // depuis le suivi en compterait autant que de mouvements, ce qu'un
+            // relevé après un mouvement unique ne saurait pas voir.
+            { at: 750, fait: relever },
+            { at: 800, fait: leve(700) },
         ]);
-        comptes.push(vibreur.motifs.length);
+        relever();
 
         // Une fois, et à l'armement : ni à chaque mouvement de l'ajustement, ni au
         // relâchement. Ça ne dit pas « c'est fait », ça dit « allez-y ».
-        expect(comptes).toEqual([0, 1]);
+        expect(comptes).toEqual([0, 1, 1, 1]);
         // Un tic, pas une alerte : l'ordre de grandeur du retour haptique d'un
         // appui long, pas celui d'une notification.
         expect(vibreur.motifs).toEqual([10]);
@@ -438,6 +455,24 @@ describe("Étant donné un doigt qui se déplace après l'armement", () => {
 
         expect(scene1.visees[0]?.imageId).toBe(scene1.basId);
         expect(scene1.visees[0]?.fraction.value).toBeCloseTo(0.5, 6);
+    });
+
+    it("alors partir droit dans l'interstice pose quand même le point, là où il était armé", () => {
+        const scene1 = scene();
+
+        joue([
+            { at: 0, fait: pose(scene1.page, 250) },
+            // Le doigt ne touche **aucune** page valable après l'armement : il file
+            // droit dans l'interstice et s'y lève. Rien n'a donc jamais remplacé la
+            // page de départ, et c'est elle qui doit être enregistrée — sans quoi un
+            // geste abouti se perdrait.
+            { at: 600, fait: bouge(1050) },
+            { at: 700, fait: leve(1050) },
+        ]);
+
+        expect(scene1.visees).toHaveLength(1);
+        expect(scene1.visees[0]?.imageId).toBe(scene1.hautId);
+        expect(scene1.visees[0]?.fraction.value).toBeCloseTo(0.25, 6);
     });
 
     it("alors le fantôme a changé de page, et il n'en reste pas deux", () => {
@@ -557,6 +592,26 @@ describe('Étant donné le défilement de la page pendant un geste', () => {
         // Un armement qu'on oublierait de défaire coûterait le défilement de
         // l'écran pour tout le reste de sa vie, après un seul appui long.
         expect(retenus).toEqual([false]);
+    });
+
+    it("alors l'écran détaché, l'écouteur non passif est parti avec lui", () => {
+        const scene1 = scene();
+        // Le fantôme est posé **à la main**, sans geste : c'est le seul moyen de
+        // distinguer un écouteur retiré d'un écouteur resté là. Puisque l'armement
+        // se lit sur la pile, un écouteur qui aurait fui ne trouverait aucun fantôme
+        // et ne retiendrait rien non plus — le témoin d'à côté le croirait donc
+        // propre. Ici, la pile en porte un.
+        scene1.stack.append(fantomeAlaMain());
+        const retenus: boolean[] = [];
+
+        retenus.push(glisse(scene1.page).defaultPrevented);
+        scene1.detacher();
+        retenus.push(glisse(scene1.page).defaultPrevented);
+
+        // Le premier relevé prouve que ce témoin sait dire « retenu » ; le second,
+        // que l'écouteur est bien parti. Sans le premier, un écouteur jamais posé
+        // donnerait le même vert que l'écouteur correctement retiré.
+        expect(retenus).toEqual([true, false]);
     });
 });
 

@@ -20,7 +20,7 @@ import { SchemaPageElement } from '../../shared/SchemaPage';
 import { ImageFrameElement } from './ImageFrame';
 import type { PageAimIntent } from './intents';
 import { fractionInArea, placeAt } from './pageFraction';
-import { areaUnderFinger } from './pageUnderFinger';
+import { areaUnderFinger, type AimedArea } from './pageUnderFinger';
 
 /**
  * Le temps qu'un doigt doit tenir pour que ce soit un appui long, en
@@ -124,8 +124,11 @@ export function addsOnStack(stack: HTMLElement): Observable<PageAimIntent> {
          *
          * Deux contraintes mesurées dictent cette forme, et non une autre. **Sur la
          * pile et non sur le document** : Chrome force `passive: true` pour
-         * `touchstart` et `touchmove` sur `window`, `document` et `body`, où un
-         * `preventDefault` serait ignoré. **Posé d'avance et non à l'armement** :
+         * `touchstart` et `touchmove` sur `window`, `document`, `documentElement` et
+         * `body`, où un `preventDefault` serait ignoré — et `documentElement` est
+         * justement ce que `longPress` écoute pour les pointeurs, donc l'omettre de
+         * cette liste retirerait à cet argument son cas le plus proche.
+         * **Posé d'avance et non à l'armement** :
          * `cancelable` bascule à `false` dès qu'un défilement est en cours, et le
          * navigateur décide au `touchstart` s'il peut défiler, sans consulter le fil
          * principal.
@@ -252,59 +255,8 @@ function longPress(stack: HTMLElement, debut: GestureStart): Observable<PageAimI
                     return EMPTY;
                 }
                 placeAt(fantome, vise.area, vise.fraction);
-                // « Vous pouvez bouger maintenant », et non « ça a marché ».
-                // `navigator.vibrate` est typé comme toujours présent alors qu'il
-                // est absent de Safari iOS : on l'annote optionnel pour l'exprimer
-                // honnêtement plutôt que de le caster — mot pour mot le procédé que
-                // `main.ts` applique à `navigator.storage`. Sur iPhone c'est donc le
-                // fantôme seul qui le dit, d'où l'intérêt de l'avoir gardé franc.
-                const navigateur: { vibrate?: (motif: VibratePattern) => boolean } = navigator;
-                // 10 ms : un tic, pas une alerte — l'ordre de grandeur du retour
-                // haptique d'un appui long, pas celui d'une notification.
-                navigateur.vibrate?.(10);
-                // La dernière page valable sous le doigt. Aucune page — l'interstice
-                // entre deux pages, ou hors de la pile — laisse le fantôme où il
-                // était, et c'est cette position-là qui sera enregistrée : un geste
-                // abouti ne doit pas se perdre, la règle que le glisser a tranchée.
-                let dernier = vise;
-                const pose$ = releves$.pipe(
-                    take(1),
-                    map(() => {
-                        // Retiré **avant** d'émettre, et non laissé au `finalize`
-                        // qui suit : ce que l'abonné fait de la visée — ouvrir la
-                        // carte des coordonnées — ne doit pas se faire par-dessus
-                        // un trait qui n'annonce plus rien. Le `finalize` reste le
-                        // filet des sorties que ce chemin-ci ne prend pas.
-                        fantome.remove();
-                        // Le point se pose là où le **fantôme** est, et non là où le
-                        // doigt se lève : les deux ne coïncident pas dans
-                        // l'interstice, et c'est ce qu'on voit qui fait foi. Même
-                        // règle, et même façon de la tenir, que le glisser.
-                        return { imageId: dernier.imageId, fraction: dernier.fraction };
-                    }),
-                );
-                // Le suivi ne s'achève jamais de lui-même, d'où le `take(1)` sur la
-                // fusion : sans lui, elle resterait ouverte après le relâchement et
-                // l'`exhaustMap` du dessus, qui attend la fin du geste courant, n'en
-                // laisserait plus jamais commencer un autre.
-                return merge(
-                    // Armé, la dérive ne sort plus du geste : elle **est** le geste,
-                    // et le fantôme suit le doigt.
-                    mouvements$.pipe(
-                        tap((move) => {
-                            // Pages voisines comprises : le fantôme change de zone
-                            // en cours de geste, exactement comme `placeAt` déplace
-                            // le vrai repère d'un glisser.
-                            const survole = areaUnderFinger(stack, move.clientY);
-                            if (survole !== null) {
-                                dernier = survole;
-                                placeAt(fantome, survole.area, survole.fraction);
-                            }
-                        }),
-                        ignoreElements(),
-                    ),
-                    pose$,
-                ).pipe(take(1));
+                vibrer();
+                return suivreLeDoigt(stack, fantome, vise, mouvements$, releves$);
             }),
             // Le `takeUntil` du haut a lâché son guetteur en même temps que le
             // minuteur s'est achevé, donc il ne couvre que l'avant de l'armement.
@@ -321,6 +273,90 @@ function longPress(stack: HTMLElement, debut: GestureStart): Observable<PageAimI
             }),
         );
     });
+}
+
+/**
+ * L'ajustement : le fantôme sous le doigt, jusqu'au relâchement qui pose le point
+ * là où il se trouve.
+ *
+ * `dernier` retient la dernière page valable. Aucune page sous le doigt —
+ * l'interstice entre deux pages, ou hors de la pile — laisse le fantôme où il
+ * était, et c'est cette position-là qui sera enregistrée : un geste abouti ne doit
+ * pas se perdre, la règle que le glisser a déjà tranchée. Le doigt qui n'aurait
+ * jamais touché de page valable pose donc son point là où il l'avait armé.
+ *
+ * Les deux flux arrivent tout faits parce que « le même doigt » se décide une
+ * seule fois, chez l'appui long qui l'a ouvert.
+ */
+function suivreLeDoigt(
+    stack: HTMLElement,
+    fantome: HTMLDivElement,
+    depart: AimedArea,
+    mouvements$: Observable<PointerEvent>,
+    releves$: Observable<PointerEvent>,
+): Observable<PageAimIntent> {
+    return defer(() => {
+        let dernier = depart;
+
+        // Armé, la dérive ne sort plus du geste : elle **est** le geste, et le
+        // fantôme suit le doigt.
+        const suivi$ = mouvements$.pipe(
+            tap((move) => {
+                // Pages voisines comprises : le fantôme change de zone en cours de
+                // geste, exactement comme `placeAt` déplace le vrai repère d'un
+                // glisser.
+                const survole = areaUnderFinger(stack, move.clientY);
+                if (survole !== null) {
+                    dernier = survole;
+                    placeAt(fantome, survole.area, survole.fraction);
+                }
+            }),
+            ignoreElements(),
+        );
+
+        const pose$ = releves$.pipe(
+            map(() => {
+                // Retiré **avant** d'émettre, et non laissé au `finalize` de l'appui
+                // long : ce que l'abonné fait de la visée — ouvrir la carte des
+                // coordonnées — ne doit pas se faire par-dessus un trait qui
+                // n'annonce plus rien. Le `finalize` reste le filet des sorties que
+                // ce chemin-ci ne prend pas.
+                fantome.remove();
+                // Le point se pose là où le **fantôme** est, et non là où le doigt se
+                // lève : les deux ne coïncident pas dans l'interstice, et c'est ce
+                // qu'on voit qui fait foi. Même règle, et même façon de la tenir, que
+                // le glisser.
+                return { imageId: dernier.imageId, fraction: dernier.fraction };
+            }),
+        );
+
+        // Le suivi ne s'achève jamais de lui-même, d'où ce `take(1)` : sans lui, la
+        // fusion resterait ouverte après le relâchement et l'`exhaustMap` de la
+        // pile, qui attend la fin du geste courant, n'en laisserait plus jamais
+        // commencer un autre. C'est aussi le seul `take` utile ici — le poser en
+        // plus sur `pose$` serait un opérateur mort, qu'aucune mutation ne
+        // signalerait.
+        return merge(suivi$, pose$).pipe(take(1));
+    });
+}
+
+/**
+ * Le tic qui dit « vous pouvez bouger maintenant », et non « ça a marché ».
+ *
+ * `navigator.vibrate` est typé comme toujours présent alors qu'il est absent de
+ * Safari iOS : on l'annote optionnel pour l'exprimer honnêtement plutôt que de le
+ * caster — mot pour mot le procédé que `main.ts` applique à `navigator.storage`.
+ * Sur iPhone c'est donc le fantôme seul qui le dit, d'où l'intérêt de l'avoir gardé
+ * franc.
+ *
+ * Pas de port : aucune règle métier n'en dépend, il n'a pas de seconde
+ * implémentation, et personne d'autre que ce geste ne l'appelle.
+ */
+function vibrer(): void {
+    const navigateur: { vibrate?: (motif: VibratePattern) => boolean } = navigator;
+    // 10 ms : un tic, pas une alerte — l'ordre de grandeur du retour haptique d'un
+    // appui long, pas celui d'une notification.
+    navigateur.vibrate?.(10);
 }
 
 /** A-t-il assez bougé pour qu'on renonce ? Les deux axes comptent. */
