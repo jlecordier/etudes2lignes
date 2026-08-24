@@ -239,8 +239,16 @@ pas encore.**
   geste abouti ne doit pas se perdre ».
 
 Le tap à deux doigts suit la même règle : le fantôme suit le **milieu** des deux
-doigts jusqu'à ce que l'un se lève. Uniforme, et c'est le même chemin de code —
-aucun cas particulier à écrire.
+doigts jusqu'à ce que l'un se lève. Uniforme, oui, mais ce n'est **un seul chemin
+de code** qu'à condition d'énoncer la visée comme « le milieu des doigts du
+geste » — qui, pour un doigt seul, est ce doigt. L'ajustement retient alors la
+dernière hauteur connue de **chaque** doigt du geste, et non un seul `y`.
+
+Ce prix-là n'est pas négociable, et c'est la tâche 6 qui l'a mesuré : un suivi qui
+ne connaît que le doigt d'origine ramène la visée sur lui au premier
+`pointermove`, et deux doigts posés sur du verre en émettent toujours. Le point
+tomberait donc là où est un doigt, pas au milieu — vert en jsdom, faux sur
+l'appareil.
 
 ### Empêcher le navigateur de défiler pendant l'ajustement
 

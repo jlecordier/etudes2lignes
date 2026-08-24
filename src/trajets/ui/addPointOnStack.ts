@@ -10,6 +10,7 @@ import {
     map,
     merge,
     of,
+    race,
     take,
     takeUntil,
     tap,
@@ -234,29 +235,89 @@ function longPress(stack: HTMLElement, debut: GestureStart): Observable<PageAimI
         // prédicat et même raison que le `fromSameFinger` de `dragPointOnStack`.
         const duMemeDoigt = (autre: PointerEvent): boolean => autre.pointerId === debut.pointerId;
 
-        const mouvements$ = eventsOf(fin, 'pointermove').pipe(filter(duMemeDoigt));
+        // Les doigts de ce geste, et la dernière hauteur connue de chacun. Les
+        // clés disent l'appartenance — c'est le relâchement de **l'un des deux**
+        // qui pose le point, sans quoi un geste armé à deux doigts attendrait
+        // celui que l'utilisateur garde posé — et les valeurs disent la visée,
+        // qui est leur milieu. Un seul état pour deux questions qui n'en font
+        // qu'une : où sont les doigts de ce geste.
+        const doigtsDuGeste = new Map<number, number>([[debut.pointerId, debut.y]]);
+        const duGeste = (autre: PointerEvent): boolean => doigtsDuGeste.has(autre.pointerId);
+
+        const mouvements$ = eventsOf(fin, 'pointermove').pipe(filter(duGeste));
+        // Un doigt ne rejoint le geste qu'en l'armant, et ce guetteur-ci tombe avec
+        // le minuteur qu'il surveille : avant l'armement, `mouvements$` ne porte
+        // donc que le doigt d'origine, et le comparer à `debut` reste exact.
         const derives$ = mouvements$.pipe(filter((move) => aDerive(debut, move)));
-        const releves$ = eventsOf(fin, 'pointerup').pipe(filter(duMemeDoigt));
+        const releves$ = eventsOf(fin, 'pointerup').pipe(filter(duGeste));
         const annulations$ = eventsOf(fin, 'pointercancel').pipe(filter(duMemeDoigt));
 
-        // Sans ordonnanceur : le `TestScheduler` de RxJS détourne
-        // `AsyncScheduler.delegate` pour rendre ce temps-ci virtuel dans les
-        // tests, donc la production n'a pas d'horloge à recevoir (ADR 0009 —
-        // l'horloge injectée disparaît).
-        return timer(LONG_PRESS_DELAY).pipe(
-            // Avant l'armement, tout sort du geste : un relâchement dit que
-            // c'était un tap — et ce tap doit atteindre l'écran, qui en fait un
-            // placement —, une dérive qu'un doigt qui part ne tenait pas un appui,
-            // une reprise que le navigateur a pris le pointeur.
-            takeUntil(merge(releves$, annulations$, derives$)),
-            concatMap(() => {
-                const vise = areaUnderFinger(stack, debut.y);
+        // Un doigt qui rejoint le geste : c'est le tap à deux doigts, et il
+        // n'attend pas les 500 ms — deux doigts sont déjà un geste délibéré. Ce
+        // qu'ils visent est leur milieu.
+        const renforts$ = eventsOf(stack, 'pointerdown').pipe(
+            // Un doigt, pas un curseur : la souris a le clic droit pour aller au
+            // même point, et un curseur oublié sur l'image ne fait pas de l'appui
+            // long qui tient un geste à deux doigts.
+            filter((event) => event.pointerType !== 'mouse'),
+            // L'image nue, comme pour le doigt qui ouvre un geste : ce seul
+            // `instanceof` écarte la pastille d'un point — la poignée du glisser —,
+            // ses boutons flottants et la barre de la page. La géométrie ne
+            // suffirait pas : une pastille est **dans** la page.
+            filter((event) => event.target instanceof SchemaPageElement),
+            // Sur la **même** page que le doigt qui tient, et non de part et
+            // d'autre : deux doigts sur deux pages ont bien un milieu, mais ce
+            // n'est pas ce qu'ils désignent — celui de 200 et 1600 tombe sur la
+            // page du haut, qu'un seul des deux touche. Le doigt refusé n'entre pas
+            // dans le geste, et ne le tue pas davantage : l'appui long de celui qui
+            // tient continue.
+            filter(
+                (event) =>
+                    areaUnderFinger(stack, event.clientY)?.area ===
+                    areaUnderFinger(stack, debut.y)?.area,
+            ),
+            tap((event) => {
+                doigtsDuGeste.set(event.pointerId, event.clientY);
+            }),
+            map((event) => (debut.y + event.clientY) / 2),
+        );
+
+        // Deux branches concourent pour armer le geste, et `race` les arbitre : la
+        // première qui émet désabonne l'autre, donc un geste ne s'arme qu'une fois.
+        // Chacune rend la **hauteur** visée, seul endroit où les deux diffèrent.
+        return race(
+            // Sans ordonnanceur : le `TestScheduler` de RxJS détourne
+            // `AsyncScheduler.delegate` pour rendre ce temps-ci virtuel dans les
+            // tests, donc la production n'a pas d'horloge à recevoir (ADR 0009 —
+            // l'horloge injectée disparaît).
+            timer(LONG_PRESS_DELAY).pipe(
+                // Avant l'armement, tout sort du geste : un relâchement dit que
+                // c'était un tap — et ce tap doit atteindre l'écran, qui en fait un
+                // placement —, une dérive qu'un doigt qui part ne tenait pas un appui,
+                // une reprise que le navigateur a pris le pointeur.
+                takeUntil(merge(releves$, annulations$, derives$)),
+                map(() => debut.y),
+            ),
+            renforts$,
+        ).pipe(
+            // La course s'achève à son premier verdict. Le minuteur se terminait
+            // de lui-même, mais le second doigt est un flux d'événements qui ne
+            // s'achève jamais : sans ce `take(1)`, le geste qu'il arme ne
+            // finirait pas, et l'`exhaustMap` de la pile — qui attend la fin du
+            // geste courant — n'en laisserait plus jamais commencer un autre. Le
+            // tap à deux doigts marcherait une fois, puis plus jamais.
+            take(1),
+            concatMap((hauteur) => {
+                const vise = areaUnderFinger(stack, hauteur);
                 if (vise === null) {
                     return EMPTY;
                 }
                 placeAt(fantome, vise.area, vise.fraction);
                 vibrer();
-                return suivreLeDoigt(stack, fantome, vise, mouvements$, releves$);
+                return suivreLesDoigts(
+                    { stack, fantome, doigtsDuGeste, mouvements$, releves$, renforts$ },
+                    vise,
+                );
             }),
             // Le `takeUntil` du haut a lâché son guetteur en même temps que le
             // minuteur s'est achevé, donc il ne couvre que l'avant de l'armement.
@@ -276,40 +337,80 @@ function longPress(stack: HTMLElement, debut: GestureStart): Observable<PageAimI
 }
 
 /**
- * L'ajustement : le fantôme sous le doigt, jusqu'au relâchement qui pose le point
- * là où il se trouve.
+ * Ce qu'un geste armé possède en propre : la pile qu'il mesure, le fantôme qu'il
+ * traîne, les doigts qui le composent et les flux de pointeurs qui lui
+ * appartiennent.
  *
- * `dernier` retient la dernière page valable. Aucune page sous le doigt —
+ * Tout arrive tout fait parce que « les doigts de ce geste » se décide une seule
+ * fois — chez l'appui long qui l'a ouvert, seul endroit qui sache laquelle des
+ * deux branches a gagné la course.
+ */
+interface GesteEnCours {
+    readonly stack: HTMLElement;
+    readonly fantome: HTMLDivElement;
+    /** Les doigts du geste, et la dernière hauteur connue de chacun. */
+    readonly doigtsDuGeste: Map<number, number>;
+    readonly mouvements$: Observable<PointerEvent>;
+    readonly releves$: Observable<PointerEvent>;
+    /** Les doigts qui rejoignent le geste, chacun s'étant déjà inscrit ci-dessus. */
+    readonly renforts$: Observable<number>;
+}
+
+/**
+ * L'ajustement : le fantôme au milieu des doigts, jusqu'au relâchement qui pose le
+ * point là où il se trouve.
+ *
+ * `dernier` retient la dernière page valable. Aucune page sous ce milieu —
  * l'interstice entre deux pages, ou hors de la pile — laisse le fantôme où il
  * était, et c'est cette position-là qui sera enregistrée : un geste abouti ne doit
  * pas se perdre, la règle que le glisser a déjà tranchée. Le doigt qui n'aurait
  * jamais touché de page valable pose donc son point là où il l'avait armé.
- *
- * Les deux flux arrivent tout faits parce que « le même doigt » se décide une
- * seule fois, chez l'appui long qui l'a ouvert.
  */
-function suivreLeDoigt(
-    stack: HTMLElement,
-    fantome: HTMLDivElement,
-    depart: AimedArea,
-    mouvements$: Observable<PointerEvent>,
-    releves$: Observable<PointerEvent>,
-): Observable<PageAimIntent> {
+function suivreLesDoigts(geste: GesteEnCours, depart: AimedArea): Observable<PageAimIntent> {
     return defer(() => {
+        const { stack, fantome, doigtsDuGeste, mouvements$, releves$, renforts$ } = geste;
         let dernier = depart;
 
+        /**
+         * Les doigts ont bougé, ou l'un d'eux vient d'arriver : le fantôme rejoint
+         * leur milieu — qui, pour un doigt seul, est ce doigt. Un seul chemin de
+         * code, et c'est lui qui tient la promesse « le fantôme suit le milieu »
+         * quand deux doigts posés sur du verre tremblent : suivre le seul doigt
+         * d'origine tirerait la visée hors du milieu au premier frémissement de
+         * l'autre.
+         *
+         * Pages voisines comprises : le fantôme change de zone en cours de geste,
+         * exactement comme `placeAt` déplace le vrai repère d'un glisser.
+         */
+        const deplacer = (): void => {
+            const hauteurs = [...doigtsDuGeste.values()];
+            const survole = areaUnderFinger(
+                stack,
+                (Math.min(...hauteurs) + Math.max(...hauteurs)) / 2,
+            );
+            if (survole !== null) {
+                dernier = survole;
+                placeAt(fantome, survole.area, survole.fraction);
+            }
+        };
+
         // Armé, la dérive ne sort plus du geste : elle **est** le geste, et le
-        // fantôme suit le doigt.
+        // fantôme suit les doigts.
         const suivi$ = mouvements$.pipe(
             tap((move) => {
-                // Pages voisines comprises : le fantôme change de zone en cours de
-                // geste, exactement comme `placeAt` déplace le vrai repère d'un
-                // glisser.
-                const survole = areaUnderFinger(stack, move.clientY);
-                if (survole !== null) {
-                    dernier = survole;
-                    placeAt(fantome, survole.area, survole.fraction);
-                }
+                doigtsDuGeste.set(move.pointerId, move.clientY);
+                deplacer();
+            }),
+            ignoreElements(),
+        );
+
+        // La course est finie quand on arrive ici, donc sa branche des renforts est
+        // désabonnée : un doigt qui rejoint le geste **après** l'armement ne serait
+        // plus entendu par personne. C'est le même flux à un autre poste —
+        // concurrent avant l'armement, source d'ajustement après.
+        const auMilieu$ = renforts$.pipe(
+            tap(() => {
+                deplacer();
             }),
             ignoreElements(),
         );
@@ -336,7 +437,7 @@ function suivreLeDoigt(
         // commencer un autre. C'est aussi le seul `take` utile ici — le poser en
         // plus sur `pose$` serait un opérateur mort, qu'aucune mutation ne
         // signalerait.
-        return merge(suivi$, pose$).pipe(take(1));
+        return merge(suivi$, auMilieu$, pose$).pipe(take(1));
     });
 }
 
