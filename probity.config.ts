@@ -1,7 +1,33 @@
-import { defineConfig, enforceTdd } from '@nizos/probity';
+import { defineConfig, enforceTdd, forbidCommandPattern } from '@nizos/probity';
 
 export default defineConfig({
     rules: [
+        // **Plates, et pas dans le bloc `files` ci-dessous.** La doc le dit :
+        // « Listed flat in `rules`, it runs against every action (writes and
+        // commands) and self-filters; wrapped in a `{ files, rules }` block, the
+        // `files` glob narrows writes **by path**. » Une règle de commande
+        // rangée dans le bloc ne s'appliquerait donc jamais.
+        //
+        // Pourquoi elles existent : `enforceTdd` « applies exclusively to write
+        // actions » — il ne regarde pas les commandes. Le trou est par
+        // conception, et trois agents de ce dépôt l'ont cherché, l'un en
+        // écrivant un `cat > … << EOF`, un autre en mutant les sources pour
+        // éprouver une hypothèse. Aucun n'a abouti, mais aucun n'a été arrêté
+        // par l'outil : c'est le classificateur de permissions, puis une
+        // relecture, qui les ont vus. Ces deux règles rendent le refus explicite
+        // et donnent la conduite à tenir.
+        forbidCommandPattern({
+            match: />>?\s*(\.\/)?src\//,
+            reason:
+                "Écrire dans src/ par une redirection shell contourne la règle TDD, qui ne surveille qu'Edit et Write. " +
+                "Sers-toi d'Edit ou de Write. Si l'un des deux te refuse une écriture, c'est que l'incrément est trop gros : découpe-le, ou arrête-toi et remonte le refus tel quel.",
+        }),
+        forbidCommandPattern({
+            match: /\b(tee|sed\s+-i|perl\s+-i)\b[^|;&]*\bsrc\//,
+            reason:
+                "Modifier un fichier de src/ en place contourne la règle TDD, qui ne surveille qu'Edit et Write. " +
+                "Passe par Edit. Et pour prouver qu'un test discrimine, sonde son assertion ou ses entrées plutôt que de muter le code de production.",
+        }),
         {
             files: ['src/**'],
             // Deux écarts aux défauts, décidés par l'auteur du dépôt après
