@@ -184,31 +184,42 @@ sien.
 const abandons$ = merge(derives$, cancels$); // le doigt part, ou le système reprend
 const sorties$ = merge(abandons$, releases$); // + il se relève avant l'heure
 
-const appuiLong$ = timer(LONG_PRESS_DELAY).pipe(
-    takeUntil(sorties$),
-    map(() => start.y),
-);
-const deuxDoigts$ = secondDoigt$.pipe(map((second) => milieu(start.y, second.clientY)));
+const appuiLong$ = timer(LONG_PRESS_DELAY).pipe(takeUntil(sorties$));
+// Le renfort ne porte que la nouvelle : il s'est inscrit auprès des doigts du
+// geste, et c'est à eux qu'on demandera où l'on vise.
+const renforts$ = secondDoigt$.pipe(tap((second) => doigts.inscrire(second)));
 
-return race(appuiLong$, deuxDoigts$).pipe(
-    tap(() => {
+return race(appuiLong$, renforts$).pipe(
+    take(1),
+    concatMap(() => {
         vibrer();
+        // Armé : le fantôme suit le milieu des doigts, et le point ne naît qu'au
+        // relâchement — donc la carte ne s'ouvre jamais sous un doigt encore posé.
+        return suivreLesDoigts(doigts.visee());
     }),
-    // Armé : le fantôme suit le doigt, et le point ne naît qu'au relâchement —
-    // donc la carte ne s'ouvre jamais sous un doigt encore posé.
-    switchMap((y) => suivreLeDoigt(y)),
-    takeUntil(abandons$),
+    takeUntil(cancels$),
     finalize(() => {
         retirerFantome();
     }),
 );
 ```
 
-`race` rend l'invariant vrai sans qu'on y pense : la branche qui émet la première
-désabonne l'autre. Un second doigt à 300 ms fait gagner les deux doigts et annule
-le minuteur ; 500 ms écoulées font gagner l'appui long, et un doigt qui arrive
-ensuite ne compte plus **pour ce geste**. Et `exhaustMap` au-dessus, comme pour le
-glisser : un geste en cours n'en démarre pas un autre.
+`race` arbitre l'armement : la branche qui émet la première désabonne l'autre. Un
+second doigt à 300 ms fait gagner les deux doigts et annule le minuteur ; 500 ms
+écoulées font gagner l'appui long. Et `exhaustMap` au-dessus, comme pour le
+glisser : un geste en cours n'en démarre pas un autre — ce qui est aussi ce qui
+rend le tap à deux doigts possible, le second `pointerdown` n'ouvrant aucun geste
+et rendant un `EMPTY` qu'un `switchMap` prendrait pour l'ordre d'annuler le
+premier.
+
+**Le `take(1)` n'est pas décoratif, et il a manqué à ce croquis jusqu'à ce que la
+tâche 6 le mesure.** Le minuteur s'achevait de lui-même ; le flux des renforts,
+lui, ne s'achève jamais. Sans `take(1)`, le geste qu'un second doigt arme ne finit
+pas, l'`exhaustMap` reste souscrit, et **le tap à deux doigts marche une fois puis
+plus jamais**. C'est aussi pourquoi ce croquis ne peut pas troquer `race` contre
+`merge` : `race` propage l'achèvement de la branche perdante, et c'est ce qui
+termine un geste sorti avant l'armement — mesuré, `race` rend `COMPLETE` là où
+`merge` ne rend rien.
 
 Trois détails qui ne se devinent pas :
 
@@ -420,7 +431,9 @@ fantôme retiré ; (9) doigt sur une pastille immobile 500 ms → rien ; (10) so
 immobile 500 ms → rien.
 
 **Deux doigts** — (11) deux doigts sur la même page, l'un se relève → visée à
-mi-hauteur ; (12) deux doigts sur deux pages → rien ; (13) appui long armé puis
+mi-hauteur ; (12) deux doigts sur deux pages → aucun tap à deux doigts, **et**
+l'appui long du doigt qui tient s'arme quand même, à sa propre hauteur : un doigt
+refusé n'entre pas dans le geste et ne le tue pas ; (13) appui long armé puis
 second doigt → **une seule** visée, à mi-hauteur ; (14) un doigt déjà sur une
 pastille, un second sur l'image nue → rien.
 

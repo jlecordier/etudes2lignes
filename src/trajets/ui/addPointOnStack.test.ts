@@ -876,6 +876,29 @@ describe('Étant donné un doigt relevé avant les 500 ms', () => {
 
         expect(scene1.visees).toEqual([]);
     });
+
+    it("alors le geste est bel et bien fini : l'appui long suivant pose le sien", () => {
+        const scene1 = scene();
+
+        joue([
+            { at: 0, fait: pose(scene1.page, 250) },
+            { at: 200, fait: leve(250) },
+            { at: 300, fait: pose(scene1.page, 700) },
+            { at: 900, fait: leve(700) },
+        ]);
+
+        // Ce témoin-ci garde `race`, et il est le seul à le faire. Depuis que le
+        // minuteur n'est plus toute la source, c'est la course qui **propage
+        // l'achèvement de la branche perdante** : le minuteur tué par le
+        // relâchement s'achève sans rien émettre, et c'est ce qui termine le
+        // geste. Un `merge` à sa place laisserait le flux des renforts ouvert
+        // pour toujours — l'`exhaustMap` de la pile resterait souscrit et plus
+        // aucun appui long ne s'ouvrirait de toute la vie de l'écran. Le témoin
+        // d'au-dessus n'y verrait rien : il n'assère qu'une liste vide, qui le
+        // resterait.
+        expect(scene1.visees).toHaveLength(1);
+        expect(scene1.visees[0]?.fraction.value).toBeCloseTo(0.7, 6);
+    });
 });
 
 describe('Étant donné un doigt qui dérive au-delà du seuil avant les 500 ms', () => {
@@ -890,6 +913,24 @@ describe('Étant donné un doigt qui dérive au-delà du seuil avant les 500 ms'
         ]);
 
         expect(scene1.visees).toEqual([]);
+    });
+
+    it("alors le geste est fini lui aussi : l'appui long suivant pose le sien", () => {
+        const scene1 = scene();
+
+        joue([
+            { at: 0, fait: pose(scene1.page, 250) },
+            // 11 px : un de plus que `SLOP`, donc la dérive tue le minuteur.
+            { at: 200, fait: bouge(261) },
+            { at: 300, fait: leve(261) },
+            { at: 400, fait: pose(scene1.page, 700) },
+            { at: 1000, fait: leve(700) },
+        ]);
+
+        // La seconde sortie d'avant-armement, et le même mécanisme : c'est la
+        // course qui propage l'achèvement du minuteur qu'elle a perdu.
+        expect(scene1.visees).toHaveLength(1);
+        expect(scene1.visees[0]?.fraction.value).toBeCloseTo(0.7, 6);
     });
 
     it('alors une dérive au ras du seuil ne tue rien', () => {
@@ -952,6 +993,85 @@ describe("Étant donné un pointercancel après l'armement", () => {
 
         expect(scene1.visees).toEqual([]);
         expect(hauteurDuFantome(scene1)).toBeNull();
+    });
+});
+
+describe("Étant donné un doigt qui a changé de page avant qu'un second se pose", () => {
+    it('alors le second doigt, posé sur la page où le premier se trouve, rejoint le geste', () => {
+        const scene1 = scene();
+
+        joue([
+            { at: 0, fait: pose(scene1.page, 250, { pointerId: 1 }) },
+            // Armé, le doigt franchit l'interstice : il est désormais sur la page du
+            // bas, celle qui occupe [1100, 2100]. C'est une capacité que le suivi a
+            // depuis la tâche 5, et c'est elle qui rend ce scénario atteignable.
+            { at: 600, fait: bouge(1600, { pointerId: 1 }) },
+            // Le renfort se pose sur la page où le premier doigt **est**, et non sur
+            // celle où il s'était posé. Comparer à sa hauteur de départ le
+            // refuserait, alors qu'il est parfaitement légitime.
+            { at: 700, fait: pose(scene1.pageDuBas, 1500, { pointerId: 2 }) },
+            { at: 800, fait: leve(1600, { pointerId: 1 }) },
+        ]);
+
+        expect(scene1.visees).toHaveLength(1);
+        expect(scene1.visees[0]?.imageId).toBe(scene1.basId);
+        // Le milieu de 1600 et 1500 est 1550, soit 45 % de la page du bas.
+        expect(scene1.visees[0]?.fraction.value).toBeCloseTo(0.45, 6);
+    });
+
+    it("alors un second doigt sur la page qu'il a quittée ne rejoint rien, et ne peut pas terminer son geste", () => {
+        const scene1 = scene();
+
+        joue([
+            { at: 0, fait: pose(scene1.page, 250, { pointerId: 1 }) },
+            { at: 600, fait: bouge(1600, { pointerId: 1 }) },
+            // La page du haut, que plus aucun doigt du geste ne touche. Comparer à
+            // la hauteur de départ l'accepterait — et ce doigt étranger gagnerait
+            // alors le droit de terminer le geste en se relevant.
+            { at: 700, fait: pose(scene1.page, 300, { pointerId: 2 }) },
+            { at: 800, fait: leve(300, { pointerId: 2 }) },
+        ]);
+
+        expect(scene1.visees).toEqual([]);
+        // Le geste du premier doigt continue, et vise toujours sa page — non le
+        // milieu de 1600 et 300, qui tomberait dans l'interstice et figerait le
+        // trait là où il était.
+        expect(hauteurDuFantome(scene1)).toBe('50%');
+    });
+});
+
+describe('Étant donné le navigateur qui reprend le second de deux doigts armés', () => {
+    it('alors le geste continue, et la visée revient au doigt resté sur le verre', () => {
+        const scene1 = scene();
+        const vuApresLaReprise: (string | null)[] = [];
+
+        joue([
+            { at: 0, fait: pose(scene1.page, 200, { pointerId: 1 }) },
+            { at: 100, fait: pose(scene1.page, 400, { pointerId: 2 }) },
+            // Le navigateur reprend le second doigt. Il ne tue pas le geste — ce
+            // n'est pas celui qui l'a ouvert —, mais il n'en fait plus partie : sa
+            // dernière hauteur ne doit plus compter dans le milieu. Ne pas tuer le
+            // geste et ne plus compter le doigt sont deux décisions.
+            { at: 200, fait: reprend(400, { pointerId: 2 }) },
+            {
+                at: 250,
+                fait: () => {
+                    vuApresLaReprise.push(hauteurDuFantome(scene1));
+                },
+            },
+            { at: 300, fait: bouge(800, { pointerId: 1 }) },
+            { at: 400, fait: leve(800, { pointerId: 1 }) },
+        ]);
+
+        // Tout de suite, et pas au prochain mouvement : ce qu'on voit fait foi, donc
+        // le trait revient sur le doigt qui reste dès que l'autre a quitté le verre.
+        // Un doigt repris qui resterait dans le geste laisserait 30 %, le milieu de
+        // 200 et 400.
+        expect(vuApresLaReprise).toEqual(['20%']);
+        expect(scene1.visees).toHaveLength(1);
+        // 80 %, la hauteur du seul doigt encore posé — et non 60 %, le milieu de 800
+        // et d'un 400 fantôme : le point tomberait là où plus aucun doigt n'est.
+        expect(scene1.visees[0]?.fraction.value).toBeCloseTo(0.8, 6);
     });
 });
 
