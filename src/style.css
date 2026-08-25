@@ -4,11 +4,41 @@
     box-sizing: border-box;
 }
 
+/* Les gestes natifs qui occupaient le doigt sont rendus à l'application : le
+   pincement et le double-tap-zoom servaient à agrandir, ils servent maintenant à
+   poser un point (`src/trajets/ui/addPointOnStack.ts`).
+
+   Une seule règle suffit, parce que les propriétés en jeu ne se comportent pas
+   pareil et qu'il faut les deux comportements. `user-select` et
+   `-webkit-touch-callout` **s'héritent**, donc elles franchissent la frontière du
+   shadow DOM et atteignent l'`<img>` de `<schema-page>` sans qu'on écrive une
+   ligne dans son balisage. `touch-action` ne s'hérite pas — mais le navigateur
+   intersecte les valeurs de l'élément **et de ses ancêtres** jusqu'au conteneur
+   défilant, donc `body` gouverne quand même.
+
+   La carte n'a pas à être exemptée : leaflet.css pose ses propres `touch-action`
+   et `user-select` sur ses conteneurs, et arrive après dans le bundle. */
 body {
     margin: 0;
     font-family: system-ui, sans-serif;
     color: #1f2937;
     background: #f9fafb;
+    /* Surtout pas `none` : la pile se lit au doigt, et `none` tuerait ce
+       geste-là. Ce qui part, c'est le pincement et le double-tap-zoom. */
+    touch-action: pan-x pan-y;
+    -webkit-user-select: none;
+    user-select: none;
+    /* Safari iOS et iPadOS seulement ; no-op sur tous les autres moteurs. */
+    -webkit-touch-callout: none;
+}
+
+/* La seule exception, et elle suffit : le renommage d'un trajet passe par un
+   `prompt()` natif, donc hors de portée du CSS. Les seuls vrais champs sont la
+   latitude et la longitude, et corriger un chiffre fautif demande de pouvoir le
+   sélectionner. */
+input {
+    -webkit-user-select: text;
+    user-select: text;
 }
 
 :root {

@@ -2,7 +2,14 @@
 <html lang="fr">
     <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <!-- Non zoomable : les gestes que le pincement et le double-tap
+             occupaient servent à poser un point sur le schéma. Honoré par
+             Android ; Safari iOS l'ignore depuis iOS 10, et c'est
+             `src/shared/pinchZoom.ts` qui s'en charge là-bas. -->
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no"
+        />
         <meta name="theme-color" content="#1d4ed8" />
         <link rel="icon" href="./icons/icon-192.png" />
         <title>Etudes2Lignes — Suivi de schémas de ligne</title>
