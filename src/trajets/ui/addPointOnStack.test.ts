@@ -46,10 +46,17 @@ interface Scene {
     basId: ImageId;
     visees: PageAimIntent[];
     /**
-     * Ôte sa hauteur à la page du haut. Ce n'est pas un cas de laboratoire :
-     * c'est ce que jsdom rend pour toute zone qu'on ne mesure pas à la main, et
-     * un cadre replié ou une image encore sans dimensions le rend dans un vrai
-     * navigateur.
+     * Ôte sa hauteur à la page du haut. C'est ce que jsdom rend pour toute zone
+     * qu'on ne mesure pas à la main — et **rien ne dit qu'un vrai navigateur y
+     * arrive** : aucun repli ne touche la pile, et `SchemaPage` pose les
+     * dimensions de l'image avant tout décodage, garanties entières positives
+     * par l'agrégat et revalidées à la lecture.
+     *
+     * Le garde se justifie donc autrement, et ce n'est pas moins : par la parité
+     * avec `areaUnderFinger`, qui applique la même règle et fonde la sienne sur
+     * jsdom, et par la disproportion entre deux lignes de garde et la vie
+     * entière des gestes d'un écran — les quatre flux étant fusionnés, une seule
+     * levée les emporte tous.
      */
     aplatirLaPageDuHaut: () => void;
     /**
