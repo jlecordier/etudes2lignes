@@ -223,9 +223,13 @@ termine un geste sorti avant l'armement — mesuré, `race` rend `COMPLETE` là 
 
 Trois détails qui ne se devinent pas :
 
-- **`sorties$` avant l'armement, `abandons$` après.** Avant, un relâchement tue le
-  geste — c'était un tap, et il doit atteindre `click-page`. Après, le relâchement
-  est justement ce qu'on attend ; seules la dérive et l'annulation tuent encore.
+- **Ce qui tue le geste n'est pas le même avant et après l'armement.** Avant, un
+  relâchement, une dérive ou une annulation y suffisent — un relâchement disait
+  que c'était un tap, et il doit atteindre `click-page`. Après, il n'en reste
+  qu'une : l'annulation du doigt d'origine. Le relâchement est justement ce qu'on
+  attend, et la dérive est devenue la fonction du geste — voir « L'armement ouvre
+  un ajustement » plus bas. Une version antérieure de cette puce disait le
+  contraire au-dessus d'un croquis qui disait juste ; la tâche 6 l'a corrigée.
 - **Le relâchement de _l'un des deux_ doigts** termine un tap à deux doigts, pas
   seulement celui du premier. C'est le prédicat `fromSameFinger` du glisser,
   généralisé à l'ensemble des pointeurs du geste.
@@ -242,7 +246,13 @@ pas encore.**
 - le fantôme **suit le doigt**, pages voisines comprises ;
 - la dérive ne tue plus rien : c'est devenu la fonction du geste. `SLOP` ne garde
   plus que la fenêtre **avant** l'armement ;
-- `pointercancel` tue toujours, et retire le fantôme ;
+- un `pointercancel` **sur le doigt d'origine** tue le geste et retire le
+  fantôme. Sur un autre doigt du geste, non : tuer le geste et retirer le doigt
+  de l'ensemble sont deux décisions, et seule la seconde s'applique. Ce doigt-là
+  quitte le geste, la visée se recalcule aussitôt sur ceux qui restent, et le
+  geste continue. Sans cette distinction, la visée restait le milieu d'un
+  ensemble dont un membre avait quitté le verre — le point tombait alors là où
+  plus aucun doigt ne se trouvait ;
 - le relâchement pose le point là où le fantôme se trouve ;
 - **aucune page sous le doigt** (l'interstice entre deux pages, ou hors de la
   pile) → le fantôme garde sa dernière position valable, et c'est elle qui est
@@ -254,6 +264,11 @@ doigts jusqu'à ce que l'un se lève. Uniforme, oui, mais ce n'est **un seul che
 de code** qu'à condition d'énoncer la visée comme « le milieu des doigts du
 geste » — qui, pour un doigt seul, est ce doigt. L'ajustement retient alors la
 dernière hauteur connue de **chaque** doigt du geste, et non un seul `y`.
+
+Ce milieu est celui de l'**enveloppe** — la moyenne des hauteurs extrêmes, pas la
+moyenne des hauteurs. Les deux se confondent à deux doigts et divergent dès le
+troisième, et c'est l'enveloppe qui a été retenue : elle dit « entre les doigts »,
+ce qu'un troisième doigt posé près d'un bord ne doit pas déplacer.
 
 Ce prix-là n'est pas négociable, et c'est la tâche 6 qui l'a mesuré : un suivi qui
 ne connaît que le doigt d'origine ramène la visée sur lui au premier
@@ -435,7 +450,10 @@ mi-hauteur ; (12) deux doigts sur deux pages → aucun tap à deux doigts, **et*
 l'appui long du doigt qui tient s'arme quand même, à sa propre hauteur : un doigt
 refusé n'entre pas dans le geste et ne le tue pas ; (13) appui long armé puis
 second doigt → **une seule** visée, à mi-hauteur ; (14) un doigt déjà sur une
-pastille, un second sur l'image nue → rien.
+pastille, un second sur l'image nue → rien ; (20) deux doigts armés dont le
+navigateur reprend le second → la visée revient aussitôt sur le doigt qui reste,
+et c'est là que le point se pose, pas au milieu d'un ensemble qu'un membre a
+quitté.
 
 **Clic droit** — (15) sur l'image → une visée, et `defaultPrevented` ; (16) sur la
 barre d'une page → rien, et **pas** `defaultPrevented` ; (17) `contextmenu`
