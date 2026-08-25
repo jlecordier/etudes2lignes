@@ -207,6 +207,120 @@ export async function cliquerSurLImage(
     await page.mouse.click(x, y);
 }
 
+/**
+ * L'identifiant du doigt synthétique de ces gestes — délibérément pas `1`.
+ *
+ * Mesuré sur WebKit (et donc sur `iphone`, qui en hérite) : après le défilement
+ * programmatique de `positionOnImage`, le moteur ré-évalue le survol sous la
+ * souris réelle de Playwright et lui fait émettre un `pointermove` — un
+ * comportement WebKit connu, indépendant de cette suite. Ce pointeur-là porte
+ * l'identifiant `1`, et `addsOnStack` (src/trajets/ui/addPointOnStack.ts)
+ * suit un doigt par son `pointerId` : sous `1`, ce mouvement de souris
+ * intégrait le geste et le faisait dériver hors de son seuil avant même
+ * l'armement, sans qu'aucun doigt n'ait bougé. Rien à corriger côté
+ * application — juste un identifiant de test qui n'a pas à collisionner avec
+ * un pointeur réel du navigateur.
+ */
+const TOUCH_POINTER_ID = 1001;
+
+/**
+ * Arme un appui long sur l'image de l'éditeur, doigt encore posé : au retour,
+ * le fantôme est monté et rien n'est encore décidé — c'est `relacherAppuiLong`
+ * qui pose le point, à l'endroit renvoyé ici.
+ *
+ * Séparée du relâchement pour que les scénarios puissent observer l'état
+ * intermédiaire — c'est exactement ce que fait le témoin du contextmenu
+ * d'Android, dans `e2e/points.spec.ts`.
+ *
+ * Les événements sont **synthétisés**, et il n'y a pas d'alternative : Playwright
+ * n'a aucune API pour maintenir un doigt — `touchscreen.tap` est instantané et
+ * mono-doigt. `isTrusted` est donc faux, ce qui n'a pas d'incidence ici (aucun
+ * code de l'application ne le lit), mais interdit de croire ce scénario
+ * équivalent à un vrai doigt. La vérification réelle est un appareil.
+ */
+export async function armerAppuiLongSurLImage(
+    page: Page,
+    fractionOfHeight: number,
+    visualIndex = 0,
+): Promise<{ x: number; y: number }> {
+    const { x, y } = await positionOnImage(page, fractionOfHeight, visualIndex);
+    const cible = page.locator('schema-page').nth(visualIndex);
+    await cible.dispatchEvent('pointerdown', {
+        pointerId: TOUCH_POINTER_ID,
+        pointerType: 'touch',
+        clientX: x,
+        clientY: y,
+        button: 0,
+        isPrimary: true,
+    });
+    // Plus que les 500 ms de LONG_PRESS_DELAY, pour laisser l'armement arriver.
+    await page.waitForTimeout(700);
+    // Témoin déplacé ici depuis la tâche 4 : jsdom ne charge aucune feuille de
+    // style, donc les tests unitaires resteraient verts si `.point-ghost`
+    // disparaissait de la règle de pointillé qu'il partage avec `point-marker`
+    // (src/style.css) — le fantôme deviendrait invisible dans une vraie page
+    // sans qu'aucun test ne le remarque. Lu ici, entre l'appui et le
+    // relâchement, pendant que le fantôme existe encore. Précédent : commit
+    // d98f179, qui fait constater un marqueur par un vrai navigateur.
+    await expect(page.locator('.point-ghost')).toHaveCSS('border-top-style', 'dashed');
+    return { x, y };
+}
+
+/** Relâche le doigt d'un appui long armé par `armerAppuiLongSurLImage`, à la position rendue. */
+export async function relacherAppuiLong(
+    page: Page,
+    position: { x: number; y: number },
+    visualIndex = 0,
+): Promise<void> {
+    const cible = page.locator('schema-page').nth(visualIndex);
+    await cible.dispatchEvent('pointerup', {
+        pointerId: TOUCH_POINTER_ID,
+        pointerType: 'touch',
+        clientX: position.x,
+        clientY: position.y,
+    });
+}
+
+/** Un appui long sur l'image de l'éditeur, du doigt posé au doigt relâché : pose un point à cette fraction. */
+export async function appuiLongSurLImage(
+    page: Page,
+    fractionOfHeight: number,
+    visualIndex = 0,
+): Promise<void> {
+    const position = await armerAppuiLongSurLImage(page, fractionOfHeight, visualIndex);
+    await relacherAppuiLong(page, position, visualIndex);
+}
+
+/**
+ * Le `contextmenu` qu'Android émet nativement pendant un appui long, doigt
+ * encore posé — synthétisé, pour dispatcher un événement à la position
+ * voulue **pendant** un geste armé par `armerAppuiLongSurLImage`.
+ *
+ * Construit à la main plutôt que via `dispatchEvent` de Playwright :
+ * `contextmenu` est absent de la table d'événements qu'il connait (mesuré
+ * dans ses sources), donc il retombe sur un `Event` nu — sans `clientX` ni
+ * `clientY` — et l'application levait alors « Fraction verticale invalide :
+ * NaN » en tentant de situer un événement sans position.
+ */
+export async function dispatcherContextmenu(
+    page: Page,
+    position: { x: number; y: number },
+    visualIndex = 0,
+): Promise<void> {
+    const cible = page.locator('schema-page').nth(visualIndex);
+    await cible.evaluate((element, { x, y }) => {
+        element.dispatchEvent(
+            new MouseEvent('contextmenu', {
+                bubbles: true,
+                cancelable: true,
+                clientX: x,
+                clientY: y,
+                button: 2,
+            }),
+        );
+    }, position);
+}
+
 /** Clic droit sur l'image de l'éditeur : ajoute un point directement à cette fraction. */
 export async function clicDroitSurLImage(
     page: Page,

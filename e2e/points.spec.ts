@@ -1,14 +1,19 @@
 import { expect, test } from '@playwright/test';
 import {
     ajouterUnPoint,
+    armerAppuiLongSurLImage,
+    appuiLongSurLImage,
     hauteurDuRepere,
     choisirUneCoordonneePourUnPoint,
     coordonneeDuPoint,
     clicDroitSurLImage,
     cliquerSurLImage,
+    dispatcherContextmenu,
     ecartAuCentreDeLaCarte,
+    isLargeScreen,
     mesuresDuRepere,
     pngFile,
+    relacherAppuiLong,
     requireDefined,
     ouvrirUnTrajetAvecUnePage,
 } from './helpers';
@@ -500,5 +505,57 @@ test.describe('Géoréférencement des points', () => {
 
         // Si le clic passait, la carte viendrait par-dessus le schéma.
         await expect(page.locator('trajet-editor-screen')).not.toHaveClass(/carte-ouverte/);
+    });
+
+    test("Étant donné une image, quand j'y fais un appui long, alors un point est posé à cette hauteur puis la coordonnée se choisit sur la carte", async ({
+        page,
+    }) => {
+        await ouvrirUnTrajetAvecUnePage(page);
+
+        await appuiLongSurLImage(page, 0.6);
+        await choisirUneCoordonneePourUnPoint(page);
+
+        await expect(page.locator('point-marker')).toHaveCount(1);
+        await expect.poll(() => hauteurDuRepere(page)).toBeGreaterThanOrEqual(58);
+        expect(await hauteurDuRepere(page)).toBeLessThanOrEqual(62);
+    });
+
+    test("Étant donné un appui long, alors il ne pose qu'un seul point — le contextmenu pendant l'appui compris", async ({
+        page,
+    }) => {
+        await ouvrirUnTrajetAvecUnePage(page);
+
+        const position = await armerAppuiLongSurLImage(page, 0.6);
+        // Le `contextmenu` qu'Android émet nativement pendant l'appui, doigt
+        // encore posé : synthétisé, faute de pouvoir le provoquer pour de vrai
+        // (voir la JSDoc de `dispatcherContextmenu`). Mesuré : dispatcher
+        // seulement `appuiLongSurLImage`, même sur `--project=android`, n'en
+        // fait jamais apparaître un tout seul — `--project=android` n'est que
+        // Chromium habillé en Pixel 7, et sa reconnaissance de geste natif
+        // n'écoute que le vrai pipeline tactile, jamais des événements
+        // construits en JS. Ce test met donc l'arbitrage à l'épreuve pour de
+        // vrai ; il ne prouve rien, lui non plus, sur l'instant où un appareil
+        // l'émettrait.
+        await dispatcherContextmenu(page, position);
+
+        // Vérifié tout de suite, doigt toujours posé : si l'arbitrage
+        // échouait, le choix de coordonnée démarrerait déjà — le bandeau sur
+        // grand écran, la carte plein écran sur petit — avant même le
+        // relâchement qui doit normalement l'ouvrir.
+        if (await isLargeScreen(page)) {
+            await expect(page.locator('#hint-text')).not.toHaveText(
+                'Cliquez la coordonnée sur la carte…',
+            );
+        } else {
+            await expect(page.locator('#screen-carte')).toBeHidden();
+        }
+
+        await relacherAppuiLong(page, position);
+        await choisirUneCoordonneePourUnPoint(page);
+
+        // Un second choix de coordonnée resté en attente ferait échouer cette
+        // assertion de compte, ou la précédente.
+        await expect(page.locator('point-marker')).toHaveCount(1);
+        await expect(page.locator('#screen-carte')).toBeHidden();
     });
 });
