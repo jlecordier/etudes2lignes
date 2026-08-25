@@ -195,6 +195,19 @@ const carteMuette: CoordonneeSelector = {
 };
 
 /**
+ * Carte plein écran qui répond toujours la même coordonnée.
+ *
+ * `carteMuette` arrête un ajout au choix de la coordonnée, ce qui suffit partout
+ * où le point lui-même n'est pas la question ; celle-ci le laisse aller jusqu'au
+ * point écrit, seule façon de lire *où* il s'est posé.
+ */
+function carteQuiRepond(coordonnee: Coordonnee): CoordonneeSelector {
+    return {
+        choose: () => Promise.resolve(coordonnee),
+    };
+}
+
+/**
  * Source de position observable par son état : combien de sessions elle a
  * ouvertes, et combien sont encore ouvertes. C'est le même procédé que
  * `heldResources()` de la suite de contrat — aucun espion n'est requis pour
@@ -264,6 +277,7 @@ function page(nom: string): { nom: string; blob: Blob; largeur: number; hauteur:
 }
 
 let repository: FakeTrajetRepository;
+let coordonneeSelector: CoordonneeSelector;
 let carteDesPoints: FakeCarteDesPoints;
 let positionSource: FakePositionSource;
 let echecs: string[];
@@ -316,6 +330,7 @@ beforeEach(async () => {
         montres.push(this);
     };
     repository = new FakeTrajetRepository(trajetDeTroisPages);
+    coordonneeSelector = carteMuette;
     carteDesPoints = new FakeCarteDesPoints();
     positionSource = new FakePositionSource();
     echecs = [];
@@ -327,7 +342,7 @@ beforeEach(async () => {
 function dependances(): TrajetEditorDependencies {
     return {
         repository,
-        coordonneeSelector: carteMuette,
+        coordonneeSelector,
         carteDesPoints,
         positionSource,
         run,
@@ -398,6 +413,28 @@ function glisserLaPastille(element: HTMLElement, numero: number, de: number, ver
     query('#images-stack', HTMLDivElement, element).dispatchEvent(
         new FauxPointerEvent('pointerup', vers),
     );
+}
+
+/**
+ * Rejoue un ajout direct : un geste qui vise une hauteur et veut un point tout
+ * de suite, sans passer par « Ajouter un point ». Le clic droit est celle des
+ * trois routes qu'un test peut jouer d'un événement — l'appui long et le tap à
+ * deux doigts mènent au même `onDirectAdd`, et `addPointOnStack.test.ts` les
+ * couvre chacun.
+ *
+ * `rangDeLaPage` se compte dans l'ordre du document, donc du haut de la pile :
+ * 0 est la dernière page du voyage. jsdom ne mesure rien, d'où le cadre posé à
+ * la main — sinon la fraction ne peut pas se calculer.
+ */
+function viserDirectement(element: HTMLElement, rangDeLaPage: number, clientY: number): void {
+    for (const zone of queryAll('.image-area', HTMLDivElement, element)) {
+        zone.getBoundingClientRect = () => new DOMRect(0, 0, 800, 1000);
+    }
+    const page = requireElementAt(
+        queryAll('schema-page', SchemaPageElement, element),
+        rangDeLaPage,
+    );
+    page.dispatchEvent(new MouseEvent('contextmenu', { clientY, bubbles: true, cancelable: true }));
 }
 
 function exporter(element: HTMLElement): void {
@@ -785,6 +822,46 @@ describe('trajet-editor-screen', () => {
             await laisserLesPromessesSAchever();
 
             expect(carteDesPoints.centrages()).toEqual([]);
+        });
+    });
+
+    describe('Étant donné un mode de placement armé par « Ajouter un point »', () => {
+        it('quand un geste vise directement ailleurs, alors le mode est abandonné et le point est posé là', async () => {
+            coordonneeSelector = carteQuiRepond(Coordonnee.create(45.75, 4.85));
+            const element = await attacherLEcran();
+            cliquerLAction(element, 'Ajouter un point');
+            // Le mode est bien armé avant le geste : sans cette lecture-ci, les
+            // deux qui suivent le geste ne diraient pas ce qui a changé — elles
+            // passeraient contre un écran qui n'aurait jamais rien armé.
+            expect(query('#placement-hint', HTMLParagraphElement, element).hidden).toBe(false);
+
+            viserDirectement(element, 0, 250);
+            await laisserLesPromessesSAchever();
+
+            // Le mode est abandonné : le bandeau qui l'annonçait est retiré, la
+            // pile n'est plus en placement. `changeMode` est le seul endroit qui
+            // écrit ces deux-là, et la branche du grand écran qui touche au
+            // bandeau ne s'ouvre pas ici — c'est donc bien l'abandon qu'on lit.
+            expect(query('#placement-hint', HTMLParagraphElement, element).hidden).toBe(true);
+            expect(
+                query('#images-stack', HTMLDivElement, element).classList.contains(
+                    'placement-active',
+                ),
+            ).toBe(false);
+            // Et le point est là où le geste visait : la page du haut de la pile,
+            // au quart de sa hauteur. Le point d'origine, à mi-hauteur de la page
+            // du bas, dit que ce n'est pas lui qu'on relit.
+            expect(marqueurs(element).map((marqueur) => marqueur.style.top)).toEqual([
+                '25%',
+                '50%',
+            ]);
+            // Ce que l'abandon rend, dit par un geste et non par une classe : la
+            // pastille emmène à nouveau à la carte, ce qu'un placement en cours
+            // lui interdit.
+            cliquerLaPastille(element, 1);
+
+            expect(carteDesPoints.centrages()).toHaveLength(1);
+            expect(echecs).toEqual([]);
         });
     });
 

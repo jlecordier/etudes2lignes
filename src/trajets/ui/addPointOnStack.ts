@@ -576,6 +576,18 @@ function aimOf(target: EventTarget | null, clientY: number): PageAimIntent | nul
     if (!(area instanceof HTMLDivElement)) {
         return null;
     }
+    // Une page sans hauteur n'a pas de fraction : `fromHeight` lève plutôt que de
+    // diviser par zéro. Même règle et même raison qu'`areaUnderFinger`, et les
+    // deux chemins doivent la dire pareil.
+    //
+    // Elle protège ici bien plus que ce clic-là : les quatre sources du module
+    // vivent dans un seul `merge`, donc une levée dans ce `concatMap` démonterait
+    // aussi les deux routes de geste et la retenue du défilement, pour le reste
+    // de la vie de l'écran — et sans que personne l'apprenne, l'abonné n'ayant
+    // pas de gestionnaire d'erreur.
+    if (area.getBoundingClientRect().height <= 0) {
+        return null;
+    }
     const frame = area.closest('image-frame');
     if (!(frame instanceof ImageFrameElement)) {
         return null;

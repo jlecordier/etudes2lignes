@@ -46,6 +46,13 @@ interface Scene {
     basId: ImageId;
     visees: PageAimIntent[];
     /**
+     * Ôte sa hauteur à la page du haut. Ce n'est pas un cas de laboratoire :
+     * c'est ce que jsdom rend pour toute zone qu'on ne mesure pas à la main, et
+     * un cadre replié ou une image encore sans dimensions le rend dans un vrai
+     * navigateur.
+     */
+    aplatirLaPageDuHaut: () => void;
+    /**
      * Ce que fait l'écran qui se détache : son `takeUntil(parti$)` défait cet
      * abonnement. Rien de ce que le geste avait montré ne doit rester derrière.
      */
@@ -110,6 +117,10 @@ function scene(): Scene {
         hautId,
         basId,
         visees,
+        aplatirLaPageDuHaut: () => {
+            query('.image-area', HTMLDivElement, haut).getBoundingClientRect = () =>
+                new DOMRect(0, 0, 800, 0);
+        },
         detacher: () => {
             abonnement.unsubscribe();
         },
@@ -288,6 +299,28 @@ describe("Poser un point d'un seul geste", () => {
 
             expect(scene1.visees).toEqual([]);
             expect(evenement.defaultPrevented).toBe(false);
+        });
+    });
+
+    describe('Étant donné un clic droit sur une page sans hauteur', () => {
+        it("alors rien n'est visé, et les gestes suivants vivent encore", () => {
+            const scene1 = scene();
+            scene1.aplatirLaPageDuHaut();
+
+            clicDroit(scene1.page, 250);
+
+            expect(scene1.visees).toEqual([]);
+            // La seconde moitié est le vrai enjeu, et elle est neuve : les quatre
+            // sources du module vivent dans un seul `merge`, donc une levée dans
+            // ce `concatMap` les démonterait toutes — les deux routes de geste et
+            // la retenue du défilement avec —, pour le reste de la vie de
+            // l'écran. Et personne ne l'apprendrait : l'abonné n'a pas de
+            // gestionnaire d'erreur, donc `run(…, « l'ajout du point »)` ne
+            // signalerait rien.
+            clicDroit(scene1.pageDuBas, 1350);
+
+            expect(scene1.visees).toHaveLength(1);
+            expect(scene1.visees[0]?.imageId).toBe(scene1.basId);
         });
     });
 
