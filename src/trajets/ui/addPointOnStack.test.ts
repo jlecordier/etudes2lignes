@@ -201,6 +201,37 @@ function hauteurDuFantome(scene1: Scene): string | null {
     return fantome instanceof HTMLElement ? fantome.style.top : null;
 }
 
+/**
+ * De quoi relever, aux instants que le scénario choisit, si le geste est armé.
+ *
+ * L'armement se lit sur la pile et nulle part ailleurs : le fantôme monté **est**
+ * l'armement. `addPointOnStack` le dit là où il refuse un booléen partagé — qui
+ * redirait la même chose une seconde fois et pourrait se désaccorder de ce qu'on
+ * voit. Le lire de la même façon est ce qui tient le test d'accord avec ce choix,
+ * et c'est pourquoi la sonde le lit une fois pour toutes ici : la hauteur du
+ * fantôme n'entre pas en ligne de compte, seule sa présence.
+ *
+ * Les relevés s'empilent au lieu de se résumer à un booléen parce que c'est leur
+ * **suite** qui spécifie quelque chose : un « armé » à la fin ne distingue pas
+ * « pas encore armé, puis armé » de « armé depuis le début ».
+ */
+interface SondeDArmement {
+    /** Les relevés, dans l'ordre où le scénario les a pris. */
+    readonly armes: boolean[];
+    /** À poser dans un geste : range un relevé de plus. */
+    readonly relever: () => void;
+}
+
+function sonderLArmement(scene1: Scene): SondeDArmement {
+    const armes: boolean[] = [];
+    return {
+        armes,
+        relever: () => {
+            armes.push(hauteurDuFantome(scene1) !== null);
+        },
+    };
+}
+
 /** L'image de la page où le fantôme se trouve, ou rien s'il n'est nulle part. */
 function pageDuFantome(scene1: Scene): ImageId | null {
     const cadre = scene1.stack.querySelector('.point-ghost')?.closest('image-frame') ?? null;
@@ -215,6 +246,22 @@ function fantomeAlaMain(): HTMLDivElement {
     const element = document.createElement('div');
     element.className = 'point-ghost';
     return element;
+}
+
+/**
+ * La pastille d'un point déjà posé, sur la page du haut. Rendue pour qu'un doigt
+ * puisse s'y poser : c'est la **poignée du glisser**, donc jamais une cible
+ * d'appui — les gardes d'entrée du module l'écartent, et c'est ce que ces
+ * scénarios vérifient.
+ *
+ * Un vrai point serait le détour : les gardes ne regardent que la classe de ce
+ * que le doigt touche, et l'agrégat n'a rien à dire ici.
+ */
+function unePastilleSurLaPage(scene1: Scene): HTMLButtonElement {
+    const pastille = document.createElement('button');
+    pastille.className = 'point-number';
+    query('.image-area', HTMLDivElement, scene1.stack).append(pastille);
+    return pastille;
 }
 
 /**
@@ -573,21 +620,15 @@ describe("Étant donné deux appuis longs ajustés, l'un après l'autre", () => 
 describe('Étant donné deux doigts posés sur la même page', () => {
     it('alors le geste est armé dès le second doigt, sans attendre les 500 ms', () => {
         const scene1 = scene();
-        const armeAvantLes500: boolean[] = [];
+        const { armes: armeAvantLes500, relever } = sonderLArmement(scene1);
 
         joue([
             { at: 0, fait: pose(scene1.page, 200, { pointerId: 1 }) },
             { at: 100, fait: pose(scene1.page, 400, { pointerId: 2 }) },
-            {
-                at: 200,
-                fait: () => {
-                    // Un fantôme monté **est** l'armement, comme partout ailleurs
-                    // dans ce module. Sa hauteur n'est pas la question ici, sa
-                    // présence l'est : à 200 ms, le minuteur de l'appui long n'a
-                    // pas atteint son terme, et deux doigts n'ont pas à l'attendre.
-                    armeAvantLes500.push(hauteurDuFantome(scene1) !== null);
-                },
-            },
+            // À 200 ms, le minuteur de l'appui long n'a pas atteint son terme, et
+            // deux doigts n'ont pas à l'attendre : c'est tout ce que ce relevé-ci
+            // demande à la pile.
+            { at: 200, fait: relever },
             { at: 300, fait: leve(200, { pointerId: 1 }) },
         ]);
 
@@ -689,10 +730,7 @@ describe("Étant donné deux doigts armés dont l'un glisse", () => {
 describe("Étant donné une souris cliquée pendant qu'un doigt tient la pile", () => {
     it("alors elle n'arme aucun tap à deux doigts : sa route est le clic droit", () => {
         const scene1 = scene();
-        const armes: boolean[] = [];
-        const relever = (): void => {
-            armes.push(hauteurDuFantome(scene1) !== null);
-        };
+        const { armes, relever } = sonderLArmement(scene1);
 
         joue([
             { at: 0, fait: pose(scene1.page, 200, { pointerId: 1 }) },
@@ -715,13 +753,8 @@ describe("Étant donné une souris cliquée pendant qu'un doigt tient la pile", 
 describe("Étant donné un second doigt posé sur la pastille d'un point", () => {
     it("alors il n'arme aucun tap à deux doigts : une pastille n'est pas une cible d'appui", () => {
         const scene1 = scene();
-        const pastille = document.createElement('button');
-        pastille.className = 'point-number';
-        query('.image-area', HTMLDivElement, scene1.stack).append(pastille);
-        const armes: boolean[] = [];
-        const relever = (): void => {
-            armes.push(hauteurDuFantome(scene1) !== null);
-        };
+        const pastille = unePastilleSurLaPage(scene1);
+        const { armes, relever } = sonderLArmement(scene1);
 
         joue([
             { at: 0, fait: pose(scene1.page, 200, { pointerId: 1 }) },
@@ -745,10 +778,7 @@ describe("Étant donné un second doigt posé sur la pastille d'un point", () =>
 describe('Étant donné deux doigts posés sur deux pages différentes', () => {
     it("alors aucun tap à deux doigts n'est armé : ils ne partagent pas de page", () => {
         const scene1 = scene();
-        const armes: boolean[] = [];
-        const relever = (): void => {
-            armes.push(hauteurDuFantome(scene1) !== null);
-        };
+        const { armes, relever } = sonderLArmement(scene1);
 
         joue([
             { at: 0, fait: pose(scene1.page, 200, { pointerId: 1 }) },
@@ -1148,9 +1178,7 @@ describe('Étant donné un doigt qui dérive de côté au-delà du seuil avant l
 describe("Étant donné un doigt immobile sur la pastille d'un point déjà posé", () => {
     it("alors rien n'est visé : la pastille est la poignée du glisser, pas une cible d'appui", () => {
         const scene1 = scene();
-        const pastille = document.createElement('button');
-        pastille.className = 'point-number';
-        query('.image-area', HTMLDivElement, scene1.stack).append(pastille);
+        const pastille = unePastilleSurLaPage(scene1);
 
         joue([
             { at: 0, fait: pose(pastille, 250) },
@@ -1164,9 +1192,7 @@ describe("Étant donné un doigt immobile sur la pastille d'un point déjà pos�
 describe("Étant donné un second doigt posé sur l'image, un premier tenant déjà une pastille", () => {
     it("alors rien n'est visé : le premier doigt mène un glisser", () => {
         const scene1 = scene();
-        const pastille = document.createElement('button');
-        pastille.className = 'point-number';
-        query('.image-area', HTMLDivElement, scene1.stack).append(pastille);
+        const pastille = unePastilleSurLaPage(scene1);
 
         joue([
             { at: 0, fait: pose(pastille, 250, { pointerId: 1 }) },
