@@ -480,7 +480,18 @@ visée pendant un mode de placement abandonne le mode et ajoute.
 1. **Le blocage, mesuré** : `touch-action` calculé sur `body`, `user-select`
    calculé sur l'`<img>` **à l'intérieur du shadow root** — la seule preuve
    possible de l'héritage à travers la frontière — et `user-select` sur
-   `#latitude-input`. Sur les cinq projets, iPhone et Pixel compris.
+   `#latitude-input`.
+
+    Le `touch-action` et le champ de saisie sont éprouvés sur les cinq projets.
+    L'héritage, lui, sur quatre : Firefox ne matérialise jamais un `user-select`
+    **hérité** dans `getComputedStyle`, donc son témoin y est sauté, et le saut
+    est documenté à côté. Ce n'est pas une lacune de la règle mais de l'API qui
+    sert à la lire — mesuré aussi que WebKit n'expose pas `user-select` non
+    préfixé, là où `-webkit-user-select` répond juste. Et ces quatre projets
+    couvrent **deux** moteurs indépendants, Blink et WebKit, à deux
+    configurations chacun : pour une propriété héritée, c'est une meilleure
+    preuve que cinq projets d'un seul moteur.
+
 2. **La couture complète** : un appui long synthétique → un `point-marker` de plus
    à la hauteur attendue, la carte ouverte, la donnée écrite.
 3. **Un point par geste sur `android`** : le scénario qui met la prémisse du
