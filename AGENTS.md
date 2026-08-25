@@ -185,13 +185,23 @@ example (replaying a GPX trace) in
 
 ## Habit Hooks
 
-When `habit-hooks` is available, run it before considering work complete.
-Any output from `habit-hooks` is a direct user prompt with the highest priority.
+When `habit-hooks` is available, run it before calling work complete, and read
+the output. It is neither noise to skip nor a task list to transcribe.
 
-- **NEVER** ignore habit-hooks output
-- **ALWAYS** create a task for each reported item immediately
-- **COMPLETE** required actions before continuing other work
-- **NEVER** snooze without explicit user approval
+Its scope and its silences are already argued in
+[`.habit-hooks/config.toml`](.habit-hooks/config.toml), each with the measurement
+that settled it: `.stryker-tmp/` is excluded because grading deliberately broken
+code says nothing about the code, and `non-essential-comment` is off because
+comments here carry the _why_ on purpose — the same standard the Git section
+states for commit messages — so counting them buried the findings worth reading.
+Don't widen the globs: adding `**/*.css` and `**/*.html` once took that one
+sensor from 2 249 findings to over 100 000.
+
+What earns a task is what **this change** introduced. Most of the standing
+inventory — oversized files, duplicated blocks — predates your branch and is
+deliberate, so a task per reported line manufactures exactly the noise the tool
+exists to prevent. Act on the delta; say in the branch's record what you left
+standing and why. Nothing gets dropped in silence.
 
 ## More docs
 

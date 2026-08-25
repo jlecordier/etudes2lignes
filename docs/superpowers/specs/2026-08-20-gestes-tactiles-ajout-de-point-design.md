@@ -95,22 +95,34 @@ textes (nom de trajet, nom de page, phrase d'aide) ne se sélectionnent plus.
 
 ```ts
 // src/shared/pinchZoom.ts
-declare global {
-    interface WindowEventMap {
-        gesturestart: Event;
-    }
-}
+export function blockPinchZoom(target: EventTarget): void;
 ```
 
-Une **déclaration**, pas un cast : on ne déclare que ce qu'on emploie — `Event`,
-qui porte `preventDefault` — sans fabriquer une forme de `GestureEvent` qu'on
-n'aurait pas vérifiée. C'est le procédé qu'`intents.ts` applique déjà à
-`HTMLElementEventMap`, et l'ADR 0002 bannit l'autre.
+`gesturestart` est le seul levier qui reste — un événement **non standard** que
+WebKit émet seul au monde quand deux doigts commencent un pincement ou une
+rotation. L'annuler annule le geste entier, donc rien à guetter du côté de
+`gesturechange`.
+
+**Aucun cast, et pas de `declare global` non plus.** La règle de fond est celle de
+l'ADR 0002 : on n'affirme pas un type, on l'obtient. Mais ici il n'y a rien à
+obtenir — la surcharge `(type: string, listener)` d'`addEventListener` rend déjà
+un `Event`, qui porte `preventDefault`, et c'est tout ce qu'on lui demande. Une
+augmentation de `WindowEventMap` n'ajouterait donc aucune garantie ; elle
+élargirait le type global de toute l'application pour redire ce que la surcharge
+dit sur place. La comparaison avec l'augmentation d'`intents.ts` est ce qui
+tranche : là-bas, elle **achète** quelque chose — que `click-page` porte un
+`CustomEvent<PageAimIntent>`, ce qu'aucune surcharge ne saurait — et c'est pour
+cette preuve-là qu'`eventsOf` l'enveloppe. Ici, rien.
+
+Le paramètre est un `EventTarget` et non `window`, et ce n'est pas de la
+généralité gratuite : c'est ce qui rend la fonction éprouvable sur une cible
+fabriquée pour le test, sans toucher au global de la suite. En production c'est
+`window` qu'on lui passe, une fois.
 
 Un `addEventListener` nu, pas un flux : il n'y a ici ni cadence, ni fraîcheur, ni
 concurrence — les trois choses dont parle l'ADR 0009 — et l'écouteur vit tant que
-la page vit. Appelé une fois depuis `main.ts`, à côté d'`enableOfflineMode()` :
-c'est de la coquille, pas d'un écran.
+la page vit, donc il n'y a rien à défaire et rien à rendre. Appelé une fois depuis
+`main.ts`, à côté d'`enableOfflineMode()` : c'est de la coquille, pas d'un écran.
 
 ### Un reconnaisseur de gestes, frère du glisser
 
@@ -194,7 +206,9 @@ return race(appuiLong$, renforts$).pipe(
     concatMap(() => {
         vibrer();
         // Armé : le fantôme suit le milieu des doigts, et le point ne naît qu'au
-        // relâchement — donc la carte ne s'ouvre jamais sous un doigt encore posé.
+        // relâchement — pas à l'armement, où un doigt encore posé choisirait sa
+        // coordonnée au hasard en se levant. Ce que ça ne garantit pas est dit
+        // sous « L'armement ouvre un ajustement ».
         return suivreLesDoigts(doigts.visee());
     }),
     takeUntil(cancels$),
@@ -275,6 +289,21 @@ ne connaît que le doigt d'origine ramène la visée sur lui au premier
 `pointermove`, et deux doigts posés sur du verre en émettent toujours. Le point
 tomberait donc là où est un doigt, pas au milieu — vert en jsdom, faux sur
 l'appareil.
+
+**Ce que la pose au relâchement garantit, et ce qu'elle ne garantit pas.** Elle
+écarte le cas de l'armement, et c'est sa raison d'être : ouvrir la carte des
+coordonnées à 500 ms laisserait un doigt encore posé lui choisir une coordonnée au
+hasard en se levant. Elle n'écarte pas le verre pour autant — à deux doigts,
+relâcher l'un pose le point pendant que l'autre est toujours là, donc **la carte
+s'ouvre bien sous un doigt encore posé**, et une version antérieure de cette
+section prétendait le contraire. C'est inoffensif, mais par une chaîne et non par
+un invariant : le doigt qui reste a la capture implicite du `<schema-page>` où il
+s'est posé, donc son `pointerup` et son `click` de compatibilité visent cette page,
+atteignent `click-page`, et `onImageClick` retourne aussitôt parce que
+`placementMode` est `null`. Exactement la chaîne sur laquelle repose le garde
+qu'on n'ajoute pas — voir « un garde que je **n'ajoute pas** » plus bas —, avec la
+même inconnue : elle tient tant que le navigateur cible ce clic par la cible du
+toucher et non par un nouveau test de survol.
 
 ### Empêcher le navigateur de défiler pendant l'ajustement
 
@@ -392,7 +421,7 @@ c'est donc le fantôme seul qui le dit, d'où l'intérêt de l'avoir gardé fran
 | `src/trajets/ui/ImageFrame.ts`         | perd l'écouteur `contextmenu` ; `fractionFromPosition` part dans le module partagé |
 | `src/trajets/ui/intents.ts`            | perd `right-click-page`                                                            |
 | `src/trajets/ui/TrajetEditorScreen.ts` | s'abonne au nouveau flux ; `onImageRightClick` devient `onDirectAdd`               |
-| `docs/EXIGENCES.md`                    | GR-22 à GR-25                                                                      |
+| `docs/EXIGENCES.md`                    | GR-24 à GR-27 (voir « Exigences » plus bas : ce ne sont pas les numéros prévus)    |
 
 `areaUnderFinger` est extraite parce que l'ajustement traverse les pages, ce dont
 le geste sans ajustement n'aurait pas eu besoin. Les deux modules **ne sont pas
@@ -458,7 +487,13 @@ quitté.
 **Clic droit** — (15) sur l'image → une visée, et `defaultPrevented` ; (16) sur la
 barre d'une page → rien, et **pas** `defaultPrevented` ; (17) `contextmenu`
 pendant qu'un pointeur tactile est actif → `defaultPrevented` mais **aucune**
-visée : le cas Android.
+visée : le cas Android ; (21) sur une page **sans hauteur** → rien n'est visé,
+**et les gestes suivants vivent encore**. Ce dernier est arrivé à la revue finale,
+et sa seconde moitié est tout l'enjeu : la résolution de la page visée par le clic
+droit ne gardait pas le garde de hauteur nulle que sa sœur `areaUnderFinger`
+applique exprès, et une levée dans ce `concatMap` démonte le `merge` entier — les
+deux routes de geste et la retenue du défilement — sans que l'abonné, qui n'a pas
+de gestionnaire d'erreur, l'apprenne jamais.
 
 **Défilement** — (18) `touchmove` avant l'armement → **pas** `defaultPrevented` ;
 (19) après l'armement → `defaultPrevented`. Ce sont les deux seuls témoins du
@@ -471,9 +506,17 @@ est : le témoin du **câblage**, pas du navigateur.
 
 ### `TrajetEditorScreen.test.ts`
 
-La visée aboutit à un point au bon `imageId` et à la bonne fraction — le scénario
-du clic droit existe et change de porte d'entrée. Plus le cas qui manquait : une
-visée pendant un mode de placement abandonne le mode et ajoute.
+Une visée pendant un mode de placement **abandonne le mode et ajoute**, au bon
+`imageId` et à la bonne fraction.
+
+Ce paragraphe disait d'abord que « le scénario du clic droit existe et change de
+porte d'entrée » : mesuré faux, ce fichier n'avait aucun scénario de clic droit
+avant cette branche, ni après. Le seul témoin de l'abandon du mode est donc celui
+ci-dessus, et il a été écrit à la revue finale — sans lui, supprimer le
+`changeMode(null)` d'`onDirectAdd` laissait toutes les portes vertes. Il lit
+l'abandon deux fois : sur le bandeau et la classe de la pile, que `changeMode` est
+seul à écrire, puis sur ce que l'abandon rend — la pastille d'un point remmène à
+la carte, ce qu'un placement en cours lui interdit.
 
 ### e2e — ce que le vrai navigateur apporte en plus, et rien d'autre
 
@@ -522,11 +565,15 @@ pour en faire taire un.
 
 ## Exigences
 
-À la suite de GR-21, section Géoréférencement de `docs/EXIGENCES.md` :
+À la suite de GR-23, section Géoréférencement de `docs/EXIGENCES.md`. Ce
+document a d'abord écrit « à la suite de GR-21 » et numéroté GR-22 à GR-25 : GR-22
+et GR-23 existaient déjà, sur les sessions de position, et suivre ces
+identifiants-là à la lettre aurait fabriqué des doublons. Ce sont donc GR-24 à
+GR-27 qui ont atterri.
 
 | ID    | Exigence                                                                                                                                    |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| GR-22 | Zoom et sélection natifs neutralisés dans toute l'application ; les champs de saisie restent sélectionnables ; la carte garde son pincement |
-| GR-23 | Un appui long sur l'image arme un repère fantôme, que le doigt déplace jusqu'au relâchement, où le point se crée                            |
-| GR-24 | Un tap à deux doigts sur une même page crée un point à mi-hauteur entre les deux doigts                                                     |
-| GR-25 | Un seul geste ne crée jamais plus d'un point, `contextmenu` natif d'Android compris                                                         |
+| GR-24 | Zoom et sélection natifs neutralisés dans toute l'application ; les champs de saisie restent sélectionnables ; la carte garde son pincement |
+| GR-25 | Un appui long sur l'image nue arme un repère fantôme, que le doigt déplace de page en page jusqu'au relâchement, où le point se crée        |
+| GR-26 | Un tap à deux doigts sur une même page crée un point au milieu de leur enveloppe, sans attendre l'appui long                                |
+| GR-27 | Un seul geste ne crée jamais plus d'un point, `contextmenu` natif compris                                                                   |
