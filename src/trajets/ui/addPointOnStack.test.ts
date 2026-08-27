@@ -239,6 +239,44 @@ function pageDuFantome(scene1: Scene): ImageId | null {
 }
 
 /**
+ * Ce qu'un geste abouti a produit : **un** point, un seul, sur telle page et à
+ * telle hauteur.
+ *
+ * Les trois lectures vont ensemble parce que chacune couvre ce que les deux
+ * autres laisseraient passer — le compte seul accepterait un point posé sur la
+ * page voisine, la page seule un geste qui en pose deux, la hauteur seule un
+ * premier point juste suivi d'un second qui ne devrait pas exister. La page et la
+ * hauteur attendues, elles, restent chez l'appelant : c'est ce que son scénario
+ * démontre, et lui seul sait d'où elles sortent.
+ */
+function attendUnSeulPointVise(scene1: Scene, page: ImageId, fraction: number): void {
+    expect(scene1.visees).toHaveLength(1);
+    expect(scene1.visees[0]?.imageId).toBe(page);
+    expect(scene1.visees[0]?.fraction.value).toBeCloseTo(fraction, 6);
+}
+
+/**
+ * Le verdict d'`unAppuiTenuMalgre` : l'intrus n'a rien changé. Le geste est resté
+ * celui du seul doigt qui tenait, et son point s'est posé à **sa** hauteur — 20 %,
+ * et non 30 %, le milieu qu'un second participant aurait imposé.
+ *
+ * Ce verdict est le même pour les trois pointeurs écartés, parce que c'est une
+ * seule règle qui les écarte ; ce qui les sépare est ce qu'ils sont, et cela reste
+ * chez chaque scénario. La distance entre 20 et 30 % est ce qui rend le témoin
+ * discriminant : un pointeur admis à tort déplacerait la visée, et les relevés
+ * d'armement le diraient en même temps.
+ *
+ * La page n'est pas relue ici, et c'est délibéré : les trois scénarios ne
+ * l'assèraient pas non plus. Ce qu'ils démontrent est qu'un pointeur ne rejoint
+ * pas le geste, et l'ajouter en passant tendrait un témoin que personne n'a écrit.
+ */
+function attendUnPointAuDoigtQuiTient(scene1: Scene, armes: readonly boolean[]): void {
+    expect(armes).toEqual([false, true]);
+    expect(scene1.visees).toHaveLength(1);
+    expect(scene1.visees[0]?.fraction.value).toBeCloseTo(0.2, 6);
+}
+
+/**
  * Un trait fantôme fabriqué hors de tout geste, pour interroger l'écouteur non
  * passif sans passer par un armement.
  */
@@ -308,6 +346,110 @@ function brancherLeVibreur(): Vibreur {
     return { motifs };
 }
 
+/**
+ * Deux doigts posés sur la même page, le second cent millisecondes après le
+ * premier : c'est le tap à deux doigts, et il s'arme sans attendre les 500 ms de
+ * l'appui long.
+ *
+ * Les deux hauteurs sont 200 et 400 sur la page du haut, donc leur milieu est 300
+ * — 30 % d'une page de 1000 px, et c'est là que le geste vise. Elles restent
+ * visibles à l'endroit qui compte : c'est en nommant l'une ou l'autre qu'un
+ * scénario choisit lequel des deux doigts se lève, glisse, ou se fait reprendre.
+ *
+ * Le second doigt se pose **pendant** que le premier tient, et c'est l'`exhaustMap`
+ * du module qui le lui laisse : un `switchMap` annulerait le geste ouvert par le
+ * premier — le second `pointerdown` n'ouvre aucun geste à lui, `doigts` en
+ * contenant déjà deux — et il ne resterait personne pour entendre ce doigt-ci.
+ */
+function deuxDoigtsSurLaMemePage(scene1: Scene): Geste[] {
+    return [
+        { at: 0, fait: pose(scene1.page, 200, { pointerId: 1 }) },
+        { at: 100, fait: pose(scene1.page, 400, { pointerId: 2 }) },
+    ];
+}
+
+/**
+ * Un appui long armé sur la page du haut, dont le doigt a ensuite glissé jusqu'à
+ * `hauteur`.
+ *
+ * C'est une **situation**, pas un raccourci : l'appui se pose au quart de la page
+ * du haut — 250 px sur 1000 —, et le mouvement arrive à 600 ms, donc après les 500
+ * de l'armement. Ces deux instants sont ce qui la nomme, et c'est pourquoi ils
+ * n'ont pas à être relus dans chaque scénario : ce que les scénarios ont à dire
+ * commence **après**, et diverge — l'un relâche, l'un relâche plus loin, l'un se
+ * fait reprendre par le navigateur.
+ *
+ * Le quart du départ reste la hauteur de référence : c'est elle qu'un geste qui
+ * s'égare hors de toute page doit conserver.
+ */
+function unAppuiArmePuisGlisseA(
+    scene1: Scene,
+    hauteur: number,
+    options?: OptionsPointeur,
+): Geste[] {
+    return [
+        { at: 0, fait: pose(scene1.page, 250, options) },
+        { at: 600, fait: bouge(hauteur, options) },
+    ];
+}
+
+/**
+ * Un appui long tenu sur la page du haut **malgré** un second pointeur que le
+ * geste doit écarter — une souris d'appareil hybride, un doigt tombé sur une
+ * pastille, un doigt posé sur l'autre page. Chaque scénario dit lequel ; ce qui
+ * suit est le même pour tous les trois, et c'est ce que la situation nomme.
+ *
+ * Le doigt qui tient est à 200 sur une page de 1000, donc le point se posera à
+ * 20 % — et non à 30 %, le milieu qu'un second participant aurait imposé. C'est là
+ * l'enjeu, et c'est ce que le scénario assère.
+ *
+ * Les deux relevés d'armement encadrent les 500 ms, et c'est leur **suite** qui
+ * spécifie : `[false, true]` dit à la fois « ce pointeur-ci n'a armé aucun tap à
+ * deux doigts », puisqu'à 200 ms un vrai participant aurait déjà armé, et « il n'a
+ * pas tué pour autant le geste de celui qui tient », puisqu'à 550 ms l'appui long
+ * s'est armé à son heure. Un seul des deux relevés laisserait passer l'une des
+ * deux fautes.
+ */
+interface AppuiTenuMalgreUnPointeur {
+    readonly gestes: readonly Geste[];
+    /** Les deux relevés d'armement, à 200 ms puis à 550 ms. */
+    readonly armes: boolean[];
+}
+
+/**
+ * Un appui long sur la page du haut, et un second pointeur posé **hors** de la
+ * pile : un pouce sur la bordure, une paume, un stylet, la souris d'un appareil
+ * hybride.
+ *
+ * Ce pointeur-là est invisible à l'entrée du module — `compterLesDoigts$` ne le
+ * compte pas, aucun garde ne le voit —, et pourtant rien ne le distingue du
+ * premier doigt en aval : c'est tout l'intérêt de la situation, et ce que chaque
+ * scénario met à l'épreuve en le faisant glisser, se lever ou se faire reprendre.
+ *
+ * Le doigt qui tient reste au quart de la page du haut, et c'est lui, jamais
+ * l'intrus, qui décide de ce que le geste vise.
+ */
+function unAppuiEtUnPointeurHorsDeLaPile(scene1: Scene): Geste[] {
+    return [
+        { at: 0, fait: pose(scene1.page, 250, { pointerId: 1 }) },
+        { at: 100, fait: pose(document.body, 250, { pointerId: 2 }) },
+    ];
+}
+
+function unAppuiTenuMalgre(scene1: Scene, secondPointeur: () => void): AppuiTenuMalgreUnPointeur {
+    const { armes, relever } = sonderLArmement(scene1);
+    return {
+        gestes: [
+            { at: 0, fait: pose(scene1.page, 200, { pointerId: 1 }) },
+            { at: 100, fait: secondPointeur },
+            { at: 200, fait: relever },
+            { at: 550, fait: relever },
+            { at: 600, fait: leve(200, { pointerId: 1 }) },
+        ],
+        armes,
+    };
+}
+
 beforeEach(() => {
     document.body.replaceChildren();
 });
@@ -333,9 +475,7 @@ describe("Poser un point d'un seul geste", () => {
 
             clicDroit(scene1.page, 250);
 
-            expect(scene1.visees).toHaveLength(1);
-            expect(scene1.visees[0]?.imageId).toBe(scene1.hautId);
-            expect(scene1.visees[0]?.fraction.value).toBeCloseTo(0.25, 6);
+            attendUnSeulPointVise(scene1, scene1.hautId, 0.25);
         });
 
         it('alors le menu natif est empêché', () => {
@@ -442,9 +582,7 @@ describe('Étant donné un appui long maintenu puis relâché sans bouger', () =
             { at: 600, fait: leve(250) },
         ]);
 
-        expect(scene1.visees).toHaveLength(1);
-        expect(scene1.visees[0]?.imageId).toBe(scene1.hautId);
-        expect(scene1.visees[0]?.fraction.value).toBeCloseTo(0.25, 6);
+        attendUnSeulPointVise(scene1, scene1.hautId, 0.25);
     });
 
     it("alors un fantôme est apparu à l'armement, puis retiré au relâchement", () => {
@@ -507,12 +645,9 @@ describe("Étant donné un doigt qui se déplace après l'armement", () => {
     it('alors le fantôme le suit : la dérive est devenue la fonction du geste', () => {
         const scene1 = scene();
 
-        joue([
-            { at: 0, fait: pose(scene1.page, 250) },
-            // 350 px, bien au-delà de `SLOP` : ce seuil ne garde plus que la
-            // fenêtre d'**avant** l'armement.
-            { at: 600, fait: bouge(600) },
-        ]);
+        // 350 px de glissade, bien au-delà de `SLOP` : ce seuil ne garde plus que
+        // la fenêtre d'**avant** l'armement.
+        joue(unAppuiArmePuisGlisseA(scene1, 600));
 
         // Le doigt est encore posé, donc le fantôme est encore là — et c'est lui
         // qui dit où le point tombera.
@@ -522,11 +657,7 @@ describe("Étant donné un doigt qui se déplace après l'armement", () => {
     it('alors le point se pose à la nouvelle hauteur, pas à celle du départ', () => {
         const scene1 = scene();
 
-        joue([
-            { at: 0, fait: pose(scene1.page, 250) },
-            { at: 600, fait: bouge(600) },
-            { at: 700, fait: leve(600) },
-        ]);
+        joue([...unAppuiArmePuisGlisseA(scene1, 600), { at: 700, fait: leve(600) }]);
 
         expect(scene1.visees).toHaveLength(1);
         expect(scene1.visees[0]?.fraction.value).toBeCloseTo(0.6, 6);
@@ -535,13 +666,9 @@ describe("Étant donné un doigt qui se déplace après l'armement", () => {
     it("alors passer sur la page voisine change l'image visée", () => {
         const scene1 = scene();
 
-        joue([
-            { at: 0, fait: pose(scene1.page, 250) },
-            // 1600 est sur la page du bas, qui occupe [1100, 2100] : le doigt a
-            // franchi l'interstice.
-            { at: 600, fait: bouge(1600) },
-            { at: 700, fait: leve(1600) },
-        ]);
+        // 1600 est sur la page du bas, qui occupe [1100, 2100] : le doigt a franchi
+        // l'interstice.
+        joue([...unAppuiArmePuisGlisseA(scene1, 1600), { at: 700, fait: leve(1600) }]);
 
         expect(scene1.visees[0]?.imageId).toBe(scene1.basId);
         expect(scene1.visees[0]?.fraction.value).toBeCloseTo(0.5, 6);
@@ -550,28 +677,20 @@ describe("Étant donné un doigt qui se déplace après l'armement", () => {
     it("alors partir droit dans l'interstice pose quand même le point, là où il était armé", () => {
         const scene1 = scene();
 
-        joue([
-            { at: 0, fait: pose(scene1.page, 250) },
-            // Le doigt ne touche **aucune** page valable après l'armement : il file
-            // droit dans l'interstice et s'y lève. Rien n'a donc jamais remplacé la
-            // page de départ, et c'est elle qui doit être enregistrée — sans quoi un
-            // geste abouti se perdrait.
-            { at: 600, fait: bouge(1050) },
-            { at: 700, fait: leve(1050) },
-        ]);
+        // Le doigt ne touche **aucune** page valable après l'armement : il file
+        // droit dans l'interstice et s'y lève. Rien n'a donc jamais remplacé la page
+        // de départ, et c'est elle qui doit être enregistrée — sans quoi un geste
+        // abouti se perdrait.
+        joue([...unAppuiArmePuisGlisseA(scene1, 1050), { at: 700, fait: leve(1050) }]);
 
-        expect(scene1.visees).toHaveLength(1);
-        expect(scene1.visees[0]?.imageId).toBe(scene1.hautId);
-        expect(scene1.visees[0]?.fraction.value).toBeCloseTo(0.25, 6);
+        // Le quart où l'appui s'était armé, sur la page où il s'était armé.
+        attendUnSeulPointVise(scene1, scene1.hautId, 0.25);
     });
 
     it("alors le fantôme a changé de page, et il n'en reste pas deux", () => {
         const scene1 = scene();
 
-        joue([
-            { at: 0, fait: pose(scene1.page, 250) },
-            { at: 600, fait: bouge(1600) },
-        ]);
+        joue(unAppuiArmePuisGlisseA(scene1, 1600));
 
         // Le fantôme change de zone comme `placeAt` déplace le vrai repère : il
         // est déplacé, pas recopié.
@@ -583,8 +702,7 @@ describe("Étant donné un doigt qui se déplace après l'armement", () => {
         const scene1 = scene();
 
         joue([
-            { at: 0, fait: pose(scene1.page, 250) },
-            { at: 600, fait: bouge(1600) },
+            ...unAppuiArmePuisGlisseA(scene1, 1600),
             // 1050 n'est sur aucune page : le fantôme reste où il était, et c'est
             // cette position-là qui est enregistrée. Un geste abouti ne doit pas
             // se perdre — la règle que le glisser a déjà tranchée.
@@ -602,9 +720,10 @@ describe("Étant donné deux appuis longs ajustés, l'un après l'autre", () => 
         const scene1 = scene();
 
         joue([
-            { at: 0, fait: pose(scene1.page, 250) },
-            { at: 600, fait: bouge(600) },
+            ...unAppuiArmePuisGlisseA(scene1, 600),
             { at: 700, fait: leve(600) },
+            // Un second appui long, celui-ci sans glissade : posé au même quart, et
+            // tenu jusqu'à 1400.
             { at: 800, fait: pose(scene1.page, 250) },
             { at: 1400, fait: leve(250) },
         ]);
@@ -623,8 +742,7 @@ describe('Étant donné deux doigts posés sur la même page', () => {
         const { armes: armeAvantLes500, relever } = sonderLArmement(scene1);
 
         joue([
-            { at: 0, fait: pose(scene1.page, 200, { pointerId: 1 }) },
-            { at: 100, fait: pose(scene1.page, 400, { pointerId: 2 }) },
+            ...deuxDoigtsSurLaMemePage(scene1),
             // À 200 ms, le minuteur de l'appui long n'a pas atteint son terme, et
             // deux doigts n'ont pas à l'attendre : c'est tout ce que ce relevé-ci
             // demande à la pile.
@@ -639,28 +757,20 @@ describe('Étant donné deux doigts posés sur la même page', () => {
         const scene1 = scene();
 
         joue([
-            { at: 0, fait: pose(scene1.page, 200, { pointerId: 1 }) },
-            // Le second doigt se pose **pendant** que le premier tient, et c'est
-            // l'`exhaustMap` du module qui le lui laisse : un `switchMap`
-            // annulerait le geste ouvert par le premier doigt — le second
-            // `pointerdown` n'ouvre aucun geste à lui, `doigts` en contenant déjà
-            // deux — et il ne resterait personne pour entendre ce doigt-ci.
-            { at: 100, fait: pose(scene1.page, 400, { pointerId: 2 }) },
+            ...deuxDoigtsSurLaMemePage(scene1),
+            // Le **premier** doigt se lève, le second tenant encore.
             { at: 200, fait: leve(200, { pointerId: 1 }) },
         ]);
 
-        expect(scene1.visees).toHaveLength(1);
-        expect(scene1.visees[0]?.imageId).toBe(scene1.hautId);
-        // Le milieu de 200 et 400, sur une page de 1000 px de haut.
-        expect(scene1.visees[0]?.fraction.value).toBeCloseTo(0.3, 6);
+        // 0,3 : le milieu de 200 et 400, sur une page de 1000 px de haut.
+        attendUnSeulPointVise(scene1, scene1.hautId, 0.3);
     });
 
     it('alors relever le second pose le point aussi : le geste est aux deux', () => {
         const scene1 = scene();
 
         joue([
-            { at: 0, fait: pose(scene1.page, 200, { pointerId: 1 }) },
-            { at: 100, fait: pose(scene1.page, 400, { pointerId: 2 }) },
+            ...deuxDoigtsSurLaMemePage(scene1),
             // C'est le **second** doigt qui se lève, le premier tenant encore. Un
             // relâchement qui n'accepterait que le doigt d'origine laisserait ce
             // geste attendre, et le point ne se poserait qu'au doigt suivant.
@@ -698,8 +808,7 @@ describe("Étant donné deux doigts armés dont l'un glisse", () => {
         const scene1 = scene();
 
         joue([
-            { at: 0, fait: pose(scene1.page, 200, { pointerId: 1 }) },
-            { at: 100, fait: pose(scene1.page, 400, { pointerId: 2 }) },
+            ...deuxDoigtsSurLaMemePage(scene1),
             // Le **second** doigt descend de 400 à 600 : leur milieu passe de 300
             // à 400. Un suivi qui ne connaîtrait que le doigt d'origine ne verrait
             // rien bouger — et deux doigts posés sur du verre tremblent toujours,
@@ -714,8 +823,7 @@ describe("Étant donné deux doigts armés dont l'un glisse", () => {
         const scene1 = scene();
 
         joue([
-            { at: 0, fait: pose(scene1.page, 200, { pointerId: 1 }) },
-            { at: 100, fait: pose(scene1.page, 400, { pointerId: 2 }) },
+            ...deuxDoigtsSurLaMemePage(scene1),
             // Cette fois c'est le **premier** doigt qui descend, de 200 à 300 :
             // leur milieu passe de 300 à 350. Ce témoin-ci sépare « le milieu des
             // doigts » de « la position du doigt qui bouge », les deux valant 400
@@ -730,23 +838,17 @@ describe("Étant donné deux doigts armés dont l'un glisse", () => {
 describe("Étant donné une souris cliquée pendant qu'un doigt tient la pile", () => {
     it("alors elle n'arme aucun tap à deux doigts : sa route est le clic droit", () => {
         const scene1 = scene();
-        const { armes, relever } = sonderLArmement(scene1);
+        // Un appareil hybride : le curseur vise l'image nue, sur la page même du
+        // doigt, et ne passe pourtant pas. Deux doigts sont un geste délibéré ; un
+        // doigt et un curseur oublié là ne le sont pas.
+        const { gestes, armes } = unAppuiTenuMalgre(
+            scene1,
+            pose(scene1.page, 400, { pointerId: 2, pointerType: 'mouse' }),
+        );
 
-        joue([
-            { at: 0, fait: pose(scene1.page, 200, { pointerId: 1 }) },
-            // Un appareil hybride : le curseur vise l'image nue, sur la page même
-            // du doigt, et ne passe pourtant pas. Deux doigts sont un geste
-            // délibéré ; un doigt et un curseur oublié là ne le sont pas.
-            { at: 100, fait: pose(scene1.page, 400, { pointerId: 2, pointerType: 'mouse' }) },
-            { at: 200, fait: relever },
-            { at: 550, fait: relever },
-            { at: 600, fait: leve(200, { pointerId: 1 }) },
-        ]);
+        joue(gestes);
 
-        expect(armes).toEqual([false, true]);
-        expect(scene1.visees).toHaveLength(1);
-        // À la hauteur du doigt qui tient, pas au milieu des deux.
-        expect(scene1.visees[0]?.fraction.value).toBeCloseTo(0.2, 6);
+        attendUnPointAuDoigtQuiTient(scene1, armes);
     });
 });
 
@@ -754,51 +856,33 @@ describe("Étant donné un second doigt posé sur la pastille d'un point", () =>
     it("alors il n'arme aucun tap à deux doigts : une pastille n'est pas une cible d'appui", () => {
         const scene1 = scene();
         const pastille = unePastilleSurLaPage(scene1);
-        const { armes, relever } = sonderLArmement(scene1);
+        // 400 est sur la page du haut, tout comme le premier doigt : c'est la
+        // **cible** qui écarte ce doigt-ci, et non la géométrie. Mêmes gardes
+        // d'entrée que pour le doigt qui ouvre un geste, et pour la même raison —
+        // une pastille est la poignée du glisser.
+        const { gestes, armes } = unAppuiTenuMalgre(scene1, pose(pastille, 400, { pointerId: 2 }));
 
-        joue([
-            { at: 0, fait: pose(scene1.page, 200, { pointerId: 1 }) },
-            // 400 est sur la page du haut, tout comme le premier doigt : c'est la
-            // **cible** qui écarte ce doigt-ci, et non la géométrie. Mêmes gardes
-            // d'entrée que pour le doigt qui ouvre un geste, et pour la même
-            // raison — une pastille est la poignée du glisser.
-            { at: 100, fait: pose(pastille, 400, { pointerId: 2 }) },
-            { at: 200, fait: relever },
-            { at: 550, fait: relever },
-            { at: 600, fait: leve(200, { pointerId: 1 }) },
-        ]);
+        joue(gestes);
 
-        expect(armes).toEqual([false, true]);
-        expect(scene1.visees).toHaveLength(1);
-        // À la hauteur du doigt qui tient, pas au milieu des deux.
-        expect(scene1.visees[0]?.fraction.value).toBeCloseTo(0.2, 6);
+        attendUnPointAuDoigtQuiTient(scene1, armes);
     });
 });
 
 describe('Étant donné deux doigts posés sur deux pages différentes', () => {
     it("alors aucun tap à deux doigts n'est armé : ils ne partagent pas de page", () => {
         const scene1 = scene();
-        const { armes, relever } = sonderLArmement(scene1);
+        // 1600 est sur la page du bas, qui occupe [1100, 2100]. Le milieu de 200 et
+        // 1600 est 900, et 900 **est** sur la page du haut : c'est pourquoi la règle
+        // est « les deux doigts sur la même page » et non « le milieu tombe sur une
+        // page », qui laisserait poser ici.
+        const { gestes, armes } = unAppuiTenuMalgre(
+            scene1,
+            pose(scene1.pageDuBas, 1600, { pointerId: 2 }),
+        );
 
-        joue([
-            { at: 0, fait: pose(scene1.page, 200, { pointerId: 1 }) },
-            // 1600 est sur la page du bas, qui occupe [1100, 2100]. Le milieu de
-            // 200 et 1600 est 900, et 900 **est** sur la page du haut : c'est
-            // pourquoi la règle est « les deux doigts sur la même page » et non
-            // « le milieu tombe sur une page », qui laisserait poser ici.
-            { at: 100, fait: pose(scene1.pageDuBas, 1600, { pointerId: 2 }) },
-            { at: 200, fait: relever },
-            // Le doigt d'origine tient toujours : son appui long, lui, s'arme à
-            // son heure. Un doigt posé ailleurs n'est pas un participant, et il ne
-            // tue pas pour autant le geste de celui qui tient.
-            { at: 550, fait: relever },
-            { at: 600, fait: leve(200, { pointerId: 1 }) },
-        ]);
+        joue(gestes);
 
-        expect(armes).toEqual([false, true]);
-        expect(scene1.visees).toHaveLength(1);
-        // À la hauteur du doigt qui tient, pas au milieu des deux.
-        expect(scene1.visees[0]?.fraction.value).toBeCloseTo(0.2, 6);
+        attendUnPointAuDoigtQuiTient(scene1, armes);
     });
 });
 
@@ -807,8 +891,7 @@ describe('Étant donné un tap à deux doigts, puis un appui long', () => {
         const scene1 = scene();
 
         joue([
-            { at: 0, fait: pose(scene1.page, 200, { pointerId: 1 }) },
-            { at: 100, fait: pose(scene1.page, 400, { pointerId: 2 }) },
+            ...deuxDoigtsSurLaMemePage(scene1),
             { at: 200, fait: leve(200, { pointerId: 1 }) },
             // Les deux doigts quittent le verre : la pile est libre pour un geste
             // neuf, et le troisième doigt posé est seul.
@@ -1036,8 +1119,7 @@ describe("Étant donné un pointercancel pendant l'ajustement", () => {
         const scene1 = scene();
 
         joue([
-            { at: 0, fait: pose(scene1.page, 250) },
-            { at: 600, fait: bouge(600) },
+            ...unAppuiArmePuisGlisseA(scene1, 600),
             { at: 700, fait: reprend(600) },
             // Le doigt finit toujours par quitter le verre, et ce relâchement-là
             // ne pose plus rien.
@@ -1070,12 +1152,12 @@ describe("Étant donné un doigt qui a changé de page avant qu'un second se pos
     it('alors le second doigt, posé sur la page où le premier se trouve, rejoint le geste', () => {
         const scene1 = scene();
 
+        // Armé, le doigt franchit l'interstice : il est désormais sur la page du bas,
+        // celle qui occupe [1100, 2100]. C'est une capacité que le suivi a depuis la
+        // tâche 5, et c'est elle qui rend ce scénario atteignable. Le doigt porte ici
+        // son identifiant, parce qu'un second va s'en distinguer.
         joue([
-            { at: 0, fait: pose(scene1.page, 250, { pointerId: 1 }) },
-            // Armé, le doigt franchit l'interstice : il est désormais sur la page du
-            // bas, celle qui occupe [1100, 2100]. C'est une capacité que le suivi a
-            // depuis la tâche 5, et c'est elle qui rend ce scénario atteignable.
-            { at: 600, fait: bouge(1600, { pointerId: 1 }) },
+            ...unAppuiArmePuisGlisseA(scene1, 1600, { pointerId: 1 }),
             // Le renfort se pose sur la page où le premier doigt **est**, et non sur
             // celle où il s'était posé. Comparer à sa hauteur de départ le
             // refuserait, alors qu'il est parfaitement légitime.
@@ -1083,18 +1165,15 @@ describe("Étant donné un doigt qui a changé de page avant qu'un second se pos
             { at: 800, fait: leve(1600, { pointerId: 1 }) },
         ]);
 
-        expect(scene1.visees).toHaveLength(1);
-        expect(scene1.visees[0]?.imageId).toBe(scene1.basId);
         // Le milieu de 1600 et 1500 est 1550, soit 45 % de la page du bas.
-        expect(scene1.visees[0]?.fraction.value).toBeCloseTo(0.45, 6);
+        attendUnSeulPointVise(scene1, scene1.basId, 0.45);
     });
 
     it("alors un second doigt sur la page qu'il a quittée ne rejoint rien, et ne peut pas terminer son geste", () => {
         const scene1 = scene();
 
         joue([
-            { at: 0, fait: pose(scene1.page, 250, { pointerId: 1 }) },
-            { at: 600, fait: bouge(1600, { pointerId: 1 }) },
+            ...unAppuiArmePuisGlisseA(scene1, 1600, { pointerId: 1 }),
             // La page du haut, que plus aucun doigt du geste ne touche. Comparer à
             // la hauteur de départ l'accepterait — et ce doigt étranger gagnerait
             // alors le droit de terminer le geste en se relevant.
@@ -1116,8 +1195,7 @@ describe('Étant donné le navigateur qui reprend le second de deux doigts armé
         const vuApresLaReprise: (string | null)[] = [];
 
         joue([
-            { at: 0, fait: pose(scene1.page, 200, { pointerId: 1 }) },
-            { at: 100, fait: pose(scene1.page, 400, { pointerId: 2 }) },
+            ...deuxDoigtsSurLaMemePage(scene1),
             // Le navigateur reprend le second doigt. Il ne tue pas le geste — ce
             // n'est pas celui qui l'a ouvert —, mais il n'en fait plus partie : sa
             // dernière hauteur ne doit plus compter dans le milieu. Ne pas tuer le
@@ -1209,12 +1287,9 @@ describe('Étant donné un second pointeur qui se lève ailleurs pendant un appu
         const scene1 = scene();
 
         joue([
-            { at: 0, fait: pose(scene1.page, 250, { pointerId: 1 }) },
-            // Un pouce posé sur la bordure, une paume, un stylet, la souris d'un
-            // appareil hybride : il se pose **hors** de la pile, donc
-            // `compterLesDoigts$` ne le compte pas et aucun garde d'entrée ne le
-            // voit. Rien ne le distingue pourtant du premier doigt, en aval.
-            { at: 100, fait: pose(document.body, 250, { pointerId: 2 }) },
+            ...unAppuiEtUnPointeurHorsDeLaPile(scene1),
+            // C'est **l'intrus** qui se lève, l'appui étant armé depuis cent
+            // millisecondes.
             { at: 600, fait: leve(250, { pointerId: 2 }) },
         ]);
 
@@ -1230,8 +1305,7 @@ describe('Étant donné un second pointeur qui glisse ailleurs avant les 500 ms'
         const scene1 = scene();
 
         joue([
-            { at: 0, fait: pose(scene1.page, 250, { pointerId: 1 }) },
-            { at: 100, fait: pose(document.body, 250, { pointerId: 2 }) },
+            ...unAppuiEtUnPointeurHorsDeLaPile(scene1),
             // 40 px, bien au-delà de `SLOP` : un pouce qui traîne sur la bordure
             // pendant que l'autre doigt tient. À une main, c'est le cas courant —
             // et sans filtre l'appui long ne s'armerait jamais.
@@ -1249,8 +1323,7 @@ describe('Étant donné un second pointeur que le navigateur reprend, un appui �
         const scene1 = scene();
 
         joue([
-            { at: 0, fait: pose(scene1.page, 250, { pointerId: 1 }) },
-            { at: 100, fait: pose(document.body, 250, { pointerId: 2 }) },
+            ...unAppuiEtUnPointeurHorsDeLaPile(scene1),
             { at: 600, fait: reprend(250, { pointerId: 2 }) },
             { at: 700, fait: leve(250, { pointerId: 1 }) },
         ]);
@@ -1264,8 +1337,7 @@ describe('Étant donné un second pointeur qui se lève ailleurs avant les 500 m
         const scene1 = scene();
 
         joue([
-            { at: 0, fait: pose(scene1.page, 250, { pointerId: 1 }) },
-            { at: 100, fait: pose(document.body, 250, { pointerId: 2 }) },
+            ...unAppuiEtUnPointeurHorsDeLaPile(scene1),
             { at: 200, fait: leve(250, { pointerId: 2 }) },
             { at: 600, fait: leve(250, { pointerId: 1 }) },
         ]);
@@ -1279,8 +1351,7 @@ describe('Étant donné un second pointeur que le navigateur reprend avant les 5
         const scene1 = scene();
 
         joue([
-            { at: 0, fait: pose(scene1.page, 250, { pointerId: 1 }) },
-            { at: 100, fait: pose(document.body, 250, { pointerId: 2 }) },
+            ...unAppuiEtUnPointeurHorsDeLaPile(scene1),
             { at: 200, fait: reprend(250, { pointerId: 2 }) },
             { at: 600, fait: leve(250, { pointerId: 1 }) },
         ]);
