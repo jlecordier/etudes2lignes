@@ -17,6 +17,9 @@ nomme le métier et l'anglais la technique
 - [GLOSSAIRE](GLOSSAIRE.md) — langage ubiquitaire (métier, architecture, plateforme)
   et le [lexique](GLOSSAIRE.md#lexique) qui tranche français/anglais mot à mot.
 - [EXIGENCES](EXIGENCES.md) — exigences par capacité, reliées aux tests qui les vérifient.
+- [LIQUID-GLASS](LIQUID-GLASS.md) — les règles de l'interface : les deux couches,
+  la liste close des surfaces en verre, l'échelle typographique d'iOS, et les
+  sept pièges de moteur qui ont chacun coûté un défaut visible.
 - [adr/](adr/README.md) — décisions d'architecture (le « pourquoi »).
 
 ## Opérer

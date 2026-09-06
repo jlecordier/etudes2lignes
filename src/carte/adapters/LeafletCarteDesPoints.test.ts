@@ -364,6 +364,26 @@ describe("Carte des points de l'éditeur", () => {
         });
     });
 
+    describe('Étant donné la carte montée, quand une position arrive', () => {
+        it("alors le contrôle « Ma position » qu'elle porte devient actif", () => {
+            const { carteDesPoints, show } = testBed();
+            show([]);
+            const positions$ = new Subject<DisplayedPosition>();
+            carteDesPoints.showPosition(positions$);
+            const recentrer = document.querySelector('#editor-position-button');
+            const inerteAuDepart =
+                recentrer instanceof HTMLButtonElement ? recentrer.disabled : null;
+
+            positions$.next({ kind: 'connue', coordonnee: BORDEAUX });
+
+            // Le bouton est **sur** la carte, pas à côté : c'est la convention
+            // de la plateforme, et l'adapter tient déjà la coordonnée. L'écran
+            // n'a donc plus ni `lastCoordonnee` ni état actif à retenir.
+            expect(inerteAuDepart).toBe(true);
+            expect(recentrer instanceof HTMLButtonElement ? recentrer.disabled : null).toBe(false);
+        });
+    });
+
     describe('Étant donné une position trop imprécise pour caler la page', () => {
         it("alors elle est montrée quand même, cerclée de l'incertitude mesurée", () => {
             const { carteDesPoints, show, carte } = testBed();

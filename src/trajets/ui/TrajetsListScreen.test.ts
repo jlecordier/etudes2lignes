@@ -100,6 +100,43 @@ function messageDErreur(element: HTMLElement): string | null {
 }
 
 describe('trajets-list-screen', () => {
+    describe("Étant donné l'écran attaché, quand ses boutons désignent un symbole", () => {
+        it('alors le jeu de symboles est dans le document, sans quoi ils seraient vides', async () => {
+            await attacherLEcran();
+
+            // Un `<use>` ne va chercher son symbole que dans le document qui le
+            // porte. Attacher un écran suffit donc à le poser : personne n'a un
+            // appel de montage à ne pas oublier.
+            expect(document.getElementById('i-plus')).not.toBeNull();
+        });
+    });
+
+    describe("Étant donné l'écran attaché, quand je regarde ses boutons", () => {
+        it("alors aucun ne montre d'emoji, et chaque pictogramme désigne un symbole du jeu", async () => {
+            repository.contient(summary('Paris → Bordeaux'));
+
+            const element = await attacherLEcran();
+
+            // La HIG demande des symboles monochromes : ils prennent la couleur
+            // du texte, donc s'adaptent au clair, au sombre et au verre. Tous
+            // les boutons n'en portent pas — le titre d'un trajet est son nom,
+            // et c'est bien ce qu'il doit montrer.
+            const boutons = queryAll('button', HTMLButtonElement, element);
+            expect(boutons.length).toBeGreaterThan(0);
+            for (const bouton of boutons) {
+                expect(bouton.textContent).not.toMatch(/\p{Extended_Pictographic}/u);
+            }
+
+            const references = [...element.querySelectorAll('svg.icon use')].map((reference) =>
+                reference.getAttribute('href'),
+            );
+            expect(references.length).toBeGreaterThan(0);
+            for (const reference of references) {
+                expect(reference).toMatch(/^#i-/);
+            }
+        });
+    });
+
     describe("Étant donné des trajets enregistrés, quand j'attache l'écran", () => {
         it("alors il les liste avec leurs comptes d'images et de points", async () => {
             repository.contient(summary('Paris → Bordeaux', 6, 4), summary('Tours → Nantes', 2, 2));

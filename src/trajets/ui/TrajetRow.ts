@@ -39,7 +39,7 @@ export function createTrajetRow(summary: TrajetSummary): TrajetRowElement {
 function trajetActions(host: HTMLElement, summary: TrajetSummary): Button[] {
     return [
         {
-            icon: '✏️',
+            icon: 'pencil',
             label: 'Renommer',
             ariaLabel: `Renommer ${summary.nom}`,
             action: () => {
@@ -47,7 +47,10 @@ function trajetActions(host: HTMLElement, summary: TrajetSummary): Button[] {
             },
         },
         {
-            icon: '⬇️',
+            // La flèche **monte** : elle sort le trajet de l'application, et
+            // c'est le sens que la plateforme donne à ce symbole. Le repère
+            // s'était installé à l'envers ici — l'import descend, plus bas.
+            icon: 'square-arrow-up',
             label: 'Exporter',
             ariaLabel: `Exporter ${summary.nom}`,
             action: () => {
@@ -55,7 +58,7 @@ function trajetActions(host: HTMLElement, summary: TrajetSummary): Button[] {
             },
         },
         {
-            icon: '🗑️',
+            icon: 'trash',
             label: 'Supprimer',
             ariaLabel: `Supprimer ${summary.nom}`,
             action: () => {

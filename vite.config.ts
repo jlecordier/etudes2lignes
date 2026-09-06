@@ -15,8 +15,13 @@ export default defineConfig({
                     'Suivi géolocalisé de schémas de ligne ferroviaires, entièrement hors ligne.',
                 lang: 'fr',
                 display: 'standalone',
-                background_color: '#f9fafb',
-                theme_color: '#1d4ed8',
+                // Les deux couleurs que le système applique **avant** que la
+                // page existe : l'écran de lancement et la barre autour d'elle.
+                // Elles reprennent le fond groupé de la feuille, et non une
+                // teinte d'accent — un aplat bleu au lancement annoncerait une
+                // couleur que l'interface ne porte plus nulle part.
+                background_color: '#f2f2f7',
+                theme_color: '#f2f2f7',
                 icons: [
                     { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
                     { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },

@@ -1,10 +1,19 @@
 <div id="suivi-bar" class="suivi-bar">
-    <button id="leave-suivi-button" type="button" class="secondary">🔙 Éditer</button>
+    <button id="leave-suivi-button" type="button" class="secondary" aria-label="Éditer">
+        <svg class="icon" aria-hidden="true"><use href="#i-chevron-left" /></svg>
+        <span class="button-label">Éditer</span>
+    </button>
     <span id="suivi-status" class="suivi-status"></span>
-    <button id="simuler-button" type="button" class="secondary">🧪 Simuler</button>
+    <button id="simuler-button" type="button" class="secondary" aria-label="Simuler">
+        <svg class="icon" aria-hidden="true"><use href="#i-flask" /></svg>
+        <span class="button-label">Simuler</span>
+    </button>
     <p id="simulation-banner" class="simulation-banner" hidden>
         Position simulée —
-        <button id="leave-simulation-button" type="button" class="secondary">🚪 Quitter</button>
+        <button id="leave-simulation-button" type="button" class="secondary" aria-label="Quitter">
+            <svg class="icon" aria-hidden="true"><use href="#i-xmark" /></svg>
+            <span class="button-label">Quitter</span>
+        </button>
     </p>
 </div>
 <div class="suivi-body">
@@ -18,7 +27,9 @@
     </div>
 </div>
 <div class="guide-line" aria-hidden="true"></div>
-<button id="resume-button" type="button" class="resume-button" hidden>▶️ Reprendre le suivi</button>
+<button id="resume-button" type="button" class="resume-button" hidden>
+    <svg class="icon" aria-hidden="true"><use href="#i-play" /></svg>Reprendre le suivi
+</button>
 <!-- Intitulé stable et `aria-pressed` : c'est l'état qui bascule, pas le nom —
      un bouton qui change de nom ne se désigne plus, ni au test ni à la voix. -->
 <button
@@ -30,5 +41,8 @@
     title="Aperçu du trajet"
     hidden
 >
-    🗺️
+    <!-- L'aperçu est un panneau qui vient se coller au bord droit : le symbole
+         dit où il paraît, et non ce qu'il montre — une carte l'aurait confondu
+         avec la bascule carte/schéma de l'éditeur. -->
+    <svg class="icon" aria-hidden="true"><use href="#i-sidebar-trailing" /></svg>
 </button>

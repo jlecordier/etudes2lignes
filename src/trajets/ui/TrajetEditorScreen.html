@@ -3,10 +3,15 @@
      boussole seule ne la dirait pas. -->
 <header class="header">
     <button id="back-to-list-button" type="button" class="secondary" aria-label="Trajets">
-        🔙<span class="button-label">Trajets</span>
+        <svg class="icon" aria-hidden="true"><use href="#i-chevron-left" /></svg>
+        <span class="button-label">Trajets</span>
     </button>
     <h2 id="trajet-title"></h2>
-    <button id="suivre-button" type="button">🧭 Suivre</button>
+    <!-- La flèche de navigation, pleine et posée sur sa route : c'est le
+         guidage. Sa jumelle creuse, sur la carte, ne fait que recentrer. -->
+    <button id="suivre-button" type="button">
+        <svg class="icon" aria-hidden="true"><use href="#i-location-line" /></svg>Suivre
+    </button>
 </header>
 <p class="help">
     Les pages s'importent de haut en bas, dans l'ordre où vous les sélectionnez, et un nouveau lot
@@ -21,19 +26,27 @@
      vérifie pour chacun. -->
 <div class="action-bar">
     <button id="add-images-button" type="button" aria-label="Ajouter des images">
-        🖼️<span class="button-label">Ajouter des images</span>
+        <svg class="icon" aria-hidden="true"><use href="#i-photo" /></svg>
+        <span class="button-label">Ajouter des images</span>
     </button>
     <button id="add-point-button" type="button" aria-label="Ajouter un point">
-        📍<span class="button-label">Ajouter un point</span>
+        <svg class="icon" aria-hidden="true"><use href="#i-mappin" /></svg>
+        <span class="button-label">Ajouter un point</span>
     </button>
+    <!-- La flèche **monte** : elle sort le trajet de l'application. Voir la
+         règle inverse sur « Importer », dans l'écran de la liste. -->
     <button id="export-trajet-button" type="button" aria-label="Exporter">
-        ⬇️<span class="button-label">Exporter</span>
+        <svg class="icon" aria-hidden="true"><use href="#i-square-arrow-up" /></svg>
+        <span class="button-label">Exporter</span>
     </button>
 </div>
 <input id="input-images" type="file" accept="image/jpeg,image/png" multiple hidden />
 <p id="placement-hint" class="hint-banner" hidden>
     <span id="hint-text">Touchez l'image à la hauteur voulue…</span>
-    <button id="cancel-placement-button" type="button" class="secondary">✖️ Annuler</button>
+    <button id="cancel-placement-button" type="button" class="secondary" aria-label="Annuler">
+        <svg class="icon" aria-hidden="true"><use href="#i-xmark" /></svg>
+        <span class="button-label">Annuler</span>
+    </button>
 </p>
 <div class="editor-body">
     <div class="carte-column">
@@ -45,17 +58,16 @@
              barres coexistent dans le document, et deux fois le même `id` n'est
              pas un HTML valide — c'est aussi ce qui permet aux `query` scopés de
              cet écran et à ceux du sélecteur de ne jamais se croiser. -->
+        <!-- La phrase seule : le bouton qui recentre est passé **sur** la carte,
+             en contrôle Leaflet. Ce qui reste ici est de la prose — elle
+             explique pourquoi aucun marqueur n'apparaît, et une carte ne sait ni
+             les états d'une source de position ni la langue où on les dit. -->
+        <!-- La phrase seule : le bouton qui recentre est passé **sur** la carte,
+             en contrôle Leaflet. Ce qui reste ici est de la prose — elle explique
+             pourquoi aucun marqueur n'apparaît, et une carte ne connaît ni les
+             états d'une source de position ni la langue où on les formule. -->
         <p class="carte-position-bar">
             <span id="editor-position-status"></span>
-            <button
-                id="editor-position-button"
-                type="button"
-                class="secondary"
-                aria-label="Ma position"
-                disabled
-            >
-                🎯<span class="button-label">Ma position</span>
-            </button>
         </p>
     </div>
     <div class="images-column">
@@ -64,11 +76,17 @@
 </div>
 <!-- Toujours accessible sans remonter en haut de la page : indispensable
      au tactile, où le clic droit n'existe pas. -->
-<button id="floating-add-point-button" type="button" class="floating-add-point-button">
-    📍 Ajouter un point
+<button
+    id="floating-add-point-button"
+    type="button"
+    class="floating-add-point-button"
+    aria-label="Ajouter un point"
+>
+    <svg class="icon" aria-hidden="true"><use href="#i-mappin" /></svg>
+    <span class="button-label">Ajouter un point</span>
 </button>
 <!-- Sous 900 px, la carte défile avec la page et disparaît dès qu'on travaille
      sur le schéma. Ce bouton la ramène par-dessus, et l'en retire. Son libellé
      dit où il mène, pas où l'on est : au-dessus de 900 px, où la carte est
      épinglée à côté de la pile, il n'a pas lieu d'être et la feuille le masque. -->
-<button id="carte-button" type="button" class="carte-button">🗺️ Carte</button>
+<button id="carte-button" type="button" class="carte-button"></button>

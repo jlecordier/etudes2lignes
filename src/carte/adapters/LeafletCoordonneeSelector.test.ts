@@ -61,7 +61,11 @@ function mountCarteScreenDom(): void {
             <input id="latitude-input" type="number" step="any" />
             <input id="longitude-input" type="number" step="any" />
             <button id="manual-place-button" type="button">Placer</button>
-            <button id="carte-position-button" type="button" disabled>Ma position</button>
+            <!-- Pas de « Ma position » ici : le bouton est posé sur la carte par
+                 l'adapter lui-même, en contrôle Leaflet. Le garder ici en
+                 dupliquerait l'identifiant, ce qui n'est pas un HTML valide —
+                 les trois scénarios qui le désignent trouvent celui du contrôle,
+                 qui précède dans le document. -->
             <button id="cancel-carte-button" type="button">Annuler</button>
             <button id="confirm-carte-button" type="button" disabled>Valider</button>
         </section>`;

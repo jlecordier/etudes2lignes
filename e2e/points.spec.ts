@@ -285,7 +285,7 @@ test.describe('Géoréférencement des points', () => {
         const carte = page.locator('#carte-points');
         await expect(carte).not.toBeInViewport();
 
-        await page.getByRole('button', { name: '🗺️ Carte' }).click();
+        await page.getByRole('button', { name: 'Carte', exact: true }).click();
 
         // Par-dessus le schéma, quel que soit le défilement.
         await expect(carte).toBeInViewport({ ratio: 0.9 });

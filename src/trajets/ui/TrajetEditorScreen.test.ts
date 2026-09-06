@@ -772,6 +772,30 @@ describe('trajet-editor-screen', () => {
         });
     });
 
+    describe("Étant donné l'écran attaché, quand je regarde ses boutons", () => {
+        it("alors aucun ne montre d'emoji, et chaque pictogramme désigne un symbole du jeu", async () => {
+            const element = await attacherLEcran();
+
+            // La HIG demande des symboles monochromes : ils prennent la couleur
+            // du texte, donc s'adaptent au clair, au sombre et au verre. Tous
+            // les boutons n'en portent pas — la pastille d'un point montre son
+            // numéro, et c'est bien ce qu'elle doit montrer.
+            const boutons = queryAll('button', HTMLButtonElement, element);
+            expect(boutons.length).toBeGreaterThan(0);
+            for (const bouton of boutons) {
+                expect(bouton.textContent).not.toMatch(/\p{Extended_Pictographic}/u);
+            }
+
+            const references = [...element.querySelectorAll('svg.icon use')].map((reference) =>
+                reference.getAttribute('href'),
+            );
+            expect(references.length).toBeGreaterThan(0);
+            for (const reference of references) {
+                expect(reference).toMatch(/^#i-/);
+            }
+        });
+    });
+
     describe('Étant donné un petit écran, quand je bascule sur la carte', () => {
         it('alors elle passe par-dessus le schéma, et se remesure', async () => {
             const element = await attacherLEcran();
@@ -782,9 +806,12 @@ describe('trajet-editor-screen', () => {
             // Le conteneur vient de changer de taille sans que la fenêtre bouge :
             // sans remesure, la carte garderait l'échelle de sa vignette.
             expect(carteDesPoints.remesuresDemandees()).toBe(1);
-            expect(query('#carte-button', HTMLButtonElement, element).textContent).toBe(
-                '🖼️ Schéma',
-            );
+            // La bascule dit désormais où elle mène — vers le schéma. Le libellé
+            // visible disparaissant sous 560 px, c'est `aria-label` qui la nomme,
+            // et le symbole qui la montre.
+            const bascule = query('#carte-button', HTMLButtonElement, element);
+            expect(bascule.getAttribute('aria-label')).toBe('Schéma');
+            expect(bascule.querySelector('svg.icon use')?.getAttribute('href')).toBe('#i-photo');
         });
 
         it("alors désigner un point la referme, pour laisser voir ce qu'on demande", async () => {
@@ -871,18 +898,16 @@ describe('trajet-editor-screen', () => {
 
             // Sous 560 px la feuille de style masque les libellés visibles : le
             // nom accessible ne vit plus que dans `aria-label`. Sans lui, le
-            // bouton s'annonce « 🖼️ » — et les parcours e2e joués sur iPhone et
-            // Pixel, tous deux sous le seuil, ne le trouvent plus.
-            const boutons = queryAll(
-                '.action-bar button, #editor-position-button',
-                HTMLButtonElement,
-                element,
-            );
+            // bouton s'annonce par son seul dessin — et les parcours e2e joués
+            // sur iPhone et Pixel, tous deux sous le seuil, ne le trouvent plus.
+            //
+            // « Ma position » n'y figure plus : il est passé sur la carte, en
+            // contrôle Leaflet, et c'est `positionControl.test.ts` qui le nomme.
+            const boutons = queryAll('.action-bar button', HTMLButtonElement, element);
             expect(boutons.map((bouton) => bouton.getAttribute('aria-label'))).toEqual([
                 'Ajouter des images',
                 'Ajouter un point',
                 'Exporter',
-                'Ma position',
             ]);
         });
     });
@@ -921,11 +946,10 @@ describe('trajet-editor-screen', () => {
                 kind: 'connue',
                 coordonnee: Coordonnee.create(44.83, -0.57),
             });
-            // La barre l'a reçue aussi : sa phrase se vide, et son bouton s'anime.
+            // La barre l'a reçue aussi : sa phrase se vide, n'ayant plus rien à
+            // expliquer. Le bouton qui recentre, lui, vit sur la carte — c'est
+            // `LeafletCarteDesPoints.test.ts` qui le voit s'animer.
             expect(query('#editor-position-status', HTMLSpanElement, element).textContent).toBe('');
-            expect(query('#editor-position-button', HTMLButtonElement, element).disabled).toBe(
-                false,
-            );
         });
     });
 
@@ -960,32 +984,6 @@ describe('trajet-editor-screen', () => {
 
             expect(query('#editor-position-status', HTMLSpanElement, element).textContent).toBe(
                 'Accès à la position refusé — autorisez la localisation pour ce site puis revenez.',
-            );
-        });
-    });
-
-    describe('Étant donné une position connue, quand je demande « Ma position »', () => {
-        it('alors la carte vient dessus', async () => {
-            const element = await attacherLEcran();
-            positionSource.emettre(positionEvent(Coordonnee.create(44.83, -0.57)));
-
-            query('#editor-position-button', HTMLButtonElement, element).click();
-
-            expect(
-                carteDesPoints
-                    .centrages()
-                    .map((coordonnee) => [coordonnee.latitude, coordonnee.longitude])
-                    .at(-1),
-            ).toEqual([44.83, -0.57]);
-        });
-    });
-
-    describe("Étant donné qu'aucune position n'est encore connue", () => {
-        it('alors le bouton « Ma position » reste inerte', async () => {
-            const element = await attacherLEcran();
-
-            expect(query('#editor-position-button', HTMLButtonElement, element).disabled).toBe(
-                true,
             );
         });
     });

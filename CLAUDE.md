@@ -7,12 +7,18 @@ toolchain gotchas. This file only adds **Claude Code specifics**.
 ## What this repo expects of an agent
 
 Nothing, to build it. `pnpm quality` mentions no agent, and neither `.github/`
-nor `.husky/` contains the string `mcp`, `skill` or `superpowers` — contributing
-by hand needs none of what follows.
+nor `.husky/` contains the string `mcp`, `skill`, `superpowers` or `probity` —
+contributing by hand needs none of what follows.
 
-They are the tooling of _writing_ this repo with an agent, and only one piece of
-it travels with a clone. Which piece, and why the line falls there, is
-[ADR 0010](docs/adr/0010-outillage-des-agents.md).
+They are the tooling of _writing_ this repo with an agent, and **two** pieces of
+it travel with a clone: [`.mcp.json`](.mcp.json) and
+[`probity.config.ts`](probity.config.ts). Neither brings its own switch — the
+first is approved in `enabledMcpjsonServers`, the second in the plugin list of
+`.claude/settings.json`, and both files are gitignored. Where the line falls, and
+why, is [ADR 0010](docs/adr/0010-outillage-des-agents.md) — which enumerates
+three kinds of trace and predates probity by twelve days, so it is one short.
+Deciding whether that fourth trace earns an amendment or an ADR of its own is
+the repo author's call, not an agent's.
 
 ## MCP servers
 
@@ -69,6 +75,43 @@ shortest way to actually _look_ at the app; in the dev container the question
 does not arise, since nothing there escapes to a confined host in the first
 place.
 
+## probity — the hook that vetoes your writes
+
+The discipline it enforces is in [AGENTS.md](AGENTS.md#the-tdd-gate-is-enforced-not-encouraged),
+where it belongs: it constrains any agent holding Edit and Write, not just this
+one. What follows is the plumbing and the measured failure modes.
+
+**Same "tracked is not travelling" split as `.mcp.json`, and worth the same
+warning.** [`probity.config.ts`](probity.config.ts) is in git; what switches the
+hook on is `"probity@probity": true` in `.claude/settings.json`, which is
+gitignored like every settings file here. **A fresh clone therefore gets the
+rules and none of the enforcement** — the mirror image of the sandbox section
+below. `pnpm quality` does not run it either, so nothing in CI will tell you it
+was off.
+
+**Its context window is `maxEvents: 40`, and that is the single most useful thing
+to know.** A red observed too many events earlier is simply invisible to it, and
+it then refuses while citing a stale test state — a refusal that reads like a
+disagreement but is a truncation. The cure is mechanical: **re-run the failing
+test immediately before the write that fixes it.** Doing that turned three
+refusals into acceptances in one session, with no change to the code being
+written.
+
+**It can be flatly wrong, and it does not self-correct.** Measured: four
+consecutive refusals asserted that a test "only covers the initial state" when
+the test demonstrably called `cliquerLaBascule(element)` before asserting the
+toggled state. Re-reading the test body and re-running the red changed nothing.
+When you are sure — having actually re-read the assertion, not assumed — the
+config's own instruction applies: cut the increment, or stop and report the
+refusal verbatim. Do not route around it; `forbidCommandPattern` already blocks
+the shell redirections and `sed -i` that would, and says why.
+
+**Its verdict needs a model call, so a usage limit makes `src/**` read-only.**
+The symptom is `Probity: could not parse verdict from validator output: You've
+hit your session limit`. Writes outside `src/` — `index.html`, `docs/`,
+`vite.config.ts`, this file — keep working, so that is where to spend a blocked
+window.
+
 ## Skills
 
 `.claude/skills/` in this repo is **empty, and meant to stay so** — everything
@@ -97,9 +140,35 @@ The chain that produced this repo: `brainstorming` (a design, questions asked on
 at a time, and the founding spec records how many it took) → `writing-plans`
 (tasks with the code to write, `Run:` /
 `Expected:`) → `subagent-driven-development` or `executing-plans` →
-`finishing-a-development-branch`. `test-driven-development`,
-`systematic-debugging` and `verification-before-completion` hang off it rather
-than sit in the line.
+`finishing-a-development-branch`. `systematic-debugging` and
+`verification-before-completion` hang off it rather than sit in the line.
+
+**`test-driven-development` is the exception, and calling it peripheral was
+wrong.** This repo does not merely recommend the cycle — it **vetoes writes that
+skip it**, through the hook described above. Invoke the skill before the first
+edit under `src/`, not after the first refusal. Measured, in a session that
+skipped it: its wording maps almost term for term onto probity's objection
+categories, because both apply the same doctrine — one as advice, the other as a
+veto. `NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST` is the first refusal;
+_"One behavior. 'and' in name? Split it."_ is the bundled-`it` trap; _"Don't add
+features, refactor other code, or 'improve' beyond the test"_ is every
+over-implementation refusal; _"fails because feature missing (not typos)"_ is the
+red-for-the-wrong-reason refusal. Reading the skill first would have prevented
+most of them.
+
+Two of its clauses matter especially here:
+
+- Its exceptions list — _"Exceptions (ask your human partner): … configuration
+  files"_ — is the sanctioned way out of the CSS problem. A stylesheet has no
+  callable behaviour, so **ask** rather than improvising a witness that greps the
+  file's own source. That question is worth asking before the first stylesheet
+  edit, not after fifteen refusals.
+- Pair it with **`non-brittle-tests`** whenever the witness is about a file's
+  text rather than a behaviour. A presence check (`.icon` declares `fill: none`)
+  can only fail if someone deletes the line it describes; that skill is what
+  names the smell, and
+  [AGENTS.md](AGENTS.md#the-tdd-gate-is-enforced-not-encouraged) says what to
+  write instead.
 
 Frictions specific to this repo, worth knowing before you start:
 
@@ -128,6 +197,7 @@ Frictions specific to this repo, worth knowing before you start:
 | `hexagonal-architecture`      | right vocabulary, **layout contradicts [ADR 0001](docs/adr/0001-hexagone-sans-framework.md)**  |
 | `modern-architecture-…-skill` | re-litigates a decision already taken; read its own "match the surrounding architecture" rule  |
 | `clean-code-skill`            | fine as a smell detector; silent on this repo's own rules, and its only code examples are Java |
+| `non-brittle-tests`           | **load-bearing** — the gate rewards narrow witnesses, and this is what keeps them honest       |
 | `context7-mcp`                | redundant — the same instruction is already a global rule                                      |
 | `find-skills`                 | off-topic for code, and its `npx skills add` step is refused by the sandbox                    |
 

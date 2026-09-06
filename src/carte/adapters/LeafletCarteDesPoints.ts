@@ -13,6 +13,7 @@ import { toCoordonnee, toLatLng } from './conversion';
 import { createOsmLayer, FRANCE_VIEW } from './osmLayer';
 import { numberedIcon } from './numberedIcon';
 import { centerOnCoordonnee, fitToPoints, remeasureAfterReveal } from './fitting';
+import { PositionControl } from './positionControl';
 import { PositionLayers } from './positionLayers';
 
 interface PlacedMarker {
@@ -39,6 +40,16 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
     private readonly choix = new Subject<Coordonnee | null>();
     private teardown: AbortController | null = null;
     private readonly positionLayers = new PositionLayers();
+    /**
+     * Le bouton « Ma position », posé **sur** la carte comme le fait la
+     * plateforme. L'identifiant est celui que l'écran d'édition portait dans sa
+     * barre : les parcours e2e désignent ce bouton, et il n'a fait que changer
+     * de porteur — la carte tenait déjà la coordonnée à rejoindre.
+     */
+    private readonly positionControl = new PositionControl(
+        'editor-position-button',
+        this.positionLayers,
+    );
     private positionSubscription: Subscription | null = null;
 
     /**
@@ -55,6 +66,7 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
         this.carte = carte;
         this.teardown = teardown;
         createOsmLayer().addTo(carte);
+        this.positionControl.addTo(carte);
         // Rotation d'un iPad/téléphone : le conteneur change de taille sans
         // repasser par show() — Leaflet doit se remesurer tout de suite. Posé
         // sur `window`, cet écouteur ne partirait pas avec la carte sans le signal.
@@ -135,6 +147,9 @@ export class LeafletCarteDesPoints implements CarteDesPoints {
         this.positionSubscription?.unsubscribe();
         this.positionSubscription = position$.subscribe((position) => {
             this.positionLayers.paint(carte, position);
+            // Le contrôle ne s'abonne à rien : c'est ici qu'on sait que la
+            // position a changé, donc c'est ici qu'on le lui dit.
+            this.positionControl.refresh();
         });
     }
 

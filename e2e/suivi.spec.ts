@@ -28,7 +28,7 @@ async function ouvrirLeSuiviDUnTrajetGeoreference(page: Page): Promise<void> {
  * simulée est donc exactement celle du premier point du voyage.
  */
 async function simulerSurLePremierRepere(page: Page): Promise<void> {
-    await page.getByRole('button', { name: '🧪 Simuler', exact: true }).click();
+    await page.getByRole('button', { name: 'Simuler', exact: true }).click();
     await expect(page.locator('#screen-carte')).toBeVisible();
     const longitudeInput = page.getByLabel('Longitude');
     const valueBefore = await longitudeInput.inputValue();
@@ -89,7 +89,7 @@ test.describe('Aperçu du trajet pendant le suivi', () => {
         await simulerSurLePremierRepere(page);
         await expect(page.locator('#overview-position')).toBeVisible();
 
-        await page.getByRole('button', { name: '🚪 Quitter' }).click();
+        await page.getByRole('button', { name: 'Quitter' }).click();
 
         // Sans quoi une position fictive resterait plantée sur le trajet, que
         // l'utilisateur lirait comme sa position réelle.
@@ -157,7 +157,7 @@ test.describe('Suivi du trajet (position simulée)', () => {
     }) => {
         await ouvrirLeSuiviDUnTrajetGeoreference(page);
 
-        await page.getByRole('button', { name: '🧪 Simuler', exact: true }).click();
+        await page.getByRole('button', { name: 'Simuler', exact: true }).click();
         await expect(page.locator('#screen-carte')).toBeVisible();
 
         await expect(page.locator('#carte-container .carte-marker')).toHaveText(['1', '2']);
@@ -206,7 +206,7 @@ test.describe('Suivi du trajet (position simulée)', () => {
 
         // Retour au GPS réel : la position simulée doit être oubliée. Sans cela,
         // l'utilisateur lirait une position simulée en la croyant réelle.
-        await page.getByRole('button', { name: '🚪 Quitter' }).click();
+        await page.getByRole('button', { name: 'Quitter' }).click();
         await expect(page.locator('#simulation-banner')).toBeHidden();
 
         // Il lit ailleurs dans le document, puis redemande le suivi automatique.
@@ -230,7 +230,7 @@ test.describe('Suivi du trajet (position simulée)', () => {
     }) => {
         await ouvrirLeSuiviDUnTrajetGeoreference(page);
 
-        await page.getByRole('button', { name: '🧪 Simuler', exact: true }).click();
+        await page.getByRole('button', { name: 'Simuler', exact: true }).click();
         await expect(page.locator('#screen-carte')).toBeVisible();
         // Marseille, saisie à la main : loin de la ligne quel que soit le zoom.
         await page.getByLabel('Latitude').fill('43.2965');
@@ -250,7 +250,7 @@ test.describe('Suivi du trajet (position simulée)', () => {
         await ajouterUnPoint(page, 0.5, 0);
         await page.getByRole('button', { name: 'Suivre' }).click();
 
-        await page.getByRole('button', { name: '🧪 Simuler', exact: true }).click();
+        await page.getByRole('button', { name: 'Simuler', exact: true }).click();
         await choisirUneCoordonneeSurLaCarte(page);
 
         await expect(page.locator('#suivi-status')).toHaveText(

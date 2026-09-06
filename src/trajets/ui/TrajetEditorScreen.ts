@@ -7,6 +7,7 @@ import type {
 import type { CoordonneeSelector } from '../../carte/ports/CoordonneeSelectorPort';
 import { query, queryAll } from '../../shared/dom';
 import { eventsOf, untilAborted } from '../../shared/events';
+import { createIcon } from '../../shared/icons';
 import { createQueue } from '../../shared/queue';
 import type { Run } from '../../shared/runner';
 import { SchemaPageElement, createSchemaPage } from '../../shared/SchemaPage';
@@ -93,8 +94,6 @@ function mount(
     const fileInput = query('#input-images', HTMLInputElement, root);
     const pagesContainer = query('#images-stack', HTMLDivElement, root);
     const positionStatus = query('#editor-position-status', HTMLSpanElement, root);
-    const positionButton = query('#editor-position-button', HTMLButtonElement, root);
-    let lastCoordonnee: Coordonnee | null = null;
 
     /**
      * La carte de l'éditeur est-elle passée **par-dessus** le schéma ? La classe
@@ -145,12 +144,6 @@ function mount(
         renderPositionBar(position);
     });
 
-    eventsOf(positionButton, 'click')
-        .pipe(takeUntil(parti$))
-        .subscribe(() => {
-            goToPosition();
-        });
-
     eventsOf(query('#back-to-list-button', HTMLButtonElement, root), 'click')
         .pipe(takeUntil(parti$))
         .subscribe(() => {
@@ -174,6 +167,8 @@ function mount(
         .subscribe(() => {
             run(importFiles(), "l'ajout des pages");
         });
+    // Le gabarit livre la bascule vide : ses deux états ne s'écrivent qu'ici.
+    nameCarteButton(false);
     eventsOf(carteButton, 'click')
         .pipe(takeUntil(parti$))
         .subscribe(() => {
@@ -500,18 +495,7 @@ function mount(
      * doit rendre sa ligne de `flex-wrap` quand il n'a rien à dire.
      */
     function renderPositionBar(position: DisplayedPosition): void {
-        lastCoordonnee = position.kind === 'inconnue' ? null : position.coordonnee;
-        positionButton.disabled = lastCoordonnee === null;
         positionStatus.textContent = position.kind === 'connue' ? '' : position.message;
-    }
-
-    /** Le cadrage ne bouge jamais tout seul ; ici on le lui demande. */
-    function goToPosition(): void {
-        const coordonnee = lastCoordonnee;
-        if (coordonnee === null) {
-            return;
-        }
-        carteDesPoints.centerOn(coordonnee);
     }
 
     /**
@@ -523,12 +507,29 @@ function mount(
      * interrupteur d'état.
      */
     function toggleCarte(): void {
-        const overSchema = root.classList.toggle('carte-ouverte');
-        carteButton.textContent = overSchema ? '🖼️ Schéma' : '🗺️ Carte';
+        nameCarteButton(root.classList.toggle('carte-ouverte'));
         // Le conteneur vient de changer de taille sans que la fenêtre bouge :
         // sans cela, la carte garderait ses tuiles et ses marqueurs à l'échelle
         // de la vignette qu'elle était.
         carteDesPoints.resized();
+    }
+
+    /**
+     * Les deux états de la bascule, écrits ici et nulle part ailleurs : le
+     * gabarit ne livre qu'un bouton vide, que le montage nomme aussitôt. Deux
+     * endroits pour deux états auraient fini par ne plus dire la même chose, et
+     * le symbole aurait dérivé du libellé.
+     *
+     * Le libellé visible disparaît sous 560 px : c'est `aria-label` qui nomme le
+     * bouton, comme pour tous ceux que `createButton` fabrique.
+     */
+    function nameCarteButton(overSchema: boolean): void {
+        const nom = overSchema ? 'Schéma' : 'Carte';
+        carteButton.setAttribute('aria-label', nom);
+        const label = document.createElement('span');
+        label.className = 'button-label';
+        label.textContent = nom;
+        carteButton.replaceChildren(createIcon(overSchema ? 'photo' : 'map'), label);
     }
 
     /**

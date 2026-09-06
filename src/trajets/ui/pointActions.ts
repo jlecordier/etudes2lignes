@@ -16,7 +16,10 @@ export function pointActions(
     const numero = String(intent.number);
     const actions: Button[] = [
         {
-            icon: '🖼️',
+            // Sur l'image, seule la **hauteur** du point change : la double
+            // flèche verticale dit le geste, là où une vignette de photo ne
+            // disait que le support.
+            icon: 'arrows-up-down',
             label: "Sur l'image",
             ariaLabel: `Déplacer le point ${numero} sur l'image`,
             action: () => {
@@ -24,7 +27,7 @@ export function pointActions(
             },
         },
         {
-            icon: '🗺️',
+            icon: 'map',
             label: 'Sur la carte',
             ariaLabel: `Déplacer le point ${numero} sur la carte`,
             action: () => {
@@ -32,7 +35,7 @@ export function pointActions(
             },
         },
         {
-            icon: '🗑️',
+            icon: 'trash',
             label: 'Supprimer',
             ariaLabel: `Supprimer le point ${numero}`,
             action: () => {

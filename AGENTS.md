@@ -118,6 +118,108 @@ native Windows. It installs the Playwright browsers at create time, so
 - Prettier for formatting; ESLint runs `strictTypeChecked` +
   `stylisticTypeChecked` and must report **0**.
 
+## Liquid Glass — what you may not break
+
+The interface follows Apple's Liquid Glass. The reasoning, the citations and the
+measurements are in **[docs/LIQUID-GLASS.md](docs/LIQUID-GLASS.md)** (French,
+human-facing); what follows is the operative part.
+
+**The one rule everything else descends from:** there are two layers. The
+_content_ layer — schema pages, map, list rows, overview, point markers — is
+never glass. The _functional_ layer — bars, floating controls, map controls —
+is glass and floats above it. Apple states the corollary in as many words:
+"Don't use Liquid Glass in the content layer."
+
+- **The glass list is closed**: `.header`, `.suivi-bar`, `.carte-bar`, the four
+  floating buttons, `.leaflet-bar`. Nothing else in the sheet carries a
+  `backdrop-filter`, and `src/style.test.ts` fails if that changes. To add one,
+  change the list in the test first and justify it.
+- **A repeated surface gets the tint without the blur.** `.image-bar` exists once
+  per page, `.point-actions` once per point; the measured mobile ceiling is three
+  to five simultaneous blurs. Legibility is what those needed, and a fill gives
+  it for free.
+- **Never nest glass in glass**, and put the surface on the group rather than on
+  each button. A button inside a bar is transparent and monochrome.
+- **One tinted action per screen** — the one that gives the screen its purpose.
+  Destructive actions are a red _label_, never a red fill.
+- **Symbols are monochrome `currentColor`**, never emoji: an emoji cannot invert
+  with the material. The set is `src/shared/Icons.html`; `IconName` is a closed
+  union, and a `<use href="#i-…">` in a template is checked by `icons.test.ts`.
+- **Text uses the iOS scale only** (eleven styles, expressed as fractions of the
+  body size). A bar title is Headline — 17 pt semibold — not a content title.
+- **Radii are `999px`, `0`, or a `--rayon-*` token**; an inner radius is
+  `calc()`-derived from its container, never a second constant.
+- **Every colour token needs its dark counterpart.** A token added to `:root`
+  after the dark block was written silently stays light — that is how a floating
+  button became a white disc bearing a white symbol.
+
+Six engine traps, each of which has already cost a visible defect here. They are
+not deducible; do not rediscover them:
+
+1. `-webkit-backdrop-filter` precedes `backdrop-filter`, byte-identical value.
+2. **No `var()` inside a `backdrop-filter`** — WebKit ignores the declaration.
+3. Opaque background first and unconditionally; glass only inside the
+   `@supports`; the accessibility retraction **after** it, since specificity ties
+   and source order decides.
+4. A Leaflet container needs `z-index: 0` to open its own stacking context, or
+   its panes (`z-index: 400`) escape and cover whatever you put above them.
+5. `leaflet.css` loads **after** this sheet, and specificity cannot win the tie —
+   hence `!important` on the map controls, and only there.
+6. No `filter` on an ancestor of a glass element; it cancels the blur.
+
+## The TDD gate is enforced, not encouraged
+
+[`probity.config.ts`](probity.config.ts) puts `enforceTdd` on **every write
+under `src/`** — and that means every write, not every source file you think of
+as code. A stylesheet and an HTML template are gated exactly like a `.ts`. Each
+write is judged by an AI against one question: _which failing test, observed in
+this session, is this the minimal fix for?_
+
+The rules below are not restatements of the config. They are what a session
+spent colliding with it actually costs, and each one names its measurement.
+
+- **One `it` per contract.** A bundled `it` asserting several unrelated things
+  makes the rule **inapplicable by construction**: every partial write "does not
+  turn the assertion green", and the write that satisfies all of it is
+  "over-implementation". Measured: one bundled `it` of six assertions cost five
+  refusals, two of them mutually contradictory — "vastly exceeds the minimum"
+  and "does not even make the observed failing assertion pass", about the same
+  file. The fault was the test's shape, not the gate's.
+- **A write that only _adds_ a test always passes** — that is what `fastPath:
+true` buys. **Modifying an existing test does not.** So to change a contract:
+  add the new `it`, watch it fail, implement, and only then drop the obsolete
+  assertion, as part of the green step.
+- **Every write must be self-consistent.** A write introducing `var(--x)`,
+  `createIcon(…)` or `this.carte` without also introducing its declaration is
+  refused — and rightly so. Measured: that single check caught five CSS custom
+  properties that were referenced and never defined, plus three undeclared
+  identifiers. For CSS it has a corollary: **a token and its first consumer go in
+  the same write**, because nothing else in the toolchain notices a
+  `var(--ghost)`.
+- **Sequence a deletion so that every intermediate state compiles and passes.**
+  Removing a control spans a `.ts` and its `.html`: take the **usages** out first,
+  while `query('#id')` still finds its element, then the declaration, then the
+  markup. Cutting the markup first makes `query` throw and turns 27 unrelated
+  tests red — and the gate will then refuse both halves of the repair, because
+  neither alone restores a working file.
+- **For CSS, assert an invariant, not a presence.** `.icon { fill: none }` is a
+  tautology: it can only fail if someone deletes the very line it describes. What
+  earns its keep is a statement about the **whole file** — no `font-size` outside
+  iOS's eleven text styles, no literal colour outside the token block, every
+  `backdrop-filter` doubled by its `-webkit-` twin, the accessibility retraction
+  after the `@supports` that it retracts. Those fail on a future edit made in
+  good faith, and they legitimately demand a whole block in one write.
+  [`src/style.test.ts`](src/style.test.ts) holds both kinds; prefer the second.
+- **Do not edit `probity.config.ts`.** Its two deviations from the defaults are
+  annotated as "décidés par l'auteur du dépôt — pas par l'agent que la règle
+  contraint". Widening the gate to make your own increment fit is exactly what
+  that line forbids.
+
+Known gap, stated so nobody rediscovers it: **no tool here catches an undefined
+CSS custom property.** `tsc` covers TypeScript, ESLint the style, `fallow` dead
+code — `var(--jeton-fantôme)` passes them all silently. The gate finds it by
+accident, which is not the same as being covered.
+
 ## Git
 
 - **Linear history, always.** `main` only ever moves forward:

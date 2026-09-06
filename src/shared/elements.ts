@@ -6,13 +6,18 @@
  * présents ici et oubliés là : `ariaLabel` est donc **obligatoire**, l'oubli
  * devient impossible.
  */
+import { createIcon, type IconName } from './icons';
 
 /** Le bouton posé sur une image est plus petit : il porte une infobulle et n'éveille pas la zone sous lui. */
 export type ButtonVariant = 'secondary' | 'floating';
 
 export interface Button {
-    /** Le pictogramme, toujours visible : c'est tout ce qui reste sur écran étroit. */
-    readonly icon: string;
+    /**
+     * Le pictogramme, toujours visible : c'est tout ce qui reste sur écran
+     * étroit. Un **nom de symbole**, pas un caractère — une union fermée, donc
+     * un pictogramme qui n'existe pas ne compile pas.
+     */
+    readonly icon: IconName;
     /**
      * Le libellé visible, **masqué sous 560 px** par la feuille de style (il part
      * dans un `.button-label`). L'omettre fait un bouton pictogramme en toute
@@ -35,7 +40,7 @@ export function createButton(button: Button): HTMLButtonElement {
     // Le pictogramme et le libellé sont deux nœuds distincts, et c'est le `gap`
     // de la feuille de style qui les espace : une espace dans le texte laisserait
     // une traîne à droite du pictogramme une fois le libellé retiré.
-    element.append(button.icon);
+    element.append(createIcon(button.icon));
     if (button.label !== undefined) {
         const label = document.createElement('span');
         label.className = 'button-label';

@@ -5,10 +5,19 @@
          sien en toute largeur — c'est l'action principale de l'écran, et sur une
          liste vide un pictogramme seul n'inviterait à rien. -->
     <div class="action-bar">
+        <!-- La flèche **descend** : elle fait entrer un trajet dans
+             l'application. C'est le sens que la plateforme donne à ce symbole,
+             et l'inverse de celui que l'emoji d'avant portait ici. -->
         <button id="import-trajet-button" type="button" class="secondary" aria-label="Importer">
-            ⬆️<span class="button-label">Importer</span>
+            <svg class="icon" aria-hidden="true"><use href="#i-square-arrow-down" /></svg>
+            <span class="button-label">Importer</span>
         </button>
-        <button id="create-trajet-button" type="button">🆕 Nouveau trajet</button>
+        <!-- Le libellé reste en texte nu, sans `.button-label` : c'est l'action
+             principale de l'écran, elle garde son nom en toute largeur — et ce
+             nom est aussi celui par lequel les parcours e2e la désignent. -->
+        <button id="create-trajet-button" type="button">
+            <svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg>Nouveau trajet
+        </button>
     </div>
 </header>
 <input id="input-import-trajet" type="file" accept="application/json,.json" hidden />
@@ -23,5 +32,8 @@
      on dit ce qui se passe et on laisse de quoi réessayer. -->
 <p id="list-error" class="list-error" hidden>
     <span id="list-error-text"></span>
-    <button id="retry-list-button" type="button" class="secondary">🔄 Réessayer</button>
+    <button id="retry-list-button" type="button" class="secondary" aria-label="Réessayer">
+        <svg class="icon" aria-hidden="true"><use href="#i-arrow-clockwise" /></svg>
+        <span class="button-label">Réessayer</span>
+    </button>
 </p>

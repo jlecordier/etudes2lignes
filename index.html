@@ -6,11 +6,20 @@
              occupaient servent à poser un point sur le schéma. Honoré par
              Android ; Safari iOS l'ignore depuis iOS 10, et c'est
              `src/shared/pinchZoom.ts` qui s'en charge là-bas. -->
+        <!-- `viewport-fit=cover` est la condition d'existence des `env(safe-area-inset-*)` :
+             sans lui ces fonctions valent **0px**, et une barre en verre posée
+             au bord tombe sous l'encoche ou sous la barre d'accueil. -->
         <meta
             name="viewport"
-            content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover"
         />
-        <meta name="theme-color" content="#1d4ed8" />
+        <!-- Deux déclarations, une par apparence : c'est la couleur que le
+             système donne à *sa* barre autour de la page. Elles reprennent les
+             fonds de la feuille (`--fond-groupe`), et non une teinte d'accent —
+             une barre bleue au-dessus d'un contenu clair annonce une couleur que
+             l'interface ne porte plus nulle part. -->
+        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f2f2f7" />
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
         <link rel="icon" href="./icons/icon-192.png" />
         <title>Etudes2Lignes — Suivi de schémas de ligne</title>
     </head>
@@ -24,7 +33,8 @@
              dans la coquille, où le service worker peut l'allumer quel que soit
              l'écran monté à ce moment-là. -->
         <p id="offline-indicator" class="offline-indicator" hidden>
-            ✓ Application disponible hors ligne
+            <svg class="icon" aria-hidden="true"><use href="#i-arrow-down-circle" /></svg>
+            Application disponible hors ligne
         </p>
 
         <!-- Superposition, pas un écran : elle se pose par-dessus l'écran courant,
@@ -50,20 +60,31 @@
                     placeholder="Longitude"
                     aria-label="Longitude"
                 />
-                <button id="manual-place-button" type="button" class="secondary">📌 Placer</button>
-                <!-- Le libellé disparaît sous 560 px : c'est `aria-label` qui
-                     empêche le bouton de s'annoncer « 🎯 ». -->
                 <button
-                    id="carte-position-button"
+                    id="manual-place-button"
                     type="button"
                     class="secondary"
-                    aria-label="Ma position"
-                    disabled
+                    aria-label="Placer"
                 >
-                    🎯<span class="button-label">Ma position</span>
+                    <svg class="icon" aria-hidden="true"><use href="#i-mappin" /></svg>
+                    <span class="button-label">Placer</span>
                 </button>
-                <button id="cancel-carte-button" type="button" class="secondary">✖️ Annuler</button>
-                <button id="confirm-carte-button" type="button" disabled>✅ Valider</button>
+                <!-- « Ma position » n'est plus ici : l'adapter le pose **sur** la
+                     carte, en contrôle Leaflet, là où la plateforme le met — et
+                     il tenait déjà la coordonnée à rejoindre. -->
+                <button
+                    id="cancel-carte-button"
+                    type="button"
+                    class="secondary"
+                    aria-label="Annuler"
+                >
+                    <svg class="icon" aria-hidden="true"><use href="#i-xmark" /></svg>
+                    <span class="button-label">Annuler</span>
+                </button>
+                <button id="confirm-carte-button" type="button" disabled aria-label="Valider">
+                    <svg class="icon" aria-hidden="true"><use href="#i-checkmark" /></svg>
+                    <span class="button-label">Valider</span>
+                </button>
             </div>
         </section>
 

@@ -13,12 +13,12 @@ function clickCountingArea(): { area: HTMLDivElement; clicksReceived: () => numb
     return { area, clicksReceived: () => clicks };
 }
 
-/** Le pictogramme : ce que le bouton montre quand son libellé est masqué. */
-function iconOf(button: HTMLButtonElement): string {
-    return [...button.childNodes]
-        .filter((node) => node.nodeType === Node.TEXT_NODE)
-        .map((node) => node.textContent ?? '')
-        .join('');
+/**
+ * Le symbole que le bouton désigne : ce qu'il montre quand son libellé est
+ * masqué. On lit la référence, pas un dessin — c'est elle qui peut être fausse.
+ */
+function iconOf(button: HTMLButtonElement): string | null {
+    return button.querySelector('svg.icon use')?.getAttribute('href') ?? null;
 }
 
 function labelOf(button: HTMLButtonElement): string | null {
@@ -29,7 +29,7 @@ describe('createButton', () => {
     describe('Étant donné un descriptif, quand je crée le bouton', () => {
         it('alors il porte son intitulé accessible et le type « button »', () => {
             const button = createButton({
-                icon: '🗑️',
+                icon: 'trash',
                 label: 'Supprimer',
                 ariaLabel: 'Supprimer le point 1',
                 action: () => undefined,
@@ -42,7 +42,7 @@ describe('createButton', () => {
 
         it('alors le libellé vit dans son propre élément, que la feuille de style peut retirer', () => {
             const button = createButton({
-                icon: '🗑️',
+                icon: 'trash',
                 label: 'Supprimer',
                 ariaLabel: 'Supprimer le point 1',
                 action: () => undefined,
@@ -50,20 +50,33 @@ describe('createButton', () => {
 
             // Sous 560 px seul le pictogramme reste : le libellé doit donc être
             // atteignable par un sélecteur, et le nom accessible vivre ailleurs.
-            expect(iconOf(button)).toBe('🗑️');
+            expect(iconOf(button)).toBe('#i-trash');
             expect(labelOf(button)).toBe('Supprimer');
+        });
+
+        it('alors son pictogramme est le symbole monochrome de ce nom, et non un emoji', () => {
+            const button = createButton({
+                icon: 'trash',
+                label: 'Supprimer',
+                ariaLabel: 'Supprimer le point 1',
+                action: () => undefined,
+            });
+
+            // La HIG demande des symboles monochromes sur le verre : ils prennent
+            // la couleur du texte, ce qu'un emoji polychrome ne sait pas faire.
+            expect(button.querySelector('svg.icon use')?.getAttribute('href')).toBe('#i-trash');
         });
     });
 
     describe('Étant donné un descriptif sans libellé, quand je crée le bouton', () => {
         it("alors il n'a pas d'élément de libellé du tout — il n'y a rien à masquer", () => {
             const button = createButton({
-                icon: '🔼',
+                icon: 'chevron-up',
                 ariaLabel: 'Monter page-1.png',
                 action: () => undefined,
             });
 
-            expect(iconOf(button)).toBe('🔼');
+            expect(iconOf(button)).toBe('#i-chevron-up');
             expect(labelOf(button)).toBeNull();
         });
     });
@@ -72,7 +85,7 @@ describe('createButton', () => {
         it('alors son action se déclenche', () => {
             let declenchements = 0;
             const button = createButton({
-                icon: '✏️',
+                icon: 'pencil',
                 label: 'Renommer',
                 ariaLabel: 'Renommer Paris → Bordeaux',
                 action: () => {
@@ -90,7 +103,7 @@ describe('createButton', () => {
     describe('Étant donné un bouton dangereux, quand je le crée', () => {
         it('alors il porte la classe « danger » en plus', () => {
             const button = createButton({
-                icon: '🗑️',
+                icon: 'trash',
                 label: 'Supprimer',
                 ariaLabel: 'Supprimer page-1.jpg',
                 action: () => undefined,
@@ -107,7 +120,7 @@ describe('createButton', () => {
             let declenchements = 0;
             area.append(
                 createButton({
-                    icon: '🗺️',
+                    icon: 'map',
                     label: 'Sur la carte',
                     ariaLabel: 'Déplacer le point 1 sur la carte',
                     action: () => {
@@ -125,7 +138,7 @@ describe('createButton', () => {
 
         it('alors il porte une infobulle, car son texte est minuscule', () => {
             const button = createButton({
-                icon: '🗺️',
+                icon: 'map',
                 ariaLabel: 'Déplacer le point 2 sur la carte',
                 action: () => undefined,
                 variant: 'floating',
@@ -141,7 +154,7 @@ describe('createButton', () => {
             const { area, clicksReceived } = clickCountingArea();
             area.append(
                 createButton({
-                    icon: '•',
+                    icon: 'plus',
                     label: 'Ordinaire',
                     ariaLabel: 'Un bouton ordinaire',
                     action: () => undefined,
@@ -157,7 +170,7 @@ describe('createButton', () => {
     describe('Étant donné un bouton flottant dangereux, quand je le crée', () => {
         it('alors il cumule les deux classes', () => {
             const button = createButton({
-                icon: '🗑️',
+                icon: 'trash',
                 ariaLabel: 'Supprimer le point 3',
                 action: () => undefined,
                 danger: true,

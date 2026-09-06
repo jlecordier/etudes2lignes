@@ -1,4 +1,5 @@
 import { requireConfiguration } from './dom';
+import { mountIcons } from './icons';
 import { createTemplate } from './template';
 
 /**
@@ -37,6 +38,11 @@ export function defineScreen<Dependencies>(
             const dependencies = requireConfiguration(this.#dependencies, this);
             const abort = new AbortController();
             this.#abort = abort;
+            // Un `<use>` ne va chercher son symbole que dans le document qui le
+            // porte : un écran qui s'attache y pose donc le jeu, sinon tous ses
+            // pictogrammes seraient vides. L'appel est idempotent, et c'est ce
+            // qui fait qu'il n'y a nulle part un montage à ne pas oublier.
+            mountIcons();
             this.replaceChildren(content());
             mount(this, dependencies, abort.signal);
         }

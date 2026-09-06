@@ -24,6 +24,7 @@ docs/ (French); docs/INDEX.md is the full map.
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): hexagon + screaming architecture, ports/adapters table, DDD domain, the geo→scroll algorithm, platform pitfalls encoded in the code.
 - [docs/GLOSSAIRE.md](docs/GLOSSAIRE.md): ubiquitous language — domain, architecture and platform terms mapped to the code.
+- [docs/LIQUID-GLASS.md](docs/LIQUID-GLASS.md): why the interface looks as it does — the two-layer rule, the closed list of glass surfaces, the iOS type scale, and seven measured engine traps (WebKit prefix, no var() in backdrop-filter, Leaflet stacking contexts and bundle order).
 - [docs/EXIGENCES.md](docs/EXIGENCES.md): requirements per capability, each traced to the test(s) that verify it.
 - [docs/INDEX.md](docs/INDEX.md): full documentation map.
 

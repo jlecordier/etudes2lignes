@@ -10,6 +10,7 @@ import { toCoordonnee, toLatLng } from './conversion';
 import { createOsmLayer } from './osmLayer';
 import { numberedIcon } from './numberedIcon';
 import { centerOnCoordonnee, fitToPoints, remeasureAfterReveal } from './fitting';
+import { PositionControl } from './positionControl';
 import { PositionLayers } from './positionLayers';
 import { INPUT_HINT, coordonneeFromInputs } from './saisieDeCoordonnee';
 
@@ -30,8 +31,23 @@ export class LeafletCoordonneeSelector implements CoordonneeSelector {
     private readonly longitudeInput = query('#longitude-input', HTMLInputElement);
     private readonly confirmButton = query('#confirm-carte-button', HTMLButtonElement);
     private readonly positionStatus = query('#carte-position-status', HTMLParagraphElement);
-    private readonly positionButton = query('#carte-position-button', HTMLButtonElement);
     private readonly positionLayers = new PositionLayers();
+    /**
+     * Le bouton « Ma position », posé **sur** la carte comme le fait la
+     * plateforme. Il vivait dans la barre du bas, entre la latitude et
+     * « Valider », et obligeait cet adapter à tenir son état actif alors que
+     * `PositionLayers` détient déjà la coordonnée.
+     *
+     * L'identifiant est celui qu'il portait : les tests le désignent, et il n'a
+     * fait que changer de porteur. Il diffère de celui de la carte de l'éditeur
+     * parce que les deux **coexistent** dans le document — cette carte recouvre
+     * l'autre sans la démonter, et deux fois le même `id` n'est pas un HTML
+     * valide.
+     */
+    private readonly positionControl = new PositionControl(
+        'carte-position-button',
+        this.positionLayers,
+    );
 
     constructor() {
         query('#cancel-carte-button', HTMLButtonElement).addEventListener('click', () => {
@@ -42,9 +58,6 @@ export class LeafletCoordonneeSelector implements CoordonneeSelector {
         });
         query('#manual-place-button', HTMLButtonElement).addEventListener('click', () => {
             this.placeFromInputs();
-        });
-        this.positionButton.addEventListener('click', () => {
-            this.goToPosition();
         });
     }
 
@@ -84,6 +97,7 @@ export class LeafletCoordonneeSelector implements CoordonneeSelector {
         configureLeaflet();
         this.carte = L.map('carte-container');
         createOsmLayer().addTo(this.carte);
+        this.positionControl.addTo(this.carte);
         this.carte.on('click', (event) => {
             this.placeMarker(toCoordonnee(event.latlng));
         });
@@ -153,28 +167,17 @@ export class LeafletCoordonneeSelector implements CoordonneeSelector {
      */
     private paintPosition(carte: L.Map, position: DisplayedPosition): void {
         this.positionLayers.paint(carte, position);
-        this.positionButton.disabled = this.positionLayers.coordonnee() === null;
+        // Le contrôle ne s'abonne à rien : c'est ici qu'on sait que la position
+        // a changé, donc c'est ici qu'on le lui dit.
+        this.positionControl.refresh();
         this.positionStatus.textContent = position.kind === 'connue' ? '' : position.message;
         this.positionStatus.hidden = position.kind === 'connue' || position.message === '';
-    }
-
-    /**
-     * Le cadrage ne bouge jamais tout seul ; ici on le lui demande. Même zoom que
-     * « aller au point » : on arrive d'ailleurs, il n'y a pas d'échelle réglée à
-     * la main à voler.
-     */
-    private goToPosition(): void {
-        const position = this.positionLayers.coordonnee();
-        if (position === null) {
-            return;
-        }
-        centerOnCoordonnee(this.initializedCarte(), position);
     }
 
     /** Ce que la position laisse derrière elle quand le choix se termine. */
     private clearPosition(): void {
         this.positionLayers.clear();
-        this.positionButton.disabled = true;
+        this.positionControl.refresh();
         this.positionStatus.textContent = '';
         this.positionStatus.hidden = true;
     }

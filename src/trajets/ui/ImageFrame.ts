@@ -83,7 +83,7 @@ function pageButtons(host: HTMLElement, framed: FramedPage): Button[] {
     const { nom } = framed;
     return [
         {
-            icon: '🔼',
+            icon: 'chevron-up',
             ariaLabel: `Monter ${nom}`,
             action: () => {
                 emitIntent(host, 'move-image', {
@@ -93,7 +93,7 @@ function pageButtons(host: HTMLElement, framed: FramedPage): Button[] {
             },
         },
         {
-            icon: '🔽',
+            icon: 'chevron-down',
             ariaLabel: `Descendre ${nom}`,
             action: () => {
                 emitIntent(host, 'move-image', {
@@ -103,7 +103,7 @@ function pageButtons(host: HTMLElement, framed: FramedPage): Button[] {
             },
         },
         {
-            icon: '🗑️',
+            icon: 'trash',
             label: 'Supprimer',
             ariaLabel: `Supprimer ${nom}`,
             action: () => {
