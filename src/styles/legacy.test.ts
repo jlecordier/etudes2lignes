@@ -3,10 +3,10 @@ import { describe, expect, it } from 'vitest';
 
 /**
  * Lue depuis le disque, et non importée : Vitest neutralise les imports CSS —
- * un `./style.css?raw` rend une chaîne vide, et le témoin serait vert sur une
- * feuille inexistante.
+ * un `./screens/legacy.css?raw` rend une chaîne vide, et le témoin serait vert
+ * sur une feuille inexistante.
  */
-const feuille = readFileSync(new URL('./style.css', import.meta.url), 'utf8');
+const feuille = readFileSync(new URL('./screens/legacy.css', import.meta.url), 'utf8');
 
 /**
  * Ce fichier éprouve la **source** de la feuille de style, et non son effet.
@@ -58,9 +58,9 @@ describe("La couverture de l'apparence sombre", () => {
             // `--position` — qui suivent `--bleu` et `--rouge`, eux redéfinis.
             const communs = ['--sur-teinte', '--accent', '--destructif', '--position'];
 
-            const clair = /^:root \{([\s\S]*?)^\}/m.exec(feuille)?.[1] ?? '';
+            const clair = /^[ \t]*:root \{([\s\S]*?)^[ \t]*\}/m.exec(feuille)?.[1] ?? '';
             const sombre =
-                /@media \(prefers-color-scheme: dark\) \{\s*:root \{([\s\S]*?)\n {4}\}/.exec(
+                /@media \(prefers-color-scheme: dark\) \{\s*:root \{([\s\S]*?)\n[ \t]*\}/.exec(
                     feuille,
                 )?.[1] ?? '';
 
@@ -103,7 +103,7 @@ describe('Les contrôles', () => {
             //
             // « A button needs a hit region of at least 44x44 pt » : le bouton
             // d'avant faisait 37 px de haut.
-            const bouton = /\nbutton\s*\{([^}]*)\}/s.exec(feuille);
+            const bouton = /\n[ \t]*button\s*\{([^}]*)\}/s.exec(feuille);
 
             expect(bouton?.[1]).toMatch(/border-radius:\s*999px/);
             expect(bouton?.[1]).toMatch(/min-block-size:\s*44px/);
@@ -119,7 +119,7 @@ describe('Le contour des contrôles', () => {
             // bordure d'avant doublait le fond de la même couleur sur le bouton
             // principal, et cerclait de bleu les secondaires, dont la HIG veut
             // justement qu'ils s'effacent.
-            const bouton = /\nbutton\s*\{([^}]*)\}/s.exec(feuille);
+            const bouton = /\n[ \t]*button\s*\{([^}]*)\}/s.exec(feuille);
 
             expect(bouton?.[1]).toMatch(/border:\s*none/);
         });
@@ -138,7 +138,7 @@ describe('Les conteneurs de carte face aux panneaux de Leaflet', () => {
             // intégralement recouvert par les tuiles — invisible, alors que sa
             // boîte et son fond étaient corrects.
             for (const conteneur of ['#carte-container', '.carte-points']) {
-                const regle = new RegExp(`\\n\\${conteneur} \\{([^}]*)\\}`).exec(feuille);
+                const regle = new RegExp(`\\n[ \\t]*\\${conteneur} \\{([^}]*)\\}`).exec(feuille);
 
                 expect(regle?.[1]).toMatch(/position:\s*(absolute|relative)/);
                 expect(regle?.[1]).toMatch(/z-index:\s*0/);
@@ -159,7 +159,9 @@ describe('Le bord de défilement sous une barre', () => {
             // voile. Il appartient au défilement, pas à la barre : d'où une
             // bande posée sous elle, transparente aux clics, qui laisse le
             // contenu passer dessous sans l'intercepter.
-            const bande = /\n\.header::after,\n\.suivi-bar::after \{([^}]*)\}/.exec(feuille);
+            const bande = /\n[ \t]*\.header::after,\n[ \t]*\.suivi-bar::after \{([^}]*)\}/.exec(
+                feuille,
+            );
 
             expect(bande?.[1]).toMatch(/pointer-events:\s*none/);
             expect(bande?.[1]).toMatch(/linear-gradient\(\s*to bottom,\s*var\(--fond/);
@@ -177,8 +179,8 @@ describe('Une barre de navigation sur un petit iPhone', () => {
             // hauteur. La règle de `.header` est sans `flex-wrap` exprès — mais
             // l'abrègement ne visait que `h2`, et la barre d'actions imbriquée
             // pliait pour son propre compte.
-            const titre = /\n\.header :is\(h1, h2\) \{([^}]*)\}/.exec(feuille);
-            const actions = /\n\.header \.action-bar \{([^}]*)\}/.exec(feuille);
+            const titre = /\n[ \t]*\.header :is\(h1, h2\) \{([^}]*)\}/.exec(feuille);
+            const actions = /\n[ \t]*\.header \.action-bar \{([^}]*)\}/.exec(feuille);
 
             expect(titre?.[1]).toMatch(/text-overflow:\s*ellipsis/);
             expect(actions?.[1]).toMatch(/flex-wrap:\s*nowrap/);
@@ -199,7 +201,7 @@ describe("L'action qui conclut, dans une barre", () => {
             // conclut : le sélecteur le dit, et sa spécificité le fait gagner
             // contre la règle des pairs.
             const proeminente =
-                /\n\.header \.action-bar button:not\(\.secondary\) \{([^}]*)\}/.exec(feuille);
+                /\n[ \t]*\.header \.action-bar button:not\(\.secondary\) \{([^}]*)\}/.exec(feuille);
 
             expect(proeminente?.[1]).toMatch(/background:\s*var\(--accent\)/);
         });
@@ -217,7 +219,7 @@ describe('La hauteur des barres', () => {
             // Les deux barres jouent le même rôle — la couche fonctionnelle d'un
             // écran — donc leur rythme s'écrit une fois. Écrit deux fois, il a
             // déjà dérivé.
-            const rythme = /\n\.header,\n\.suivi-bar \{([^}]*)\}/.exec(feuille);
+            const rythme = /\n[ \t]*\.header,\n[ \t]*\.suivi-bar \{([^}]*)\}/.exec(feuille);
 
             expect(rythme?.[1]).toMatch(/padding-block:\s*var\(--air-barre\)/);
             expect(feuille).toMatch(/--air-barre:/);
@@ -235,7 +237,7 @@ describe("Le filet sous une barre d'écran", () => {
             //
             // Il était la dernière asymétrie mesurée entre les deux barres :
             // la barre de suivi le portait seule, d'où 62 px contre 61.
-            const barres = feuille.includes('\n.header::after,\n.suivi-bar::after {');
+            const barres = /\n[ \t]*\.header::after,\n[ \t]*\.suivi-bar::after \{/.test(feuille);
 
             expect(barres).toBe(true);
             expect(feuille).not.toMatch(/border-(?:bottom|block-end):\s*1px/);
@@ -266,7 +268,7 @@ describe('La teinte du verre au repos', () => {
                     .slice(0, 3)
                     .join(' ');
 
-            const jetons = /^:root \{([\s\S]*?)^\}/m.exec(feuille)?.[1] ?? '';
+            const jetons = /^[ \t]*:root \{([\s\S]*?)^[ \t]*\}/m.exec(feuille)?.[1] ?? '';
             const fond = canaux(/--fond-groupe:\s*(rgba?\([^)]*\))/.exec(jetons)?.[1] ?? '');
             const verre = canaux(/--verre:\s*(rgba?\([^)]*\))/.exec(jetons)?.[1] ?? '');
 
@@ -288,7 +290,7 @@ describe('La barre de navigation elle-même', () => {
             // Et elle était encartée de 17 px de chaque côté par le rembourrage
             // de l'écran : une carte flottante, pas une barre. Les marges
             // négatives l'annulent, le rembourrage interne lui rend son air.
-            const barre = /\n\.header \{([^}]*)\}/.exec(feuille);
+            const barre = /\n[ \t]*\.header \{([^}]*)\}/.exec(feuille);
 
             expect(barre?.[1]).toMatch(/position:\s*sticky/);
             expect(barre?.[1]).toMatch(/margin-inline:\s*calc\(-1 \* var\(--marge-ecran\)\)/);
@@ -306,7 +308,7 @@ describe("Le titre d'une barre de navigation", () => {
             // *contenu* : dans une barre, entre un chevron et une action, il
             // écrase tout et se tronque. Mesuré : « Paris → Bordeaux » tombait à
             // « Paris → Bordea… » sur 390 px.
-            const titre = /\n\.header :is\(h1, h2\) \{([^}]*)\}/.exec(feuille);
+            const titre = /\n[ \t]*\.header :is\(h1, h2\) \{([^}]*)\}/.exec(feuille);
 
             expect(titre?.[1]).toMatch(/font-size:\s*1rem/);
             expect(titre?.[1]).toMatch(/font-weight:\s*600/);
@@ -322,7 +324,7 @@ describe("Le titre d'un en-tête", () => {
             // plier les envoyait sur trois lignes. Mais alors c'est au **titre**
             // de céder — sans quoi il se casse en deux et fait grandir la barre
             // de tout ce qu'on voulait lui épargner.
-            const titre = /\n\.header :is\(h1, h2\) \{([^}]*)\}/.exec(feuille);
+            const titre = /\n[ \t]*\.header :is\(h1, h2\) \{([^}]*)\}/.exec(feuille);
 
             expect(titre?.[1]).toMatch(/white-space:\s*nowrap/);
             expect(titre?.[1]).toMatch(/text-overflow:\s*ellipsis/);
@@ -339,7 +341,9 @@ describe('Les contrôles de la carte', () => {
             // carrée — un rond dans un carré — et surtout **du verre sur du
             // verre**, que la HIG refuse : « avoid overcrowding or layering
             // Liquid Glass elements on top of each other ».
-            const partagee = /\n\.leaflet-bar a,\n\.carte-recentrer \{([^}]*)\}/.exec(feuille);
+            const partagee = /\n[ \t]*\.leaflet-bar a,\n[ \t]*\.carte-recentrer \{([^}]*)\}/.exec(
+                feuille,
+            );
 
             expect(partagee?.[1]).toMatch(/inline-size:\s*34px/);
             expect(partagee?.[1]).toMatch(/block-size:\s*34px/);
@@ -365,7 +369,7 @@ describe('Les tuiles de la carte', () => {
             // conteneur : un `filter` sur un ancêtre du verre en annulerait le
             // flou. Le panneau des contrôles est un frère du panneau des tuiles,
             // donc il y échappe.
-            const tuiles = /\n\.leaflet-tile-pane \{([^}]*)\}/.exec(feuille);
+            const tuiles = /\n[ \t]*\.leaflet-tile-pane \{([^}]*)\}/.exec(feuille);
             const sombre =
                 /@media \(prefers-color-scheme: dark\) \{\s*\.leaflet-tile-pane \{([^}]*)\}/.exec(
                     feuille,
@@ -385,8 +389,8 @@ describe('La carte de saisie de coordonnée', () => {
             // the same plane. » Le formulaire était une rangée *sous* la carte,
             // qui lui prenait sa hauteur : c'est le seul écran où la carte est le
             // sujet, et elle n'en occupait pas le bas.
-            const conteneur = /\n#carte-container \{([^}]*)\}/.exec(feuille);
-            const barre = /\n\.carte-bar \{([^}]*)\}/.exec(feuille);
+            const conteneur = /\n[ \t]*#carte-container \{([^}]*)\}/.exec(feuille);
+            const barre = /\n[ \t]*\.carte-bar \{([^}]*)\}/.exec(feuille);
 
             expect(conteneur?.[1]).toMatch(/position:\s*absolute/);
             expect(conteneur?.[1]).toMatch(/inset:\s*0/);
@@ -410,7 +414,7 @@ describe('Un bouton dans une barre', () => {
             // proéminente, une par barre, et elle garde sa teinte — « apply
             // color to the background rather than to symbols or text ».
             const groupe =
-                /\n\.header button\.secondary,\n\.suivi-bar button\.secondary,\n\.carte-bar button\.secondary,\n\.point-actions button,\n\.image-bar button \{([^}]*)\}/.exec(
+                /\n[ \t]*\.header button\.secondary,\n[ \t]*\.suivi-bar button\.secondary,\n[ \t]*\.carte-bar button\.secondary,\n[ \t]*\.point-actions button,\n[ \t]*\.image-bar button \{([^}]*)\}/.exec(
                     feuille,
                 );
 
@@ -431,7 +435,7 @@ describe("Une barre d'actions", () => {
             //
             // « Use style — not size — to visually distinguish the preferred
             // choice » : elles gardent donc leur taille et perdent leur teinte.
-            const barre = /\n\.action-bar button \{([^}]*)\}/.exec(feuille);
+            const barre = /\n[ \t]*\.action-bar button \{([^}]*)\}/.exec(feuille);
 
             expect(barre?.[1]).toMatch(/background:\s*color-mix\(/);
             expect(barre?.[1]).toMatch(/color:\s*var\(--accent\)/);
@@ -449,7 +453,7 @@ describe("L'ordre des actions dans le panneau de saisie", () => {
             // C'est l'annulation qui pousse, et non la validation qui est
             // poussée : en logique d'écriture, la marge automatique appartient à
             // l'élément qui cède la place.
-            const annuler = /\n#cancel-carte-button \{([^}]*)\}/.exec(feuille);
+            const annuler = /\n[ \t]*#cancel-carte-button \{([^}]*)\}/.exec(feuille);
 
             expect(annuler?.[1]).toMatch(/margin-inline-end:\s*auto/);
         });
@@ -465,7 +469,7 @@ describe('Les surfaces qui se répètent', () => {
             // Or le besoin est la lisibilité, pas l'optique — un fond suffit, et
             // sans lui ces boutons sont illisibles sur un schéma chargé.
             for (const surface of ['.point-actions', '.image-bar']) {
-                const regle = new RegExp(`\\n\\${surface} \\{([^}]*)\\}`).exec(feuille);
+                const regle = new RegExp(`\\n[ \\t]*\\${surface} \\{([^}]*)\\}`).exec(feuille);
 
                 expect(regle?.[1]).toMatch(/background:\s*var\(--verre/);
                 expect(regle?.[1]).not.toMatch(/backdrop-filter/);
@@ -508,7 +512,7 @@ describe('Les cartes de contenu', () => {
             // of controls across the system. » Une bordure d'un pixel n'a plus
             // lieu d'être quand le fond de la carte se distingue déjà de celui
             // de la vue : c'est ainsi qu'une liste groupée d'iOS se lit.
-            const carte = /\ntrajet-row,[\s\S]*?\{([^}]*)\}/.exec(feuille);
+            const carte = /\n[ \t]*trajet-row,[\s\S]*?\{([^}]*)\}/.exec(feuille);
 
             // Le rayon passe par son jeton : « Les rayons », plus haut, refuse
             // désormais toute valeur écrite en clair.
@@ -561,7 +565,10 @@ describe("L'échelle typographique", () => {
             // suivent. Chrome jette la déclaration entière, d'où le `font-size`
             // qui précède et lui sert de repli — 17 px, la taille par défaut
             // d'iOS, et non les 16 px du navigateur.
-            const racine = /\nhtml\s*\{([^}]*)\}/.exec(feuille);
+            // Tolérant à l'indentation : l'enveloppe `@layer screens { … }`
+            // décale tout le fichier d'un niveau, et un `\n` suivi directement
+            // du sélecteur ne trouverait plus rien.
+            const racine = /\n[ \t]*html\s*\{([^}]*)\}/.exec(feuille);
 
             expect(racine?.[1]).toMatch(/font-size:\s*17px[\s\S]*font:\s*-apple-system-body/);
             // Une racine transparente retombe sur du blanc en clair et du noir
@@ -678,7 +685,7 @@ describe('La couche fonctionnelle', () => {
             // pas de la prose. Le commentaire qui explique pourquoi
             // `.carte-recentrer` n'en reçoit pas ferait échouer le témoin qui
             // vérifie qu'il n'en reçoit pas.
-            const pose = /@supports \(\(backdrop-filter[^{]*\{([\s\S]*?)\n\}/.exec(
+            const pose = /@supports \(\(backdrop-filter[^{]*\{([\s\S]*?)\n[ \t]*\}/.exec(
                 feuille.replace(/\/\*[\s\S]*?\*\//g, ' '),
             );
 
@@ -694,7 +701,7 @@ describe('La couche fonctionnelle', () => {
             // content is light, and lighter when it's dark. » Un libellé fixé en
             // blanc — ce que la règle du bouton principal impose — disparaît dès
             // que le verre s'éclaircit sur une page de schéma.
-            const pose = /@supports \(\(backdrop-filter[^{]*\{([\s\S]*?)\n\}/.exec(feuille);
+            const pose = /@supports \(\(backdrop-filter[^{]*\{([\s\S]*?)\n[ \t]*\}/.exec(feuille);
 
             expect(pose?.[1]).toMatch(/color:\s*var\(--label\)/);
             expect(pose?.[1]).not.toMatch(/color:\s*var\(--sur-teinte\)/);
@@ -703,8 +710,8 @@ describe('La couche fonctionnelle', () => {
 
     describe('Étant donné une surface en verre, quand la feuille la traite', () => {
         it('alors elle est de la liste close, floutée, et rendue opaque par les réglages', () => {
-            const pose = /@supports \(\(backdrop-filter[^{]*\{([\s\S]*?)\n\}/.exec(feuille);
-            const retrait = /@media \(prefers-reduced-transparency[^{]*\{([\s\S]*?)\n\}/.exec(
+            const pose = /@supports \(\(backdrop-filter[^{]*\{([\s\S]*?)\n[ \t]*\}/.exec(feuille);
+            const retrait = /@media \(prefers-reduced-transparency[^{]*\{([\s\S]*?)\n[ \t]*\}/.exec(
                 feuille,
             );
 
@@ -794,7 +801,10 @@ describe('La réconciliation avec Leaflet', () => {
             const zoneLeaflet = feuille.slice(debut, fin);
 
             expect(zoneLeaflet).not.toContain('!important');
-            expect(feuille).toContain("@import url('leaflet/dist/leaflet.css') layer(vendor);");
+            // L'autre moitié de ce contrat — leaflet.css chargé en couche
+            // vendor — s'affirme désormais dans `styles.test.ts` : cette
+            // ligne vit dans `index.css` depuis que les couches sont
+            // devenues l'ossature du système, pas dans cette feuille d'écran.
         });
     });
 });
@@ -806,9 +816,10 @@ describe('Le mouvement', () => {
             // *est* la fonction de l'application. Une durée de 1 ms plutôt que
             // `none` : les gestionnaires de `transitionend` continuent de
             // recevoir leur événement, là où `none` les rendrait muets.
-            const bloc = /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([\s\S]*?)\n\}/.exec(
-                feuille,
-            );
+            const bloc =
+                /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([\s\S]*?)\n[ \t]*\}/.exec(
+                    feuille,
+                );
 
             expect(bloc?.[1]).toMatch(/transition-duration:\s*1ms/);
             expect(bloc?.[1]).not.toMatch(/scroll-behavior:\s*smooth/);

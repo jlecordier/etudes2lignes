@@ -1,0 +1,17 @@
+/* Le seul point d'entrée du système de design.
+ *
+ * Ce fichier n'écrit **aucune règle** : il déclare l'ordre de cascade, puis
+ * importe. Une règle posée ici échapperait à toute couche, et une déclaration
+ * hors couche gagne sur toutes les couches — donc rien ne pourrait la
+ * surcharger.
+ *
+ * L'ordre des couches est le seul endroit qui décide de la priorité. Une
+ * couche déclarée plus tard gagne, quelle que soit la spécificité. C'est ce
+ * qui remplace les jeux de sélecteurs et les `!important`.
+ */
+@layer vendor, reset, tokens, base, components, screens;
+
+/* Leaflet tout en bas : voir la note de `screens/legacy.css` sur la mesure qui
+   a décidé de cette ligne. */
+@import url('leaflet/dist/leaflet.css') layer(vendor);
+@import url('./screens/legacy.css');

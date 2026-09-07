@@ -1,25 +1,24 @@
-/* Le système de design vit maintenant dans `styles/` ; ce fichier est en
+@layer screens {
+    /* Le système de design vit maintenant dans `styles/` ; ce fichier est en
    transit et disparaît en Task 3. */
 
-/* L'ordre de cascade du système. Une couche déclarée plus tard gagne, quelle
+    /* L'ordre de cascade du système. Une couche déclarée plus tard gagne, quelle
    que soit la spécificité — et **toute** déclaration hors couche gagne sur
    toutes les couches. C'est ce qui permet de ranger Leaflet tout en bas et de
    reprendre ses contrôles sans un seul `!important`. */
-@layer vendor, reset, tokens, base, components, screens;
 
-/* leaflet.css entrait par deux adapters TypeScript, et un import JavaScript ne
+    /* leaflet.css entrait par deux adapters TypeScript, et un import JavaScript ne
    peut pas être mis en couche : c'est précisément ce qui obligeait à 16
    `!important` pour reprendre ses contrôles. Ici, il tombe dans la couche la
    plus basse. */
-@import url('leaflet/dist/leaflet.css') layer(vendor);
 
-/* Style volontairement simple, mobile d'abord. */
+    /* Style volontairement simple, mobile d'abord. */
 
-* {
-    box-sizing: border-box;
-}
+    * {
+        box-sizing: border-box;
+    }
 
-/* La taille de texte du système, quand le système en a une.
+    /* La taille de texte du système, quand le système en a une.
 
    `font: -apple-system-body` est le **seul** crochet que le web offre sur la
    taille dynamique d'iOS : WebKit y résout la valeur réellement choisie dans
@@ -36,24 +35,24 @@
    Un fond opaque explicite, enfin : une racine transparente retombe sur du blanc
    en apparence claire et du noir en sombre, et c'est précisément de là que
    viennent les barres blanches observées sous Safari 26. */
-html {
-    /* Le repli, pour les moteurs qui ignorent la ligne suivante. */
-    font-size: 17px;
+    html {
+        /* Le repli, pour les moteurs qui ignorent la ligne suivante. */
+        font-size: 17px;
 
-    /* La seule accroche web à la taille dynamique d'iOS. Elle **écrase**
+        /* La seule accroche web à la taille dynamique d'iOS. Elle **écrase**
        volontairement le `font-size` ci-dessus, et Stylelint a raison de le
        relever : ce n'est sûr que parce que Chrome tient la forme abrégée pour
        invalide et la jette, laissant le repli en place. WebKit, lui, la
        comprend et suit les réglages d'accessibilité du système.
        La famille n'a pas de générique de repli pour la même raison : c'est le
        système qui la résout, et il n'y a rien à lui proposer d'autre. */
-    /* stylelint-disable-next-line declaration-block-no-shorthand-property-overrides, font-family-no-missing-generic-family-keyword */
-    font: -apple-system-body;
-    background-color: var(--fond-groupe);
-    color-scheme: light dark;
-}
+        /* stylelint-disable-next-line declaration-block-no-shorthand-property-overrides, font-family-no-missing-generic-family-keyword */
+        font: -apple-system-body;
+        background-color: var(--fond-groupe);
+        color-scheme: light dark;
+    }
 
-/* Les gestes natifs qui occupaient le doigt sont rendus à l'application : le
+    /* Les gestes natifs qui occupaient le doigt sont rendus à l'application : le
    pincement et le double-tap-zoom servaient à agrandir, ils servent maintenant à
    poser un point (`src/trajets/ui/addPointOnStack.ts`).
 
@@ -67,50 +66,50 @@ html {
 
    La carte n'a pas à être exemptée : leaflet.css pose ses propres `touch-action`
    et `user-select` sur ses conteneurs, et arrive après dans le bundle. */
-body {
-    margin: 0;
-    font-family: system-ui, sans-serif;
-    color: var(--label);
-    background: var(--fond-groupe);
+    body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        color: var(--label);
+        background: var(--fond-groupe);
 
-    /* Surtout pas `none` : la pile se lit au doigt, et `none` tuerait ce
+        /* Surtout pas `none` : la pile se lit au doigt, et `none` tuerait ce
        geste-là. Ce qui part, c'est le pincement et le double-tap-zoom. */
-    touch-action: pan-x pan-y;
-    -webkit-user-select: none;
-    user-select: none;
+        touch-action: pan-x pan-y;
+        -webkit-user-select: none;
+        user-select: none;
 
-    /* Safari iOS et iPadOS seulement ; no-op sur tous les autres moteurs. */
-    -webkit-touch-callout: none;
-}
+        /* Safari iOS et iPadOS seulement ; no-op sur tous les autres moteurs. */
+        -webkit-touch-callout: none;
+    }
 
-/* La seule exception, et elle suffit : le renommage d'un trajet passe par un
+    /* La seule exception, et elle suffit : le renommage d'un trajet passe par un
    `prompt()` natif, donc hors de portée du CSS. Les seuls vrais champs sont la
    latitude et la longitude, et corriger un chiffre fautif demande de pouvoir le
    sélectionner. */
-input {
-    -webkit-user-select: text;
-    user-select: text;
-}
+    input {
+        -webkit-user-select: text;
+        user-select: text;
+    }
 
-:root {
-    /* Passe à 1 dans la requête média du grand écran, plus bas. */
-    --large-screen: 0;
+    :root {
+        /* Passe à 1 dans la requête média du grand écran, plus bas. */
+        --large-screen: 0;
 
-    /* La marge d'un écran, nommée parce que **deux** règles doivent s'accorder :
+        /* La marge d'un écran, nommée parce que **deux** règles doivent s'accorder :
        le rembourrage de l'écran, et la marge négative dont une barre pleine
        largeur a besoin pour l'annuler. Écrite deux fois, elle aurait dérivé et
        la barre aurait dépassé d'un côté. */
-    --marge-ecran: 1rem;
+        --marge-ecran: 1rem;
 
-    /* L'air qu'une barre laisse au-dessus et au-dessous de ses contrôles, et
+        /* L'air qu'une barre laisse au-dessus et au-dessous de ses contrôles, et
        donc ce qui fixe sa hauteur : un contrôle de 44 px et cet air deux fois.
        Nommé pour la même raison que la marge — les deux barres d'écran doivent
        s'accorder, et chacune l'écrivant de son côté, elles avaient dérivé de
        18 px. L'en-tête, lui, n'en avait aucun : ses boutons touchaient les
        deux bords. */
-    --air-barre: 0.5rem;
+        --air-barre: 0.5rem;
 
-    /* Les rayons. « Consider aligning the shape of controls with other rounded
+        /* Les rayons. « Consider aligning the shape of controls with other rounded
        elements throughout the interface » : trois valeurs nommées, et rien
        d'autre dans la feuille — un nombre écrit en clair finit toujours par
        dériver de son voisin.
@@ -119,15 +118,15 @@ input {
        depuis celui qui le contient, moins le rembourrage qui les sépare. C'est
        la règle concentrique d'Apple, et un `calc()` la tient là où deux
        constantes l'auraient perdue. */
-    --rayon-section: 22px;
-    --ecart-interne: 8px;
-    --rayon-interieur: calc(var(--rayon-section) - var(--ecart-interne));
+        --rayon-section: 22px;
+        --ecart-interne: 8px;
+        --rayon-interieur: calc(var(--rayon-section) - var(--ecart-interne));
 
-    /* Une colonne de contrôles serrés — le zoom, le recentrage — se resserre :
+        /* Une colonne de contrôles serrés — le zoom, le recentrage — se resserre :
        22 px sur une boîte de 34 px la rendrait presque circulaire. */
-    --rayon-controle: 12px;
+        --rayon-controle: 12px;
 
-    /* Les couleurs, déclarées ici et nulle part ailleurs.
+        /* Les couleurs, déclarées ici et nulle part ailleurs.
 
        La HIG prévient que « the actual color values may fluctuate from release
        to release » : une valeur recopiée dans une règle échappe à la prochaine
@@ -138,39 +137,39 @@ input {
        un **rôle**, et la HIG demande de ne pas le redéfinir — on ne se sert pas
        d'un séparateur comme couleur de texte, ni d'un label secondaire comme
        fond. */
-    --bleu: rgb(0 136 255);
-    --rouge: rgb(255 56 60);
-    --orange: rgb(255 141 40);
-    --fond: rgb(255 255 255);
-    --fond-groupe: rgb(242 242 247);
-    --label: rgb(0 0 0);
-    --label-2: rgb(60 60 67 / 60%);
-    --label-3: rgb(60 60 67 / 30%);
-    --separateur: rgb(60 60 67 / 29%);
+        --bleu: rgb(0 136 255);
+        --rouge: rgb(255 56 60);
+        --orange: rgb(255 141 40);
+        --fond: rgb(255 255 255);
+        --fond-groupe: rgb(242 242 247);
+        --label: rgb(0 0 0);
+        --label-2: rgb(60 60 67 / 60%);
+        --label-3: rgb(60 60 67 / 30%);
+        --separateur: rgb(60 60 67 / 29%);
 
-    /* Ce qui se pose *sur* une teinte pleine : le blanc, et il reste blanc dans
+        /* Ce qui se pose *sur* une teinte pleine : le blanc, et il reste blanc dans
        les deux apparences — un bouton bleu porte un libellé blanc de nuit
        comme de jour. */
-    --sur-teinte: rgb(255 255 255);
-    --accent: var(--bleu);
-    --destructif: var(--rouge);
+        --sur-teinte: rgb(255 255 255);
+        --accent: var(--bleu);
+        --destructif: var(--rouge);
 
-    /* « Ma position » et le repère du suivi : la même couleur, parce que c'est
+        /* « Ma position » et le repère du suivi : la même couleur, parce que c'est
        la même chose dite à deux endroits. */
-    --position: var(--bleu);
-    --avertissement: rgb(197 83 0);
-    --succes: rgb(0 137 50);
+        --position: var(--bleu);
+        --avertissement: rgb(197 83 0);
+        --succes: rgb(0 137 50);
 
-    /* La consigne de placement : un encart de contenu, teinté à l'orange
+        /* La consigne de placement : un encart de contenu, teinté à l'orange
        système, qui dit « en cours » sans crier. */
-    --fond-consigne: rgb(255 141 40 / 14%);
+        --fond-consigne: rgb(255 141 40 / 14%);
 
-    /* La pastille du numéro de page : un disque sombre posé sur une page
+        /* La pastille du numéro de page : un disque sombre posé sur une page
        blanche, donc défini en opacité et non en gris — il tient sur une page
        claire comme sur une page piquée. */
-    --fond-page: rgb(0 0 0 / 72%);
+        --fond-page: rgb(0 0 0 / 72%);
 
-    /* Le verre. La teinte et le reflet sont des jetons ; **le flou n'en est
+        /* Le verre. La teinte et le reflet sont des jetons ; **le flou n'en est
        pas un**, et c'est une contrainte, pas un oubli : WebKit ignore un `var()`
        placé dans un `backdrop-filter`. Il est donc écrit en clair là où le verre
        est posé.
@@ -186,26 +185,26 @@ input {
        n'apparaît que lorsque quelque chose passe dessous. Une teinte blanche sur
        ce gris clair formait une bande visible avant tout défilement, ce qui est
        exactement l'anti-motif. */
-    --verre: rgb(242 242 247 / 72%);
-    --verre-epais: rgb(255 255 255 / 86%);
+        --verre: rgb(242 242 247 / 72%);
+        --verre-epais: rgb(255 255 255 / 86%);
 
-    /* Le reflet spéculaire : une seule arête éclairée, en haut, comme une
+        /* Le reflet spéculaire : une seule arête éclairée, en haut, comme une
        tranche de verre prend la lumière. */
-    --verre-reflet: inset 0 1px 0 rgb(255 255 255 / 50%);
+        --verre-reflet: inset 0 1px 0 rgb(255 255 255 / 50%);
 
-    /* Deux ombres, et elles ne disent pas la même chose : une annotation posée
+        /* Deux ombres, et elles ne disent pas la même chose : une annotation posée
        *sur* le contenu s'en décolle à peine, un contrôle qui *flotte* au-dessus
        porte une ombre franche. */
-    --ombre-pastille: 0 1px 4px rgb(0 0 0 / 40%);
-    --ombre-flottante: 0 2px 8px rgb(0 0 0 / 30%);
+        --ombre-pastille: 0 1px 4px rgb(0 0 0 / 40%);
+        --ombre-flottante: 0 2px 8px rgb(0 0 0 / 30%);
 
-    /* La géométrie du repère d'un point, posée ici parce que trois règles la
+        /* La géométrie du repère d'un point, posée ici parce que trois règles la
        partagent : la pastille sur l'image, la même pastille sur la carte, et le
        trait sur le milieu duquel la première se cale. Écrite une fois, elle ne
        peut pas dériver d'une vue à l'autre — c'est tout l'objet du symbole
        commun. */
 
-    /* **En pixels, et non en `rem`**, pour deux raisons qui vont dans le même
+        /* **En pixels, et non en `rem`**, pour deux raisons qui vont dans le même
        sens. La HIG d'abord : une pastille est une annotation posée sur un schéma
        dense, sa taille visible porte l'information, et c'est la *cible* qu'on
        agrandit quand il faut — jamais le dessin, qui couvrirait les cotes qu'il
@@ -213,34 +212,34 @@ input {
        même taille à quinze microns de pixel près sous Firefox, ce que
        `points.spec.ts` compare au strict. Un entier absolu ne peut pas diverger
        d'une vue à l'autre. */
-    --point-badge-size: 26px;
-    --point-line-thickness: 2px;
+        --point-badge-size: 26px;
+        --point-line-thickness: 2px;
 
-    /* Le disque de « ma position ». Plus petit que la pastille d'un point : il
+        /* Le disque de « ma position ». Plus petit que la pastille d'un point : il
        n'a pas de numéro à porter, et il ne doit pas couvrir ce qu'il côtoie. */
-    --position-badge-size: 16px;
-}
+        --position-badge-size: 16px;
+    }
 
-/* Un custom element est `inline` par défaut : les écrans doivent le dire, là où
+    /* Un custom element est `inline` par défaut : les écrans doivent le dire, là où
    les <section> l'avaient d'office. */
-trajets-list-screen,
-trajet-editor-screen,
-suivi-screen {
-    display: block;
-    min-height: 100dvh;
-    padding: var(--marge-ecran);
-}
+    trajets-list-screen,
+    trajet-editor-screen,
+    suivi-screen {
+        display: block;
+        min-height: 100dvh;
+        padding: var(--marge-ecran);
+    }
 
-/* Le rythme vertical des deux barres d'écran, écrit **une** fois : l'en-tête de
+    /* Le rythme vertical des deux barres d'écran, écrit **une** fois : l'en-tête de
    la liste et de l'éditeur, la barre d'état du suivi. Elles jouent le même rôle
    — la couche fonctionnelle posée au-dessus du contenu — et une barre qui change
    de hauteur d'un écran à l'autre se voit. */
-.header,
-.suivi-bar {
-    padding-block: var(--air-barre);
-}
+    .header,
+    .suivi-bar {
+        padding-block: var(--air-barre);
+    }
 
-/* La barre de navigation **flotte au-dessus** du contenu : « Liquid Glass forms
+    /* La barre de navigation **flotte au-dessus** du contenu : « Liquid Glass forms
    a distinct functional layer […] that floats above the content layer. »
 
    Elle était en `position: static`, donc elle défilait avec la page — rien ne
@@ -250,37 +249,37 @@ suivi-screen {
    Et elle était encartée par le rembourrage de l'écran, ce qui en faisait une
    carte flottante plutôt qu'une barre : les marges négatives l'annulent, et le
    rembourrage interne lui rend l'air que la marge lui donnait. */
-.header {
-    position: sticky;
-    top: 0;
-    z-index: 30;
-    margin-inline: calc(-1 * var(--marge-ecran));
-    padding-inline: var(--marge-ecran);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    .header {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        margin-inline: calc(-1 * var(--marge-ecran));
+        padding-inline: var(--marge-ecran);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
 
-    /* Volontairement **sans** `flex-wrap` : l'en-tête de l'éditeur porte trois
+        /* Volontairement **sans** `flex-wrap` : l'en-tête de l'éditeur porte trois
        éléments (retour, titre, Suivre) et plier les envoyait sur trois lignes,
        ce qui coûtait plus de hauteur qu'un titre serré. C'est le libellé des
        boutons qui cède la place au titre, pas la ligne qui se casse. */
-}
+    }
 
-/* Title 2 d'iOS : 22/28 au corps par défaut, exprimé en fraction du corps de
+    /* Title 2 d'iOS : 22/28 au corps par défaut, exprimé en fraction du corps de
    texte pour suivre la taille dynamique. La graisse est celle qu'Apple donne à
    ce style quand il est accentué. */
-h1,
-h2 {
-    margin: 0;
-    font-size: 1.294rem;
-    line-height: 1.273;
-    letter-spacing: -0.012em;
-    font-weight: 700;
-}
+    h1,
+    h2 {
+        margin: 0;
+        font-size: 1.294rem;
+        line-height: 1.273;
+        letter-spacing: -0.012em;
+        font-weight: 700;
+    }
 
-/* L'effet de bord de défilement, que la HIG substitue au fond d'une barre :
+    /* L'effet de bord de défilement, que la HIG substitue au fond d'une barre :
    « Instead of a background, use a scroll edge effect to provide a transition
    between content and the control area. »
 
@@ -295,31 +294,31 @@ h2 {
 
    Un seul par vue, comme la HIG l'exige : l'en-tête sur la liste et l'éditeur,
    la barre d'état sur le suivi — jamais les deux à la fois sur un même écran. */
-.header::after,
-.suivi-bar::after {
-    content: '';
-    position: absolute;
-    inset-inline: 0;
-    top: 100%;
-    block-size: 20px;
-    pointer-events: none;
-    background: linear-gradient(to bottom, var(--fond-groupe), transparent);
-}
+    .header::after,
+    .suivi-bar::after {
+        content: '';
+        position: absolute;
+        inset-inline: 0;
+        top: 100%;
+        block-size: 20px;
+        pointer-events: none;
+        background: linear-gradient(to bottom, var(--fond-groupe), transparent);
+    }
 
-/* Un bouton d'en-tête garde sa largeur, c'est le titre qui plie : à trois
+    /* Un bouton d'en-tête garde sa largeur, c'est le titre qui plie : à trois
    éléments sur un téléphone, tout se comprimait au prorata et « Suivre » se
    cassait en deux à l'intérieur de son propre bouton. */
-.header > button {
-    flex-shrink: 0;
-}
+    .header > button {
+        flex-shrink: 0;
+    }
 
-/* Et « plier » veut dire **s'abréger**, pas passer à la ligne : la règle de
+    /* Et « plier » veut dire **s'abréger**, pas passer à la ligne : la règle de
    `.header` est sans `flex-wrap` précisément pour que la barre garde sa hauteur,
    et un titre qui se casse en deux la fait grandir de tout ce qu'on voulait lui
    épargner. Un nom de trajet est long par nature — « Paris → Bordeaux » y
    suffisait déjà. */
 
-/* Le titre d'une **barre de navigation** prend Headline : 17 pt semibold, le
+    /* Le titre d'une **barre de navigation** prend Headline : 17 pt semibold, le
    corps du texte distingué par sa seule graisse — le geste de hiérarchie le
    moins coûteux d'Apple, et le bon dans une barre.
 
@@ -327,36 +326,36 @@ h2 {
    une action, il écrasait tout et se tronquait. Mesuré : « Paris → Bordeaux »
    tombait à « Paris → Bordea… » sur 390 px. */
 
-/* La barre d'actions imbriquée ne plie pas davantage : `.header` est sans
+    /* La barre d'actions imbriquée ne plie pas davantage : `.header` est sans
    `flex-wrap` exprès, mais elle pliait pour son propre compte. Mesuré sur un
    iPhone 12 mini — 360 px, la plus étroite des cibles de la HIG : l'icône
    d'import se retrouvait seule sur une rangée au-dessus de « Nouveau trajet »,
    et l'en-tête doublait de hauteur. */
-.header .action-bar {
-    flex-wrap: nowrap;
-}
+    .header .action-bar {
+        flex-wrap: nowrap;
+    }
 
-.header :is(h1, h2) {
-    font-size: 1rem;
-    line-height: 1.294;
-    letter-spacing: -0.026em;
-    font-weight: 600;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
+    .header :is(h1, h2) {
+        font-size: 1rem;
+        line-height: 1.294;
+        letter-spacing: -0.026em;
+        font-weight: 600;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
 
-/* Un bouton porte un pictogramme et, souvent, un libellé masquable : c'est ce
+    /* Un bouton porte un pictogramme et, souvent, un libellé masquable : c'est ce
    `gap` qui les espace, et non une espace dans le texte — laquelle laisserait
    une traîne à droite du pictogramme une fois le libellé retiré. */
-button {
-    font: inherit;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.35rem;
+    button {
+        font: inherit;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
 
-    /* **Une gélule**, et non les 6 px d'avant : c'est la forme que le système
+        /* **Une gélule**, et non les 6 px d'avant : c'est la forme que le système
        donne aux contrôles, et la forme par défaut du matériau est littéralement
        une capsule. « Consider aligning the shape of controls with other rounded
        elements throughout the interface. »
@@ -364,21 +363,21 @@ button {
        **44 px de cible**, et non les 37 px d'avant : « a button needs a hit
        region of at least 44x44 pt ». Sur `min-block-size` et non `block-size`,
        pour qu'un libellé puisse doubler de taille sans être coupé. */
-    min-block-size: 44px;
-    padding: 0.5rem 0.75rem;
+        min-block-size: 44px;
+        padding: 0.5rem 0.75rem;
 
-    /* Aucun contour : un contrôle d'iOS est délimité par sa **surface**, teintée
+        /* Aucun contour : un contrôle d'iOS est délimité par sa **surface**, teintée
        pour l'action principale et neutre sinon. La bordure d'avant doublait le
        fond de la même couleur sur le bouton principal, et cerclait de bleu les
        secondaires — dont la HIG veut justement qu'ils s'effacent. */
-    border: none;
-    border-radius: 999px;
-    background: var(--accent);
-    color: var(--sur-teinte);
-    cursor: pointer;
-}
+        border: none;
+        border-radius: 999px;
+        background: var(--accent);
+        color: var(--sur-teinte);
+        cursor: pointer;
+    }
 
-/* Un remplissage neutre, et non un aplat blanc : « Refrain from adding color to
+    /* Un remplissage neutre, et non un aplat blanc : « Refrain from adding color to
    the background of multiple controls. » Un fond plein sur chaque bouton
    secondaire faisait de chacun une petite carte, et empilait deux surfaces là où
    la barre en porte déjà une.
@@ -386,165 +385,165 @@ button {
    Il se **dérive** de la couleur du texte au lieu de vivre dans son propre
    jeton : il suit ainsi l'apparence claire et l'apparence sombre sans qu'aucune
    valeur ne soit à tenir à jour deux fois. */
-button.secondary {
-    background: color-mix(in srgb, var(--label) 8%, transparent);
-    color: var(--accent);
-}
+    button.secondary {
+        background: color-mix(in srgb, var(--label) 8%, transparent);
+        color: var(--accent);
+    }
 
-/* Les actions destructrices se repèrent au premier coup d'œil — mais le rouge
+    /* Les actions destructrices se repèrent au premier coup d'œil — mais le rouge
    est dans le **libellé**, jamais en aplat sous lui : « Never make the
    destructive action the prominent one. » Un aplat rouge attire précisément le
    pouce qu'on veut voir hésiter. La surface reste celle des autres boutons ; ce
    qui distingue l'action, c'est son nom. */
-button.danger {
-    color: var(--destructif);
-    background: color-mix(in srgb, var(--label) 8%, transparent);
-}
+    button.danger {
+        color: var(--destructif);
+        background: color-mix(in srgb, var(--label) 8%, transparent);
+    }
 
-.trajets-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
+    .trajets-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
 
-.empty-message {
-    color: var(--label-2);
-}
+    .empty-message {
+        color: var(--label-2);
+    }
 
-/* La surface des cartes de liste, écrite une fois pour les trois porteurs.
+    /* La surface des cartes de liste, écrite une fois pour les trois porteurs.
 
    Le rayon monte de 6 px à 22 px : « Sections have an increased corner radius to
    match the curvature of controls across the system. » Et la bordure s'en va —
    le fond de la carte se distingue déjà de celui de la vue, ce qui est
    exactement comment se lit une liste groupée d'iOS. Un filet en plus n'y
    ajoutait qu'un pixel de bruit. */
-trajet-row,
-point-row,
-.list-error {
-    background: var(--fond);
-    border-radius: var(--rayon-section);
-}
+    trajet-row,
+    point-row,
+    .list-error {
+        background: var(--fond);
+        border-radius: var(--rayon-section);
+    }
 
-point-row,
-.list-error {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    padding: 0.5rem;
-}
+    point-row,
+    .list-error {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        padding: 0.5rem;
+    }
 
-/* Deux lignes, et dans cet ordre : le trajet d'abord, ce qui agit dessus
+    /* Deux lignes, et dans cet ordre : le trajet d'abord, ce qui agit dessus
    ensuite. Les actions occupaient auparavant la moitié de la hauteur. */
-trajet-row {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.75rem;
-}
+    trajet-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 0.75rem;
+    }
 
-/* Le titre de la ligne, pas un champ de saisie : à plat, aligné à gauche et
+    /* Le titre de la ligne, pas un champ de saisie : à plat, aligné à gauche et
    dans le bleu des actions — c'est ce qu'on touche pour ouvrir le trajet. */
-.trajet-name {
-    justify-content: flex-start;
-    padding: 0;
-    border: none;
-    background: none;
-    color: var(--accent);
+    .trajet-name {
+        justify-content: flex-start;
+        padding: 0;
+        border: none;
+        background: none;
+        color: var(--accent);
 
-    /* Headline : Apple ne le distingue de Body que par la graisse. C'est son
+        /* Headline : Apple ne le distingue de Body que par la graisse. C'est son
        geste de hiérarchie le moins coûteux, et le bon sur une interface dense. */
-    font-size: 1rem;
-    line-height: 1.294;
-    letter-spacing: -0.026em;
-    font-weight: 600;
-    text-align: left;
-}
+        font-size: 1rem;
+        line-height: 1.294;
+        letter-spacing: -0.026em;
+        font-weight: 600;
+        text-align: left;
+    }
 
-.trajet-footer {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
+    .trajet-footer {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
 
-.trajet-details {
-    /* Occupe le reste de la ligne, ce qui pousse les actions contre le bord.
+    .trajet-details {
+        /* Occupe le reste de la ligne, ce qui pousse les actions contre le bord.
        `min-width` explicite, et pas de `nowrap` : sans quoi le compte impose sa
        largeur entière comme plancher (`min-width: auto` d'un élément flex vaut
        sa taille min-content), et un trajet à trois chiffres de points renverrait
        les trois actions à la ligne suivante. */
-    flex: 1;
-    min-width: 5rem;
-    color: var(--label-2);
+        flex: 1;
+        min-width: 5rem;
+        color: var(--label-2);
 
-    /* Subhead : 15/20. */
-    font-size: 0.882rem;
-    line-height: 1.333;
-    letter-spacing: -0.016em;
-}
+        /* Subhead : 15/20. */
+        font-size: 0.882rem;
+        line-height: 1.333;
+        letter-spacing: -0.016em;
+    }
 
-.help {
-    color: var(--label-2);
+    .help {
+        color: var(--label-2);
 
-    /* Subhead : 15/20. */
-    font-size: 0.882rem;
-    line-height: 1.333;
-    letter-spacing: -0.016em;
-}
+        /* Subhead : 15/20. */
+        font-size: 0.882rem;
+        line-height: 1.333;
+        letter-spacing: -0.016em;
+    }
 
-image-frame {
-    display: block;
-    margin-top: 1rem;
-}
+    image-frame {
+        display: block;
+        margin-top: 1rem;
+    }
 
-/* La barre d'une page : son nom et les trois actions qui la déplacent. Même
+    /* La barre d'une page : son nom et les trois actions qui la déplacent. Même
    raisonnement que les actions d'un point — une par page, donc la teinte du
    verre sans son flou, qui se multiplierait par le nombre de pages. */
-.image-bar {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-    padding: 2px 0.5rem;
-    border-radius: 999px;
-    background: var(--verre-epais);
-    box-shadow: var(--verre-reflet);
-}
+    .image-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        padding: 2px 0.5rem;
+        border-radius: 999px;
+        background: var(--verre-epais);
+        box-shadow: var(--verre-reflet);
+    }
 
-.image-name {
-    flex: 1;
+    .image-name {
+        flex: 1;
 
-    /* Footnote : 13/18. */
-    font-size: 0.765rem;
-    line-height: 1.385;
-    color: var(--label-2);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
+        /* Footnote : 13/18. */
+        font-size: 0.765rem;
+        line-height: 1.385;
+        color: var(--label-2);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 
-/* La géométrie de l'image vit dans le shadow root de `schema-page` ; l'éditeur
+    /* La géométrie de l'image vit dans le shadow root de `schema-page` ; l'éditeur
    n'ajoute que sa décoration, sur l'hôte. */
-image-frame schema-page {
-    border: 1px solid var(--separateur);
-}
+    image-frame schema-page {
+        border: 1px solid var(--separateur);
+    }
 
-/* L'attribut hidden doit toujours gagner, même sur les blocs en display:flex. */
-[hidden] {
-    display: none !important;
-}
+    /* L'attribut hidden doit toujours gagner, même sur les blocs en display:flex. */
+    [hidden] {
+        display: none !important;
+    }
 
-.action-bar {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
+    .action-bar {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
 
-/* Des **pairs**, donc aucune teinte : « Keep the number of prominent buttons to
+    /* Des **pairs**, donc aucune teinte : « Keep the number of prominent buttons to
    one or two per view. » Sur l'éditeur la proéminente est « Suivre », dans
    l'en-tête ; ces trois-là sont de même rang. Teintées toutes les trois, elles
    faisaient quatre aplats bleus sur un écran, et plus rien ne disait laquelle
@@ -552,22 +551,22 @@ image-frame schema-page {
 
    Elles gardent leur taille en perdant leur teinte : « use style — not size — to
    visually distinguish the preferred choice ». */
-.action-bar button {
-    background: color-mix(in srgb, var(--label) 8%, transparent);
-    color: var(--accent);
-}
+    .action-bar button {
+        background: color-mix(in srgb, var(--label) 8%, transparent);
+        color: var(--accent);
+    }
 
-/* Sauf dans une **barre**, où ce qui n'est pas `.secondary` est l'action qui
+    /* Sauf dans une **barre**, où ce qui n'est pas `.secondary` est l'action qui
    conclut. La règle des pairs ci-dessus attrapait « Nouveau trajet » — l'action
    proéminente de la liste — et cet écran n'en avait alors plus aucune : plus
    rien ne disait laquelle compte. La spécificité de ce sélecteur est ce qui le
    fait gagner contre elle. */
-.header .action-bar button:not(.secondary) {
-    background: var(--accent);
-    color: var(--sur-teinte);
-}
+    .header .action-bar button:not(.secondary) {
+        background: var(--accent);
+        color: var(--sur-teinte);
+    }
 
-/* Un libellé enveloppé dans un `.button-label` accepte de disparaître : sous
+    /* Un libellé enveloppé dans un `.button-label` accepte de disparaître : sous
    560 px il ne reste que le pictogramme. C'est ce qui fait tenir la barre
    d'actions de l'éditeur sur une ligne au lieu de trois, et les trois actions
    d'un trajet ou d'un point à côté de leur texte au lieu de dessous. Un bouton
@@ -586,39 +585,39 @@ image-frame schema-page {
    Le seuil est propre à cette convention : `--large-screen` (900 px) est celui
    de la carte, et le réutiliser réduirait ces barres à des pictogrammes
    minuscules sur un iPad en portrait. */
-.button-label {
-    display: none;
-}
-
-@media (width >= 560px) {
     .button-label {
-        display: inline;
+        display: none;
     }
-}
 
-.hint-banner {
-    background: var(--fond-consigne);
-    border: 1px solid var(--orange);
-    border-radius: var(--rayon-section);
-    padding: 0.5rem;
-}
+    @media (width >= 560px) {
+        .button-label {
+            display: inline;
+        }
+    }
 
-.image-area {
-    position: relative;
-}
+    .hint-banner {
+        background: var(--fond-consigne);
+        border: 1px solid var(--orange);
+        border-radius: var(--rayon-section);
+        padding: 0.5rem;
+    }
 
-.placement-active .image-area {
-    cursor: crosshair;
-}
+    .image-area {
+        position: relative;
+    }
 
-/* Tant qu'on vise une hauteur, toute l'image est cible : la pastille redevient
+    .placement-active .image-area {
+        cursor: crosshair;
+    }
+
+    /* Tant qu'on vise une hauteur, toute l'image est cible : la pastille redevient
    transparente, sans quoi elle avalerait le clic sur ses 26 px et le point ne
    pourrait pas se poser à la hauteur d'un point existant. */
-.placement-active .point-number {
-    pointer-events: none;
-}
+    .placement-active .point-number {
+        pointer-events: none;
+    }
 
-/* Le trait qui traverse la page à la hauteur du point. En pointillé : plein, il
+    /* Le trait qui traverse la page à la hauteur du point. En pointillé : plein, il
    effaçait sur toute la largeur la ligne de cotes qu'il est là pour désigner.
 
    Le fantôme d'un appui long porte **la même** déclaration, et non une cousine :
@@ -626,17 +625,17 @@ image-frame schema-page {
    le remplacera. Deux règles jumelles auraient fini par diverger — c'est
    l'argument qui a déjà réuni la pastille du schéma et celle de la carte. Ce qui
    distingue le fantôme reste franc : ni pastille, ni boutons. */
-point-marker,
-.point-ghost {
-    display: block;
-    position: absolute;
-    left: 0;
-    right: 0;
-    border-top: var(--point-line-thickness) dashed var(--destructif);
-    pointer-events: none;
-}
+    point-marker,
+    .point-ghost {
+        display: block;
+        position: absolute;
+        left: 0;
+        right: 0;
+        border-top: var(--point-line-thickness) dashed var(--destructif);
+        pointer-events: none;
+    }
 
-/* Le numéro d'un point : un seul symbole, sur l'image comme sur la carte. Chaque
+    /* Le numéro d'un point : un seul symbole, sur l'image comme sur la carte. Chaque
    vue avait le sien — une pilule plate ici, un disque cerclé de blanc là — et
    l'œil ne reconnaissait pas le même point en passant de l'une à l'autre. Une
    seule règle, donc : les sélecteurs de la carte viennent la chercher ici plutôt
@@ -649,16 +648,16 @@ point-marker,
    Largeur fixe, et non `min-width` : un numéro à trois chiffres débordera du
    disque, mais symétriquement, donc toujours centré sur ce qu'il désigne — une
    pastille qui s'allonge vers la droite décalerait le marqueur de sa coordonnée. */
-.point-number,
-.carte-points .carte-marker,
-#carte-container .carte-marker {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: var(--point-badge-size);
-    height: var(--point-badge-size);
+    .point-number,
+    .carte-points .carte-marker,
+    #carte-container .carte-marker {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--point-badge-size);
+        height: var(--point-badge-size);
 
-    /* La cible de 44 px que la règle du bouton impose est **neutralisée ici**,
+        /* La cible de 44 px que la règle du bouton impose est **neutralisée ici**,
        et c'est la seule fois de la feuille. Une pastille est une annotation
        posée sur un schéma dense : sa taille visible porte l'information, et la
        HIG demande d'agrandir la cible, pas le dessin. Sans ces deux lignes, la
@@ -666,75 +665,75 @@ point-marker,
        hors de portée de la règle du bouton — restait à sa taille : les deux vues
        cessaient de montrer le même symbole, ce que `points.spec.ts` mesure au
        pixel près. */
-    min-inline-size: 0;
-    min-block-size: 0;
+        min-inline-size: 0;
+        min-block-size: 0;
 
-    /* La pastille du schéma est un bouton : sans cela, le `padding` de la règle
+        /* La pastille du schéma est un bouton : sans cela, le `padding` de la règle
        globale `button` déformerait le disque, et seulement de ce côté-ci — les
        deux vues cesseraient de montrer la même pastille. */
-    padding: 0;
-    background: var(--destructif);
-    color: var(--sur-teinte);
-    border: 2px solid var(--sur-teinte);
-    border-radius: 999px;
+        padding: 0;
+        background: var(--destructif);
+        color: var(--sur-teinte);
+        border: 2px solid var(--sur-teinte);
+        border-radius: 999px;
 
-    /* Caption 1 : 12/16, et la graisse accentuée qu'Apple lui donne. Un numéro
+        /* Caption 1 : 12/16, et la graisse accentuée qu'Apple lui donne. Un numéro
        posé sur un schéma dense doit se lire d'un coup d'œil. */
-    font-size: 0.706rem;
-    line-height: 1;
-    font-weight: 600;
-    box-shadow: var(--ombre-pastille);
-}
+        font-size: 0.706rem;
+        line-height: 1;
+        font-weight: 600;
+        box-shadow: var(--ombre-pastille);
+    }
 
-/* Sur l'image, la pastille est centrée sur le trait : c'est la hauteur du point
+    /* Sur l'image, la pastille est centrée sur le trait : c'est la hauteur du point
    qu'elle annonce, et un numéro posé à côté de son trait se lit comme celui du
    trait voisin. Le décalage se compte depuis la boîte de padding, qui commence
    sous le trait — d'où la demi-épaisseur de celui-ci ajoutée à la moitié de la
    pastille pour remonter jusqu'à son milieu. */
-point-marker .point-number {
-    position: absolute;
-    left: 0.25rem;
-    top: calc((var(--point-line-thickness) + var(--point-badge-size)) / -2);
+    point-marker .point-number {
+        position: absolute;
+        left: 0.25rem;
+        top: calc((var(--point-line-thickness) + var(--point-badge-size)) / -2);
 
-    /* Le repère est transparent aux clics ; la pastille, elle, en attend un. */
-    pointer-events: auto;
+        /* Le repère est transparent aux clics ; la pastille, elle, en attend un. */
+        pointer-events: auto;
 
-    /* Sans quoi le doigt posé dessus fait défiler la page au lieu de glisser le
+        /* Sans quoi le doigt posé dessus fait défiler la page au lieu de glisser le
        point. On y perd d'amorcer un défilement depuis ces 26 px. */
-    touch-action: none;
-}
+        touch-action: none;
+    }
 
-/* Le curseur reste `pointer` au survol — la pastille annonce d'abord ce qu'un
+    /* Le curseur reste `pointer` au survol — la pastille annonce d'abord ce qu'un
    clic en fait — et ne confirme le glisser qu'au moment où il commence. Écart
    assumé avec le marqueur de la carte, qui montre `grab` dès le survol. */
-point-marker .point-number:active {
-    cursor: grabbing;
-}
+    point-marker .point-number:active {
+        cursor: grabbing;
+    }
 
-/* Le numéro de la page, compté depuis le haut de la pile. Sombre et translucide,
+    /* Le numéro de la page, compté depuis le haut de la pile. Sombre et translucide,
    pour ne pas se confondre avec un numéro de point ; transparent aux clics,
    comme le repère, sans quoi il volerait le placement d'un point posé sous lui.
 
    Sans `z-index` : les repères viennent après lui dans le document, donc un point
    posé tout en haut de la page couvre le numéro plutôt que d'être couvert par
    lui. C'est le bon ordre — le numéro de page se retrouve, un point masqué non. */
-.page-number {
-    position: absolute;
-    left: 0.25rem;
-    top: 0.25rem;
-    background: var(--fond-page);
-    color: var(--sur-teinte);
-    border-radius: 999px;
-    padding: 0 0.4rem;
+    .page-number {
+        position: absolute;
+        left: 0.25rem;
+        top: 0.25rem;
+        background: var(--fond-page);
+        color: var(--sur-teinte);
+        border-radius: 999px;
+        padding: 0 0.4rem;
 
-    /* Caption 2 : 11/13 — un cran sous le numéro d'un point, parce qu'il ne se
+        /* Caption 2 : 11/13 — un cran sous le numéro d'un point, parce qu'il ne se
        lit pas, il se retrouve. */
-    font-size: 0.647rem;
-    line-height: 1.182;
-    pointer-events: none;
-}
+        font-size: 0.647rem;
+        line-height: 1.182;
+        pointer-events: none;
+    }
 
-/* Boutons flottants posés sur chaque trait : agir sur un point sans remonter en
+    /* Boutons flottants posés sur chaque trait : agir sur un point sans remonter en
    haut de la page.
 
    Entièrement **au-dessus** du trait, et non plus à cheval sur lui : à cheval,
@@ -745,7 +744,7 @@ point-marker .point-number:active {
    franchement — à 2 px, les boutons touchaient encore la ligne et se lisaient
    comme lui appartenant. */
 
-/* Les trois actions d'un point forment **un seul** porteur, et c'est lui qui
+    /* Les trois actions d'un point forment **un seul** porteur, et c'est lui qui
    porte la surface : « Put the glass on the group, not on each button. »
    Superposer deux verres est justement ce que la HIG interdit.
 
@@ -754,21 +753,21 @@ point-marker .point-number:active {
    est de trois à cinq flous simultanés. Ce qu'il fallait ici est la lisibilité,
    pas l'optique — sans fond, ces boutons étaient illisibles sur un schéma
    chargé. */
-.point-actions {
-    position: absolute;
-    right: 0.25rem;
-    bottom: calc(var(--point-line-thickness) + 0.75rem);
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    padding: 2px;
-    border-radius: 999px;
-    background: var(--verre-epais);
-    box-shadow: var(--verre-reflet), var(--ombre-flottante);
-    pointer-events: auto;
-}
+    .point-actions {
+        position: absolute;
+        right: 0.25rem;
+        bottom: calc(var(--point-line-thickness) + 0.75rem);
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        padding: 2px;
+        border-radius: 999px;
+        background: var(--verre-epais);
+        box-shadow: var(--verre-reflet), var(--ombre-flottante);
+        pointer-events: auto;
+    }
 
-/* Dans une barre, un bouton n'apporte pas sa propre surface : c'est la barre qui
+    /* Dans une barre, un bouton n'apporte pas sa propre surface : c'est la barre qui
    en porte une, et deux surfaces empilées sont exactement ce que la HIG refuse —
    « put the glass on the group, not on each button ».
 
@@ -779,97 +778,97 @@ point-marker .point-number:active {
    L'exception est nommée et se lit dans le sélecteur : `:not(.secondary)` est
    l'action proéminente — une par barre — et elle garde sa gélule teintée,
    « apply color to the background rather than to symbols or text ». */
-.header button.secondary,
-.suivi-bar button.secondary,
-.carte-bar button.secondary,
-.point-actions button,
-.image-bar button {
-    background: none;
-    box-shadow: none;
-    color: var(--label);
-}
+    .header button.secondary,
+    .suivi-bar button.secondary,
+    .carte-bar button.secondary,
+    .point-actions button,
+    .image-bar button {
+        background: none;
+        box-shadow: none;
+        color: var(--label);
+    }
 
-.point-actions button.danger,
-.image-bar button.danger {
-    color: var(--destructif);
-}
+    .point-actions button.danger,
+    .image-bar button.danger {
+        color: var(--destructif);
+    }
 
-/* Un cran plus grands que le minuscule d'origine : à 24 px de haut, ces trois
+    /* Un cran plus grands que le minuscule d'origine : à 24 px de haut, ces trois
    boutons se manquaient sous le pouce et leur pictogramme se perdait dans un
    schéma chargé. Ils restent plus petits que les boutons de la barre d'actions —
    posés sur l'image, ils lui empruntent sa place. */
-.floating-button {
-    padding: 0.3rem 0.55rem;
+    .floating-button {
+        padding: 0.3rem 0.55rem;
 
-    /* Footnote : 13/18. */
-    font-size: 0.765rem;
-    line-height: 1.385;
-    white-space: nowrap;
-    box-shadow: var(--ombre-pastille);
-}
+        /* Footnote : 13/18. */
+        font-size: 0.765rem;
+        line-height: 1.385;
+        white-space: nowrap;
+        box-shadow: var(--ombre-pastille);
+    }
 
-/* Restent à l'écran quel que soit le défilement : sur tactile, seul recours pour
+    /* Restent à l'écran quel que soit le défilement : sur tactile, seul recours pour
    ajouter un point sans remonter tout en haut (pas de clic droit), et pour
    déplier l'aperçu du trajet sans quitter sa lecture. */
-.floating-add-point-button,
-.overview-button,
-.carte-button {
-    position: fixed;
-    right: 1rem;
-    bottom: 1rem;
-    z-index: 20;
-    box-shadow: var(--ombre-flottante);
-}
+    .floating-add-point-button,
+    .overview-button,
+    .carte-button {
+        position: fixed;
+        right: 1rem;
+        bottom: 1rem;
+        z-index: 20;
+        box-shadow: var(--ombre-flottante);
+    }
 
-/* L'aiguillage carte/schéma prend le coin opposé à l'action : on ne veut pas
+    /* L'aiguillage carte/schéma prend le coin opposé à l'action : on ne veut pas
    qu'un pouce qui cherche la carte tombe sur « Ajouter un point ». */
-.carte-button {
-    right: auto;
-    left: 1rem;
-}
+    .carte-button {
+        right: auto;
+        left: 1rem;
+    }
 
-/* Par-dessus le schéma, et non plus au-dessus de lui : sous les boutons
+    /* Par-dessus le schéma, et non plus au-dessus de lui : sous les boutons
    flottants (20), au-dessus de tout le reste. La carte reprend sa hauteur de
    vignette dès qu'on la referme — c'est `resized()` qui la fait se remesurer.
    C'est la **colonne** qui bascule, et non la carte seule : sa barre doit rester
    avec elle, sans quoi la phrase qui explique l'absence de marqueur resterait
    derrière l'écran que la carte recouvre. */
-.carte-ouverte .carte-column {
-    position: fixed;
-    inset: 0;
-    z-index: 15;
-    background: var(--fond);
-    padding: 0.5rem;
-}
+    .carte-ouverte .carte-column {
+        position: fixed;
+        inset: 0;
+        z-index: 15;
+        background: var(--fond);
+        padding: 0.5rem;
+    }
 
-.carte-ouverte .carte-points {
-    height: auto;
-    flex: 1;
-    border: none;
-    border-radius: 0;
-}
+    .carte-ouverte .carte-points {
+        height: auto;
+        flex: 1;
+        border: none;
+        border-radius: 0;
+    }
 
-/* Rien à placer tant que la carte couvre l'image : le bouton reviendra avec elle. */
-.carte-ouverte .floating-add-point-button {
-    display: none;
-}
+    /* Rien à placer tant que la carte couvre l'image : le bouton reviendra avec elle. */
+    .carte-ouverte .floating-add-point-button {
+        display: none;
+    }
 
-/* Les boutons flottants ne doivent jamais masquer la fin du contenu : on
+    /* Les boutons flottants ne doivent jamais masquer la fin du contenu : on
    réserve leur place tout en bas, pour pouvoir faire défiler au-delà. */
-trajet-editor-screen {
-    padding-bottom: 6rem;
-}
+    trajet-editor-screen {
+        padding-bottom: 6rem;
+    }
 
-.suivi-stack {
-    flex: 1;
+    .suivi-stack {
+        flex: 1;
 
-    /* Sans lui, le `min-width: auto` d'un élément flex vaut sa taille min-content :
+        /* Sans lui, le `min-width: auto` d'un élément flex vaut sa taille min-content :
        une page large imposerait sa largeur et l'aperçu n'aurait plus de place. */
-    min-width: 0;
-    padding-bottom: 6rem;
-}
+        min-width: 0;
+        padding-bottom: 6rem;
+    }
 
-/* L'aperçu du trajet entier. Replié par défaut — donc `display: none`, donc
+    /* L'aperçu du trajet entier. Replié par défaut — donc `display: none`, donc
    aucune image mise en page ni chargée : sur petit écran il ne coûte rien tant
    qu'on ne l'ouvre pas. C'est la classe posée par la bascule qui le déplie, en
    incrustation par-dessus la pile ; celle-ci ne bouge alors pas d'un pixel et
@@ -877,192 +876,192 @@ trajet-editor-screen {
 
    Le seuil du mode est ici et nulle part ailleurs : le TypeScript ne fait que
    basculer la classe, il n'a aucun 900 à recopier. */
-.trajet-overview {
-    display: none;
-}
+    .trajet-overview {
+        display: none;
+    }
 
-.overview-ouvert .trajet-overview {
-    display: flex;
-    justify-content: center;
+    .overview-ouvert .trajet-overview {
+        display: flex;
+        justify-content: center;
 
-    /* Sans lui, l'étirement par défaut donnerait à la pile la hauteur du panneau
+        /* Sans lui, l'étirement par défaut donnerait à la pile la hauteur du panneau
        au lieu de celle de ses pages : la pile doit envelopper exactement ce
        qu'elle contient, puisque c'est sur elle que la barre se repère. */
-    align-items: flex-start;
-    position: fixed;
-    right: 0;
-    top: var(--suivi-bar-height, 3rem);
-    height: var(--overview-height);
+        align-items: flex-start;
+        position: fixed;
+        right: 0;
+        top: var(--suivi-bar-height, 3rem);
+        height: var(--overview-height);
 
-    /* Au-dessus du repère (5), sous les boutons flottants (20). */
-    z-index: 15;
-    background: var(--verre-epais);
+        /* Au-dessus du repère (5), sous les boutons flottants (20). */
+        z-index: 15;
+        background: var(--verre-epais);
 
-    /* En ombre et non en bordure : la largeur du panneau doit rester exactement
+        /* En ombre et non en bordure : la largeur du panneau doit rester exactement
        celle de sa pile, dont le repère se sert pour savoir où s'arrêter. */
-    box-shadow: -1px 0 0 var(--separateur);
-}
+        box-shadow: -1px 0 0 var(--separateur);
+    }
 
-.overview-stack {
-    position: relative;
-    width: var(--overview-width);
-}
+    .overview-stack {
+        position: relative;
+        width: var(--overview-width);
+    }
 
-/* Un filet par page, en `outline` : une bordure aurait ajouté un pixel à la
+    /* Un filet par page, en `outline` : une bordure aurait ajouté un pixel à la
    hauteur de chaque page et la pile ne tiendrait plus exactement dans la hauteur
    calculée. Un `::after` sur l'hôte n'aurait rien donné — les pseudo-éléments
    d'un hôte de shadow root vivent dans le light DOM, qu'aucun `slot` n'expose
    ici. L'outline, lui, ne pèse pas sur la mise en page et passe au-dessus de
    la vignette. */
-overview-page {
-    display: block;
-    outline: 1px dashed var(--label-3);
-    outline-offset: -1px;
-}
-
-/* Le fond du canevas fait `OVERVIEW_BACKING_WIDTH` de large ; le navigateur le
-   réduit à la largeur de la colonne, et sa hauteur suit son propre ratio — donc
-   chaque page garde le sien. */
-overview-page canvas {
-    display: block;
-    width: 100%;
-    height: auto;
-}
-
-/* La position sur le trajet, dans le référentiel de l'aperçu. Son `top` est posé
-   par l'écran, en pixels de la pile ci-dessus : c'est la même décision de
-   projection que celle qui fait défiler le document, réinterpolée ici. */
-.overview-position {
-    position: absolute;
-    left: 0;
-    right: 0;
-    border-top: 3px solid var(--position);
-    pointer-events: none;
-}
-
-/* Carte des points + images : empilées sur mobile (carte au-dessus),
-   côte à côte à partir de 900 px — un iPad en paysage passe le seuil,
-   en portrait non (même seuil dans TrajetEditorScreen.ts). */
-.editor-body {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    margin-top: 1rem;
-}
-
-.carte-column {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.carte-points {
-    /* Indispensable : les panneaux Leaflet sont positionnés en absolu ; sans
-       ancêtre positionné, ils échappent au overflow:hidden du conteneur et
-       se dessinent par-dessus toute la page. */
-    position: relative;
-    height: 45vh;
-    border: 1px solid var(--separateur);
-    border-radius: var(--rayon-section);
-
-    /* Sous les boutons flottants et les écrans superposés. */
-    z-index: 0;
-}
-
-.carte-position-bar {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    justify-content: space-between;
-    margin: 0;
-
-    /* Footnote : 13/18. */
-    font-size: 0.765rem;
-    line-height: 1.385;
-    color: var(--label-2);
-}
-
-.images-column {
-    min-width: 0;
-}
-
-@media (width >= 900px) {
-    /* Le seuil du grand écran est défini ici, et nulle part ailleurs : le
-       TypeScript et les tests lisent ce drapeau au lieu de recopier 900px, qui
-       pouvait diverger sans que rien ne le signale. */
-    :root {
-        --large-screen: 1;
+    overview-page {
+        display: block;
+        outline: 1px dashed var(--label-3);
+        outline-offset: -1px;
     }
 
+    /* Le fond du canevas fait `OVERVIEW_BACKING_WIDTH` de large ; le navigateur le
+   réduit à la largeur de la colonne, et sa hauteur suit son propre ratio — donc
+   chaque page garde le sien. */
+    overview-page canvas {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
+    /* La position sur le trajet, dans le référentiel de l'aperçu. Son `top` est posé
+   par l'écran, en pixels de la pile ci-dessus : c'est la même décision de
+   projection que celle qui fait défiler le document, réinterpolée ici. */
+    .overview-position {
+        position: absolute;
+        left: 0;
+        right: 0;
+        border-top: 3px solid var(--position);
+        pointer-events: none;
+    }
+
+    /* Carte des points + images : empilées sur mobile (carte au-dessus),
+   côte à côte à partir de 900 px — un iPad en paysage passe le seuil,
+   en portrait non (même seuil dans TrajetEditorScreen.ts). */
     .editor-body {
-        flex-direction: row;
-        align-items: flex-start;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-top: 1rem;
     }
 
     .carte-column {
-        /* Épinglée : elle ne bouge pas pendant le défilement des images. */
-        position: sticky;
-        top: 1rem;
-        height: calc(100dvh - 2rem);
-        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
     }
 
     .carte-points {
-        flex: 1;
+        /* Indispensable : les panneaux Leaflet sont positionnés en absolu ; sans
+       ancêtre positionné, ils échappent au overflow:hidden du conteneur et
+       se dessinent par-dessus toute la page. */
+        position: relative;
+        height: 45vh;
+        border: 1px solid var(--separateur);
+        border-radius: var(--rayon-section);
+
+        /* Sous les boutons flottants et les écrans superposés. */
+        z-index: 0;
+    }
+
+    .carte-position-bar {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        justify-content: space-between;
+        margin: 0;
+
+        /* Footnote : 13/18. */
+        font-size: 0.765rem;
+        line-height: 1.385;
+        color: var(--label-2);
     }
 
     .images-column {
-        flex: 1;
+        min-width: 0;
     }
 
-    /* La carte est déjà à côté de la pile : rien à aiguiller. C'est ici, et
+    @media (width >= 900px) {
+        /* Le seuil du grand écran est défini ici, et nulle part ailleurs : le
+       TypeScript et les tests lisent ce drapeau au lieu de recopier 900px, qui
+       pouvait diverger sans que rien ne le signale. */
+        :root {
+            --large-screen: 1;
+        }
+
+        .editor-body {
+            flex-direction: row;
+            align-items: flex-start;
+        }
+
+        .carte-column {
+            /* Épinglée : elle ne bouge pas pendant le défilement des images. */
+            position: sticky;
+            top: 1rem;
+            height: calc(100dvh - 2rem);
+            flex: 1;
+        }
+
+        .carte-points {
+            flex: 1;
+        }
+
+        .images-column {
+            flex: 1;
+        }
+
+        /* La carte est déjà à côté de la pile : rien à aiguiller. C'est ici, et
        nulle part ailleurs, que le seuil du grand écran s'écrit. */
-    .carte-button {
-        display: none;
-    }
+        .carte-button {
+            display: none;
+        }
 
-    /* L'aperçu du trajet est là en permanence : il prend sa place à côté de la
+        /* L'aperçu du trajet est là en permanence : il prend sa place à côté de la
        pile au lieu de la recouvrir, et la bascule n'a plus d'objet.
 
        Sélecteurs délibérément plus spécifiques que ceux de l'incrustation, qui
        vivent plus bas dans la feuille : le seuil ne s'écrit qu'ici — ajouter une
        seconde requête média près de l'écran de suivi aurait recopié le 900 —,
        donc c'est la spécificité qui tranche, et non l'ordre. */
-    suivi-screen .trajet-overview,
-    suivi-screen.overview-ouvert .trajet-overview {
-        display: flex;
-        justify-content: center;
+        suivi-screen .trajet-overview,
+        suivi-screen.overview-ouvert .trajet-overview {
+            display: flex;
+            justify-content: center;
 
-        /* Voir l'incrustation : la pile enveloppe ses pages, elle ne s'étire pas. */
-        align-items: flex-start;
-        position: sticky;
-        top: var(--suivi-bar-height, 3rem);
-        height: var(--overview-height);
-        flex: 0 0 auto;
+            /* Voir l'incrustation : la pile enveloppe ses pages, elle ne s'étire pas. */
+            align-items: flex-start;
+            position: sticky;
+            top: var(--suivi-bar-height, 3rem);
+            height: var(--overview-height);
+            flex: 0 0 auto;
 
-        /* Sous la barre d'état (10), au-dessus de la pile. */
-        z-index: 0;
-        background: none;
-        box-shadow: -1px 0 0 var(--separateur);
-    }
+            /* Sous la barre d'état (10), au-dessus de la pile. */
+            z-index: 0;
+            background: none;
+            box-shadow: -1px 0 0 var(--separateur);
+        }
 
-    suivi-screen .overview-button {
-        display: none;
-    }
+        suivi-screen .overview-button {
+            display: none;
+        }
 
-    /* Le repère ne dit la position que de la vue qui défile : il s'arrête au
+        /* Le repère ne dit la position que de la vue qui défile : il s'arrête au
        bord de l'aperçu au lieu de le traverser. */
-    suivi-screen .guide-line {
-        right: var(--overview-width);
+        suivi-screen .guide-line {
+            right: var(--overview-width);
+        }
+
+        /* Recentré sur la pile, pas sur la fenêtre. */
+        suivi-screen .resume-button {
+            left: calc((100% - var(--overview-width)) / 2);
+        }
     }
 
-    /* Recentré sur la pile, pas sur la fenêtre. */
-    suivi-screen .resume-button {
-        left: calc((100% - var(--overview-width)) / 2);
-    }
-}
-
-/* L'apparence du marqueur est celle de la pastille commune, plus haut. Ne reste
+    /* L'apparence du marqueur est celle de la pastille commune, plus haut. Ne reste
    ici que ce qui n'appartient qu'à la carte : le centrage sur la coordonnée et le
    curseur de préhension.
 
@@ -1070,13 +1069,13 @@ overview-page canvas {
    `numberedIcon` ne donne plus — pas plus que l'`iconSize` : les deux
    inscriraient la taille du symbole une seconde fois, en TypeScript, et les deux
    vues finiraient par ne plus montrer la même pastille. */
-.carte-points .carte-marker,
-#carte-container .carte-marker {
-    margin: calc(var(--point-badge-size) / -2) 0 0 calc(var(--point-badge-size) / -2);
-    cursor: grab;
-}
+    .carte-points .carte-marker,
+    #carte-container .carte-marker {
+        margin: calc(var(--point-badge-size) / -2) 0 0 calc(var(--point-badge-size) / -2);
+        cursor: grab;
+    }
 
-/* « Ma position » : un disque bleu cerclé de blanc — ni la pastille rouge
+    /* « Ma position » : un disque bleu cerclé de blanc — ni la pastille rouge
    numérotée d'un point, ni l'épingle bleue du marqueur de sélection.
 
    Même précaution de portée que la pastille : scopé sous son conteneur, parce
@@ -1084,47 +1083,47 @@ overview-page canvas {
    `.leaflet-marker-icon { display: block }` écraserait un sélecteur de même
    poids. Et même partage des rôles : la géométrie est ici, `positionLayers.ts`
    neutralise l'`iconSize` pour ne pas l'écrire une seconde fois. */
-.carte-points .carte-position-marker,
-#carte-container .carte-position-marker {
-    width: var(--position-badge-size);
-    height: var(--position-badge-size);
-    background: var(--position);
-    border: 3px solid var(--sur-teinte);
-    border-radius: 999px;
-    box-shadow: var(--ombre-pastille);
+    .carte-points .carte-position-marker,
+    #carte-container .carte-position-marker {
+        width: var(--position-badge-size);
+        height: var(--position-badge-size);
+        background: var(--position);
+        border: 3px solid var(--sur-teinte);
+        border-radius: 999px;
+        box-shadow: var(--ombre-pastille);
 
-    /* Tient le rôle de l'`iconAnchor` que Leaflet ne reçoit pas : le disque est
+        /* Tient le rôle de l'`iconAnchor` que Leaflet ne reçoit pas : le disque est
        centré sur sa coordonnée, et non posé à sa droite. */
-    margin: calc(var(--position-badge-size) / -2) 0 0 calc(var(--position-badge-size) / -2);
-}
+        margin: calc(var(--position-badge-size) / -2) 0 0 calc(var(--position-badge-size) / -2);
+    }
 
-/* Le cercle d'incertitude : une surface, pas un halo décoratif — c'est la zone
+    /* Le cercle d'incertitude : une surface, pas un halo décoratif — c'est la zone
    dans laquelle on se trouve réellement, au rayon que la source a mesuré. */
-.carte-points .carte-position-circle,
-#carte-container .carte-position-circle {
-    fill: var(--position);
-    fill-opacity: 0.12;
-    stroke: var(--position);
-    stroke-width: 1;
-    stroke-opacity: 0.5;
-}
+    .carte-points .carte-position-circle,
+    #carte-container .carte-position-circle {
+        fill: var(--position);
+        fill-opacity: 0.12;
+        stroke: var(--position);
+        stroke-width: 1;
+        stroke-opacity: 0.5;
+    }
 
-.awaiting-click,
-.awaiting-click * {
-    cursor: crosshair !important;
-}
+    .awaiting-click,
+    .awaiting-click * {
+        cursor: crosshair !important;
+    }
 
-/* Sélecteur de coordonnée : carte plein écran par-dessus l'écran courant. */
-.screen-carte {
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    background: var(--fond);
-}
+    /* Sélecteur de coordonnée : carte plein écran par-dessus l'écran courant. */
+    .screen-carte {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        background: var(--fond);
+    }
 
-/* La carte occupe **tout** l'écran de saisie, et le formulaire flotte au-dessus.
+    /* La carte occupe **tout** l'écran de saisie, et le formulaire flotte au-dessus.
 
    « Extend content to fill the screen or window […] Controls and navigation
    components appear **on top of** content rather than on the same plane. » Le
@@ -1134,11 +1133,11 @@ overview-page canvas {
    `absolute` plutôt que `relative` : la carte remplit son parent en `fixed`, et
    reste un ancêtre positionné — sans quoi les panneaux de Leaflet, tous en
    absolu, échapperaient à son `overflow` et se dessineraient sur toute la page. */
-#carte-container {
-    position: absolute;
-    inset: 0;
+    #carte-container {
+        position: absolute;
+        inset: 0;
 
-    /* **Indispensable, et ce n'est pas une précaution** : les panneaux de Leaflet
+        /* **Indispensable, et ce n'est pas une précaution** : les panneaux de Leaflet
        portent `z-index: 400`. Un conteneur positionné mais en `z-index: auto`
        n'ouvre aucun contexte d'empilement, et ces 400 remontent alors dans celui
        du parent, où ils battent tout ce que l'application pose au-dessus.
@@ -1147,10 +1146,10 @@ overview-page canvas {
        `z-index: 10`, avec la bonne boîte et le bon fond — était intégralement
        recouvert par les tuiles. `.carte-points` porte la même ligne, pour la
        même raison. */
-    z-index: 0;
-}
+        z-index: 0;
+    }
 
-/* Le formulaire, en panneau de verre flottant sur la carte.
+    /* Le formulaire, en panneau de verre flottant sur la carte.
 
    Inséré des bords plutôt que collé à eux, comme une demi-feuille d'iOS : « half
    sheets are inset from the edge of the display to allow content to peek through
@@ -1160,60 +1159,60 @@ overview-page canvas {
    Les marges suivent `env(safe-area-inset-*)` : sans elles le panneau tomberait
    sous la barre d'accueil. C'est `viewport-fit=cover`, dans `index.html`, qui
    donne une valeur à ces fonctions — sans lui elles valent 0px. */
-.carte-bar {
-    position: absolute;
-    inset-inline: max(0.75rem, env(safe-area-inset-left));
-    inset-block-end: max(0.75rem, env(safe-area-inset-bottom));
-    z-index: 10;
-    display: flex;
-    gap: 0.5rem;
-    padding: var(--ecart-interne);
-    border-radius: var(--rayon-section);
-    flex-wrap: wrap;
-    align-items: center;
-}
+    .carte-bar {
+        position: absolute;
+        inset-inline: max(0.75rem, env(safe-area-inset-left));
+        inset-block-end: max(0.75rem, env(safe-area-inset-bottom));
+        z-index: 10;
+        display: flex;
+        gap: 0.5rem;
+        padding: var(--ecart-interne);
+        border-radius: var(--rayon-section);
+        flex-wrap: wrap;
+        align-items: center;
+    }
 
-/* L'annulation cède la place : elle reste du côté entrant, et pousse la
+    /* L'annulation cède la place : elle reste du côté entrant, et pousse la
    validation vers le côté sortant — « Only specify one primary action », et les
    barres d'outils la placent au bout. Les deux tombaient collées à gauche sur
    leur ligne, sans rien pour dire laquelle conclut.
 
    C'est bien l'annulation qui porte la marge, et non la validation : en logique
    d'écriture, la marge automatique appartient à l'élément qui cède. */
-#cancel-carte-button {
-    margin-inline-end: auto;
-}
+    #cancel-carte-button {
+        margin-inline-end: auto;
+    }
 
-.carte-bar input {
-    font: inherit;
-    padding: 0.5rem;
-    border: 1px solid var(--separateur);
+    .carte-bar input {
+        font: inherit;
+        padding: 0.5rem;
+        border: 1px solid var(--separateur);
 
-    /* Concentrique avec le panneau qui le porte : son rayon moins le
+        /* Concentrique avec le panneau qui le porte : son rayon moins le
        rembourrage qui les sépare. */
-    border-radius: var(--rayon-interieur);
-    width: 8rem;
-}
+        border-radius: var(--rayon-interieur);
+        width: 8rem;
+    }
 
-/* La phrase qui dit pourquoi la position manque prend sa propre ligne, en tête
+    /* La phrase qui dit pourquoi la position manque prend sa propre ligne, en tête
    de barre (`flex-wrap` est déjà posé plus haut). Elle a sa raison d'être ici et
    nulle part ailleurs : cette carte recouvre l'écran de suivi, donc sa ligne
    d'état avec — sans cette phrase, l'absence de marqueur ne s'expliquerait pas. */
-.carte-position-status {
-    flex: 1 0 100%;
-    margin: 0;
+    .carte-position-status {
+        flex: 1 0 100%;
+        margin: 0;
 
-    /* Footnote : 13/18. */
-    font-size: 0.765rem;
-    line-height: 1.385;
-    color: var(--label-2);
-}
+        /* Footnote : 13/18. */
+        font-size: 0.765rem;
+        line-height: 1.385;
+        color: var(--label-2);
+    }
 
-/* Écran de suivi */
-suivi-screen {
-    padding: 0;
+    /* Écran de suivi */
+    suivi-screen {
+        padding: 0;
 
-    /* L'aperçu du trajet n'a pas de taille propre : sa largeur est celle qui fait
+        /* L'aperçu du trajet n'a pas de taille propre : sa largeur est celle qui fait
        tenir la pile entière dans la hauteur disponible, soit
        `hauteur ÷ Σ(hauteur/largeur)`. Le TypeScript écrit la seule chose que le
        CSS ne peut pas deviner — la somme des ratios, un ratio par page, aucune
@@ -1228,98 +1227,98 @@ suivi-screen {
        Les replis (`3rem`, `1`) ne sont pas décoratifs : un `var()` non résolu
        invalide tout le `calc()`, donc la largeur — l'aperçu n'aurait aucune taille
        entre le montage et la première mesure. */
-    --overview-height: calc(100dvh - var(--suivi-bar-height, 3rem));
-    --overview-width: min(
-        calc(var(--overview-height) / var(--overview-ratios-sum, 1)),
-        12rem,
-        33vw
-    );
-}
+        --overview-height: calc(100dvh - var(--suivi-bar-height, 3rem));
+        --overview-width: min(
+            calc(var(--overview-height) / var(--overview-ratios-sum, 1)),
+            12rem,
+            33vw
+        );
+    }
 
-.suivi-body {
-    display: flex;
-    align-items: flex-start;
-}
+    .suivi-body {
+        display: flex;
+        align-items: flex-start;
+    }
 
-.suivi-bar {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
+    .suivi-bar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
 
-    /* Seulement l'horizontal : le vertical est celui que les deux barres
+        /* Seulement l'horizontal : le vertical est celui que les deux barres
        partagent, et un raccourci `padding` l'écraserait. */
-    padding-inline: var(--marge-ecran);
-    background: var(--fond);
+        padding-inline: var(--marge-ecran);
+        background: var(--fond);
 
-    /* Sans filet : son `::after` porte déjà l'effet de bord, et la HIG le donne
+        /* Sans filet : son `::after` porte déjà l'effet de bord, et la HIG le donne
        **à la place** d'un fond ou d'un trait. Le filet était la seule chose qui
        restait visible quand rien n'a défilé, et la seule différence de hauteur
        qui subsistait entre les deux barres. */
-}
+    }
 
-.suivi-status {
-    flex: 1;
-    min-width: 8rem;
+    .suivi-status {
+        flex: 1;
+        min-width: 8rem;
 
-    /* Footnote : 13/18. */
-    font-size: 0.765rem;
-    line-height: 1.385;
-    color: var(--avertissement);
-}
+        /* Footnote : 13/18. */
+        font-size: 0.765rem;
+        line-height: 1.385;
+        color: var(--avertissement);
+    }
 
-.simulation-banner {
-    width: 100%;
-    margin: 0;
-    padding: 0.25rem 0;
+    .simulation-banner {
+        width: 100%;
+        margin: 0;
+        padding: 0.25rem 0;
 
-    /* Footnote : 13/18. */
-    font-size: 0.765rem;
-    line-height: 1.385;
-    color: var(--succes);
-}
+        /* Footnote : 13/18. */
+        font-size: 0.765rem;
+        line-height: 1.385;
+        color: var(--succes);
+    }
 
-.guide-line {
-    position: fixed;
-    left: 0;
-    right: 0;
+    .guide-line {
+        position: fixed;
+        left: 0;
+        right: 0;
 
-    /* La fraction vient du domaine (`POSITION_VIEWPORT_FRACTION`), posée
+        /* La fraction vient du domaine (`POSITION_VIEWPORT_FRACTION`), posée
        sur :root par l'écran de suivi : le repère ne peut plus mentir sur la
        position que le défilement vise réellement. */
-    top: calc(var(--fraction-position, 0.75) * 100dvh);
-    border-top: 2px dashed var(--position);
-    pointer-events: none;
-    z-index: 5;
-}
+        top: calc(var(--fraction-position, 0.75) * 100dvh);
+        border-top: 2px dashed var(--position);
+        pointer-events: none;
+        z-index: 5;
+    }
 
-/* Incrustation dépliée : le repère s'arrête là où elle commence, comme il
+    /* Incrustation dépliée : le repère s'arrête là où elle commence, comme il
    s'arrête au bord de la colonne sur grand écran. */
-.overview-ouvert .guide-line {
-    right: var(--overview-width);
-}
+    .overview-ouvert .guide-line {
+        right: var(--overview-width);
+    }
 
-.resume-button {
-    position: fixed;
-    bottom: 1rem;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 20;
-    box-shadow: var(--ombre-flottante);
-}
+    .resume-button {
+        position: fixed;
+        bottom: 1rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        box-shadow: var(--ombre-flottante);
+    }
 
-.offline-indicator {
-    color: var(--succes);
+    .offline-indicator {
+        color: var(--succes);
 
-    /* Footnote : 13/18. */
-    font-size: 0.765rem;
-    line-height: 1.385;
-}
+        /* Footnote : 13/18. */
+        font-size: 0.765rem;
+        line-height: 1.385;
+    }
 
-/* Les pictogrammes.
+    /* Les pictogrammes.
 
    Le jeu (`src/shared/Icons.html`) ne porte ni épaisseur, ni bouts, ni taille :
    tout est ici, une fois, pour que les vingt et un symboles ne puissent pas
@@ -1330,19 +1329,19 @@ suivi-screen {
    L'épaisseur suit la graisse du texte voisin, comme le font les SF Symbols :
    « Because SF Symbols use equivalent weights, you can achieve precise weight
    matching between symbols and adjacent text. » */
-.icon {
-    inline-size: 1.29em;
-    block-size: 1.29em;
-    flex: none;
-    fill: none;
-    stroke: currentcolor;
-    stroke-width: 1.6;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    vertical-align: -0.18em;
-}
+    .icon {
+        inline-size: 1.29em;
+        block-size: 1.29em;
+        flex: none;
+        fill: none;
+        stroke: currentcolor;
+        stroke-width: 1.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vertical-align: -0.18em;
+    }
 
-/* L'apparence sombre.
+    /* L'apparence sombre.
 
    La HIG est explicite même pour une application qui n'en afficherait qu'une :
    « Even if your app ships in a single appearance mode, provide both light and
@@ -1351,43 +1350,43 @@ suivi-screen {
 
    Seuls les jetons sont redéfinis : aucune règle ne se duplique ici, et c'est
    tout l'intérêt de les avoir extraits. */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bleu: rgb(0 145 255);
-        --rouge: rgb(255 66 69);
-        --orange: rgb(255 146 48);
-        --fond: rgb(28 28 30);
-        --fond-groupe: rgb(0 0 0);
-        --label: rgb(255 255 255);
-        --label-2: rgb(235 235 245 / 60%);
-        --label-3: rgb(235 235 245 / 30%);
-        --separateur: rgb(84 84 88 / 65%);
-        --avertissement: rgb(255 160 86);
-        --succes: rgb(74 217 104);
-        --fond-consigne: rgb(255 146 48 / 18%);
-        --fond-page: rgb(0 0 0 / 60%);
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --bleu: rgb(0 145 255);
+            --rouge: rgb(255 66 69);
+            --orange: rgb(255 146 48);
+            --fond: rgb(28 28 30);
+            --fond-groupe: rgb(0 0 0);
+            --label: rgb(255 255 255);
+            --label-2: rgb(235 235 245 / 60%);
+            --label-3: rgb(235 235 245 / 30%);
+            --separateur: rgb(84 84 88 / 65%);
+            --avertissement: rgb(255 160 86);
+            --succes: rgb(74 217 104);
+            --fond-consigne: rgb(255 146 48 / 18%);
+            --fond-page: rgb(0 0 0 / 60%);
 
-        /* Le verre s'assombrit, faute de quoi il reste blanc sur du noir : un
+            /* Le verre s'assombrit, faute de quoi il reste blanc sur du noir : un
            bouton flottant devenait un disque blanc portant un symbole blanc,
            donc invisible. Le reflet spéculaire s'atténue en conséquence — une
            arête très éclairée sur une surface sombre se lit comme un trait, pas
            comme de la lumière. */
-        --verre: rgb(0 0 0 / 72%);
-        --verre-reflet: inset 0 1px 0 rgb(255 255 255 / 16%);
-        --verre-epais: rgb(28 28 30 / 86%);
-        --ombre-pastille: 0 1px 4px rgb(0 0 0 / 60%);
-        --ombre-flottante: 0 2px 12px rgb(0 0 0 / 55%);
+            --verre: rgb(0 0 0 / 72%);
+            --verre-reflet: inset 0 1px 0 rgb(255 255 255 / 16%);
+            --verre-epais: rgb(28 28 30 / 86%);
+            --ombre-pastille: 0 1px 4px rgb(0 0 0 / 60%);
+            --ombre-flottante: 0 2px 12px rgb(0 0 0 / 55%);
+        }
     }
-}
 
-/* Le contrôle « Ma position », que la carte pose elle-même.
+    /* Le contrôle « Ma position », que la carte pose elle-même.
 
    En verre et monochrome, et non teinté : « Keep the number of prominent
    buttons to one or two per view », et sur cet écran la proéminente est
    « Suivre ». Un recentrage en bleu plein se lirait comme l'action de l'écran,
    ce qu'il n'est pas — il flotte sur la carte, donc il en prend le verre. */
 
-/* Les contrôles de Leaflet rejoignent la couche fonctionnelle.
+    /* Les contrôles de Leaflet rejoignent la couche fonctionnelle.
 
    C'est la **colonne** qui porte la surface — le verre lui est donné plus bas —
    et ses boutons la traversent, comme les trois actions d'un point traversent
@@ -1399,7 +1398,7 @@ suivi-screen {
    intérieur se déduit de celui de la colonne moins son rembourrage — c'est la
    règle concentrique, et elle ne s'écrit qu'une fois. */
 
-/* Les tuiles s'assourdissent : « consider using the muted emphasis style […]
+    /* Les tuiles s'assourdissent : « consider using the muted emphasis style […]
    when you overlay information-rich content on the map ». Cette carte porte des
    pastilles numérotées et un disque de position — elle ne doit pas leur faire
    concurrence.
@@ -1407,75 +1406,75 @@ suivi-screen {
    Le filtre va sur le **panneau des tuiles**, et surtout pas sur le conteneur :
    un `filter` posé sur un ancêtre du verre en annulerait le flou. Le panneau des
    contrôles est un frère de celui-ci, donc il y échappe. */
-.leaflet-tile-pane {
-    filter: saturate(0.82) contrast(0.96);
-}
+    .leaflet-tile-pane {
+        filter: saturate(0.82) contrast(0.96);
+    }
 
-/* OpenStreetMap ne sert aucun jeu de tuiles nocturne : on inverse et on
+    /* OpenStreetMap ne sert aucun jeu de tuiles nocturne : on inverse et on
    recolore, faute de mieux. Sans cela, un rectangle éclatant reste au milieu
    d'une interface noire. */
-@media (prefers-color-scheme: dark) {
-    .leaflet-tile-pane {
-        filter: invert(1) hue-rotate(180deg) saturate(0.72) brightness(0.92);
+    @media (prefers-color-scheme: dark) {
+        .leaflet-tile-pane {
+            filter: invert(1) hue-rotate(180deg) saturate(0.72) brightness(0.92);
+        }
     }
-}
 
-.leaflet-bar {
-    border: none;
-    border-radius: var(--rayon-controle);
-    overflow: hidden;
-    background: var(--verre-epais);
-    box-shadow: var(--verre-reflet);
-}
+    .leaflet-bar {
+        border: none;
+        border-radius: var(--rayon-controle);
+        overflow: hidden;
+        background: var(--verre-epais);
+        box-shadow: var(--verre-reflet);
+    }
 
-/* leaflet.css vit maintenant dans la couche `vendor`, la plus basse de la
+    /* leaflet.css vit maintenant dans la couche `vendor`, la plus basse de la
    cascade : ces règles n'ont plus besoin d'être marquées, une déclaration hors
    couche gagnant sur toute déclaration en couche, quelle que soit sa
    spécificité. */
-.leaflet-bar a,
-.carte-recentrer {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    inline-size: 34px;
-    block-size: 34px;
+    .leaflet-bar a,
+    .carte-recentrer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        inline-size: 34px;
+        block-size: 34px;
 
-    /* Les deux minimums aussi : la cible de 44 px que la règle du bouton impose
+        /* Les deux minimums aussi : la cible de 44 px que la règle du bouton impose
        survivrait à la hauteur fixée, et le recentrage dépasserait le zoom d'un
        tiers dans la colonne qu'ils partagent. La HIG l'autorise — 28 px est son
        plancher absolu — et une colonne qui mange la vignette de carte servirait
        moins bien que trois contrôles réguliers. */
-    min-inline-size: 34px;
-    min-block-size: 34px;
-    padding: 0;
-    border: none;
-    border-radius: 0;
-    background: none;
-    box-shadow: none;
-    color: var(--label);
-    line-height: 1;
-}
+        min-inline-size: 34px;
+        min-block-size: 34px;
+        padding: 0;
+        border: none;
+        border-radius: 0;
+        background: none;
+        box-shadow: none;
+        color: var(--label);
+        line-height: 1;
+    }
 
-/* Un filet entre deux contrôles empilés : c'est ce qui les sépare sans leur
+    /* Un filet entre deux contrôles empilés : c'est ce qui les sépare sans leur
    donner chacun une surface. */
-.leaflet-bar a + a,
-.leaflet-bar a + .carte-recentrer {
-    border-block-start: 1px solid var(--separateur);
-}
+    .leaflet-bar a + a,
+    .leaflet-bar a + .carte-recentrer {
+        border-block-start: 1px solid var(--separateur);
+    }
 
-.leaflet-control-attribution {
-    padding: 4px 7px;
-    border-radius: var(--rayon-controle) 0 0;
-    background: var(--verre-epais);
-    color: var(--label-2);
-    font-size: 0.647rem;
-}
+    .leaflet-control-attribution {
+        padding: 4px 7px;
+        border-radius: var(--rayon-controle) 0 0;
+        background: var(--verre-epais);
+        color: var(--label-2);
+        font-size: 0.647rem;
+    }
 
-.leaflet-control-attribution a {
-    color: var(--accent);
-}
+    .leaflet-control-attribution a {
+        color: var(--accent);
+    }
 
-/* Le contraste renforcé.
+    /* Le contraste renforcé.
 
    La HIG demande une variante par apparence, et pas un simple assombrissement :
    « define a custom color with light and dark variants, and an increased
@@ -1484,31 +1483,31 @@ suivi-screen {
 
    Le verre s'y opacifie presque complètement ; le bloc de retrait, plus bas,
    finit le travail en coupant le flou. */
-@media (prefers-contrast: more) {
-    :root {
-        --bleu: rgb(30 110 244);
-        --rouge: rgb(233 21 45);
-        --label-2: rgb(60 60 67 / 85%);
-        --label-3: rgb(60 60 67 / 60%);
-        --separateur: rgb(60 60 67 / 70%);
-        --verre: rgb(255 255 255 / 96%);
-        --verre-epais: rgb(255 255 255 / 98%);
+    @media (prefers-contrast: more) {
+        :root {
+            --bleu: rgb(30 110 244);
+            --rouge: rgb(233 21 45);
+            --label-2: rgb(60 60 67 / 85%);
+            --label-3: rgb(60 60 67 / 60%);
+            --separateur: rgb(60 60 67 / 70%);
+            --verre: rgb(255 255 255 / 96%);
+            --verre-epais: rgb(255 255 255 / 98%);
+        }
     }
-}
 
-@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
-    :root {
-        --bleu: rgb(92 184 255);
-        --rouge: rgb(255 97 101);
-        --label-2: rgb(235 235 245 / 85%);
-        --label-3: rgb(235 235 245 / 60%);
-        --separateur: rgb(235 235 245 / 50%);
-        --verre: rgb(20 20 22 / 96%);
-        --verre-epais: rgb(20 20 22 / 98%);
+    @media (prefers-contrast: more) and (prefers-color-scheme: dark) {
+        :root {
+            --bleu: rgb(92 184 255);
+            --rouge: rgb(255 97 101);
+            --label-2: rgb(235 235 245 / 85%);
+            --label-3: rgb(235 235 245 / 60%);
+            --separateur: rgb(235 235 245 / 50%);
+            --verre: rgb(20 20 22 / 96%);
+            --verre-epais: rgb(20 20 22 / 98%);
+        }
     }
-}
 
-/* La barre de suivi, en verre.
+    /* La barre de suivi, en verre.
 
    « Liquid Glass forms a distinct functional layer for controls and navigation
    elements […] that floats above the content layer. » C'est la première surface
@@ -1535,10 +1534,10 @@ suivi-screen {
    `saturate` n'est pas cosmétique : `blur()` seul est un filtre passe-bas, et
    rend le voile laiteux caractéristique. C'est la saturation qui rend au verre
    la couleur de ce qu'il laisse passer. */
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    /* Les deux barres épinglées et la barre flottante de la carte : une par
+    @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        /* Les deux barres épinglées et la barre flottante de la carte : une par
        écran, du texte à porter, donc le verre « regular ». */
-    .header,
+        .header,
     .suivi-bar,
     .carte-bar,
     /* Les contrôles isolés qui flottent sur le contenu. Deux au plus visibles à
@@ -1555,22 +1554,22 @@ suivi-screen {
        verres empilés sont refusés — « avoid overcrowding or layering Liquid
        Glass elements on top of each other ». */
     .leaflet-bar {
-        -webkit-backdrop-filter: blur(20px) saturate(180%);
-        backdrop-filter: blur(20px) saturate(180%);
-        background: var(--verre);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            backdrop-filter: blur(20px) saturate(180%);
+            background: var(--verre);
 
-        /* Monochrome, et c'est la règle : « symbols and text on these elements
+            /* Monochrome, et c'est la règle : « symbols and text on these elements
            follow a monochromatic color scheme, becoming darker when the
            underlying content is light, and lighter when it's dark ». Un libellé
            fixé en blanc — ce que la règle du bouton principal imposait à
            « Ajouter un point » — disparaît dès que le verre s'éclaircit sur une
            page de schéma. */
-        color: var(--label);
-        box-shadow: var(--verre-reflet), var(--ombre-flottante);
+            color: var(--label);
+            box-shadow: var(--verre-reflet), var(--ombre-flottante);
+        }
     }
-}
 
-/* Ce que les réglages retirent au verre.
+    /* Ce que les réglages retirent au verre.
 
    « Test your interface with a variety of display and accessibility settings. »
    Rendre la surface opaque ne suffit pas : **le flou ne part pas tout seul**, il
@@ -1582,23 +1581,23 @@ suivi-screen {
    iOS ne publie toujours pas `prefers-reduced-transparency` — la requête ne
    couvre donc pas la plateforme où le verre est le plus visible. Le contraste
    renforcé, lui, y est honoré, d'où les deux conditions dans la même liste. */
-@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-    .header,
-    .suivi-bar,
-    .carte-bar,
-    .floating-add-point-button,
-    .carte-button,
-    .overview-button,
-    .resume-button,
-    .leaflet-bar {
-        -webkit-backdrop-filter: none;
-        backdrop-filter: none;
-        background: var(--fond);
-        color: var(--label);
+    @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+        .header,
+        .suivi-bar,
+        .carte-bar,
+        .floating-add-point-button,
+        .carte-button,
+        .overview-button,
+        .resume-button,
+        .leaflet-bar {
+            -webkit-backdrop-filter: none;
+            backdrop-filter: none;
+            background: var(--fond);
+            color: var(--label);
+        }
     }
-}
 
-/* Le mouvement.
+    /* Le mouvement.
 
    Ce qui part, ce sont les transitions — **pas** le défilement automatique, qui
    *est* la fonction de l'application : « don't make people wait for an animation
@@ -1609,13 +1608,14 @@ suivi-screen {
    Une durée de 1 ms plutôt que `none` : les gestionnaires de `transitionend`
    continuent de recevoir leur événement, là où `none` les rendrait muets et
    laisserait un état d'attente ouvert pour toujours. */
-@media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        transition-duration: 1ms !important;
-        animation-duration: 1ms !important;
-        animation-iteration-count: 1 !important;
-        scroll-behavior: auto !important;
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            transition-duration: 1ms !important;
+            animation-duration: 1ms !important;
+            animation-iteration-count: 1 !important;
+            scroll-behavior: auto !important;
+        }
     }
 }

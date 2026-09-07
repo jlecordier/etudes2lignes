@@ -2,7 +2,7 @@
  * Composition root : c'est le seul fichier qui connaît les adapters concrets.
  * Il les instancie, les injecte dans les écrans, et démarre l'application.
  */
-import './style.css';
+import './styles/index.css';
 import { registerSW } from 'virtual:pwa-register';
 import { blockPinchZoom } from './shared/pinchZoom';
 import { LeafletCarteDesPoints } from './carte/adapters/LeafletCarteDesPoints';
