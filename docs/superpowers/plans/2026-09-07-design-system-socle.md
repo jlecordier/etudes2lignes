@@ -510,18 +510,24 @@ git commit -m "Range Leaflet sous nous plutot que de le battre a l'important"
 Créer `src/styles/styles.test.ts` :
 
 ```ts
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 /**
- * Les feuilles du système, découvertes plutôt qu'énumérées : un fichier ajouté
- * tombe sous les invariants sans qu'on ait pensé à l'inscrire — et c'est
- * précisément l'oubli qui a laissé passer une contrepartie sombre manquante.
+ * Les feuilles du systeme, decouvertes plutot qu'enumerees : un fichier ajoute
+ * tombe sous les invariants sans qu'on ait pense a l'inscrire — et c'est
+ * precisement l'oubli qui a laisse passer une contrepartie sombre manquante.
+ *
+ * **Le glob ne sert qu'a trouver les chemins.** Mesure : sous Vitest,
+ * `import.meta.glob('./**\/*.css', { query: '?raw', eager: true })` rend bien
+ * les cles mais un contenu **vide** — la meme neutralisation des imports CSS
+ * que `legacy.test.ts` documente deja pour son propre compte. Le contenu se lit
+ * donc au disque, ou il fait ses 61 310 caracteres.
  */
-const feuilles: Record<string, string> = import.meta.glob('./**/*.css', {
-    query: '?raw',
-    import: 'default',
-    eager: true,
-});
+const chemins = Object.keys(import.meta.glob('./**/*.css'));
+const feuilles: Record<string, string> = Object.fromEntries(
+    chemins.map((chemin) => [chemin, readFileSync(new URL(chemin, import.meta.url), 'utf8')]),
+);
 
 const entree = feuilles['./index.css'] ?? '';
 const systeme = Object.values(feuilles).join('\n');
