@@ -59,10 +59,15 @@ describe("La couverture de l'apparence sombre", () => {
             const communs = ['--sur-teinte', '--accent', '--destructif', '--position'];
 
             const clair = /^[ \t]*:root \{([\s\S]*?)^[ \t]*\}/m.exec(feuille)?.[1] ?? '';
+            // L'indentation de `:root` est capturée puis rejouée en
+            // rétro-référence pour sa propre fermeture : un quantificateur
+            // paresseux borné par une indentation quelconque s'arrêterait à la
+            // première accolade venue plutôt qu'à celle qui ferme réellement
+            // `:root`.
             const sombre =
-                /@media \(prefers-color-scheme: dark\) \{\s*:root \{([\s\S]*?)\n[ \t]*\}/.exec(
+                /@media \(prefers-color-scheme: dark\) \{\n([ \t]*):root \{([\s\S]*?)\n\1\}/.exec(
                     feuille,
-                )?.[1] ?? '';
+                )?.[2] ?? '';
 
             const couleurs = [...clair.matchAll(/(--[a-z0-9-]+):\s*([^;]+);/g)]
                 .filter(([, , valeur]) => /rgba?\(/.test(valeur ?? ''))
@@ -685,12 +690,18 @@ describe('La couche fonctionnelle', () => {
             // pas de la prose. Le commentaire qui explique pourquoi
             // `.carte-recentrer` n'en reçoit pas ferait échouer le témoin qui
             // vérifie qu'il n'en reçoit pas.
-            const pose = /@supports \(\(backdrop-filter[^{]*\{([\s\S]*?)\n[ \t]*\}/.exec(
+            //
+            // L'indentation de `@supports` est capturée puis rejouée en
+            // rétro-référence pour sa propre fermeture : un quantificateur
+            // paresseux borné par une indentation quelconque s'arrêterait à la
+            // première règle imbriquée venue, pas au bloc entier — aveugle à
+            // toute règle sœur ajoutée après `.leaflet-bar`.
+            const pose = /^([ \t]*)@supports \(\(backdrop-filter[^{]*\{([\s\S]*?)\n\1\}/m.exec(
                 feuille.replace(/\/\*[\s\S]*?\*\//g, ' '),
             );
 
-            expect(pose?.[1]).toContain('.leaflet-bar');
-            expect(pose?.[1]).not.toContain('.carte-recentrer');
+            expect(pose?.[2]).toContain('.leaflet-bar');
+            expect(pose?.[2]).not.toContain('.carte-recentrer');
         });
     });
 
@@ -701,19 +712,24 @@ describe('La couche fonctionnelle', () => {
             // content is light, and lighter when it's dark. » Un libellé fixé en
             // blanc — ce que la règle du bouton principal impose — disparaît dès
             // que le verre s'éclaircit sur une page de schéma.
-            const pose = /@supports \(\(backdrop-filter[^{]*\{([\s\S]*?)\n[ \t]*\}/.exec(feuille);
+            const pose = /^([ \t]*)@supports \(\(backdrop-filter[^{]*\{([\s\S]*?)\n\1\}/m.exec(
+                feuille,
+            );
 
-            expect(pose?.[1]).toMatch(/color:\s*var\(--label\)/);
-            expect(pose?.[1]).not.toMatch(/color:\s*var\(--sur-teinte\)/);
+            expect(pose?.[2]).toMatch(/color:\s*var\(--label\)/);
+            expect(pose?.[2]).not.toMatch(/color:\s*var\(--sur-teinte\)/);
         });
     });
 
     describe('Étant donné une surface en verre, quand la feuille la traite', () => {
         it('alors elle est de la liste close, floutée, et rendue opaque par les réglages', () => {
-            const pose = /@supports \(\(backdrop-filter[^{]*\{([\s\S]*?)\n[ \t]*\}/.exec(feuille);
-            const retrait = /@media \(prefers-reduced-transparency[^{]*\{([\s\S]*?)\n[ \t]*\}/.exec(
+            const pose = /^([ \t]*)@supports \(\(backdrop-filter[^{]*\{([\s\S]*?)\n\1\}/m.exec(
                 feuille,
             );
+            const retrait =
+                /^([ \t]*)@media \(prefers-reduced-transparency[^{]*\{([\s\S]*?)\n\1\}/m.exec(
+                    feuille,
+                );
 
             // Aucune surface n'est floutée en dehors de ces deux blocs : le
             // premier ajoute le verre, le second le retire.
@@ -726,8 +742,8 @@ describe('La couche fonctionnelle', () => {
             for (const surface of surfaces) {
                 // Posée, puis retirée : oublier le retrait laisse le flou en
                 // place quand la personne a demandé moins de transparence.
-                expect(pose?.[1]).toContain(surface);
-                expect(retrait?.[1]).toContain(surface);
+                expect(pose?.[2]).toContain(surface);
+                expect(retrait?.[2]).toContain(surface);
             }
         });
     });
@@ -816,13 +832,15 @@ describe('Le mouvement', () => {
             // *est* la fonction de l'application. Une durée de 1 ms plutôt que
             // `none` : les gestionnaires de `transitionend` continuent de
             // recevoir leur événement, là où `none` les rendrait muets.
+            // Rétro-référencé sur l'indentation de `@media`, comme les blocs de
+            // « La couche fonctionnelle » : le même angle mort s'y appliquait.
             const bloc =
-                /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([\s\S]*?)\n[ \t]*\}/.exec(
+                /^([ \t]*)@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([\s\S]*?)\n\1\}/m.exec(
                     feuille,
                 );
 
-            expect(bloc?.[1]).toMatch(/transition-duration:\s*1ms/);
-            expect(bloc?.[1]).not.toMatch(/scroll-behavior:\s*smooth/);
+            expect(bloc?.[2]).toMatch(/transition-duration:\s*1ms/);
+            expect(bloc?.[2]).not.toMatch(/scroll-behavior:\s*smooth/);
         });
     });
 });

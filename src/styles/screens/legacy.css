@@ -2,11 +2,6 @@
     /* Le système de design vit maintenant dans `styles/` ; ce fichier est en
    transit et disparaît en Task 3. */
 
-    /* L'ordre de cascade du système. Une couche déclarée plus tard gagne, quelle
-   que soit la spécificité — et **toute** déclaration hors couche gagne sur
-   toutes les couches. C'est ce qui permet de ranger Leaflet tout en bas et de
-   reprendre ses contrôles sans un seul `!important`. */
-
     /* leaflet.css entrait par deux adapters TypeScript, et un import JavaScript ne
    peut pas être mis en couche : c'est précisément ce qui obligeait à 16
    `!important` pour reprendre ses contrôles. Ici, il tombe dans la couche la
