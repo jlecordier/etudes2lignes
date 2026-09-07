@@ -5,9 +5,3 @@ playwright-report/
 pnpm-lock.yaml
 .stryker-tmp/
 reports/
-
-# Palier des primitives : les décimales y sont exactes au millième (HIG
-# d'Apple, recalculées par src/styles/styles.test.ts), et Prettier tronque
-# les zéros de fin (2.000rem -> 2rem, 1.250 -> 1.25) à chaque commit. La même
-# exception existe déjà côté Stylelint pour ce dossier (.stylelintrc.json).
-src/styles/tokens/*.css

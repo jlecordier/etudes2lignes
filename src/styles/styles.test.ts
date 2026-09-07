@@ -117,21 +117,33 @@ describe('Le palier des primitives', () => {
     });
 
     describe("Étant donné les métriques d'Apple, quand on lit ce que la feuille en a fait", () => {
-        it('alors chaque valeur est celle de la HIG, au millième', () => {
-            const CORPS = 17;
-            const attendus = STYLES_DE_TEXTE.map(({ nom, taille, interligne, approche }) => {
-                const rem = taille === CORPS ? '1rem' : `${(taille / CORPS).toFixed(3)}rem`;
-                return [
-                    `--text-${nom}-size: ${rem};`,
-                    `--text-${nom}-leading: ${(interligne / taille).toFixed(3)};`,
-                    `--text-${nom}-tracking: ${(approche / 1000).toFixed(3)}em;`,
-                ];
-            }).flat();
+        const CORPS = 17;
 
-            const absents = attendus.filter((d) => !primitives.includes(d));
+        /** Extrait la valeur numérique d'un jeton, quelle que soit son
+         *  écriture (`2rem` ou `2.000rem`, `0` ou `0.000em`…). La comparaison
+         *  qui suit est **numérique, pas textuelle** : `2rem` et `2.000rem`
+         *  désignent le même nombre, et un test qui les distinguerait
+         *  affirmerait une orthographe plutôt qu'un contrat — au prix, mesuré
+         *  ici, de forcer la feuille à porter des zéros de fin que personne
+         *  n'écrit et que le formateur du dépôt s'empresse de retirer. Un
+         *  `toBeCloseTo` au millième affirme le contrat (la précision que la
+         *  HIG publie) sans dicter la forme. Si une main future resserre ceci
+         *  en comparaison de chaînes, elle réintroduit exactement ce piège. */
+        const extraireNombre = (jeton: string): number | null => {
+            const expression = new RegExp(`${jeton}:\\s*(-?\\d+(?:\\.\\d+)?)(?:px|rem|em)?;`);
+            const correspondance = expression.exec(primitives);
 
-            expect(absents).toEqual([]);
-        });
+            return correspondance ? Number(correspondance[1]) : null;
+        };
+
+        it.each(STYLES_DE_TEXTE)(
+            "alors $nom porte la taille, l'interligne et l'approche de la HIG, au millième",
+            ({ nom, taille, interligne, approche }) => {
+                expect(extraireNombre(`--text-${nom}-size`)).toBeCloseTo(taille / CORPS, 3);
+                expect(extraireNombre(`--text-${nom}-leading`)).toBeCloseTo(interligne / taille, 3);
+                expect(extraireNombre(`--text-${nom}-tracking`)).toBeCloseTo(approche / 1000, 3);
+            },
+        );
     });
 
     describe("Étant donné l'échelle d'espacement, quand un composant cherche une valeur", () => {

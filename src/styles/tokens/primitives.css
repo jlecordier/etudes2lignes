@@ -86,7 +86,7 @@
            Un style est un **triplet**. Écrire une taille sans son interligne
            ni son approche était le défaut le plus répandu de l'ancienne
            feuille : onze styles sur seize y étaient incomplets. */
-        --text-large-title-size: 2.000rem;
+        --text-large-title-size: 2rem;
         --text-large-title-leading: 1.206;
         --text-large-title-tracking: 0.012em;
         --text-title-1-size: 1.647rem;
@@ -96,7 +96,7 @@
         --text-title-2-leading: 1.273;
         --text-title-2-tracking: -0.012em;
         --text-title-3-size: 1.176rem;
-        --text-title-3-leading: 1.250;
+        --text-title-3-leading: 1.25;
         --text-title-3-tracking: -0.023em;
         --text-headline-size: 1rem;
         --text-headline-leading: 1.294;
@@ -106,7 +106,7 @@
         --text-body-tracking: -0.026em;
         --text-callout-size: 0.941rem;
         --text-callout-leading: 1.313;
-        --text-callout-tracking: -0.020em;
+        --text-callout-tracking: -0.02em;
         --text-subheadline-size: 0.882rem;
         --text-subheadline-leading: 1.333;
         --text-subheadline-tracking: -0.016em;
@@ -115,7 +115,7 @@
         --text-footnote-tracking: -0.006em;
         --text-caption-1-size: 0.706rem;
         --text-caption-1-leading: 1.333;
-        --text-caption-1-tracking: 0.000em;
+        --text-caption-1-tracking: 0em;
         --text-caption-2-size: 0.647rem;
         --text-caption-2-leading: 1.182;
         --text-caption-2-tracking: 0.006em;
