@@ -377,23 +377,6 @@ describe('Les tuiles de la carte', () => {
     });
 });
 
-describe("L'ordre du bundle face à leaflet.css", () => {
-    describe('Étant donné que leaflet.css arrive après, quand la feuille reprend ses contrôles', () => {
-        it('alors ses déclarations sont marquées, seul moyen de gagner à égalité', () => {
-            // Le même piège que les pastilles, déjà documenté deux fois dans la
-            // feuille : `leaflet.css` est importé par l'adapter, donc **après**
-            // cette feuille dans le bundle. Monter en spécificité ne suffit pas —
-            // `.leaflet-touch .leaflet-bar a` vaut 0-2-1, autant qu'un sélecteur
-            // scopé sous le conteneur, et l'ordre tranche alors en sa faveur.
-            // Sans marque, le zoom reste en blanc opaque à côté du verre.
-            const partagee = /\n\.leaflet-bar a,\n\.carte-recentrer \{([^}]*)\}/.exec(feuille);
-
-            expect(partagee?.[1]).toMatch(/background:\s*none\s*!important/);
-            expect(partagee?.[1]).toMatch(/inline-size:\s*34px\s*!important/);
-        });
-    });
-});
-
 describe('La carte de saisie de coordonnée', () => {
     describe("Étant donné le choix d'une coordonnée, quand la feuille dispose l'écran", () => {
         it('alors la carte occupe tout, et le formulaire flotte au-dessus', () => {
@@ -779,6 +762,30 @@ describe('Ce que les réglages retirent au verre', () => {
 
             expect(retrait).not.toBeNull();
             expect(retrait?.index ?? -1).toBeGreaterThan(pose);
+        });
+    });
+});
+
+describe('La réconciliation avec Leaflet', () => {
+    describe('Étant donné que leaflet.css est chargé en couche vendor, quand la feuille reprend ses contrôles', () => {
+        it("alors elle n'a besoin d'aucun !important pour les tenir", () => {
+            // Une déclaration hors couche l'emporte sur toute déclaration en
+            // couche : c'est la règle de la cascade, et elle rend les 16
+            // `!important` de cette zone inutiles. Ils venaient de ce que
+            // leaflet.css arrivait après nous dans le bundle, avec une
+            // spécificité que `.carte-recentrer` ne pouvait pas battre.
+            //
+            // Bornée avant le bloc du mouvement réduit : ses quatre
+            // `!important` sont légitimes et lui survivent quelle que soit
+            // l'issue de cette réconciliation — ils ne relèvent pas de
+            // Leaflet, mais se trouvent après `.leaflet-bar` dans le fichier.
+            const zoneLeaflet = feuille.slice(
+                feuille.indexOf('.leaflet-bar'),
+                feuille.indexOf('@media (prefers-reduced-motion'),
+            );
+
+            expect(zoneLeaflet).not.toContain('!important');
+            expect(feuille).toContain("@import url('leaflet/dist/leaflet.css') layer(vendor);");
         });
     });
 });

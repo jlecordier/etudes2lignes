@@ -1,5 +1,4 @@
 import * as L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import { Subject, firstValueFrom, type Observable, type Subscription } from 'rxjs';
 import type { Coordonnee } from '../../trajets/domain/Coordonnee';
 import type { PointId } from '../../trajets/domain/ids';

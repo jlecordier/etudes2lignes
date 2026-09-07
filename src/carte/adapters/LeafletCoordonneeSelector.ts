@@ -1,5 +1,4 @@
 import * as L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import { Subject, firstValueFrom, takeUntil, type Observable } from 'rxjs';
 import { query } from '../../shared/dom';
 import type { Coordonnee } from '../../trajets/domain/Coordonnee';

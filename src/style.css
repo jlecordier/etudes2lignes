@@ -1,6 +1,18 @@
 /* Le système de design vit maintenant dans `styles/` ; ce fichier est en
    transit et disparaît en Task 3. */
 
+/* L'ordre de cascade du système. Une couche déclarée plus tard gagne, quelle
+   que soit la spécificité — et **toute** déclaration hors couche gagne sur
+   toutes les couches. C'est ce qui permet de ranger Leaflet tout en bas et de
+   reprendre ses contrôles sans un seul `!important`. */
+@layer vendor, reset, tokens, base, components, screens;
+
+/* leaflet.css entrait par deux adapters TypeScript, et un import JavaScript ne
+   peut pas être mis en couche : c'est précisément ce qui obligeait à 16
+   `!important` pour reprendre ses contrôles. Ici, il tombe dans la couche la
+   plus basse. */
+@import url('leaflet/dist/leaflet.css') layer(vendor);
+
 /* Style volontairement simple, mobile d'abord. */
 
 * {
@@ -1409,60 +1421,58 @@ suivi-screen {
 }
 
 .leaflet-bar {
-    border: none !important;
-    border-radius: var(--rayon-controle) !important;
+    border: none;
+    border-radius: var(--rayon-controle);
     overflow: hidden;
     background: var(--verre-epais);
     box-shadow: var(--verre-reflet);
 }
 
-/* Les déclarations sont **marquées**, et c'est le même piège que les pastilles,
-   déjà rencontré deux fois dans cette feuille : `leaflet.css` est importé par
-   l'adapter, donc il arrive **après** ici dans le bundle. Monter en spécificité
-   n'y suffit pas — `.leaflet-touch .leaflet-bar a` vaut 0-2-1, autant qu'un
-   sélecteur scopé sous son conteneur, et l'ordre tranche alors en faveur de
-   Leaflet. Sans marque, le zoom restait en blanc opaque à côté du verre. */
+/* leaflet.css vit maintenant dans la couche `vendor`, la plus basse de la
+   cascade : ces règles n'ont plus besoin d'être marquées, une déclaration hors
+   couche gagnant sur toute déclaration en couche, quelle que soit sa
+   spécificité. */
 .leaflet-bar a,
 .carte-recentrer {
-    display: flex !important;
+    display: flex;
     align-items: center;
     justify-content: center;
-    inline-size: 34px !important;
-    block-size: 34px !important;
+    inline-size: 34px;
+    block-size: 34px;
 
     /* Les deux minimums aussi : la cible de 44 px que la règle du bouton impose
        survivrait à la hauteur fixée, et le recentrage dépasserait le zoom d'un
        tiers dans la colonne qu'ils partagent. La HIG l'autorise — 28 px est son
        plancher absolu — et une colonne qui mange la vignette de carte servirait
        moins bien que trois contrôles réguliers. */
-    min-inline-size: 34px !important;
-    min-block-size: 34px !important;
+    min-inline-size: 34px;
+    min-block-size: 34px;
     padding: 0;
-    border: none !important;
-    border-radius: 0 !important;
-    background: none !important;
+    border: none;
+    border-radius: 0;
+    background: none;
     box-shadow: none;
-    color: var(--label) !important;
-    line-height: 1 !important;
+    color: var(--label);
+    line-height: 1;
 }
 
 /* Un filet entre deux contrôles empilés : c'est ce qui les sépare sans leur
    donner chacun une surface. */
 .leaflet-bar a + a,
 .leaflet-bar a + .carte-recentrer {
-    border-block-start: 1px solid var(--separateur) !important;
+    border-block-start: 1px solid var(--separateur);
 }
 
 .leaflet-control-attribution {
     padding: 4px 7px;
     border-radius: var(--rayon-controle) 0 0;
-    background: var(--verre-epais) !important;
-    color: var(--label-2) !important;
+    background: var(--verre-epais);
+    color: var(--label-2);
     font-size: 0.647rem;
 }
 
 .leaflet-control-attribution a {
-    color: var(--accent) !important;
+    color: var(--accent);
 }
 
 /* Le contraste renforcé.
