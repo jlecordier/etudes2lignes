@@ -1,0 +1,123 @@
+/* Palier A — les primitives.
+ *
+ * Des échelles, sans signification. Aucun rôle, aucune apparence : « le bleu
+ * système clair » vit ici, « la couleur d'accent » vit dans `semantic.css`.
+ *
+ * **Ce fichier ne référence rien** — aucun `var()` ne le traverse, et un test
+ * l'affirme. C'est ce qui garantit qu'il n'y a pas de cycle entre jetons.
+ *
+ * C'est aussi le seul endroit du système où une valeur brute a le droit d'être
+ * écrite : `.stylelintrc.json` exempte `tokens/*.css` de
+ * `declaration-strict-value`, et l'y refuse partout ailleurs.
+ */
+@layer tokens {
+    :root {
+        /* --- Les couleurs système d'Apple, par apparence ------------------
+           Chaque rampe porte ses deux versions ; c'est `semantic.css` qui les
+           marie par `light-dark()`. Valeurs publiées par la HIG. */
+        --blue-light: rgb(0 136 255);
+        --blue-dark: rgb(0 145 255);
+        --blue-contrast-light: rgb(30 110 244);
+        --blue-contrast-dark: rgb(92 184 255);
+        --red-light: rgb(255 56 60);
+        --red-dark: rgb(255 66 69);
+        --red-contrast-light: rgb(233 21 45);
+        --red-contrast-dark: rgb(255 97 101);
+        --orange-light: rgb(255 138 0);
+        --orange-dark: rgb(255 146 48);
+        --green-light: rgb(52 199 89);
+        --green-dark: rgb(74 217 104);
+
+        /* Les gris des fonds et des libellés, tels qu'iOS les emploie. */
+        --grey-background-light: rgb(255 255 255);
+        --grey-background-dark: rgb(28 28 30);
+        --grey-grouped-light: rgb(242 242 247);
+        --grey-grouped-dark: rgb(0 0 0);
+        --grey-label-light: rgb(0 0 0);
+        --grey-label-dark: rgb(255 255 255);
+        --grey-separator-light: rgb(60 60 67 / 29%);
+        --grey-separator-dark: rgb(84 84 88 / 65%);
+        --grey-label-2-light: rgb(60 60 67 / 60%);
+        --grey-label-2-dark: rgb(235 235 245 / 60%);
+        --grey-label-3-light: rgb(60 60 67 / 30%);
+        --grey-label-3-dark: rgb(235 235 245 / 30%);
+        --grey-label-2-contrast-light: rgb(60 60 67 / 85%);
+        --grey-label-2-contrast-dark: rgb(235 235 245 / 85%);
+        --grey-label-3-contrast-light: rgb(60 60 67 / 60%);
+        --grey-label-3-contrast-dark: rgb(235 235 245 / 60%);
+
+        /* --- L'échelle d'espacement ---------------------------------------
+           Base 8, avec 2 et 4 pour le serré, et 44 parce que c'est la cible
+           tactile d'Apple : une marche qui existe déjà dans le système n'a pas
+           à être réinventée en `calc()`. */
+        --space-2: 2px;
+        --space-4: 4px;
+        --space-8: 8px;
+        --space-12: 12px;
+        --space-16: 16px;
+        --space-20: 20px;
+        --space-24: 24px;
+        --space-32: 32px;
+        --space-44: 44px;
+        --space-64: 64px;
+
+        /* --- Les rayons ---------------------------------------------------
+           « Consider aligning the shape of controls with other rounded
+           elements throughout the interface. » Quatre marches et la pilule. */
+        --radius-4: 4px;
+        --radius-8: 8px;
+        --radius-12: 12px;
+        --radius-16: 16px;
+        --radius-22: 22px;
+        --radius-pill: 999px;
+
+        /* --- Le flou -------------------------------------------------------
+           Plafonné à 20 : au-delà, WebKit bloque ~20 s au premier rendu
+           (bug 319187). Ce n'est pas une préférence esthétique. */
+        --blur-material: 20px;
+
+        /* --- Les onze styles de texte d'iOS -------------------------------
+           Taille « Large » par défaut. Les valeurs viennent de la table de la
+           HIG : taille et interligne en points, approche en millièmes d'em.
+           Elles sont exprimées en fraction du corps (17 px) pour suivre la
+           taille dynamique, et l'interligne en nombre sans unité pour rester
+           proportionnel.
+
+           Un style est un **triplet**. Écrire une taille sans son interligne
+           ni son approche était le défaut le plus répandu de l'ancienne
+           feuille : onze styles sur seize y étaient incomplets. */
+        --text-large-title-size: 2.000rem;
+        --text-large-title-leading: 1.206;
+        --text-large-title-tracking: 0.012em;
+        --text-title-1-size: 1.647rem;
+        --text-title-1-leading: 1.214;
+        --text-title-1-tracking: 0.014em;
+        --text-title-2-size: 1.294rem;
+        --text-title-2-leading: 1.273;
+        --text-title-2-tracking: -0.012em;
+        --text-title-3-size: 1.176rem;
+        --text-title-3-leading: 1.250;
+        --text-title-3-tracking: -0.023em;
+        --text-headline-size: 1rem;
+        --text-headline-leading: 1.294;
+        --text-headline-tracking: -0.026em;
+        --text-body-size: 1rem;
+        --text-body-leading: 1.294;
+        --text-body-tracking: -0.026em;
+        --text-callout-size: 0.941rem;
+        --text-callout-leading: 1.313;
+        --text-callout-tracking: -0.020em;
+        --text-subheadline-size: 0.882rem;
+        --text-subheadline-leading: 1.333;
+        --text-subheadline-tracking: -0.016em;
+        --text-footnote-size: 0.765rem;
+        --text-footnote-leading: 1.385;
+        --text-footnote-tracking: -0.006em;
+        --text-caption-1-size: 0.706rem;
+        --text-caption-1-leading: 1.333;
+        --text-caption-1-tracking: 0.000em;
+        --text-caption-2-size: 0.647rem;
+        --text-caption-2-leading: 1.182;
+        --text-caption-2-tracking: 0.006em;
+    }
+}

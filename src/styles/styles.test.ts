@@ -73,6 +73,80 @@ describe("L'ordre de cascade", () => {
     });
 });
 
+const primitives = feuilles['./tokens/primitives.css'] ?? '';
+
+/** Les onze styles de texte iOS à la taille « Large » par défaut, tels que la
+ *  HIG les publie : taille en points, interligne en points, approche en
+ *  millièmes d'em. */
+const STYLES_DE_TEXTE = [
+    { nom: 'large-title', taille: 34, interligne: 41, approche: 12 },
+    { nom: 'title-1', taille: 28, interligne: 34, approche: 14 },
+    { nom: 'title-2', taille: 22, interligne: 28, approche: -12 },
+    { nom: 'title-3', taille: 20, interligne: 25, approche: -23 },
+    { nom: 'headline', taille: 17, interligne: 22, approche: -26 },
+    { nom: 'body', taille: 17, interligne: 22, approche: -26 },
+    { nom: 'callout', taille: 16, interligne: 21, approche: -20 },
+    { nom: 'subheadline', taille: 15, interligne: 20, approche: -16 },
+    { nom: 'footnote', taille: 13, interligne: 18, approche: -6 },
+    { nom: 'caption-1', taille: 12, interligne: 16, approche: 0 },
+    { nom: 'caption-2', taille: 11, interligne: 13, approche: 6 },
+];
+
+describe('Le palier des primitives', () => {
+    describe('Étant donné le palier le plus haut, quand on regarde ce dont il dépend', () => {
+        it('alors il ne dépend de rien : aucun var() ne le traverse', () => {
+            // C'est la définition du palier, et la moitié de la règle qui
+            // empêche un jeton de reboucler sur un autre.
+            expect(primitives).not.toMatch(/var\(--/);
+        });
+    });
+
+    describe('Étant donné un style de texte, quand on cherche ses jetons', () => {
+        it('alors les trois y sont : une taille ne voyage jamais seule', () => {
+            // Mesuré avant ce chantier : 16 déclarations `font-size`, dont 5
+            // seulement portaient l'interligne et l'approche qu'Apple leur
+            // associe. Onze styles incomplets sur seize.
+            const manquants = STYLES_DE_TEXTE.flatMap(({ nom }) =>
+                ['size', 'leading', 'tracking']
+                    .filter((part) => !primitives.includes(`--text-${nom}-${part}:`))
+                    .map((part) => `--text-${nom}-${part}`),
+            );
+
+            expect(manquants).toEqual([]);
+        });
+    });
+
+    describe("Étant donné les métriques d'Apple, quand on lit ce que la feuille en a fait", () => {
+        it('alors chaque valeur est celle de la HIG, au millième', () => {
+            const CORPS = 17;
+            const attendus = STYLES_DE_TEXTE.map(({ nom, taille, interligne, approche }) => {
+                const rem = taille === CORPS ? '1rem' : `${(taille / CORPS).toFixed(3)}rem`;
+                return [
+                    `--text-${nom}-size: ${rem};`,
+                    `--text-${nom}-leading: ${(interligne / taille).toFixed(3)};`,
+                    `--text-${nom}-tracking: ${(approche / 1000).toFixed(3)}em;`,
+                ];
+            }).flat();
+
+            const absents = attendus.filter((d) => !primitives.includes(d));
+
+            expect(absents).toEqual([]);
+        });
+    });
+
+    describe("Étant donné l'échelle d'espacement, quand un composant cherche une valeur", () => {
+        it('alors les dix marches y sont, et rien entre elles', () => {
+            // Une centaine de longueurs en clair vivaient dans la feuille, dont
+            // `0.5rem` seize fois : c'est de là que la hauteur des deux barres
+            // avait dérivé de 18 px.
+            const marches = [2, 4, 8, 12, 16, 20, 24, 32, 44, 64];
+            const absentes = marches.filter((m) => !primitives.includes(`--space-${m}: ${m}px;`));
+
+            expect(absentes).toEqual([]);
+        });
+    });
+});
+
 describe('Leaflet dans la cascade', () => {
     describe('Étant donné les contrôles de Leaflet à reprendre sans !important, quand on cherche où sa feuille est chargée', () => {
         it("alors elle l'est en couche vendor, la plus basse de l'ordre", () => {

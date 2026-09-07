@@ -1,6 +1,9 @@
 {
     "extends": ["stylelint-config-standard"],
-    "plugins": ["stylelint-declaration-strict-value"],
+    "plugins": [
+        "stylelint-declaration-strict-value",
+        "stylelint-value-no-unknown-custom-properties"
+    ],
     "ignoreFiles": ["dist/**", "node_modules/**", "coverage/**", ".stryker-tmp/**"],
     "rules": {
         "property-no-vendor-prefix": null,
@@ -29,6 +32,10 @@
                 ],
                 "disableFix": true
             }
+        ],
+        "csstools/value-no-unknown-custom-properties": [
+            true,
+            { "importFrom": ["src/styles/tokens/primitives.css"] }
         ]
     },
     "overrides": [
