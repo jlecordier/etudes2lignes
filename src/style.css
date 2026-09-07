@@ -139,8 +139,16 @@ input {
 
        Deux épaisseurs, comme la HIG les distingue : « Liquid Glass appears more
        opaque in larger elements like sidebars to preserve legibility over complex
-       backgrounds ». Les barres sont le verre mince, l'aperçu le verre épais. */
-    --verre: rgba(255, 255, 255, 0.62);
+       backgrounds ». Les barres sont le verre mince, l'aperçu le verre épais.
+
+       La teinte mince **dérive du fond de l'écran**, et ce n'est pas cosmétique :
+       « **Instead of a background**, use a scroll edge effect to provide a
+       transition between content and the control area. » Au repos, une barre
+       d'iOS n'a pas de fond — elle laisse voir celui du contenu, et le matériau
+       n'apparaît que lorsque quelque chose passe dessous. Une teinte blanche sur
+       ce gris clair formait une bande visible avant tout défilement, ce qui est
+       exactement l'anti-motif. */
+    --verre: rgba(242, 242, 247, 0.72);
     --verre-epais: rgba(255, 255, 255, 0.86);
     /* Le reflet spéculaire : une seule arête éclairée, en haut, comme une
        tranche de verre prend la lumière. */
@@ -267,7 +275,16 @@ h2 {
    Title 2 Bold, qu'il portait, est un titre de *contenu* : entre un chevron et
    une action, il écrasait tout et se tronquait. Mesuré : « Paris → Bordeaux »
    tombait à « Paris → Bordea… » sur 390 px. */
-.header h2 {
+/* La barre d'actions imbriquée ne plie pas davantage : `.header` est sans
+   `flex-wrap` exprès, mais elle pliait pour son propre compte. Mesuré sur un
+   iPhone 12 mini — 360 px, la plus étroite des cibles de la HIG : l'icône
+   d'import se retrouvait seule sur une rangée au-dessus de « Nouveau trajet »,
+   et l'en-tête doublait de hauteur. */
+.header .action-bar {
+    flex-wrap: nowrap;
+}
+
+.header :is(h1, h2) {
     font-size: 1rem;
     line-height: 1.294;
     letter-spacing: -0.026em;
@@ -480,6 +497,16 @@ image-frame schema-page {
 .action-bar button {
     background: color-mix(in srgb, var(--label) 8%, transparent);
     color: var(--accent);
+}
+
+/* Sauf dans une **barre**, où ce qui n'est pas `.secondary` est l'action qui
+   conclut. La règle des pairs ci-dessus attrapait « Nouveau trajet » — l'action
+   proéminente de la liste — et cet écran n'en avait alors plus aucune : plus
+   rien ne disait laquelle compte. La spécificité de ce sélecteur est ce qui le
+   fait gagner contre elle. */
+.header .action-bar button:not(.secondary) {
+    background: var(--accent);
+    color: var(--sur-teinte);
 }
 
 /* Un libellé enveloppé dans un `.button-label` accepte de disparaître : sous
@@ -1258,7 +1285,7 @@ suivi-screen {
            donc invisible. Le reflet spéculaire s'atténue en conséquence — une
            arête très éclairée sur une surface sombre se lit comme un trait, pas
            comme de la lumière. */
-        --verre: rgba(30, 30, 32, 0.62);
+        --verre: rgba(0, 0, 0, 0.72);
         --verre-reflet: inset 0 1px 0 rgba(255, 255, 255, 0.16);
         --verre-epais: rgba(28, 28, 30, 0.86);
         --ombre-pastille: 0 1px 4px rgba(0, 0, 0, 0.6);

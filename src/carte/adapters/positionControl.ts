@@ -42,6 +42,12 @@ export class PositionControl {
         control.onAdd = (): HTMLElement => {
             const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
             container.append(button);
+            // Sans cette coupure, un appui sur le bouton posait **aussi** un
+            // point à l'endroit qu'il recouvre : le geste traversait jusqu'à la
+            // carte, qui le prenait pour une coordonnée choisie. Les contrôles
+            // de zoom n'ont pas ce défaut parce que Leaflet coupe lui-même la
+            // propagation sur les siens — ce qu'il ne fait pas pour le nôtre.
+            L.DomEvent.disableClickPropagation(container);
             return container;
         };
         control.addTo(carte);
@@ -70,7 +76,17 @@ export class PositionControl {
         button.setAttribute('aria-label', 'Ma position');
         button.title = 'Ma position';
         button.append(createIcon('location'));
-        button.addEventListener('click', () => {
+        button.addEventListener('click', (event) => {
+            // Sans cela, un appui posait **aussi** un point à l'endroit que le
+            // bouton recouvre : le clic remontait jusqu'au conteneur, où la
+            // carte l'écoute et le prend pour une coordonnée choisie.
+            //
+            // `DomEvent.disableClickPropagation` n'y suffit pas — il coupe
+            // `mousedown` et `touchstart`, et protège le reste par un drapeau
+            // interne que seuls les gestionnaires de Leaflet consultent. Le
+            // `click`, lui, remonte. C'est le même geste que celui des boutons
+            // flottants de `createButton`, et pour la même raison.
+            event.stopPropagation();
             this.goToPosition();
         });
         return button;

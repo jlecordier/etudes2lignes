@@ -166,6 +166,65 @@ describe('Le bord de défilement sous une barre', () => {
     });
 });
 
+describe('Une barre de navigation sur un petit iPhone', () => {
+    describe('Étant donné 360 px de large, quand la barre porte un titre et deux actions', () => {
+        it('alors rien ne plie : le titre abrège et la barre garde une rangée', () => {
+            // Mesuré sur un iPhone 12 mini, la plus étroite des cibles de la HIG
+            // (360 × 780) : « Mes trajets » passait à deux lignes, la barre
+            // d'actions se cassait en deux rangées, et l'en-tête doublait de
+            // hauteur. La règle de `.header` est sans `flex-wrap` exprès — mais
+            // l'abrègement ne visait que `h2`, et la barre d'actions imbriquée
+            // pliait pour son propre compte.
+            const titre = /\n\.header :is\(h1, h2\) \{([^}]*)\}/.exec(feuille);
+            const actions = /\n\.header \.action-bar \{([^}]*)\}/.exec(feuille);
+
+            expect(titre?.[1]).toMatch(/text-overflow:\s*ellipsis/);
+            expect(actions?.[1]).toMatch(/flex-wrap:\s*nowrap/);
+        });
+    });
+});
+
+describe("L'action qui conclut, dans une barre", () => {
+    describe("Étant donné une barre où une action conclut, quand la feuille l'habille", () => {
+        it('alors elle garde sa teinte, que la règle des pairs lui avait prise', () => {
+            // Régression mesurée : `.action-bar button` neutralise les actions de
+            // même rang de l'éditeur — à juste titre —, mais elle attrapait aussi
+            // « Nouveau trajet », l'action proéminente de la liste. Cet écran
+            // n'en avait alors plus **aucune**, et plus rien ne disait laquelle
+            // compte.
+            //
+            // Dans une **barre**, ce qui n'est pas `.secondary` est l'action qui
+            // conclut : le sélecteur le dit, et sa spécificité le fait gagner
+            // contre la règle des pairs.
+            const proeminente =
+                /\n\.header \.action-bar button:not\(\.secondary\) \{([^}]*)\}/.exec(feuille);
+
+            expect(proeminente?.[1]).toMatch(/background:\s*var\(--accent\)/);
+        });
+    });
+});
+
+describe('La teinte du verre au repos', () => {
+    describe("Étant donné une barre sur un écran qu'on n'a pas encore fait défiler", () => {
+        it('alors sa teinte est celle du fond, donc elle ne se voit pas', () => {
+            // « **Instead of a background**, use a scroll edge effect to provide
+            // a transition between content and the control area. » Au repos, une
+            // barre d'iOS n'a pas de fond : elle laisse voir celui du contenu, et
+            // le matériau n'apparaît que lorsque quelque chose passe dessous.
+            //
+            // Une teinte blanche sur un fond gris clair formait une bande visible
+            // avant tout défilement — l'anti-motif exact. Une teinte dérivée du
+            // **fond** disparaît au repos et se révèle sur le contenu.
+            const jetons = /^:root \{([\s\S]*?)^\}/m.exec(feuille)?.[1] ?? '';
+            const fond = /--fond-groupe:\s*rgb\(([^)]*)\)/.exec(jetons)?.[1] ?? '';
+            const verre = /--verre:\s*rgba\(([^)]*)\)/.exec(jetons)?.[1] ?? '';
+
+            expect(fond).not.toBe('');
+            expect(verre.startsWith(fond)).toBe(true);
+        });
+    });
+});
+
 describe('La barre de navigation elle-même', () => {
     describe("Étant donné un écran qui défile, quand sa barre d'en-tête le surplombe", () => {
         it('alors elle est épinglée et pleine largeur, sinon son verre ne surplombe rien', () => {
@@ -196,7 +255,7 @@ describe("Le titre d'une barre de navigation", () => {
             // *contenu* : dans une barre, entre un chevron et une action, il
             // écrase tout et se tronque. Mesuré : « Paris → Bordeaux » tombait à
             // « Paris → Bordea… » sur 390 px.
-            const titre = /\n\.header h2 \{([^}]*)\}/.exec(feuille);
+            const titre = /\n\.header :is\(h1, h2\) \{([^}]*)\}/.exec(feuille);
 
             expect(titre?.[1]).toMatch(/font-size:\s*1rem/);
             expect(titre?.[1]).toMatch(/font-weight:\s*600/);
@@ -212,7 +271,7 @@ describe("Le titre d'un en-tête", () => {
             // plier les envoyait sur trois lignes. Mais alors c'est au **titre**
             // de céder — sans quoi il se casse en deux et fait grandir la barre
             // de tout ce qu'on voulait lui épargner.
-            const titre = /\n\.header h2 \{([^}]*)\}/.exec(feuille);
+            const titre = /\n\.header :is\(h1, h2\) \{([^}]*)\}/.exec(feuille);
 
             expect(titre?.[1]).toMatch(/white-space:\s*nowrap/);
             expect(titre?.[1]).toMatch(/text-overflow:\s*ellipsis/);

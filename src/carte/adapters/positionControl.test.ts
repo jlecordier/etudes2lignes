@@ -59,6 +59,27 @@ describe('PositionControl', () => {
         });
     });
 
+    describe('Étant donné le contrôle posé sur la carte, quand je le touche', () => {
+        it("alors le geste ne traverse pas jusqu'à la carte, qui y placerait un point", () => {
+            const layers = new PositionLayers();
+            const carteDuTest = carte();
+            new PositionControl('recentrer-4', layers).addTo(carteDuTest);
+            let gestesRecusParLaCarte = 0;
+            carteDuTest.getContainer().addEventListener('click', () => {
+                gestesRecusParLaCarte++;
+            });
+
+            bouton('recentrer-4')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+            // Sans cette coupure, un appui sur le bouton posait **aussi** un
+            // point à l'endroit qu'il recouvre : la carte reçoit le clic qui
+            // l'a traversé et le prend pour une coordonnée choisie. Les contrôles
+            // de zoom n'ont pas ce défaut parce que Leaflet coupe lui-même la
+            // propagation sur les siens.
+            expect(gestesRecusParLaCarte).toBe(0);
+        });
+    });
+
     describe('Étant donné une position connue, quand je clique le contrôle', () => {
         it('alors la carte vient à elle, au zoom du point unique', () => {
             const layers = new PositionLayers();
