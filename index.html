@@ -20,7 +20,17 @@
              l'interface ne porte plus nulle part. -->
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f2f2f7" />
         <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
+        <!-- Le favicon, et sa variante sombre. Le web n'a pas les variantes
+             d'apparence d'iOS — un manifeste ne déclare qu'un jeu d'icônes —
+             mais `media` sur un `rel="icon"` en tient lieu pour l'onglet.
+             L'ordre compte : le clair vient sans condition, donc un moteur qui
+             ignore `media` le garde, et celui qui l'honore laisse le sombre
+             écraser le premier quand il correspond. -->
         <link rel="icon" href="./icons/icon-192.png" />
+        <link rel="icon" href="./icons/icon-192-sombre.png" media="(prefers-color-scheme: dark)" />
+        <!-- Ce qu'iOS lit à l'ajout sur l'écran d'accueil. Il manquait : sans
+             lui, Safari fabriquait sa propre vignette à partir de la page. -->
+        <link rel="apple-touch-icon" href="./icons/icon-512.png" />
         <title>Etudes2Lignes — Suivi de schémas de ligne</title>
     </head>
     <body>
