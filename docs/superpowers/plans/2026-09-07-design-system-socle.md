@@ -275,7 +275,19 @@ et faire passer `quality` par lui :
 - [ ] **Step 4 : chiffrer la dette avant de la payer**
 
 Run: `pnpm lint:css`
-Expected: **256 problèmes**, dont 244 réparables automatiquement, répartis ainsi :
+
+Expected: **de l'ordre de 230 problèmes**, dont la grande majorité réparables
+automatiquement, et une répartition proche de celle-ci :
+
+> **Le nombre absolu depend de la configuration, et le mien a ete mesure avec
+> une autre.** La sonde qui a produit ces chiffres pendant l'ecriture du plan
+> tournait sur une liste de proprietes plus large (elle incluait `box-shadow`,
+> `padding`, `margin` et `z-index`) et sans les deux regles que le pas 2
+> desactive — d'ou un total de 256 la ou la configuration prescrite en donne
+> environ 229. **Le chiffre qui compte est le residu du pas 5**, pas celui-ci :
+> lui a ete mesure avec la configuration finale et vaut 62, dont 60
+> `declaration-strict-value`. Note le total que **tu** obtiens et passe ; un
+> ecart ici est une information, pas un echec.
 
 ```
   72 scale-unlimited/declaration-strict-value
