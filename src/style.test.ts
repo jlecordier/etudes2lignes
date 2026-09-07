@@ -779,10 +779,19 @@ describe('La réconciliation avec Leaflet', () => {
             // `!important` sont légitimes et lui survivent quelle que soit
             // l'issue de cette réconciliation — ils ne relèvent pas de
             // Leaflet, mais se trouvent après `.leaflet-bar` dans le fichier.
-            const zoneLeaflet = feuille.slice(
-                feuille.indexOf('.leaflet-bar'),
-                feuille.indexOf('@media (prefers-reduced-motion'),
-            );
+            const debut = feuille.indexOf('.leaflet-bar');
+            const fin = feuille.indexOf('@media (prefers-reduced-motion');
+
+            // Garde indispensable : indexOf renvoie -1 si le marqueur n'existe
+            // pas, et slice(-1, X) crée une tranche vide qui passe
+            // l'assertion sans rien affirmer. Si l'un disparaît ou se déplace
+            // avant l'autre, ce test doit échouer bruyamment, pas passer en
+            // silence.
+            expect(debut).toBeGreaterThanOrEqual(0);
+            expect(fin).toBeGreaterThanOrEqual(0);
+            expect(fin).toBeGreaterThan(debut);
+
+            const zoneLeaflet = feuille.slice(debut, fin);
 
             expect(zoneLeaflet).not.toContain('!important');
             expect(feuille).toContain("@import url('leaflet/dist/leaflet.css') layer(vendor);");
