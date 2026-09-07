@@ -1,0 +1,75 @@
+{
+    "extends": ["stylelint-config-standard"],
+    "plugins": ["stylelint-declaration-strict-value"],
+    "ignoreFiles": ["dist/**", "node_modules/**", "coverage/**", ".stryker-tmp/**"],
+    "rules": {
+        "property-no-vendor-prefix": null,
+        "no-descending-specificity": null,
+        "scale-unlimited/declaration-strict-value": [
+            [
+                "color",
+                "background-color",
+                "fill",
+                "stroke",
+                "font-size",
+                "line-height",
+                "letter-spacing",
+                "border-radius",
+                "gap"
+            ],
+            {
+                "ignoreKeywords": [
+                    "inherit",
+                    "currentColor",
+                    "transparent",
+                    "none",
+                    "auto",
+                    "unset",
+                    "initial"
+                ],
+                "disableFix": true
+            }
+        ]
+    },
+    "overrides": [
+        {
+            "files": ["src/styles/tokens/*.css"],
+            "rules": { "scale-unlimited/declaration-strict-value": null }
+        },
+        {
+            "files": ["src/styles/screens/legacy.css", "src/style.css"],
+            "rules": {
+                "scale-unlimited/declaration-strict-value": [
+                    [
+                        "color",
+                        "background-color",
+                        "fill",
+                        "stroke",
+                        "font-size",
+                        "line-height",
+                        "letter-spacing",
+                        "border-radius",
+                        "gap"
+                    ],
+                    {
+                        "ignoreKeywords": [
+                            "inherit",
+                            "currentColor",
+                            "transparent",
+                            "none",
+                            "auto",
+                            "unset",
+                            "initial"
+                        ],
+                        "disableFix": true,
+                        "severity": "warning"
+                    }
+                ]
+            }
+        },
+        {
+            "files": ["design/*.css"],
+            "rules": { "scale-unlimited/declaration-strict-value": null }
+        }
+    ]
+}

@@ -85,7 +85,9 @@ describe('Les pictogrammes', () => {
             // none` sort en noir plein. Sans cette règle, chaque bouton de
             // l'interface affiche un pavé.
             expect(feuille).toMatch(/\.icon\s*\{[^}]*fill:\s*none/s);
-            expect(feuille).toMatch(/\.icon\s*\{[^}]*stroke:\s*currentColor/s);
+            // Insensible à la casse : le contrat est un tracé de la couleur
+            // courante, pas l'orthographe de `currentcolor` que Stylelint choisit.
+            expect(feuille).toMatch(/\.icon\s*\{[^}]*stroke:\s*currentcolor/is);
             expect(feuille).toMatch(/\.icon\s*\{[^}]*inline-size:/s);
         });
     });
@@ -252,12 +254,24 @@ describe('La teinte du verre au repos', () => {
             // Une teinte blanche sur un fond gris clair formait une bande visible
             // avant tout défilement — l'anti-motif exact. Une teinte dérivée du
             // **fond** disparaît au repos et se révèle sur le contenu.
+            // Le contrat est que le verre porte les mêmes canaux que le fond
+            // groupé — pas que les deux valeurs partagent une même notation.
+            // `rgb()` historique (virgules, alpha en 4e nombre) et `rgb()`
+            // moderne (espaces, alpha après un `/`) posent les trois canaux
+            // dans le même ordre en premier : on ne compare qu'eux.
+            const canaux = (declaration: string): string =>
+                (/rgba?\(([^)]*)\)/.exec(declaration)?.[1] ?? '')
+                    .split(/[\s,]+/)
+                    .filter(Boolean)
+                    .slice(0, 3)
+                    .join(' ');
+
             const jetons = /^:root \{([\s\S]*?)^\}/m.exec(feuille)?.[1] ?? '';
-            const fond = /--fond-groupe:\s*rgb\(([^)]*)\)/.exec(jetons)?.[1] ?? '';
-            const verre = /--verre:\s*rgba\(([^)]*)\)/.exec(jetons)?.[1] ?? '';
+            const fond = canaux(/--fond-groupe:\s*(rgba?\([^)]*\))/.exec(jetons)?.[1] ?? '');
+            const verre = canaux(/--verre:\s*(rgba?\([^)]*\))/.exec(jetons)?.[1] ?? '');
 
             expect(fond).not.toBe('');
-            expect(verre.startsWith(fond)).toBe(true);
+            expect(verre).toBe(fond);
         });
     });
 });
@@ -799,9 +813,14 @@ describe('La feuille de style', () => {
             // Le seuil du grand écran ne s'écrit qu'ici : `TrajetEditorScreen`
             // et `e2e/helpers.ts` lisent ce drapeau au lieu de recopier 900 px.
             exige('--large-screen sur :root', /:root[^}]*--large-screen:\s*0/s.test(feuille));
+            // Le seuil et le drapeau font le contrat, pas la notation de la
+            // requête média : `min-width: 900px` et `width >= 900px` l'expriment
+            // aussi bien l'une que l'autre.
             exige(
                 '--large-screen: 1 dans la requête média des 900 px',
-                /@media\s*\(min-width:\s*900px\)[\s\S]*--large-screen:\s*1/.test(feuille),
+                /@media\s*\((?:min-width:\s*900px|width\s*>=\s*900px)\)[\s\S]*--large-screen:\s*1/.test(
+                    feuille,
+                ),
             );
 
             // Le repère du suivi tombe là où le domaine vise, et se mesure en
@@ -828,9 +847,10 @@ describe('La feuille de style', () => {
 
             // Les symboles ne portent ni épaisseur ni taille : la feuille les
             // donne, sinon chaque pictogramme sort en 300 × 150 rempli de noir.
+            // Insensible à la casse, pour la même raison que le test dédié plus haut.
             exige(
                 '.icon dimensionnée et tracée',
-                /\.icon\s*\{[^}]*stroke:\s*currentColor/s.test(feuille),
+                /\.icon\s*\{[^}]*stroke:\s*currentcolor/is.test(feuille),
             );
 
             // Le verre s'annule quand la personne l'a demandé — le flou ne part
