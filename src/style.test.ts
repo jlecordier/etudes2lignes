@@ -204,6 +204,43 @@ describe("L'action qui conclut, dans une barre", () => {
     });
 });
 
+describe('La hauteur des barres', () => {
+    describe("Étant donné les barres d'écran, quand la feuille les dimensionne", () => {
+        it("alors une seule règle les rythme, donc aucune ne peut dériver de l'autre", () => {
+            // Mesuré : l'en-tête faisait 44 px et la barre de suivi 62 px, parce
+            // que chacune déclarait son rembourrage de son côté. Pire, celui de
+            // l'en-tête était **nul** en vertical : un bouton de 44 px y touchait
+            // les deux bords, sans un pixel d'air.
+            //
+            // Les deux barres jouent le même rôle — la couche fonctionnelle d'un
+            // écran — donc leur rythme s'écrit une fois. Écrit deux fois, il a
+            // déjà dérivé.
+            const rythme = /\n\.header,\n\.suivi-bar \{([^}]*)\}/.exec(feuille);
+
+            expect(rythme?.[1]).toMatch(/padding-block:\s*var\(--air-barre\)/);
+            expect(feuille).toMatch(/--air-barre:/);
+        });
+    });
+});
+
+describe("Le filet sous une barre d'écran", () => {
+    describe('Étant donné une barre qui porte déjà son effet de bord, quand la feuille la borde', () => {
+        it("alors elle ne trace aucun filet, que l'effet remplace", () => {
+            // « Instead of a background, use a scroll edge effect to provide a
+            // transition between content and the control area. » Un filet
+            // **et** l'effet font deux transitions pour un seul bord, et le
+            // filet est celle qui se voit au repos.
+            //
+            // Il était la dernière asymétrie mesurée entre les deux barres :
+            // la barre de suivi le portait seule, d'où 62 px contre 61.
+            const barres = feuille.includes('\n.header::after,\n.suivi-bar::after {');
+
+            expect(barres).toBe(true);
+            expect(feuille).not.toMatch(/border-(?:bottom|block-end):\s*1px/);
+        });
+    });
+});
+
 describe('La teinte du verre au repos', () => {
     describe("Étant donné une barre sur un écran qu'on n'a pas encore fait défiler", () => {
         it('alors sa teinte est celle du fond, donc elle ne se voit pas', () => {

@@ -75,6 +75,14 @@ input {
        la barre aurait dépassé d'un côté. */
     --marge-ecran: 1rem;
 
+    /* L'air qu'une barre laisse au-dessus et au-dessous de ses contrôles, et
+       donc ce qui fixe sa hauteur : un contrôle de 44 px et cet air deux fois.
+       Nommé pour la même raison que la marge — les deux barres d'écran doivent
+       s'accorder, et chacune l'écrivant de son côté, elles avaient dérivé de
+       18 px. L'en-tête, lui, n'en avait aucun : ses boutons touchaient les
+       deux bords. */
+    --air-barre: 0.5rem;
+
     /* Les rayons. « Consider aligning the shape of controls with other rounded
        elements throughout the interface » : trois valeurs nommées, et rien
        d'autre dans la feuille — un nombre écrit en clair finit toujours par
@@ -189,6 +197,15 @@ suivi-screen {
     display: block;
     min-height: 100dvh;
     padding: var(--marge-ecran);
+}
+
+/* Le rythme vertical des deux barres d'écran, écrit **une** fois : l'en-tête de
+   la liste et de l'éditeur, la barre d'état du suivi. Elles jouent le même rôle
+   — la couche fonctionnelle posée au-dessus du contenu — et une barre qui change
+   de hauteur d'un écran à l'autre se voit. */
+.header,
+.suivi-bar {
+    padding-block: var(--air-barre);
 }
 
 /* La barre de navigation **flotte au-dessus** du contenu : « Liquid Glass forms
@@ -1171,9 +1188,14 @@ suivi-screen {
     align-items: center;
     gap: 0.5rem;
     flex-wrap: wrap;
-    padding: 0.5rem;
+    /* Seulement l'horizontal : le vertical est celui que les deux barres
+       partagent, et un raccourci `padding` l'écraserait. */
+    padding-inline: var(--marge-ecran);
     background: var(--fond);
-    border-bottom: 1px solid var(--separateur);
+    /* Sans filet : son `::after` porte déjà l'effet de bord, et la HIG le donne
+       **à la place** d'un fond ou d'un trait. Le filet était la seule chose qui
+       restait visible quand rien n'a défilé, et la seule différence de hauteur
+       qui subsistait entre les deux barres. */
 }
 
 .suivi-status {
