@@ -29,7 +29,22 @@ export default defineConfig({
                 "Passe par Edit. Et pour prouver qu'un test discrimine, sonde son assertion ou ses entrées plutôt que de muter le code de production.",
         }),
         {
-            files: ['src/**'],
+            // L'exception « configuration files » de la compétence
+            // `test-driven-development`, que celle-ci renvoie explicitement au
+            // partenaire humain — accordée par l'auteur du dépôt le
+            // 7 septembre 2026 pour les feuilles de style.
+            //
+            // Motif mesuré : une feuille n'a pas de comportement appelable à
+            // faire rougir. Une trentaine de refus en septembre 2026 l'ont
+            // montré, dont plusieurs à tort — le validateur reprochait à un
+            // test de « ne couvrir que l'état initial » alors qu'il basculait
+            // l'élément avant d'affirmer. Ce que le portail ne peut pas juger,
+            // trois autres mécanismes le jugent : les invariants de source, les
+            // tests de géométrie mesurée, et la régression visuelle.
+            //
+            // Le TypeScript et les gabarits gardent le portail : eux ont un
+            // comportement.
+            files: ['src/**/*.ts', 'src/**/*.html'],
             // Deux écarts aux défauts, décidés par l'auteur du dépôt après
             // mesure — pas par l'agent que la règle contraint.
             rules: [
