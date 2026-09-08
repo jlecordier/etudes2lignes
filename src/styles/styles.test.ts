@@ -273,6 +273,129 @@ describe('Le palier semantique', () => {
     });
 });
 
+/**
+ * Le contenu entre une parenthèse ouvrante déjà consommée (`depuis`) et sa
+ * fermante, en comptant la profondeur plutôt qu'en cherchant la prochaine
+ * parenthèse : le contenu imbrique lui-même des appels
+ * (`rgb(from var(--x) r g b / 40%)`), qu'une regex non récursive
+ * délimiterait mal.
+ */
+function contenuEntreParentheses(texte: string, depuis: number): string {
+    let indice = depuis;
+    let profondeur = 1;
+    let contenu = '';
+
+    while (profondeur > 0 && indice < texte.length) {
+        const caractere = texte[indice] ?? '';
+        if (caractere === '(') {
+            profondeur += 1;
+        }
+        if (caractere === ')') {
+            profondeur -= 1;
+        }
+        if (profondeur > 0) {
+            contenu += caractere;
+        }
+        indice += 1;
+    }
+
+    return contenu;
+}
+
+/** Coupe à la première virgule qui n'est dans aucune parenthèse imbriquée. */
+function couperALaVirguleDeSommet(contenu: string): [string, string] {
+    let profondeur = 0;
+    let coupure = -1;
+
+    for (let i = 0; i < contenu.length; i += 1) {
+        const caractere = contenu[i];
+        if (caractere === '(') {
+            profondeur += 1;
+        }
+        if (caractere === ')') {
+            profondeur -= 1;
+        }
+        if (caractere === ',' && profondeur === 0) {
+            coupure = i;
+            break;
+        }
+    }
+
+    return [contenu.slice(0, coupure).trim(), contenu.slice(coupure + 1).trim()];
+}
+
+/** Extrait les deux arguments de chaque appel `light-dark(...)` du système. */
+function argumentsDeChaqueLightDark(texte: string): [string, string][] {
+    const paires: [string, string][] = [];
+    const motif = /light-dark\(/g;
+    let correspondance;
+
+    while ((correspondance = motif.exec(texte)) !== null) {
+        const depuis = correspondance.index + correspondance[0].length;
+        const contenu = contenuEntreParentheses(texte, depuis);
+        paires.push(couperALaVirguleDeSommet(contenu));
+    }
+
+    return paires;
+}
+
+/**
+ * Un `<color>` valide est un seul jeton — un mot-clé, une couleur hexadécimale,
+ * ou un unique appel de fonction (`rgb(...)`, `var(--x)`...). Une géométrie
+ * comme `0 1px 4px rgb(0 0 0 / 40%)` en ajoute d'autres, séparés par des
+ * espaces **hors de toute parenthèse** : c'est ce qui la distingue d'une
+ * couleur, y compris d'une couleur dérivée par une fonction imbriquée sur
+ * plusieurs lignes, dont les espaces internes restent, eux, dans la
+ * parenthèse.
+ */
+function contientUnEspaceHorsParentheses(argument: string): boolean {
+    let profondeur = 0;
+    for (const caractere of argument) {
+        if (caractere === '(') {
+            profondeur += 1;
+        } else if (caractere === ')') {
+            profondeur -= 1;
+        } else if (profondeur === 0 && /\s/.test(caractere)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+describe('La grammaire de light-dark()', () => {
+    describe('Étant donné une déclaration light-dark(), quand on regarde ce qu elle enveloppe', () => {
+        it("alors chacun de ses deux arguments n'est qu'une couleur, jamais une géométrie", () => {
+            // `light-dark()` est une fonction de couleur : sa grammaire est
+            // `light-dark(<color>, <color>)`. L'envelopper autour d'un
+            // `box-shadow` entier (géométrie et couleur ensemble) est
+            // syntaxiquement accepté par une propriété personnalisée — qui
+            // avale n'importe quels jetons à l'analyse, sans protester — mais
+            // invalide au calcul, où la substitution retombe sur `unset`.
+            //
+            // Ce défaut ne se voit **pas** au rendu construit : le
+            // transformateur CSS de la chaîne de build (`lightningcss`, via
+            // Vite) réécrit `light-dark(A, B)` en une paire de `var()` de
+            // secours sans valider que `A` et `B` sont chacun une couleur, et
+            // « répare » donc la forme invalide par le même mécanisme que la
+            // forme valide — mesuré : `pnpm test:e2e`, qui exerce le build de
+            // production, ne peut pas distinguer les deux (voir
+            // `e2e/ombres.spec.ts`). Seul le CSS servi brut (`pnpm dev`) le
+            // laisse voir tel quel à un moteur de rendu natif — et c'est donc
+            // dans le texte source, pas dans un rendu, que ce témoin doit
+            // vivre.
+            const paires = argumentsDeChaqueLightDark(systeme);
+            const fautifs = paires.filter(
+                ([premier, second]) =>
+                    contientUnEspaceHorsParentheses(premier) ||
+                    contientUnEspaceHorsParentheses(second),
+            );
+
+            expect(paires.length).toBeGreaterThan(0);
+            expect(fautifs).toEqual([]);
+        });
+    });
+});
+
 describe('Leaflet dans la cascade', () => {
     describe('Étant donné les contrôles de Leaflet à reprendre sans !important, quand on cherche où sa feuille est chargée', () => {
         it("alors elle l'est en couche vendor, la plus basse de l'ordre", () => {

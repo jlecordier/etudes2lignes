@@ -125,7 +125,25 @@
            primitive dédiée, `--shadow-floating-blur`, redéfinie dans une
            requête d'apparence plus bas — ce que « aucune couleur ne vit dans
            une requête d'apparence » n'interdit pas, puisqu'il ne s'agit
-           justement pas d'une couleur. */
+           justement pas d'une couleur.
+
+           **La forme fautive de ces deux jetons ne se serait vue qu'en
+           développement.** `light-dark()` enveloppant tout un `box-shadow`
+           (géométrie et couleur ensemble) est invalide — sa grammaire est
+           `light-dark(<color>, <color>)` — mais seule une propriété
+           consommée par du CSS **servi brut** (`pnpm dev`) le révèle : le
+           transformateur de la chaîne de build (`lightningcss`, via Vite)
+           réécrit systématiquement `light-dark(A, B)` en une paire de
+           `var()` de secours sans valider que `A` et `B` sont chacun une
+           couleur, et « répare » donc la forme fautive au même titre que
+           celle-ci en production — mesuré, en rejouant les deux formes dans
+           `pnpm build`. Un développeur verrait alors une ombre absente en
+           `pnpm dev` mais présente une fois construit, un symptôme qui ne
+           désigne pas spontanément sa cause. La grammaire de `light-dark()`
+           est donc éprouvée dans le texte source (`styles.test.ts`, « La
+           grammaire de light-dark() »), pas seulement dans un rendu — c'est
+           le seul endroit où cette classe de défaut reste visible quel que
+           soit l'environnement qui la sert. */
         --shadow-badge: 0 1px 4px light-dark(rgb(0 0 0 / 40%), rgb(0 0 0 / 60%));
         --shadow-floating-blur: 8px;
         --shadow-floating: 0 2px var(--shadow-floating-blur)

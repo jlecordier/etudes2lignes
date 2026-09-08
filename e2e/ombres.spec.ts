@@ -2,17 +2,28 @@ import { expect, test, type Locator } from '@playwright/test';
 import { ajouterUnPoint, ouvrirUnTrajetAvecUnePage } from './helpers';
 
 /**
- * Ce fichier lit une valeur **calculée**, pas le texte source de la feuille.
+ * Ce fichier lit une valeur **calculée**, pas le texte source de la feuille —
+ * et c'est une garantie réelle, mais **incomplète**, qu'il faut lire avec sa
+ * limite plutôt qu'à sa place.
  *
- * `light-dark()` est une fonction de couleur : sa grammaire est
- * `light-dark(<color>, <color>)`. L'envelopper autour d'un `box-shadow`
- * entier — géométrie et couleur ensemble — est du CSS invalide, mais une
- * propriété personnalisée accepte n'importe quels jetons à l'analyse, sans
- * protester ; la substitution ne devient invalide qu'au calcul, et retombe
- * alors sur `unset`, c'est-à-dire aucune ombre du tout. Ni le linter (qui ne
- * valide pas les valeurs de propriétés personnalisées), ni un test unitaire
- * sur le texte source, ni un e2e qui n'affirme sur aucune ombre ne peut
- * attraper ce défaut — un navigateur, si.
+ * Il affirme le contrat rendu : qu'une pastille et le bouton flottant portent
+ * bien une ombre, dans les trois apparences, avec la bonne géométrie. Il ne
+ * peut en revanche **pas** attraper une `light-dark()` mal formée — enveloppant
+ * un `box-shadow` entier plutôt que sa seule couleur, ce que sa grammaire
+ * interdit (`light-dark(<color>, <color>)`) — parce que `pnpm test:e2e`
+ * exerce le **build de production** (`pnpm build && vite preview`), où le
+ * transformateur CSS de Vite (`lightningcss`) réécrit systématiquement tout
+ * `light-dark(A, B)` en une paire de `var()` de secours, **sans valider que
+ * `A` et `B` sont chacun une couleur**. Mesuré : rejouer ce fichier contre la
+ * forme invalide, dans ce même pipeline de build, rend exactement les mêmes
+ * valeurs — le bundler « répare » l'une comme l'autre.
+ *
+ * Cette faute-là ne se voit donc qu'en développement (`pnpm dev`, CSS servi
+ * brut) ou par lecture du texte source : c'est l'invariant de grammaire dans
+ * `styles.test.ts` (« La grammaire de light-dark() ») qui la couvre, pas ce
+ * fichier. Les deux témoins sont complémentaires, ni l'un ni l'autre
+ * redondant : celui-ci prouve que le rendu fonctionne, l'autre que le texte
+ * source ne dépend pas d'une tolérance de bundler pour fonctionner.
  */
 
 async function boiteAOmbre(locator: Locator): Promise<string> {
