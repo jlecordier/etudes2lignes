@@ -1,8 +1,8 @@
 import '../src/styles/index.css';
 import './gallery.css';
 
-/** Les noms de propriete personnalisee que declare une regle de style, ajoutes
- *  a l'ensemble en cours de constitution. */
+/** Les noms de propriété personnalisée que déclare une règle de style, ajoutés
+ *  à l'ensemble en cours de constitution. */
 function jetonsDeLaRegle(regle: CSSStyleRule, dans: Set<string>): void {
     for (const propriete of Array.from(regle.style)) {
         if (propriete.startsWith('--')) {
@@ -12,11 +12,11 @@ function jetonsDeLaRegle(regle: CSSStyleRule, dans: Set<string>): void {
 }
 
 /**
- * Les noms de jetons declares par les feuilles chargees.
+ * Les noms de jetons déclarés par les feuilles chargées.
  *
- * On descend dans les regles groupantes — `@layer`, `@media`, `@supports`
- * heritent tous de `CSSGroupingRule` —, sans quoi on ne verrait rien : tout le
- * systeme vit dans des couches.
+ * On descend dans les règles groupantes — `@layer`, `@media`, `@supports`
+ * héritent tous de `CSSGroupingRule` —, sans quoi on ne verrait rien : tout le
+ * système vit dans des couches.
  */
 function nomsDesJetons(regles: CSSRuleList, dans: Set<string>): void {
     for (const regle of Array.from(regles)) {
@@ -31,8 +31,8 @@ function nomsDesJetons(regles: CSSRuleList, dans: Set<string>): void {
 function jetonsDuSysteme(): string[] {
     const noms = new Set<string>();
     for (const feuille of Array.from(document.styleSheets)) {
-        // Une feuille d'une autre origine leve a la lecture ; ici il n'y en a
-        // pas, mais la garde evite qu'une future en casse la planche entiere.
+        // Une feuille d'une autre origine lève à la lecture ; ici il n'y en a
+        // pas, mais la garde évite qu'une future en casse la planche entière.
         try {
             nomsDesJetons(feuille.cssRules, noms);
         } catch {
@@ -46,8 +46,8 @@ function valeurResolue(nom: string): string {
     return getComputedStyle(document.documentElement).getPropertyValue(nom).trim();
 }
 
-/** L'apercu d'un jeton : un pave de la couleur resolue, ou une reglette a sa
- *  largeur resolue — rien quand la valeur n'est ni l'un ni l'autre. */
+/** L'aperçu d'un jeton : un pavé de la couleur résolue, ou une réglette à sa
+ *  largeur résolue — rien quand la valeur n'est ni l'un ni l'autre. */
 function apercuDeLaValeur(valeur: string): HTMLElement {
     const apercu = document.createElement('span');
     apercu.className = 'planche-apercu';
@@ -61,7 +61,7 @@ function apercuDeLaValeur(valeur: string): HTMLElement {
 }
 
 /** Une pastille par jeton : son nom, ce que le navigateur en a fait, et un
- *  apercu quand la valeur est une couleur. */
+ *  aperçu quand la valeur est une couleur. */
 function pastille(nom: string): HTMLElement {
     const valeur = valeurResolue(nom);
     const element = document.createElement('figure');
@@ -72,8 +72,8 @@ function pastille(nom: string): HTMLElement {
     const legende = document.createElement('figcaption');
     legende.textContent = nom;
     const mesure = document.createElement('code');
-    // La valeur **resolue**, pas celle qu'on croit avoir ecrite : c'est la
-    // difference entre une planche et une liste.
+    // La valeur **résolue**, pas celle qu'on croit avoir écrite : c'est la
+    // différence entre une planche et une liste.
     mesure.textContent = valeur === '' ? 'vide' : valeur;
 
     element.append(apercuDeLaValeur(valeur), legende, mesure);
@@ -94,7 +94,7 @@ const STYLES_DE_TEXTE = [
     'caption-2',
 ];
 
-/** Un echantillon par style, avec ses trois metriques **mesurees**. */
+/** Un échantillon par style, avec ses trois métriques **mesurées**. */
 function echantillonDeTexte(nom: string): HTMLElement {
     const element = document.createElement('section');
     element.className = 'planche-texte';
@@ -102,12 +102,12 @@ function echantillonDeTexte(nom: string): HTMLElement {
 
     const exemple = document.createElement('p');
     exemple.className = `text-${nom}`;
-    exemple.textContent = 'Paris → Bordeaux, kilometre 246,8';
+    exemple.textContent = 'Paris → Bordeaux, kilomètre 246,8';
     element.append(exemple);
 
     const mesures = document.createElement('code');
     element.append(mesures);
-    // Apres insertion : sans mise en page, il n'y a rien a mesurer.
+    // Après insertion : sans mise en page, il n'y a rien à mesurer.
     requestAnimationFrame(() => {
         const style = getComputedStyle(exemple);
         mesures.textContent = `${nom} — ${style.fontSize} / ${style.lineHeight} / ${style.letterSpacing}`;
@@ -139,8 +139,8 @@ function rendre(): void {
         jetons.filter((nom) => nom.startsWith(prefixe)).map(pastille);
 
     racine.replaceChildren(
-        section('Roles de couleur', par('--color-')),
-        section('Materiaux et ombres', [...par('--material-'), ...par('--shadow-')]),
+        section('Rôles de couleur', par('--color-')),
+        section('Matériaux et ombres', [...par('--material-'), ...par('--shadow-')]),
         section('Rampes brutes', [
             ...par('--blue'),
             ...par('--red'),
@@ -151,7 +151,7 @@ function rendre(): void {
         section('Espacement', par('--space-')),
         section('Rayons', par('--radius-')),
         section('Styles de texte', STYLES_DE_TEXTE.map(echantillonDeTexte)),
-        section('Mesures de systeme', [
+        section('Mesures de système', [
             ...par('--hit-target'),
             ...par('--screen-margin'),
             ...par('--blur-'),
@@ -181,12 +181,12 @@ if (bascule instanceof HTMLInputElement) {
 }
 
 // L'appel initial attend le chargement complet : le script module,
-// bundle en tete de `<head>`, peut s'executer avant que les
+// groupé en tête de `<head>`, peut s'exécuter avant que les
 // `<link rel="stylesheet">` qui le suivent n'aient fini de charger — rien ne
 // garantit l'ordre entre les deux. Lancer `rendre()` sur `load` (au lieu
-// d'un appel synchrone a l'import) attend que `document.styleSheets`
-// soit complet, faute de quoi la premiere pastille peinte dependrait d'une
-// course gagnee par chance plutot que d'une garantie.
+// d'un appel synchrone à l'import) attend que `document.styleSheets`
+// soit complet, faute de quoi la première pastille peinte dépendrait d'une
+// course gagnée par chance plutôt que d'une garantie.
 if (document.readyState === 'complete') {
     rendre();
 } else {

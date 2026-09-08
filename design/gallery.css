@@ -1,8 +1,8 @@
-/* L'habillage **de la planche**, et non du systeme qu'elle montre.
+/* L'habillage **de la planche**, et non du système qu'elle montre.
  *
- * Elle n'emploie deliberement aucun jeton : une planche qui se peint avec le
- * systeme qu'elle expose devient illisible le jour ou celui-ci casse — c'est-a-dire
- * exactement le jour ou l'on en a besoin. `.stylelintrc.json` exempte donc
+ * Elle n'emploie délibérément aucun jeton : une planche qui se peint avec le
+ * système qu'elle expose devient illisible le jour où celui-ci casse — c'est-à-dire
+ * exactement le jour où l'on en a besoin. `.stylelintrc.json` exempte donc
  * `design/*.css` de `declaration-strict-value`. */
 body {
     margin: 0;
@@ -63,7 +63,7 @@ body {
     background: #333;
 }
 
-/* Un jeton que le navigateur n'a pas resolu : c'est le defaut que la planche
+/* Un jeton que le navigateur n'a pas résolu : c'est le défaut que la planche
    existe pour montrer. */
 .planche-manquant {
     border-color: #c00;
@@ -71,12 +71,12 @@ body {
 }
 
 .planche-manquant code::after {
-    content: ' ← non resolu';
+    content: ' ← non résolu';
     color: #c00;
 }
 
 /* La surimpression des cibles tactiles : un cadre sur tout ce qui se touche,
-   pour voir d'un coup d'oeil ce qui n'atteint pas le minimum. */
+   pour voir d'un coup d'œil ce qui n'atteint pas le minimum. */
 .planche-cibles :is(button, a, input, [role='button']) {
     outline: 1px dashed #c00;
     outline-offset: 0;

@@ -1,6 +1,39 @@
 import { fileURLToPath } from 'node:url';
 import { VitePWA } from 'vite-plugin-pwa';
+import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
+
+/**
+ * VitePWA injecte `<link rel="manifest">` dans chaque entrée HTML compilée,
+ * par défaut. La planche (`design/index.html`, task 7) n'a pas vocation à
+ * s'installer : ce greffon retire ce lien de sa seule page, une fois VitePWA
+ * passé, sans toucher à celle de l'application.
+ */
+function retirerManifesteDeLaPlanche(): Plugin {
+    return {
+        name: 'planche-sans-manifeste',
+        // VitePWA place son greffon de construction en `enforce: 'post'` — pas
+        // seulement `transformIndexHtml.order: 'post'` — ce qui le déplace
+        // après les greffons « normaux » dans le pipeline global de Vite, et
+        // c'est cet ordre-là, pas celui du tableau `plugins`, qui décide dans
+        // quel groupe `resolveHtmlTransforms` range chaque crochet. Sans le
+        // même `enforce` ici, ce greffon restait « normal » et s'exécutait
+        // avant l'injection de VitePWA — retirant un lien qui n'existait pas
+        // encore. Avec le même `enforce` et une déclaration après `VitePWA(…)`
+        // dans `plugins`, celui-ci s'exécute après, comme voulu.
+        enforce: 'post',
+        transformIndexHtml: {
+            order: 'post',
+            handler(html, { filename }) {
+                const estLaPlanche = filename.replace(/\\/g, '/').endsWith('/design/index.html');
+                if (!estLaPlanche) {
+                    return html;
+                }
+                return html.replace(/\s*<link rel="manifest"[^>]*\/?>/, '');
+            },
+        },
+    };
+}
 
 // base './' : l'appli est servie sous un sous-chemin sur GitHub Pages
 // (https://<utilisateur>.github.io/<depot>/), les chemins relatifs marchent partout.
@@ -8,9 +41,9 @@ export default defineConfig({
     base: './',
     build: {
         rollupOptions: {
-            // Deux entrees : l'application, et la planche. Le workflow de
-            // deploiement envoie `dist` en entier, donc la seconde parait a
-            // `/design/` sans qu'il ait a changer.
+            // Deux entrées : l'application, et la planche. Le workflow de
+            // déploiement envoie `dist` en entier, donc la seconde paraît à
+            // `/design/` sans qu'il ait à changer.
             input: {
                 main: fileURLToPath(new URL('./index.html', import.meta.url)),
                 design: fileURLToPath(new URL('./design/index.html', import.meta.url)),
@@ -53,12 +86,12 @@ export default defineConfig({
                 // que « hors de la PWA » exclut. Deux motifs, parce que
                 // Rollup ne range pas tout sous `design/` : la page y vit,
                 // mais ses morceaux JS/CSS propres portent le nom de
-                // l'entrée (`design`) sous `assets/`, aux cotés des chunks
+                // l'entrée (`design`) sous `assets/`, aux côtés des chunks
                 // partagés avec l'application principale — un second motif
-                // les y rejoint plutot que de deplacer la sortie de Rollup,
+                // les y rejoint plutôt que de déplacer la sortie de Rollup,
                 // qui resterait alors la disposition `assets/` plate que le
-                // reste du projet (et le deploiement en `base: './'`)
-                // suppose deja partout ailleurs.
+                // reste du projet (et le déploiement en `base: './'`)
+                // suppose déjà partout ailleurs.
                 globIgnores: ['design/**', 'assets/design-*'],
                 navigateFallback: 'index.html',
                 // Et sans celle-ci, `navigateFallback` servirait l'application
@@ -89,6 +122,7 @@ export default defineConfig({
                 ],
             },
         }),
+        retirerManifesteDeLaPlanche(),
     ],
     test: {
         include: ['src/**/*.test.ts'],
