@@ -436,7 +436,11 @@ describe('Les styles de texte', () => {
             const socle = feuilles['./base/elements.css'] ?? '';
             const sansCommentaires = socle.replace(/\/\*[\s\S]*?\*\//g, '');
 
-            expect(sansCommentaires).not.toMatch(/^\s*\.[a-z]/m);
+            // Sans ancre de début de ligne : une classe glissée sur la même
+            // ligne que ce qui la précède (une accolade fermante, un
+            // commentaire retiré) reste un sélecteur de classe, où qu'elle
+            // tombe dans le texte.
+            expect(sansCommentaires).not.toMatch(/\.[a-z][\w-]*\s*\{/);
         });
     });
 });

@@ -27,7 +27,6 @@
         /* La précondition de `light-dark()`, et ce qui donne aux contrôles
            natifs la bonne apparence. */
         color-scheme: light dark;
-        color: var(--color-label);
     }
 
     /* Margin et graisse communes ; chaque niveau porte ensuite son propre
