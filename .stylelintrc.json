@@ -50,7 +50,11 @@
             "rules": { "scale-unlimited/declaration-strict-value": null }
         },
         {
-            "files": ["src/styles/screens/legacy.css", "src/style.css"],
+            "files": [
+                "src/styles/screens/legacy.css",
+                "src/style.css",
+                "src/styles/base/elements.css"
+            ],
             "rules": {
                 "scale-unlimited/declaration-strict-value": [
                     [

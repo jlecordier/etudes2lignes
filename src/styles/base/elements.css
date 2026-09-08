@@ -1,0 +1,104 @@
+/* Le socle : des défauts d'éléments, et **aucune classe** — un test l'affirme.
+ * Ce qui a besoin d'un nom est un composant, pas un défaut. */
+@layer base {
+    html {
+        /* Le repli, pour les moteurs qui ignorent la ligne suivante. 17 px,
+           parce que c'est la taille par défaut d'iOS, et non les 16 px du
+           navigateur. */
+        font-size: 17px;
+
+        /* La seule accroche web à la taille dynamique d'iOS. Elle **écrase**
+           volontairement le `font-size` ci-dessus, et Stylelint a raison de le
+           relever : ce n'est sûr que parce que Chrome tient la forme abrégée
+           pour invalide et la jette, laissant le repli en place. WebKit, lui,
+           la comprend et résout la valeur réellement choisie dans
+           Réglages → Accessibilité → Taille du texte, de 14 px à 53 px. La
+           famille n'a pas de générique de repli pour la même raison : c'est
+           le système qui la résout, et il n'y a rien à lui proposer d'autre. */
+        /* stylelint-disable-next-line declaration-block-no-shorthand-property-overrides, font-family-no-missing-generic-family-keyword */
+        font: -apple-system-body;
+
+        /* Un fond opaque explicite : une racine transparente retombe sur du
+           blanc en apparence claire et du noir en sombre, et c'est
+           précisément de là que venaient les barres blanches observées sous
+           Safari 26. */
+        background-color: var(--color-background-grouped);
+
+        /* La précondition de `light-dark()`, et ce qui donne aux contrôles
+           natifs la bonne apparence. */
+        color-scheme: light dark;
+        color: var(--color-label);
+    }
+
+    /* Margin et graisse communes ; chaque niveau porte ensuite son propre
+       style de texte — les titres n'écrivent plus leurs métriques en clair,
+       ils portent un style d'iOS. */
+    h1,
+    h2,
+    h3 {
+        margin: 0;
+        font-weight: 700;
+    }
+
+    /* Title 2 d'iOS : 22/28 au corps par défaut, exprimé en fraction du corps
+       de texte pour suivre la taille dynamique. */
+    h1 {
+        font-size: var(--text-title-2-size);
+        line-height: var(--text-title-2-leading);
+        letter-spacing: var(--text-title-2-tracking);
+    }
+
+    h2 {
+        font-size: var(--text-title-2-size);
+        line-height: var(--text-title-2-leading);
+        letter-spacing: var(--text-title-2-tracking);
+    }
+
+    /* Title 3 d'iOS : 20/25. */
+    h3 {
+        font-size: var(--text-title-3-size);
+        line-height: var(--text-title-3-leading);
+        letter-spacing: var(--text-title-3-tracking);
+    }
+
+    /* Les gestes natifs qui occupaient le doigt sont rendus à l'application : le
+       pincement et le double-tap-zoom servaient à agrandir, ils servent
+       maintenant à poser un point (`src/trajets/ui/addPointOnStack.ts`).
+
+       Une seule règle suffit, parce que les propriétés en jeu ne se
+       comportent pas pareil et qu'il faut les deux comportements.
+       `user-select` et `-webkit-touch-callout` **s'héritent**, donc elles
+       franchissent la frontière du shadow DOM et atteignent l'`<img>` de
+       `<schema-page>` sans qu'on écrive une ligne dans son balisage.
+       `touch-action` ne s'hérite pas — mais le navigateur intersecte les
+       valeurs de l'élément **et de ses ancêtres** jusqu'au conteneur
+       défilant, donc `body` gouverne quand même.
+
+       La carte n'a pas à être exemptée : leaflet.css pose ses propres
+       `touch-action` et `user-select` sur ses conteneurs, et arrive après
+       dans le bundle. */
+    body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        color: var(--color-label);
+        background: var(--color-background-grouped);
+
+        /* Surtout pas `none` : la pile se lit au doigt, et `none` tuerait ce
+           geste-là. Ce qui part, c'est le pincement et le double-tap-zoom. */
+        touch-action: pan-x pan-y;
+        -webkit-user-select: none;
+        user-select: none;
+
+        /* Safari iOS et iPadOS seulement ; no-op sur tous les autres moteurs. */
+        -webkit-touch-callout: none;
+    }
+
+    /* La seule exception, et elle suffit : le renommage d'un trajet passe par
+       un `prompt()` natif, donc hors de portée du CSS. Les seuls vrais champs
+       sont la latitude et la longitude, et corriger un chiffre fautif demande
+       de pouvoir le sélectionner. */
+    input {
+        -webkit-user-select: text;
+        user-select: text;
+    }
+}

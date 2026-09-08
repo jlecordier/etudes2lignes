@@ -1,0 +1,79 @@
+/* Les onze styles de texte d'iOS, un par classe.
+ *
+ * Un style est un **triplet** : taille, interligne, approche. Les séparer, ou
+ * n'en appliquer qu'une part, c'est ne pas employer le style — et c'était le
+ * défaut le plus répandu de l'ancienne feuille.
+ *
+ * Ces classes sont le **seul** endroit du système où `font-size`,
+ * `line-height` et `letter-spacing` s'écrivent. Ailleurs, on porte la classe.
+ */
+@layer components {
+    .text-large-title {
+        font-size: var(--text-large-title-size);
+        line-height: var(--text-large-title-leading);
+        letter-spacing: var(--text-large-title-tracking);
+    }
+
+    .text-title-1 {
+        font-size: var(--text-title-1-size);
+        line-height: var(--text-title-1-leading);
+        letter-spacing: var(--text-title-1-tracking);
+    }
+
+    .text-title-2 {
+        font-size: var(--text-title-2-size);
+        line-height: var(--text-title-2-leading);
+        letter-spacing: var(--text-title-2-tracking);
+    }
+
+    .text-title-3 {
+        font-size: var(--text-title-3-size);
+        line-height: var(--text-title-3-leading);
+        letter-spacing: var(--text-title-3-tracking);
+    }
+
+    /* Headline et Body partagent leurs métriques ; seule la graisse les
+       distingue, et c'est Apple qui le veut ainsi. */
+    .text-headline {
+        font-size: var(--text-headline-size);
+        line-height: var(--text-headline-leading);
+        letter-spacing: var(--text-headline-tracking);
+        font-weight: 600;
+    }
+
+    .text-body {
+        font-size: var(--text-body-size);
+        line-height: var(--text-body-leading);
+        letter-spacing: var(--text-body-tracking);
+    }
+
+    .text-callout {
+        font-size: var(--text-callout-size);
+        line-height: var(--text-callout-leading);
+        letter-spacing: var(--text-callout-tracking);
+    }
+
+    .text-subheadline {
+        font-size: var(--text-subheadline-size);
+        line-height: var(--text-subheadline-leading);
+        letter-spacing: var(--text-subheadline-tracking);
+    }
+
+    .text-footnote {
+        font-size: var(--text-footnote-size);
+        line-height: var(--text-footnote-leading);
+        letter-spacing: var(--text-footnote-tracking);
+    }
+
+    .text-caption-1 {
+        font-size: var(--text-caption-1-size);
+        line-height: var(--text-caption-1-leading);
+        letter-spacing: var(--text-caption-1-tracking);
+    }
+
+    .text-caption-2 {
+        font-size: var(--text-caption-2-size);
+        line-height: var(--text-caption-2-leading);
+        letter-spacing: var(--text-caption-2-tracking);
+    }
+}

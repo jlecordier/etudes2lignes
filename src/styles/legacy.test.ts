@@ -17,6 +17,13 @@ const feuille = readFileSync(new URL('./screens/legacy.css', import.meta.url), '
 const semantique = readFileSync(new URL('./tokens/semantic.css', import.meta.url), 'utf8');
 
 /**
+ * Le socle d'éléments, pour les témoins dont la règle a émigré hors de
+ * `feuille` : `html`, `body` et leurs défauts vivent maintenant dans
+ * `base/elements.css`, la tâche 6 les en ayant sortis.
+ */
+const socle = readFileSync(new URL('./base/elements.css', import.meta.url), 'utf8');
+
+/**
  * Ce fichier éprouve la **source** de la feuille de style, et non son effet.
  *
  * Une feuille n'a pas de test unitaire : rien n'y est appelé. Mais plusieurs de
@@ -571,10 +578,12 @@ describe("L'échelle typographique", () => {
             // suivent. Chrome jette la déclaration entière, d'où le `font-size`
             // qui précède et lui sert de repli — 17 px, la taille par défaut
             // d'iOS, et non les 16 px du navigateur.
-            // Tolérant à l'indentation : l'enveloppe `@layer screens { … }`
+            // La règle a émigré dans `base/elements.css` (tâche 6) : c'est
+            // `socle`, et non plus `feuille`, qui la porte.
+            // Tolérant à l'indentation : l'enveloppe `@layer base { … }`
             // décale tout le fichier d'un niveau, et un `\n` suivi directement
             // du sélecteur ne trouverait plus rien.
-            const racine = /\n[ \t]*html\s*\{([^}]*)\}/.exec(feuille);
+            const racine = /\n[ \t]*html\s*\{([^}]*)\}/.exec(socle);
 
             expect(racine?.[1]).toMatch(/font-size:\s*17px[\s\S]*font:\s*-apple-system-body/);
             // Une racine transparente retombe sur du blanc en clair et du noir
@@ -891,12 +900,10 @@ describe('La feuille de style', () => {
             );
 
             // Trois parcours e2e lisent ces valeurs calculées, WebKit seulement
-            // par la propriété préfixée.
-            exige(
-                'touch-action: pan-x pan-y sur body',
-                /touch-action:\s*pan-x pan-y/.test(feuille),
-            );
-            exige('-webkit-user-select posé', feuille.includes('-webkit-user-select:'));
+            // par la propriété préfixée. `body` et `input` ont émigré dans
+            // `base/elements.css` (tâche 6) : c'est `socle` qui les porte.
+            exige('touch-action: pan-x pan-y sur body', /touch-action:\s*pan-x pan-y/.test(socle));
+            exige('-webkit-user-select posé', socle.includes('-webkit-user-select:'));
 
             // Les symboles ne portent ni épaisseur ni taille : la feuille les
             // donne, sinon chaque pictogramme sort en 300 × 150 rempli de noir.

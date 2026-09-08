@@ -13,78 +13,8 @@
         box-sizing: border-box;
     }
 
-    /* La taille de texte du système, quand le système en a une.
-
-   `font: -apple-system-body` est le **seul** crochet que le web offre sur la
-   taille dynamique d'iOS : WebKit y résout la valeur réellement choisie dans
-   Réglages → Accessibilité → Taille du texte, de 14 px à 53 px. Tous les `rem`
-   de cette feuille suivent alors, sans une ligne de plus.
-
-   Les deux déclarations sont nécessaires, **dans cet ordre** : le raccourci
-   `font` est ignoré partout ailleurs qu'en WebKit — Chrome jette la déclaration
-   entière —, et c'est le `font-size` qui précède qui tient lieu de repli. 17 px,
-   parce que c'est la taille par défaut d'iOS, et non les 16 px du navigateur.
-
-   Le raccourci écrasant aussi la famille et l'interligne, `body` les repose.
-
-   Un fond opaque explicite, enfin : une racine transparente retombe sur du blanc
-   en apparence claire et du noir en sombre, et c'est précisément de là que
-   viennent les barres blanches observées sous Safari 26. */
-    html {
-        /* Le repli, pour les moteurs qui ignorent la ligne suivante. */
-        font-size: 17px;
-
-        /* La seule accroche web à la taille dynamique d'iOS. Elle **écrase**
-       volontairement le `font-size` ci-dessus, et Stylelint a raison de le
-       relever : ce n'est sûr que parce que Chrome tient la forme abrégée pour
-       invalide et la jette, laissant le repli en place. WebKit, lui, la
-       comprend et suit les réglages d'accessibilité du système.
-       La famille n'a pas de générique de repli pour la même raison : c'est le
-       système qui la résout, et il n'y a rien à lui proposer d'autre. */
-        /* stylelint-disable-next-line declaration-block-no-shorthand-property-overrides, font-family-no-missing-generic-family-keyword */
-        font: -apple-system-body;
-        background-color: var(--fond-groupe);
-        color-scheme: light dark;
-    }
-
-    /* Les gestes natifs qui occupaient le doigt sont rendus à l'application : le
-   pincement et le double-tap-zoom servaient à agrandir, ils servent maintenant à
-   poser un point (`src/trajets/ui/addPointOnStack.ts`).
-
-   Une seule règle suffit, parce que les propriétés en jeu ne se comportent pas
-   pareil et qu'il faut les deux comportements. `user-select` et
-   `-webkit-touch-callout` **s'héritent**, donc elles franchissent la frontière du
-   shadow DOM et atteignent l'`<img>` de `<schema-page>` sans qu'on écrive une
-   ligne dans son balisage. `touch-action` ne s'hérite pas — mais le navigateur
-   intersecte les valeurs de l'élément **et de ses ancêtres** jusqu'au conteneur
-   défilant, donc `body` gouverne quand même.
-
-   La carte n'a pas à être exemptée : leaflet.css pose ses propres `touch-action`
-   et `user-select` sur ses conteneurs, et arrive après dans le bundle. */
-    body {
-        margin: 0;
-        font-family: system-ui, sans-serif;
-        color: var(--label);
-        background: var(--fond-groupe);
-
-        /* Surtout pas `none` : la pile se lit au doigt, et `none` tuerait ce
-       geste-là. Ce qui part, c'est le pincement et le double-tap-zoom. */
-        touch-action: pan-x pan-y;
-        -webkit-user-select: none;
-        user-select: none;
-
-        /* Safari iOS et iPadOS seulement ; no-op sur tous les autres moteurs. */
-        -webkit-touch-callout: none;
-    }
-
-    /* La seule exception, et elle suffit : le renommage d'un trajet passe par un
-   `prompt()` natif, donc hors de portée du CSS. Les seuls vrais champs sont la
-   latitude et la longitude, et corriger un chiffre fautif demande de pouvoir le
-   sélectionner. */
-    input {
-        -webkit-user-select: text;
-        user-select: text;
-    }
+    /* Le socle d'éléments — `html`, `body`, `h1, h2, h3`, les défauts de
+       formulaire — a émigré dans `base/elements.css`, avec ses commentaires. */
 
     :root {
         /* Passe à 1 dans la requête média du grand écran, plus bas. */
@@ -173,18 +103,6 @@
        éléments (retour, titre, Suivre) et plier les envoyait sur trois lignes,
        ce qui coûtait plus de hauteur qu'un titre serré. C'est le libellé des
        boutons qui cède la place au titre, pas la ligne qui se casse. */
-    }
-
-    /* Title 2 d'iOS : 22/28 au corps par défaut, exprimé en fraction du corps de
-   texte pour suivre la taille dynamique. La graisse est celle qu'Apple donne à
-   ce style quand il est accentué. */
-    h1,
-    h2 {
-        margin: 0;
-        font-size: 1.294rem;
-        line-height: 1.273;
-        letter-spacing: -0.012em;
-        font-weight: 700;
     }
 
     /* L'effet de bord de défilement, que la HIG substitue au fond d'une barre :

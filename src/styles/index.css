@@ -16,5 +16,7 @@
 @import url('leaflet/dist/leaflet.css') layer(vendor);
 @import url('./tokens/primitives.css');
 @import url('./tokens/semantic.css');
+@import url('./base/elements.css');
+@import url('./components/text.css');
 @import url('./screens/legacy-bridge.css');
 @import url('./screens/legacy.css');

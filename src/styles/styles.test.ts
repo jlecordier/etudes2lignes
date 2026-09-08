@@ -408,3 +408,35 @@ describe('Leaflet dans la cascade', () => {
         });
     });
 });
+
+const styles = feuilles['./components/text.css'] ?? '';
+
+describe('Les styles de texte', () => {
+    describe("Étant donné un style de texte, quand une règle l'applique", () => {
+        it('alors elle applique les trois propriétés, jamais une seule', () => {
+            // C'était le défaut le plus répandu : 16 déclarations `font-size`
+            // dont 5 seulement portaient l'interligne et l'approche. Une taille
+            // sans son approche n'est pas le style d'Apple, c'est sa moitié.
+            const incomplets = STYLES_DE_TEXTE.filter(({ nom }) => {
+                const regle = new RegExp(`\\.text-${nom}\\s*\\{([^}]*)\\}`).exec(styles);
+                const corps = regle?.[1] ?? '';
+                return !(
+                    corps.includes(`var(--text-${nom}-size)`) &&
+                    corps.includes(`var(--text-${nom}-leading)`) &&
+                    corps.includes(`var(--text-${nom}-tracking)`)
+                );
+            }).map(({ nom }) => nom);
+
+            expect(incomplets).toEqual([]);
+        });
+    });
+
+    describe("Étant donné le socle des éléments, quand on regarde ce qu'il déclare", () => {
+        it('alors il ne nomme aucune classe : ce sont des défauts, pas un vocabulaire', () => {
+            const socle = feuilles['./base/elements.css'] ?? '';
+            const sansCommentaires = socle.replace(/\/\*[\s\S]*?\*\//g, '');
+
+            expect(sansCommentaires).not.toMatch(/^\s*\.[a-z]/m);
+        });
+    });
+});
