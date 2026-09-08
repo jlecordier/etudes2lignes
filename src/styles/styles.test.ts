@@ -192,9 +192,10 @@ describe('Le palier semantique', () => {
         it('alors chacun de ses var() designe une primitive, et jamais un role', () => {
             // La regle des paliers : un palier ne reference que celui du dessus.
             const references = [...semantique.matchAll(/var\((--[a-z0-9-]+)/g)].map((m) => m[1]);
-            // Un role peut s'appuyer sur un role du meme palier — l'ombre se
-            // compose de sa geometrie et de `--shadow-color`. Ce que la regle
-            // interdit, c'est de descendre chercher **plus bas** que soi.
+            // Un role peut s'appuyer sur un role du meme palier — rien
+            // n'interdit un alias vers un autre role de `semantic.css`. Ce
+            // que la regle interdit, c'est de descendre chercher **plus
+            // bas** que soi.
             const horsPalier = references.filter(
                 (nom) => !primitives.includes(`${nom}:`) && !semantique.includes(`${nom}:`),
             );

@@ -11,7 +11,12 @@
  * La precondition est `color-scheme: light dark` sur la racine, que
  * `base/elements.css` pose.
  *
- * **Ne reference que des primitives** — un test l'affirme.
+ * **Ne reference que des primitives** (ou un autre role de ce meme palier)
+ * — un test l'affirme. Quelques roles n'en referencent aucune : leur valeur
+ * est un litteral mesure sur l'ancienne feuille, la ou aucune primitive ne
+ * la portait deja et ou la reecrire depuis une primitive existante aurait
+ * change le rendu (voir `--color-warning`, `--color-warning-text` et
+ * `--color-success` plus bas).
  */
 @layer tokens {
     :root {
@@ -23,23 +28,49 @@
         --color-label-secondary: light-dark(var(--grey-label-2-light), var(--grey-label-2-dark));
         --color-label-tertiary: light-dark(var(--grey-label-3-light), var(--grey-label-3-dark));
 
-        /* Le fond d'un encart de consigne : une teinte d'avertissement posee a
-           14 % en clair, 18 % en sombre. Elle **se derive** de la rampe orange
-           au lieu d'en etre une variante recopiee a la main — l'ancienne
-           feuille portait `rgba(255, 141, 40, .14)`, soit trois unites d'ecart
-           avec l'orange systeme, sans qu'aucune raison ne soit ecrite. */
-        --color-background-hint: light-dark(
-            rgb(from var(--orange-light) r g b / 14%),
-            rgb(from var(--orange-dark) r g b / 18%)
-        );
+        /* Le fond d'un encart de consigne : la teinte de remplissage de
+           `--color-warning` a 14 % en clair, 18 % en sombre. Ecrite en
+           litteral plutot que derivee par `rgb(from ...)` : elle doit
+           correspondre au chiffre exact que l'ancienne feuille portait, pas
+           a une couleur d'orange differente qu'une derivation depuis la
+           rampe systeme aurait produite (voir la note sur `--color-warning`
+           ci-dessous). */
+        --color-background-hint: light-dark(rgb(255 141 40 / 14%), rgb(255 146 48 / 18%));
 
         /* Le fond d'une page de schema : un noir translucide dans les deux
            apparences, plus opaque en clair pour que la page s'y detache. */
         --color-page-backdrop: light-dark(rgb(0 0 0 / 72%), rgb(0 0 0 / 60%));
         --color-accent: light-dark(var(--blue-light), var(--blue-dark));
         --color-destructive: light-dark(var(--red-light), var(--red-dark));
-        --color-warning: light-dark(var(--orange-light), var(--orange-dark));
-        --color-success: light-dark(var(--green-light), var(--green-dark));
+
+        /* La teinte de **remplissage** de l'orange systeme — un aplat, une
+           bordure : `.hint-banner` la porte en trait autour de sa teinte de
+           fond. Valeur mesuree de l'ancienne feuille, et **pas** celle
+           publiee par la HIG (`--orange-light`/`--orange-dark` dans
+           `primitives.css`, `rgb(255 138 0)` en clair) : les deux se
+           ressemblent sans etre identiques, et adopter la valeur systeme ici
+           a d'abord ete fait par erreur, sans le decider. Que l'ecart merite
+           d'etre resorbe reste une question ouverte, pas tranchee ici — voir
+           task-5-report.md. */
+        --color-warning: light-dark(rgb(255 141 40), rgb(255 146 48));
+
+        /* La teinte de **texte** de l'avertissement : plus sombre que
+           `--color-warning` en clair, pour porter un mot d'avertissement
+           lisible sur un fond clair plutot qu'un aplat. C'etait deja un
+           role distinct dans l'ancienne feuille (`--avertissement` n'y
+           valait jamais `--orange`) ; fondre les deux dans un palier
+           semantique les aurait rendus identiques, une regression de
+           contraste que ce role existe pour empecher. */
+        --color-warning-text: light-dark(rgb(197 83 0), rgb(255 160 86));
+
+        /* Valeur mesuree de l'ancienne feuille — texte de succes, jamais un
+           remplissage. `--green-light`/`--green-dark` dans `primitives.css`
+           (le vert systeme publie par la HIG, `rgb(52 199 89)` en clair) n'a
+           jamais ete cette couleur dans l'application : rien n'a encore
+           besoin d'un role de remplissage vert, donc ce role reste seul,
+           comme il l'a toujours ete. Meme question ouverte que pour
+           `--color-warning`. */
+        --color-success: light-dark(rgb(0 137 50), rgb(74 217 104));
 
         /* Ce qui se pose **sur** une teinte pleine. Blanc dans les deux
            apparences, parce que les deux accents sont assez sombres pour le
@@ -65,11 +96,17 @@
         );
 
         /* --- Les ombres ----------------------------------------------------
-           La geometrie est invariante, la couleur non : d'ou la separation. */
-        --shadow-color: light-dark(rgb(0 0 0 / 20%), rgb(0 0 0 / 60%));
-        --shadow-badge: 0 1px 4px var(--shadow-color);
-        --shadow-floating: 0 2px 12px var(--shadow-color);
-        --material-sheen: inset 0 1px 0 light-dark(rgb(255 255 255 / 60%), rgb(255 255 255 / 16%));
+           Reglees a la main, apparence par apparence, dans l'ancienne
+           feuille — la geometrie elle-meme y differait entre les deux
+           (`--ombre-flottante` passait de 8px de flou en clair a 12px en
+           sombre). Une geometrie unique partagee entre les deux ombres et
+           invariante d'une apparence a l'autre etait un dessin plus elegant
+           que fidele : chaque ombre porte donc sa propre declaration
+           `light-dark()`, geometrie et couleur ensemble, mesuree sur
+           l'ancienne feuille. */
+        --shadow-badge: light-dark(0 1px 4px rgb(0 0 0 / 40%), 0 1px 4px rgb(0 0 0 / 60%));
+        --shadow-floating: light-dark(0 2px 8px rgb(0 0 0 / 30%), 0 2px 12px rgb(0 0 0 / 55%));
+        --material-sheen: inset 0 1px 0 light-dark(rgb(255 255 255 / 50%), rgb(255 255 255 / 16%));
 
         /* --- Les mesures de systeme ----------------------------------------
            « The minimum tappable area for any control is 44x44 pt. » C'est une

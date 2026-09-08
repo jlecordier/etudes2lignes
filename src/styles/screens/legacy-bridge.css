@@ -24,13 +24,17 @@
 
         /* Les teintes. Deux noms pointaient deja sur la meme couleur — `--bleu`
            disait la couleur, `--accent` disait le role : le pont conserve les
-           deux, le systeme n'en garde qu'un. */
+           deux, le systeme n'en garde qu'un. `--orange` et `--avertissement`
+           n'en pointaient en revanche jamais sur la meme : le remplissage
+           (`--color-warning`) et le texte lisible sur fond clair
+           (`--color-warning-text`) restent deux roles distincts, comme dans
+           l'ancienne feuille. */
         --bleu: var(--color-accent);
         --accent: var(--color-accent);
         --rouge: var(--color-destructive);
         --destructif: var(--color-destructive);
         --orange: var(--color-warning);
-        --avertissement: var(--color-warning);
+        --avertissement: var(--color-warning-text);
         --succes: var(--color-success);
 
         /* « Ma position » porte l'accent : ce n'est pas une couleur de plus,
