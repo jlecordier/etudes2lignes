@@ -80,17 +80,29 @@ test.describe('La planche de référence', () => {
         expect(urlsDeLaPlanche).toEqual([]);
     });
 
-    test("Étant donné la planche construite, quand j'en lis la page, alors aucun lien de manifeste n'y figure", async ({
+    test("Étant donné la planche construite, quand j'en lis la page, alors aucun lien de manifeste n'y figure, et celui de l'application reste intact", async ({
         request,
     }) => {
-        const reponse = await request.get('/design/');
-        const html = await reponse.text();
+        const pagePlanche = await request.get('/design/');
+        const htmlPlanche = await pagePlanche.text();
+        const pageApplication = await request.get('/');
+        const htmlApplication = await pageApplication.text();
 
         // VitePWA injecte `<link rel="manifest">` dans chaque entrée HTML par
         // défaut ; un greffon en post-traitement (vite.config.ts) le retire
         // pour cette seule entrée. Le lien n'existe que dans la sortie
         // construite — la source `design/index.html` n'en a jamais porté —
         // donc ce témoin lit la réponse HTTP plutôt que le fichier source.
-        expect(html).not.toContain('rel="manifest"');
+        expect(htmlPlanche).not.toContain('rel="manifest"');
+
+        // Le versant apparié, et pas seulement une symétrie de forme : un
+        // greffon trop large — un `endsWith` qui matche autre chose, une
+        // entrée déplacée, une refonte de la configuration — retirerait le
+        // lien de partout. La première assertion resterait verte (la planche
+        // resterait bien sans manifeste), et rien ne dirait que la PWA a
+        // cessé d'être installable. Cette seconde assertion garde l'autre
+        // bord : le lien doit rester présent sur l'entrée de l'application,
+        // celle dont l'installation hors ligne est la raison d'être.
+        expect(htmlApplication).toContain('rel="manifest"');
     });
 });
