@@ -188,8 +188,20 @@
 
        **44 px de cible**, et non les 37 px d'avant : « a button needs a hit
        region of at least 44x44 pt ». Sur `min-block-size` et non `block-size`,
-       pour qu'un libellé puisse doubler de taille sans être coupé. */
+       pour qu'un libellé puisse doubler de taille sans être coupé.
+
+       Et sur les deux dimensions : sans `min-inline-size`, la largeur ne
+       tenait qu'à la somme de l'icône, du `padding` et du `gap` — assez sous
+       Chromium et Firefox pour dépasser 44 px par coïncidence, mais pas
+       ailleurs. Mesuré : un bouton à pictogramme seul (libellé masqué sous
+       560 px) rend 36 px de large sous WebKit réel, où `1.29em` (`.icon`)
+       résout plus petit — le même écart de taille de police que documente
+       déjà `-apple-system-body`. Les deux exceptions à ce plancher — la
+       pastille numérotée et les contrôles de carte — annulent déjà
+       `min-inline-size` avec une spécificité supérieure à celle-ci ; elles ne
+       grandissent pas. */
         min-block-size: 44px;
+        min-inline-size: 44px;
         padding: 0.5rem 0.75rem;
 
         /* Aucun contour : un contrôle d'iOS est délimité par sa **surface**, teintée
