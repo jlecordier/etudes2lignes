@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vitest/config';
 
@@ -5,6 +6,17 @@ import { defineConfig } from 'vitest/config';
 // (https://<utilisateur>.github.io/<depot>/), les chemins relatifs marchent partout.
 export default defineConfig({
     base: './',
+    build: {
+        rollupOptions: {
+            // Deux entrees : l'application, et la planche. Le workflow de
+            // deploiement envoie `dist` en entier, donc la seconde parait a
+            // `/design/` sans qu'il ait a changer.
+            input: {
+                main: fileURLToPath(new URL('./index.html', import.meta.url)),
+                design: fileURLToPath(new URL('./design/index.html', import.meta.url)),
+            },
+        },
+    },
     plugins: [
         VitePWA({
             registerType: 'autoUpdate',
@@ -36,7 +48,14 @@ export default defineConfig({
             workbox: {
                 // L'app shell entier est pré-caché : l'appli démarre hors ligne.
                 globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
+                // Sans cette ligne, le motif ci-dessus **pré-cacherait la
+                // planche chez tous les utilisateurs** : c'est exactement ce
+                // que « hors de la PWA » exclut.
+                globIgnores: ['design/**'],
                 navigateFallback: 'index.html',
+                // Et sans celle-ci, `navigateFallback` servirait l'application
+                // sous `/design/` dès que le service worker prend la main.
+                navigateFallbackDenylist: [/design\//],
                 runtimeCaching: [
                     {
                         // Les tuiles OSM déjà vues restent disponibles hors ligne.

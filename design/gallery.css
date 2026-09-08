@@ -1,0 +1,83 @@
+/* L'habillage **de la planche**, et non du systeme qu'elle montre.
+ *
+ * Elle n'emploie deliberement aucun jeton : une planche qui se peint avec le
+ * systeme qu'elle expose devient illisible le jour ou celui-ci casse — c'est-a-dire
+ * exactement le jour ou l'on en a besoin. `.stylelintrc.json` exempte donc
+ * `design/*.css` de `declaration-strict-value`. */
+body {
+    margin: 0;
+    padding: 16px;
+    background: #fafafa;
+    color: #111;
+    font-family: system-ui, sans-serif;
+}
+
+.planche-entete {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #ddd;
+    background: #fafafa;
+}
+
+.planche-grille {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 12px;
+}
+
+.planche-pastille {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 12px;
+}
+
+.planche-apercu {
+    display: block;
+    block-size: 36px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+
+    /* Un damier, pour qu'une couleur translucide se distingue d'une absente. */
+    background-image:
+        linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%),
+        linear-gradient(45deg, #eee 25%, transparent 25%, transparent 75%, #eee 75%);
+    background-position:
+        0 0,
+        6px 6px;
+    background-size: 12px 12px;
+}
+
+.planche-reglette {
+    block-size: 12px;
+    border-radius: 2px;
+    background: #333;
+}
+
+/* Un jeton que le navigateur n'a pas resolu : c'est le defaut que la planche
+   existe pour montrer. */
+.planche-manquant {
+    border-color: #c00;
+    background: #fff5f5;
+}
+
+.planche-manquant code::after {
+    content: ' ← non resolu';
+    color: #c00;
+}
+
+/* La surimpression des cibles tactiles : un cadre sur tout ce qui se touche,
+   pour voir d'un coup d'oeil ce qui n'atteint pas le minimum. */
+.planche-cibles :is(button, a, input, [role='button']) {
+    outline: 1px dashed #c00;
+    outline-offset: 0;
+}

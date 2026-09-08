@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+        <title>Etudes2Lignes — planche de reference</title>
+    </head>
+    <body>
+        <!-- La planche n'importe **pas** `src/main.ts` : elle n'enregistre
+             aucun service worker, ne s'installe pas, et ne touche a aucune
+             donnee. Elle importe le systeme de design, et rien d'autre de
+             l'application. -->
+        <header class="planche-entete">
+            <h1>Planche de reference</h1>
+            <div class="planche-controles">
+                <button type="button" data-apparence="light">Clair</button>
+                <button type="button" data-apparence="dark">Sombre</button>
+                <button type="button" data-apparence="auto">Systeme</button>
+                <label><input type="checkbox" data-cibles /> Cibles de 44 px</label>
+            </div>
+        </header>
+        <main id="planche"></main>
+        <script type="module" src="./gallery.ts"></script>
+    </body>
+</html>

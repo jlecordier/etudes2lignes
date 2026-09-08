@@ -32,5 +32,16 @@
     // le lint type-aware les refuse (« was not found by the project service »).
     // Celles en .mjs, elles, en restent dehors : eslint.config.js leur retire le
     // type-checking, faute d'un programme qui les contienne.
-    "include": ["src", "e2e", "vite.config.ts", "playwright.config.ts", "probity.config.ts"]
+    //
+    // `design` y figure pour la même raison : la planche est du TypeScript,
+    // absent de `src`, et resterait sinon hors du programme que `tsc --noEmit`
+    // vérifie et que le lint type-aware interroge.
+    "include": [
+        "src",
+        "e2e",
+        "design",
+        "vite.config.ts",
+        "playwright.config.ts",
+        "probity.config.ts"
+    ]
 }
