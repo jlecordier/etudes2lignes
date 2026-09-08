@@ -222,6 +222,55 @@ describe('Le palier semantique', () => {
             expect(quiDecident).toEqual([]);
         });
     });
+
+    describe('Étant donné le palier contraste eleve, quand on regarde ce qu il surcharge', () => {
+        it('alors les sept roles que l ancienne feuille y redefinissait y sont, le separateur compris', () => {
+            // Mesure : un premier passage omettait --separateur. Le contraste
+            // eleve existe pour renforcer le filet — de 29 % a 70 % d'opacite
+            // — et l'omission le laissait au poids normal, l'inverse exact de
+            // la raison d'etre du mode, sur huit sites de bordure. Le seul
+            // temoin qui parlait jusqu'ici de ce mode verifiait la presence de
+            // la chaine `prefers-contrast: more`, et passait pour une raison
+            // sans rapport avec les roles qu'il surcharge reellement.
+            //
+            // Extraction par comptage d'accolades plutot que par regex
+            // paresseuse : le bloc contient lui-meme des accolades imbriquees
+            // (`light-dark(...)` sur plusieurs lignes), qu'un `[\s\S]*?\n\}`
+            // capturerait trop tot ou trop tard selon l'indentation.
+            const debut = semantique.indexOf('@media (prefers-contrast: more) {');
+            expect(debut).toBeGreaterThanOrEqual(0);
+
+            let indice = debut + '@media (prefers-contrast: more) {'.length;
+            let profondeur = 1;
+            let bloc = '';
+            while (profondeur > 0 && indice < semantique.length) {
+                const caractere = semantique[indice] ?? '';
+                if (caractere === '{') {
+                    profondeur += 1;
+                }
+                if (caractere === '}') {
+                    profondeur -= 1;
+                }
+                if (profondeur > 0) {
+                    bloc += caractere;
+                }
+                indice += 1;
+            }
+
+            const rolesHistoriques = [
+                '--color-accent',
+                '--color-destructive',
+                '--color-label-secondary',
+                '--color-label-tertiary',
+                '--color-separator',
+                '--material-regular',
+                '--material-thick',
+            ];
+            const manquants = rolesHistoriques.filter((role) => !bloc.includes(`${role}:`));
+
+            expect(manquants).toEqual([]);
+        });
+    });
 });
 
 describe('Leaflet dans la cascade', () => {

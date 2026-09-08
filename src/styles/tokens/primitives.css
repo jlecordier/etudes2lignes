@@ -45,6 +45,15 @@
         --grey-label-2-contrast-dark: rgb(235 235 245 / 85%);
         --grey-label-3-contrast-light: rgb(60 60 67 / 60%);
         --grey-label-3-contrast-dark: rgb(235 235 245 / 60%);
+        --grey-separator-contrast-light: rgb(60 60 67 / 70%);
+        --grey-separator-contrast-dark: rgb(235 235 245 / 50%);
+
+        /* Le contraste élevé opacifie le verre presque complètement, sur une
+           base distincte de `--grey-background-dark` en sombre : mesuré sur
+           l'ancienne feuille, `rgb(20 20 22)` et non `rgb(28 28 30)`. Le
+           clair, lui, coïncide avec `--grey-background-light` — d'où
+           l'absence d'une version claire de ce jeton. */
+        --grey-material-contrast-dark: rgb(20 20 22);
 
         /* --- L'échelle d'espacement ---------------------------------------
            Base 8, avec 2 et 4 pour le serré, et 44 parce que c'est la cible
