@@ -61,6 +61,18 @@
         --space-44: 44px;
         --space-64: 64px;
 
+        /* La marge d'écran suit le corps du texte, et non l'échelle en `px`
+           ci-dessus : la racine du document est posée à 17px par défaut
+           (`screens/legacy.css`, en attendant que la partie 2 la reprenne),
+           pour suivre la taille dynamique d'iOS — `1rem` y vaut donc 17px,
+           pas les 16px de `--space-16`. Mesuré : les remplacer par erreur
+           avait rétréci la marge d'un pixel, silencieusement, et fait
+           dériver le calcul de défilement du suivi de près de 200px sur une
+           page haute. Un jeton distinct, pour que cette dépendance au corps
+           du texte reste écrite plutôt que déduite d'une coïncidence de
+           valeur avec `--space-16`. */
+        --space-screen-margin: 1rem;
+
         /* --- Les rayons ---------------------------------------------------
            « Consider aligning the shape of controls with other rounded
            elements throughout the interface. » Quatre marches et la pilule. */

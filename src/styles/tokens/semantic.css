@@ -76,7 +76,13 @@
            decision de systeme, que plusieurs composants lisent : elle ne peut
            donc pas etre un jeton de composant. */
         --hit-target: var(--space-44);
-        --screen-margin: var(--space-16);
+
+        /* `--space-screen-margin`, pas `--space-16` : la marge d'écran suit
+           le corps du texte (`1rem` = 17px, voir `primitives.css`), pas
+           l'échelle d'espacement en `px`. Les deux valent 16 et 17 - proches,
+           mais pas les mêmes, et confondre les deux avait rétréci la marge
+           d'un pixel partout, silencieusement. */
+        --screen-margin: var(--space-screen-margin);
         --radius-control: var(--radius-12);
         --radius-section: var(--radius-22);
     }
