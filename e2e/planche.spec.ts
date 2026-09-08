@@ -57,4 +57,26 @@ test.describe('La planche de reference', () => {
         expect(source).not.toMatch(/["'][^"']*design\/[^"']*["']\s*,\s*revision/);
         expect(source).toContain('design');
     });
+
+    test('Étant donné le manifeste de precache, alors aucune de ses entrees ne mentionne la planche', async ({
+        request,
+    }) => {
+        const serviceWorker = await request.get('/sw.js');
+        const source = await serviceWorker.text();
+
+        // Un motif par chemin (`design/**`) se romprait en silence si Rollup
+        // rangeait un jour les morceaux de la planche autrement qu'aujourd'hui
+        // — ils vivent deja sous `assets/design-*`, pas sous `design/` — et le
+        // test precedent, scope a un seul chemin, ne le verrait pas venir. Ce
+        // temoin lit chaque URL du manifeste de precache et affirme qu'aucune
+        // ne mentionne « design », quel que soit son chemin, plutot que d'en
+        // supposer un.
+        const urls = [...source.matchAll(/\{url:"([^"]*)",revision:[^}]*\}/g)].map(
+            (correspondance) => correspondance[1] ?? '',
+        );
+        expect(urls.length).toBeGreaterThan(0);
+
+        const urlsDeLaPlanche = urls.filter((url) => url.includes('design'));
+        expect(urlsDeLaPlanche).toEqual([]);
+    });
 });

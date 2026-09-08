@@ -50,8 +50,16 @@ export default defineConfig({
                 globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
                 // Sans cette ligne, le motif ci-dessus **pré-cacherait la
                 // planche chez tous les utilisateurs** : c'est exactement ce
-                // que « hors de la PWA » exclut.
-                globIgnores: ['design/**'],
+                // que « hors de la PWA » exclut. Deux motifs, parce que
+                // Rollup ne range pas tout sous `design/` : la page y vit,
+                // mais ses morceaux JS/CSS propres portent le nom de
+                // l'entrée (`design`) sous `assets/`, aux cotés des chunks
+                // partagés avec l'application principale — un second motif
+                // les y rejoint plutot que de deplacer la sortie de Rollup,
+                // qui resterait alors la disposition `assets/` plate que le
+                // reste du projet (et le deploiement en `base: './'`)
+                // suppose deja partout ailleurs.
+                globIgnores: ['design/**', 'assets/design-*'],
                 navigateFallback: 'index.html',
                 // Et sans celle-ci, `navigateFallback` servirait l'application
                 // sous `/design/` dès que le service worker prend la main.
