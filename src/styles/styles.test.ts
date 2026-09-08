@@ -159,6 +159,70 @@ describe('Le palier des primitives', () => {
     });
 });
 
+const semantique = feuilles['./tokens/semantic.css'] ?? '';
+const pont = feuilles['./screens/legacy-bridge.css'] ?? '';
+
+describe('Le palier semantique', () => {
+    describe('Étant donné les deux apparences, quand on cherche ou elles sont ecrites', () => {
+        it("alors aucune couleur ne vit dans une requete d'apparence", () => {
+            // Le defaut d'origine : `--verre` et `--verre-reflet` manquaient au
+            // bloc sombre, et le bouton flottant etait un disque blanc portant
+            // un symbole blanc. Un test l'a vu **apres** la publication.
+            // `light-dark()` ne laisse pas la place a l'oubli : les deux
+            // valeurs sont dans la meme declaration.
+            const blocsSombres =
+                systeme.match(/@media \(prefers-color-scheme: dark\)[\s\S]*?\n\}/g) ?? [];
+            const couleursDedans = blocsSombres.filter((bloc) => /--color-|--material-/.test(bloc));
+
+            expect(couleursDedans).toEqual([]);
+        });
+    });
+
+    describe('Étant donné un role de couleur, quand on lit sa declaration', () => {
+        it('alors elle porte ses deux apparences a la fois', () => {
+            const roles = semantique.match(/--(?:color|material)-[a-z-]+:[^;]+;/g) ?? [];
+            const sansLesDeux = roles.filter((d) => !d.includes('light-dark('));
+
+            expect(roles.length).toBeGreaterThan(0);
+            expect(sansLesDeux).toEqual([]);
+        });
+    });
+
+    describe('Étant donné le palier semantique, quand on regarde ce dont il depend', () => {
+        it('alors chacun de ses var() designe une primitive, et jamais un role', () => {
+            // La regle des paliers : un palier ne reference que celui du dessus.
+            const references = [...semantique.matchAll(/var\((--[a-z0-9-]+)/g)].map((m) => m[1]);
+            // Un role peut s'appuyer sur un role du meme palier — l'ombre se
+            // compose de sa geometrie et de `--shadow-color`. Ce que la regle
+            // interdit, c'est de descendre chercher **plus bas** que soi.
+            const horsPalier = references.filter(
+                (nom) => !primitives.includes(`${nom}:`) && !semantique.includes(`${nom}:`),
+            );
+
+            expect(horsPalier).toEqual([]);
+        });
+    });
+
+    describe('Étant donné la teinte du verre, quand on cherche d ou elle vient', () => {
+        it('alors elle se derive du fond, au lieu de le recopier', () => {
+            // Elle etait une copie manuelle : `--verre: rgba(242, 242, 247, .72)`
+            // devait s'accorder a la main avec `--fond-groupe`. Deux valeurs a
+            // tenir d'accord, donc deux valeurs qui derivent.
+            expect(semantique).toMatch(/--material-regular:[^;]*rgb\(from var\(--grey-grouped/);
+        });
+    });
+
+    describe('Étant donné le pont vers la feuille en transit, quand on l ouvre', () => {
+        it("alors il n'y a que des alias : aucune valeur ne s'y decide", () => {
+            const declarations = pont.match(/--[a-z-]+:[^;]+;/g) ?? [];
+            const quiDecident = declarations.filter((d) => !/:\s*var\(--/.test(d));
+
+            expect(declarations.length).toBeGreaterThan(0);
+            expect(quiDecident).toEqual([]);
+        });
+    });
+});
+
 describe('Leaflet dans la cascade', () => {
     describe('Étant donné les contrôles de Leaflet à reprendre sans !important, quand on cherche où sa feuille est chargée', () => {
         it("alors elle l'est en couche vendor, la plus basse de l'ordre", () => {

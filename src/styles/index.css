@@ -15,4 +15,6 @@
    a décidé de cette ligne. */
 @import url('leaflet/dist/leaflet.css') layer(vendor);
 @import url('./tokens/primitives.css');
+@import url('./tokens/semantic.css');
+@import url('./screens/legacy-bridge.css');
 @import url('./screens/legacy.css');

@@ -90,12 +90,6 @@
         /* Passe à 1 dans la requête média du grand écran, plus bas. */
         --large-screen: 0;
 
-        /* La marge d'un écran, nommée parce que **deux** règles doivent s'accorder :
-       le rembourrage de l'écran, et la marge négative dont une barre pleine
-       largeur a besoin pour l'annuler. Écrite deux fois, elle aurait dérivé et
-       la barre aurait dépassé d'un côté. */
-        --marge-ecran: 1rem;
-
         /* L'air qu'une barre laisse au-dessus et au-dessous de ses contrôles, et
        donc ce qui fixe sa hauteur : un contrôle de 44 px et cet air deux fois.
        Nommé pour la même raison que la marge — les deux barres d'écran doivent
@@ -104,94 +98,13 @@
        deux bords. */
         --air-barre: 0.5rem;
 
-        /* Les rayons. « Consider aligning the shape of controls with other rounded
-       elements throughout the interface » : trois valeurs nommées, et rien
-       d'autre dans la feuille — un nombre écrit en clair finit toujours par
-       dériver de son voisin.
-
-       Le rayon **intérieur** n'est pas une quatrième valeur : il se *calcule*
-       depuis celui qui le contient, moins le rembourrage qui les sépare. C'est
-       la règle concentrique d'Apple, et un `calc()` la tient là où deux
-       constantes l'auraient perdue. */
-        --rayon-section: 22px;
+        /* Le rayon **intérieur** n'est pas une valeur de plus : il se *calcule*
+       depuis celui de la section qui le contient (`--rayon-section`, alias du
+       palier sémantique) moins le rembourrage qui les sépare. C'est la règle
+       concentrique d'Apple, et un `calc()` la tient là où deux constantes
+       l'auraient perdue. */
         --ecart-interne: 8px;
         --rayon-interieur: calc(var(--rayon-section) - var(--ecart-interne));
-
-        /* Une colonne de contrôles serrés — le zoom, le recentrage — se resserre :
-       22 px sur une boîte de 34 px la rendrait presque circulaire. */
-        --rayon-controle: 12px;
-
-        /* Les couleurs, déclarées ici et nulle part ailleurs.
-
-       La HIG prévient que « the actual color values may fluctuate from release
-       to release » : une valeur recopiée dans une règle échappe à la prochaine
-       mise à jour, et surtout à une seconde apparence, qui ne peut redéfinir que
-       des jetons. Celles-ci sont les couleurs système publiées avec Liquid
-       Glass. Les couleurs sémantiques d'iOS — label, séparateur, fonds — ne sont
-       pas publiées en RGB : le web n'a aucun `UIColor` à interroger. Elles disent
-       un **rôle**, et la HIG demande de ne pas le redéfinir — on ne se sert pas
-       d'un séparateur comme couleur de texte, ni d'un label secondaire comme
-       fond. */
-        --bleu: rgb(0 136 255);
-        --rouge: rgb(255 56 60);
-        --orange: rgb(255 141 40);
-        --fond: rgb(255 255 255);
-        --fond-groupe: rgb(242 242 247);
-        --label: rgb(0 0 0);
-        --label-2: rgb(60 60 67 / 60%);
-        --label-3: rgb(60 60 67 / 30%);
-        --separateur: rgb(60 60 67 / 29%);
-
-        /* Ce qui se pose *sur* une teinte pleine : le blanc, et il reste blanc dans
-       les deux apparences — un bouton bleu porte un libellé blanc de nuit
-       comme de jour. */
-        --sur-teinte: rgb(255 255 255);
-        --accent: var(--bleu);
-        --destructif: var(--rouge);
-
-        /* « Ma position » et le repère du suivi : la même couleur, parce que c'est
-       la même chose dite à deux endroits. */
-        --position: var(--bleu);
-        --avertissement: rgb(197 83 0);
-        --succes: rgb(0 137 50);
-
-        /* La consigne de placement : un encart de contenu, teinté à l'orange
-       système, qui dit « en cours » sans crier. */
-        --fond-consigne: rgb(255 141 40 / 14%);
-
-        /* La pastille du numéro de page : un disque sombre posé sur une page
-       blanche, donc défini en opacité et non en gris — il tient sur une page
-       claire comme sur une page piquée. */
-        --fond-page: rgb(0 0 0 / 72%);
-
-        /* Le verre. La teinte et le reflet sont des jetons ; **le flou n'en est
-       pas un**, et c'est une contrainte, pas un oubli : WebKit ignore un `var()`
-       placé dans un `backdrop-filter`. Il est donc écrit en clair là où le verre
-       est posé.
-
-       Deux épaisseurs, comme la HIG les distingue : « Liquid Glass appears more
-       opaque in larger elements like sidebars to preserve legibility over complex
-       backgrounds ». Les barres sont le verre mince, l'aperçu le verre épais.
-
-       La teinte mince **dérive du fond de l'écran**, et ce n'est pas cosmétique :
-       « **Instead of a background**, use a scroll edge effect to provide a
-       transition between content and the control area. » Au repos, une barre
-       d'iOS n'a pas de fond — elle laisse voir celui du contenu, et le matériau
-       n'apparaît que lorsque quelque chose passe dessous. Une teinte blanche sur
-       ce gris clair formait une bande visible avant tout défilement, ce qui est
-       exactement l'anti-motif. */
-        --verre: rgb(242 242 247 / 72%);
-        --verre-epais: rgb(255 255 255 / 86%);
-
-        /* Le reflet spéculaire : une seule arête éclairée, en haut, comme une
-       tranche de verre prend la lumière. */
-        --verre-reflet: inset 0 1px 0 rgb(255 255 255 / 50%);
-
-        /* Deux ombres, et elles ne disent pas la même chose : une annotation posée
-       *sur* le contenu s'en décolle à peine, un contrôle qui *flotte* au-dessus
-       porte une ombre franche. */
-        --ombre-pastille: 0 1px 4px rgb(0 0 0 / 40%);
-        --ombre-flottante: 0 2px 8px rgb(0 0 0 / 30%);
 
         /* La géométrie du repère d'un point, posée ici parce que trois règles la
        partagent : la pastille sur l'image, la même pastille sur la carte, et le
@@ -1343,36 +1256,9 @@
    dark colors to support Liquid Glass adaptivity. » Elle sert aussi le cas
    d'usage — un schéma de ligne se lit de nuit, dans un train.
 
-   Seuls les jetons sont redéfinis : aucune règle ne se duplique ici, et c'est
-   tout l'intérêt de les avoir extraits. */
-    @media (prefers-color-scheme: dark) {
-        :root {
-            --bleu: rgb(0 145 255);
-            --rouge: rgb(255 66 69);
-            --orange: rgb(255 146 48);
-            --fond: rgb(28 28 30);
-            --fond-groupe: rgb(0 0 0);
-            --label: rgb(255 255 255);
-            --label-2: rgb(235 235 245 / 60%);
-            --label-3: rgb(235 235 245 / 30%);
-            --separateur: rgb(84 84 88 / 65%);
-            --avertissement: rgb(255 160 86);
-            --succes: rgb(74 217 104);
-            --fond-consigne: rgb(255 146 48 / 18%);
-            --fond-page: rgb(0 0 0 / 60%);
-
-            /* Le verre s'assombrit, faute de quoi il reste blanc sur du noir : un
-           bouton flottant devenait un disque blanc portant un symbole blanc,
-           donc invisible. Le reflet spéculaire s'atténue en conséquence — une
-           arête très éclairée sur une surface sombre se lit comme un trait, pas
-           comme de la lumière. */
-            --verre: rgb(0 0 0 / 72%);
-            --verre-reflet: inset 0 1px 0 rgb(255 255 255 / 16%);
-            --verre-epais: rgb(28 28 30 / 86%);
-            --ombre-pastille: 0 1px 4px rgb(0 0 0 / 60%);
-            --ombre-flottante: 0 2px 12px rgb(0 0 0 / 55%);
-        }
-    }
+   Les jetons portent maintenant les deux apparences dans une seule déclaration
+   `light-dark()`, au palier sémantique (`tokens/semantic.css`) : il n'y a plus
+   de bloc à dupliquer ici, et donc plus de contrepartie à oublier. */
 
     /* Le contrôle « Ma position », que la carte pose elle-même.
 
@@ -1474,33 +1360,13 @@
    La HIG demande une variante par apparence, et pas un simple assombrissement :
    « define a custom color with light and dark variants, and an increased
    contrast option for each variant that provides a significantly higher amount
-   of visual differentiation ». Les valeurs sont celles publiées pour ce mode.
+   of visual differentiation ». Les valeurs vivent maintenant au palier
+   sémantique, redéfinies dans une seule requête `@media (prefers-contrast:
+   more)` qui couvre les deux apparences par `light-dark()` — là où il en
+   fallait deux ici, une par apparence, pour la même redéfinition.
 
    Le verre s'y opacifie presque complètement ; le bloc de retrait, plus bas,
    finit le travail en coupant le flou. */
-    @media (prefers-contrast: more) {
-        :root {
-            --bleu: rgb(30 110 244);
-            --rouge: rgb(233 21 45);
-            --label-2: rgb(60 60 67 / 85%);
-            --label-3: rgb(60 60 67 / 60%);
-            --separateur: rgb(60 60 67 / 70%);
-            --verre: rgb(255 255 255 / 96%);
-            --verre-epais: rgb(255 255 255 / 98%);
-        }
-    }
-
-    @media (prefers-contrast: more) and (prefers-color-scheme: dark) {
-        :root {
-            --bleu: rgb(92 184 255);
-            --rouge: rgb(255 97 101);
-            --label-2: rgb(235 235 245 / 85%);
-            --label-3: rgb(235 235 245 / 60%);
-            --separateur: rgb(235 235 245 / 50%);
-            --verre: rgb(20 20 22 / 96%);
-            --verre-epais: rgb(20 20 22 / 98%);
-        }
-    }
 
     /* La barre de suivi, en verre.
 

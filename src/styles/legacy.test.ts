@@ -9,6 +9,14 @@ import { describe, expect, it } from 'vitest';
 const feuille = readFileSync(new URL('./screens/legacy.css', import.meta.url), 'utf8');
 
 /**
+ * Le palier sémantique, pour les deux témoins qui doivent y suivre une
+ * dérivation : `--fond-groupe` et `--verre` ne sont plus, dans `feuille`, que
+ * des alias (`legacy-bridge.css`) vers `--color-background-grouped` et
+ * `--material-regular` — c'est là, et non plus ici, que la garantie se lit.
+ */
+const semantique = readFileSync(new URL('./tokens/semantic.css', import.meta.url), 'utf8');
+
+/**
  * Ce fichier éprouve la **source** de la feuille de style, et non son effet.
  *
  * Une feuille n'a pas de test unitaire : rien n'y est appelé. Mais plusieurs de
@@ -45,39 +53,29 @@ describe('Les couleurs de la feuille', () => {
 
 describe("La couverture de l'apparence sombre", () => {
     describe("Étant donné un jeton de couleur, quand l'apparence bascule", () => {
-        it('alors il a sa contrepartie sombre, sauf ceux qui sont volontairement communs', () => {
-            // Le piège que ce témoin existe pour attraper : un jeton **ajouté
-            // après** l'écriture du bloc sombre y reste absent, sans que rien ne
-            // le signale. Mesuré : `--verre` est resté blanc en apparence
-            // sombre, et le bouton « Ajouter un point » était un disque blanc
-            // portant un symbole blanc — invisible.
+        it("alors aucune couleur ne vit plus dans une requête d'apparence : light-dark() ne laisse pas la place à l'oubli", () => {
+            // Ce témoin exigeait qu'un jeton **ajouté après** l'écriture du bloc
+            // sombre y ait sa contrepartie — un piège qui a laissé passer
+            // `--verre` resté blanc en apparence sombre, et le bouton « Ajouter
+            // un point » devenu un disque blanc portant un symbole blanc.
             //
-            // Volontairement communs : `--sur-teinte`, qui reste blanc dans les
-            // deux apparences (un bouton teinté porte un libellé blanc de nuit
-            // comme de jour), et les alias — `--accent`, `--destructif`,
-            // `--position` — qui suivent `--bleu` et `--rouge`, eux redéfinis.
-            const communs = ['--sur-teinte', '--accent', '--destructif', '--position'];
+            // L'invariant devient vrai pour une autre raison : il n'y a plus de
+            // second bloc à tenir à jour. `screens/legacy.css` ne redéfinit plus
+            // aucun jeton de couleur dans un `@media (prefers-color-scheme: dark)`
+            // ni dans un `@media (prefers-contrast: more)` — ces jetons vivent
+            // maintenant au palier sémantique (`tokens/semantic.css`), une seule
+            // fois chacun, par `light-dark()`. Une contrepartie oubliée y serait
+            // une erreur de syntaxe, pas une omission silencieuse.
+            const blocsApparence =
+                feuille.match(
+                    /@media \(prefers-(?:color-scheme: dark|contrast: more)(?:\)|[^{]*\)) \{[\s\S]*?\n {4}\}/g,
+                ) ?? [];
 
-            const clair = /^[ \t]*:root \{([\s\S]*?)^[ \t]*\}/m.exec(feuille)?.[1] ?? '';
-            // L'indentation de `:root` est capturée puis rejouée en
-            // rétro-référence pour sa propre fermeture : un quantificateur
-            // paresseux borné par une indentation quelconque s'arrêterait à la
-            // première accolade venue plutôt qu'à celle qui ferme réellement
-            // `:root`.
-            const sombre =
-                /@media \(prefers-color-scheme: dark\) \{\n([ \t]*):root \{([\s\S]*?)\n\1\}/.exec(
-                    feuille,
-                )?.[2] ?? '';
-
-            const couleurs = [...clair.matchAll(/(--[a-z0-9-]+):\s*([^;]+);/g)]
-                .filter(([, , valeur]) => /rgba?\(/.test(valeur ?? ''))
-                .map(([, nom]) => nom ?? '');
-
-            const oublies = couleurs.filter(
-                (nom) => !communs.includes(nom) && !sombre.includes(`${nom}:`),
+            const couleursDedans = blocsApparence.filter((bloc) =>
+                /--[a-z-]+:\s*rgba?\(/.test(bloc),
             );
 
-            expect(oublies).toEqual([]);
+            expect(couleursDedans).toEqual([]);
         });
     });
 });
@@ -252,33 +250,36 @@ describe("Le filet sous une barre d'écran", () => {
 
 describe('La teinte du verre au repos', () => {
     describe("Étant donné une barre sur un écran qu'on n'a pas encore fait défiler", () => {
-        it('alors sa teinte est celle du fond, donc elle ne se voit pas', () => {
+        it('alors sa teinte se dérive du même fond que la page, donc elle ne se voit pas', () => {
             // « **Instead of a background**, use a scroll edge effect to provide
             // a transition between content and the control area. » Au repos, une
             // barre d'iOS n'a pas de fond : elle laisse voir celui du contenu, et
             // le matériau n'apparaît que lorsque quelque chose passe dessous.
             //
             // Une teinte blanche sur un fond gris clair formait une bande visible
-            // avant tout défilement — l'anti-motif exact. Une teinte dérivée du
-            // **fond** disparaît au repos et se révèle sur le contenu.
-            // Le contrat est que le verre porte les mêmes canaux que le fond
-            // groupé — pas que les deux valeurs partagent une même notation.
-            // `rgb()` historique (virgules, alpha en 4e nombre) et `rgb()`
-            // moderne (espaces, alpha après un `/`) posent les trois canaux
-            // dans le même ordre en premier : on ne compare qu'eux.
-            const canaux = (declaration: string): string =>
-                (/rgba?\(([^)]*)\)/.exec(declaration)?.[1] ?? '')
-                    .split(/[\s,]+/)
-                    .filter(Boolean)
-                    .slice(0, 3)
-                    .join(' ');
+            // avant tout défilement — l'anti-motif exact.
+            //
+            // Le contrat ne se lit plus dans **cette** feuille : `--fond-groupe`
+            // et `--verre` y sont désormais de simples alias (`legacy-bridge.css`)
+            // vers `--color-background-grouped` et `--material-regular`, qui
+            // vivent au palier sémantique. La garantie qu'ils ne peuvent pas
+            // diverger n'est donc plus une égalité de canaux recopiés à comparer
+            // après coup, mais une dérivation depuis la **même primitive**, dans
+            // chaque branche `light-dark()` : `--material-regular` ne recopie
+            // pas une couleur, il l'obtient de la primitive dont
+            // `--color-background-grouped` dérive lui aussi.
+            const groupe =
+                /--color-background-grouped:\s*light-dark\(\s*var\((--[a-z0-9-]+)\)\s*,\s*var\((--[a-z0-9-]+)\)\s*\)/.exec(
+                    semantique,
+                );
+            const verre =
+                /--material-regular:\s*light-dark\(\s*rgb\(from var\((--[a-z0-9-]+)\)[\s\S]*?,\s*rgb\(from var\((--[a-z0-9-]+)\)/.exec(
+                    semantique,
+                );
 
-            const jetons = /^[ \t]*:root \{([\s\S]*?)^[ \t]*\}/m.exec(feuille)?.[1] ?? '';
-            const fond = canaux(/--fond-groupe:\s*(rgba?\([^)]*\))/.exec(jetons)?.[1] ?? '');
-            const verre = canaux(/--verre:\s*(rgba?\([^)]*\))/.exec(jetons)?.[1] ?? '');
-
-            expect(fond).not.toBe('');
-            expect(verre).toBe(fond);
+            expect(groupe?.[1]).toBeTruthy();
+            expect(verre?.[1]).toBe(groupe?.[1]);
+            expect(verre?.[2]).toBe(groupe?.[2]);
         });
     });
 });
@@ -633,18 +634,25 @@ describe('Les corps de texte', () => {
 
 describe("L'apparence sombre", () => {
     describe('Étant donné une personne qui a choisi le thème sombre, quand la feuille se charge', () => {
-        it('alors elle redéfinit les jetons, et rien que les jetons', () => {
+        it('alors elle ne redéfinit plus aucun jeton : la seconde apparence vit dans la déclaration `light-dark()` du palier sémantique', () => {
             // « Even if your app ships in a single appearance mode, provide both
             // light and dark colors to support Liquid Glass adaptivity. » Elle
             // sert aussi le cas d'usage : un schéma de ligne se lit de nuit,
-            // dans un train.
-            const sombre =
-                /@media\s*\(prefers-color-scheme:\s*dark\)\s*\{\s*:root\s*\{([^}]*)\}/s.exec(
-                    feuille,
-                );
+            // dans un train — mais ce n'est plus cette feuille qui la fournit.
+            //
+            // Ce témoin vérifiait qu'un `@media (prefers-color-scheme: dark)`
+            // redéfinissait `:root`, et rien que `:root`. Il n'y a désormais plus
+            // aucun `:root` à redéfinir dans un bloc d'apparence de cette feuille
+            // — `tokens/semantic.css` porte les deux apparences dans une seule
+            // déclaration `light-dark()` par jeton, une fois pour toutes. Le seul
+            // `@media (prefers-color-scheme: dark)` restant ici n'a jamais porté
+            // de jeton : il assombrit les tuiles de la carte, un `filter`, testé
+            // plus loin dans « Les tuiles de la carte ».
+            const rootSombre = /@media\s*\(prefers-color-scheme:\s*dark\)\s*\{\s*:root\s*\{/.exec(
+                feuille,
+            );
 
-            expect(sombre?.[1]).toMatch(/--fond:/);
-            expect(sombre?.[1]).toMatch(/--label:/);
+            expect(rootSombre).toBeNull();
         });
     });
 });

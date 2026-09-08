@@ -1,0 +1,53 @@
+/* Le pont, transitoire.
+ *
+ * `screens/legacy.css` emploie les noms francais des jetons dans des centaines
+ * d'endroits. Plutot que de la reecrire — elle disparait en partie 2 —, chaque
+ * ancien nom devient un alias du role correspondant.
+ *
+ * **Aucune valeur ne se decide ici** : un test verifie que toute declaration de
+ * ce fichier est un `var()`. Le jour ou la feuille en transit meurt, ce fichier
+ * meurt avec elle, et rien d'autre ne bouge.
+ */
+@layer tokens {
+    :root {
+        /* Les fonds */
+        --fond: var(--color-background);
+        --fond-groupe: var(--color-background-grouped);
+        --fond-consigne: var(--color-background-hint);
+        --fond-page: var(--color-page-backdrop);
+
+        /* Les libelles et le filet */
+        --label: var(--color-label);
+        --label-2: var(--color-label-secondary);
+        --label-3: var(--color-label-tertiary);
+        --separateur: var(--color-separator);
+
+        /* Les teintes. Deux noms pointaient deja sur la meme couleur — `--bleu`
+           disait la couleur, `--accent` disait le role : le pont conserve les
+           deux, le systeme n'en garde qu'un. */
+        --bleu: var(--color-accent);
+        --accent: var(--color-accent);
+        --rouge: var(--color-destructive);
+        --destructif: var(--color-destructive);
+        --orange: var(--color-warning);
+        --avertissement: var(--color-warning);
+        --succes: var(--color-success);
+
+        /* « Ma position » porte l'accent : ce n'est pas une couleur de plus,
+           c'est le meme role vu depuis la carte. */
+        --position: var(--color-accent);
+        --sur-teinte: var(--color-on-accent);
+
+        /* Les materiaux et les ombres */
+        --verre: var(--material-regular);
+        --verre-epais: var(--material-thick);
+        --verre-reflet: var(--material-sheen);
+        --ombre-pastille: var(--shadow-badge);
+        --ombre-flottante: var(--shadow-floating);
+
+        /* Les mesures de systeme */
+        --marge-ecran: var(--screen-margin);
+        --rayon-controle: var(--radius-control);
+        --rayon-section: var(--radius-section);
+    }
+}

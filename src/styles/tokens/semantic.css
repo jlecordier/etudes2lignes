@@ -1,0 +1,108 @@
+/* Palier B — les roles.
+ *
+ * Ce que chaque couleur **fait**, et non ce qu'elle est. « L'accent » vit ici ;
+ * « le bleu systeme » vit dans `primitives.css`.
+ *
+ * **Chaque couleur est declaree une seule fois**, par `light-dark()`, qui porte
+ * les deux apparences dans la meme declaration. Il n'y a donc plus de seconde
+ * liste a tenir a jour, et une contrepartie sombre oubliee n'est plus une
+ * omission possible : c'est une erreur de syntaxe.
+ *
+ * La precondition est `color-scheme: light dark` sur la racine, que
+ * `base/elements.css` pose.
+ *
+ * **Ne reference que des primitives** — un test l'affirme.
+ */
+@layer tokens {
+    :root {
+        /* --- Les couleurs de role ----------------------------------------- */
+        --color-label: light-dark(var(--grey-label-light), var(--grey-label-dark));
+        --color-background: light-dark(var(--grey-background-light), var(--grey-background-dark));
+        --color-background-grouped: light-dark(var(--grey-grouped-light), var(--grey-grouped-dark));
+        --color-separator: light-dark(var(--grey-separator-light), var(--grey-separator-dark));
+        --color-label-secondary: light-dark(var(--grey-label-2-light), var(--grey-label-2-dark));
+        --color-label-tertiary: light-dark(var(--grey-label-3-light), var(--grey-label-3-dark));
+
+        /* Le fond d'un encart de consigne : une teinte d'avertissement posee a
+           14 % en clair, 18 % en sombre. Elle **se derive** de la rampe orange
+           au lieu d'en etre une variante recopiee a la main — l'ancienne
+           feuille portait `rgba(255, 141, 40, .14)`, soit trois unites d'ecart
+           avec l'orange systeme, sans qu'aucune raison ne soit ecrite. */
+        --color-background-hint: light-dark(
+            rgb(from var(--orange-light) r g b / 14%),
+            rgb(from var(--orange-dark) r g b / 18%)
+        );
+
+        /* Le fond d'une page de schema : un noir translucide dans les deux
+           apparences, plus opaque en clair pour que la page s'y detache. */
+        --color-page-backdrop: light-dark(rgb(0 0 0 / 72%), rgb(0 0 0 / 60%));
+        --color-accent: light-dark(var(--blue-light), var(--blue-dark));
+        --color-destructive: light-dark(var(--red-light), var(--red-dark));
+        --color-warning: light-dark(var(--orange-light), var(--orange-dark));
+        --color-success: light-dark(var(--green-light), var(--green-dark));
+
+        /* Ce qui se pose **sur** une teinte pleine. Blanc dans les deux
+           apparences, parce que les deux accents sont assez sombres pour le
+           porter : c'est une decision, pas un oubli de contrepartie. */
+        --color-on-accent: light-dark(rgb(255 255 255), rgb(255 255 255));
+
+        /* --- Les materiaux -------------------------------------------------
+           La teinte **se derive du fond** au lieu de le recopier. Une barre au
+           repos doit etre invisible — « Instead of a background, use a scroll
+           edge effect » —, ce qui n'est vrai que si sa teinte et le fond
+           s'accordent. Ecrites separement, elles ont deja divergé.
+
+           La derivation se fait a l'interieur de chaque branche, sur une
+           primitive : `rgb(from …)` a besoin d'une couleur resolue, ce qu'un
+           `light-dark()` n'est pas encore au moment ou il l'evalue. */
+        --material-regular: light-dark(
+            rgb(from var(--grey-grouped-light) r g b / 72%),
+            rgb(from var(--grey-grouped-dark) r g b / 72%)
+        );
+        --material-thick: light-dark(
+            rgb(from var(--grey-background-light) r g b / 86%),
+            rgb(from var(--grey-background-dark) r g b / 86%)
+        );
+
+        /* --- Les ombres ----------------------------------------------------
+           La geometrie est invariante, la couleur non : d'ou la separation. */
+        --shadow-color: light-dark(rgb(0 0 0 / 20%), rgb(0 0 0 / 60%));
+        --shadow-badge: 0 1px 4px var(--shadow-color);
+        --shadow-floating: 0 2px 12px var(--shadow-color);
+        --material-sheen: inset 0 1px 0 light-dark(rgb(255 255 255 / 60%), rgb(255 255 255 / 16%));
+
+        /* --- Les mesures de systeme ----------------------------------------
+           « The minimum tappable area for any control is 44x44 pt. » C'est une
+           decision de systeme, que plusieurs composants lisent : elle ne peut
+           donc pas etre un jeton de composant. */
+        --hit-target: var(--space-44);
+        --screen-margin: var(--space-16);
+        --radius-control: var(--radius-12);
+        --radius-section: var(--radius-22);
+    }
+
+    /* Le contraste eleve ne surcharge **que** ce palier : les primitives
+       gardent leurs rampes, les composants ne savent rien de ce mode. */
+    @media (prefers-contrast: more) {
+        :root {
+            --color-accent: light-dark(var(--blue-contrast-light), var(--blue-contrast-dark));
+            --color-destructive: light-dark(var(--red-contrast-light), var(--red-contrast-dark));
+            --color-label-secondary: light-dark(
+                var(--grey-label-2-contrast-light),
+                var(--grey-label-2-contrast-dark)
+            );
+            --color-label-tertiary: light-dark(
+                var(--grey-label-3-contrast-light),
+                var(--grey-label-3-contrast-dark)
+            );
+            --material-regular: light-dark(
+                rgb(from var(--grey-background-light) r g b / 96%),
+                rgb(from var(--grey-background-dark) r g b / 96%)
+            );
+            --material-thick: light-dark(
+                rgb(from var(--grey-background-light) r g b / 98%),
+                rgb(from var(--grey-background-dark) r g b / 98%)
+            );
+        }
+    }
+}

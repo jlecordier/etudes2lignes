@@ -35,7 +35,13 @@
         ],
         "csstools/value-no-unknown-custom-properties": [
             true,
-            { "importFrom": ["src/styles/tokens/primitives.css"] }
+            {
+                "importFrom": [
+                    "src/styles/tokens/primitives.css",
+                    "src/styles/tokens/semantic.css",
+                    "src/styles/screens/legacy-bridge.css"
+                ]
+            }
         ]
     },
     "overrides": [
