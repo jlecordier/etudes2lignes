@@ -14,6 +14,33 @@ test.describe('La planche de référence', () => {
         expect(await pastilles.count()).toBeGreaterThan(60);
     });
 
+    test("Étant donné les boutons d'apparence, quand je bascule vers Sombre, alors un jeton résolu change vraiment", async ({
+        page,
+    }) => {
+        await page.goto('/design/');
+
+        const jetonResolu = () =>
+            page.evaluate(() =>
+                getComputedStyle(document.documentElement).getPropertyValue('--color-label').trim(),
+            );
+
+        // `light-dark()` est compilé au build (lightningcss) en une paire de
+        // jetons internes que seule une déclaration `color-scheme` bascule —
+        // c'est précisément ce que les boutons de la planche posent
+        // (`[data-apparence]`), et non plus le `color-scheme` posé en ligne
+        // par le script, sourd au `light-dark()` déjà abaissé. Sans la
+        // déclaration CSS, les deux lectures ci-dessous seraient identiques.
+        await page.getByRole('button', { name: 'Clair' }).click();
+        const clair = await jetonResolu();
+
+        await page.getByRole('button', { name: 'Sombre' }).click();
+        const sombre = await jetonResolu();
+
+        expect(clair).not.toBe('');
+        expect(sombre).not.toBe('');
+        expect(sombre).not.toBe(clair);
+    });
+
     test('Étant donné la planche, quand je lis un style de texte, alors ses trois métriques y sont mesurées', async ({
         page,
     }) => {
