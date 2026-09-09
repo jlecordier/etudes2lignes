@@ -162,14 +162,14 @@ describe('Le palier des primitives', () => {
 const semantique = feuilles['./tokens/semantic.css'] ?? '';
 const pont = feuilles['./screens/legacy-bridge.css'] ?? '';
 
-describe('Le palier semantique', () => {
-    describe('Étant donné les deux apparences, quand on cherche ou elles sont ecrites', () => {
-        it("alors aucune couleur ne vit dans une requete d'apparence", () => {
-            // Le defaut d'origine : `--verre` et `--verre-reflet` manquaient au
-            // bloc sombre, et le bouton flottant etait un disque blanc portant
-            // un symbole blanc. Un test l'a vu **apres** la publication.
-            // `light-dark()` ne laisse pas la place a l'oubli : les deux
-            // valeurs sont dans la meme declaration.
+describe('Le palier sémantique', () => {
+    describe('Étant donné les deux apparences, quand on cherche où elles sont écrites', () => {
+        it("alors aucune couleur ne vit dans une requête d'apparence", () => {
+            // Le défaut d'origine : `--verre` et `--verre-reflet` manquaient au
+            // bloc sombre, et le bouton flottant était un disque blanc portant
+            // un symbole blanc. Un test l'a vu **après** la publication.
+            // `light-dark()` ne laisse pas la place à l'oubli : les deux
+            // valeurs sont dans la même déclaration.
             const blocsSombres =
                 systeme.match(/@media \(prefers-color-scheme: dark\)[\s\S]*?\n\}/g) ?? [];
             const couleursDedans = blocsSombres.filter((bloc) => /--color-|--material-/.test(bloc));
@@ -178,8 +178,8 @@ describe('Le palier semantique', () => {
         });
     });
 
-    describe('Étant donné un role de couleur, quand on lit sa declaration', () => {
-        it('alors elle porte ses deux apparences a la fois', () => {
+    describe('Étant donné un rôle de couleur, quand on lit sa déclaration', () => {
+        it('alors elle porte ses deux apparences à la fois', () => {
             const roles = semantique.match(/--(?:color|material)-[a-z-]+:[^;]+;/g) ?? [];
             const sansLesDeux = roles.filter((d) => !d.includes('light-dark('));
 
@@ -188,13 +188,13 @@ describe('Le palier semantique', () => {
         });
     });
 
-    describe('Étant donné le palier semantique, quand on regarde ce dont il depend', () => {
-        it('alors chacun de ses var() designe une primitive, et jamais un role', () => {
-            // La regle des paliers : un palier ne reference que celui du dessus.
+    describe('Étant donné le palier sémantique, quand on regarde ce dont il dépend', () => {
+        it('alors chacun de ses var() désigne une primitive, et jamais un rôle', () => {
+            // La règle des paliers : un palier ne référence que celui du dessus.
             const references = [...semantique.matchAll(/var\((--[a-z0-9-]+)/g)].map((m) => m[1]);
-            // Un role peut s'appuyer sur un role du meme palier — rien
-            // n'interdit un alias vers un autre role de `semantic.css`. Ce
-            // que la regle interdit, c'est de descendre chercher **plus
+            // Un rôle peut s'appuyer sur un rôle du même palier — rien
+            // n'interdit un alias vers un autre rôle de `semantic.css`. Ce
+            // que la règle interdit, c'est de descendre chercher **plus
             // bas** que soi.
             const horsPalier = references.filter(
                 (nom) => !primitives.includes(`${nom}:`) && !semantique.includes(`${nom}:`),
@@ -204,17 +204,17 @@ describe('Le palier semantique', () => {
         });
     });
 
-    describe('Étant donné la teinte du verre, quand on cherche d ou elle vient', () => {
-        it('alors elle se derive du fond, au lieu de le recopier', () => {
-            // Elle etait une copie manuelle : `--verre: rgba(242, 242, 247, .72)`
-            // devait s'accorder a la main avec `--fond-groupe`. Deux valeurs a
-            // tenir d'accord, donc deux valeurs qui derivent.
+    describe('Étant donné la teinte du verre, quand on cherche d où elle vient', () => {
+        it('alors elle se dérive du fond, au lieu de le recopier', () => {
+            // Elle était une copie manuelle : `--verre: rgba(242, 242, 247, .72)`
+            // devait s'accorder à la main avec `--fond-groupe`. Deux valeurs à
+            // tenir d'accord, donc deux valeurs qui dérivent.
             expect(semantique).toMatch(/--material-regular:[^;]*rgb\(from var\(--grey-grouped/);
         });
     });
 
-    describe('Étant donné le pont vers la feuille en transit, quand on l ouvre', () => {
-        it("alors il n'y a que des alias : aucune valeur ne s'y decide", () => {
+    describe("Étant donné le pont vers la feuille en transit, quand on l'ouvre", () => {
+        it("alors il n'y a que des alias : aucune valeur ne s'y décide", () => {
             const declarations = pont.match(/--[a-z-]+:[^;]+;/g) ?? [];
             const quiDecident = declarations.filter((d) => !/:\s*var\(--/.test(d));
 
@@ -223,20 +223,20 @@ describe('Le palier semantique', () => {
         });
     });
 
-    describe('Étant donné le palier contraste eleve, quand on regarde ce qu il surcharge', () => {
-        it('alors les sept roles que l ancienne feuille y redefinissait y sont, le separateur compris', () => {
-            // Mesure : un premier passage omettait --separateur. Le contraste
-            // eleve existe pour renforcer le filet — de 29 % a 70 % d'opacite
+    describe("Étant donné le palier contraste élevé, quand on regarde ce qu'il surcharge", () => {
+        it("alors les sept rôles que l'ancienne feuille y redéfinissait y sont, le séparateur compris", () => {
+            // Mesuré : un premier passage omettait --separateur. Le contraste
+            // élevé existe pour renforcer le filet — de 29 % à 70 % d'opacité
             // — et l'omission le laissait au poids normal, l'inverse exact de
-            // la raison d'etre du mode, sur huit sites de bordure. Le seul
-            // temoin qui parlait jusqu'ici de ce mode verifiait la presence de
-            // la chaine `prefers-contrast: more`, et passait pour une raison
-            // sans rapport avec les roles qu'il surcharge reellement.
+            // la raison d'être du mode, sur huit sites de bordure. Le seul
+            // témoin qui parlait jusqu'ici de ce mode vérifiait la présence de
+            // la chaîne `prefers-contrast: more`, et passait pour une raison
+            // sans rapport avec les rôles qu'il surcharge réellement.
             //
-            // Extraction par comptage d'accolades plutot que par regex
-            // paresseuse : le bloc contient lui-meme des accolades imbriquees
+            // Extraction par comptage d'accolades plutôt que par regex
+            // paresseuse : le bloc contient lui-même des accolades imbriquées
             // (`light-dark(...)` sur plusieurs lignes), qu'un `[\s\S]*?\n\}`
-            // capturerait trop tot ou trop tard selon l'indentation.
+            // capturerait trop tôt ou trop tard selon l'indentation.
             const debut = semantique.indexOf('@media (prefers-contrast: more) {');
             expect(debut).toBeGreaterThanOrEqual(0);
 
@@ -324,15 +324,23 @@ function couperALaVirguleDeSommet(contenu: string): [string, string] {
     return [contenu.slice(0, coupure).trim(), contenu.slice(coupure + 1).trim()];
 }
 
-/** Extrait les deux arguments de chaque appel `light-dark(...)` du système. */
+/** Le texte, commentaires CSS retirés : un exemple en prose ne doit ni faire
+ *  rougir l'invariant, ni compter pour son garde de non-vacuité. */
+function sansCommentaires(texte: string): string {
+    return texte.replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
+/** Extrait les deux arguments de chaque appel `light-dark(...)` du système,
+ *  hors commentaires. */
 function argumentsDeChaqueLightDark(texte: string): [string, string][] {
     const paires: [string, string][] = [];
     const motif = /light-dark\(/g;
     let correspondance;
+    const sansProse = sansCommentaires(texte);
 
-    while ((correspondance = motif.exec(texte)) !== null) {
+    while ((correspondance = motif.exec(sansProse)) !== null) {
         const depuis = correspondance.index + correspondance[0].length;
-        const contenu = contenuEntreParentheses(texte, depuis);
+        const contenu = contenuEntreParentheses(sansProse, depuis);
         paires.push(couperALaVirguleDeSommet(contenu));
     }
 
@@ -363,7 +371,7 @@ function contientUnEspaceHorsParentheses(argument: string): boolean {
 }
 
 describe('La grammaire de light-dark()', () => {
-    describe('Étant donné une déclaration light-dark(), quand on regarde ce qu elle enveloppe', () => {
+    describe("Étant donné une déclaration light-dark(), quand on regarde ce qu'elle enveloppe", () => {
         it("alors chacun de ses deux arguments n'est qu'une couleur, jamais une géométrie", () => {
             // `light-dark()` est une fonction de couleur : sa grammaire est
             // `light-dark(<color>, <color>)`. L'envelopper autour d'un
@@ -392,6 +400,47 @@ describe('La grammaire de light-dark()', () => {
 
             expect(paires.length).toBeGreaterThan(0);
             expect(fautifs).toEqual([]);
+        });
+    });
+
+    describe("Étant donné un exemple invalide écrit dans un commentaire, quand on lit ce qu'il enveloppe", () => {
+        it("alors l'invariant ne le voit pas, mais rougit toujours sur la même forme écrite hors commentaire", () => {
+            // Le défaut à couvrir : lire le système « commentaires compris »
+            // ferait rougir l'invariant sur cet exemple en prose — un faux
+            // échec, puisque rien n'est déclaré ici.
+            const texteFictif = `
+                /* Jamais valide, à ne montrer qu'en exemple :
+                   light-dark(0 1px 4px rgb(0 0 0 / 40%), red) */
+                --ombre-fictive: light-dark(0 1px 4px rgb(0 0 0 / 40%), red);
+            `;
+
+            const paires = argumentsDeChaqueLightDark(texteFictif);
+            const fautifs = paires.filter(
+                ([premier, second]) =>
+                    contientUnEspaceHorsParentheses(premier) ||
+                    contientUnEspaceHorsParentheses(second),
+            );
+
+            // Une seule paire : celle du commentaire a disparu avec lui : seule
+            // la vraie déclaration reste, et c'est elle qui rougit.
+            expect(paires).toHaveLength(1);
+            expect(fautifs).toHaveLength(1);
+        });
+    });
+
+    describe("Étant donné une mention de light-dark() qui ne vit que dans un commentaire, quand on regarde ce que l'invariant en tire", () => {
+        it('alors le garde de non-vacuité ne compte aucune paire', () => {
+            // Le second symptôme du même défaut : `semantic.css` porte trois
+            // `light-dark(...)` en commentaire, ce qui suffisait aujourd'hui à
+            // satisfaire `paires.length > 0` même si la vraie feuille n'en
+            // déclarait aucun.
+            const texteFictif = `
+                /* light-dark(A, B) — seulement un exemple, jamais une déclaration */
+            `;
+
+            const paires = argumentsDeChaqueLightDark(texteFictif);
+
+            expect(paires).toEqual([]);
         });
     });
 });

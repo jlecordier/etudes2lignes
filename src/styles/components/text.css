@@ -4,7 +4,9 @@
  * n'en appliquer qu'une part, c'est ne pas employer le style — et c'était le
  * défaut le plus répandu de l'ancienne feuille.
  *
- * Ces classes sont le **seul** endroit du système où `font-size`,
+ * Ces classes sont, avec les défauts de `h1`, `h2` et `h3` posés par
+ * `base/elements.css` (qui portent eux-mêmes un style d'iOS plutôt que
+ * leurs propres métriques), le seul endroit du système où `font-size`,
  * `line-height` et `letter-spacing` s'écrivent. Ailleurs, on porte la classe.
  */
 @layer components {

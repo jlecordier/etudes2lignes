@@ -72,8 +72,8 @@
 
         /* La marge d'écran suit le corps du texte, et non l'échelle en `px`
            ci-dessus : la racine du document est posée à 17px par défaut
-           (`screens/legacy.css`, en attendant que la partie 2 la reprenne),
-           pour suivre la taille dynamique d'iOS — `1rem` y vaut donc 17px,
+           (`base/elements.css`, depuis la tâche 6), pour suivre la taille
+           dynamique d'iOS — `1rem` y vaut donc 17px,
            pas les 16px de `--space-16`. Mesuré : les remplacer par erreur
            avait rétréci la marge d'un pixel, silencieusement, et fait
            dériver le calcul de défilement du suivi de près de 200px sur une
@@ -84,7 +84,7 @@
 
         /* --- Les rayons ---------------------------------------------------
            « Consider aligning the shape of controls with other rounded
-           elements throughout the interface. » Quatre marches et la pilule. */
+           elements throughout the interface. » Cinq marches et la pilule. */
         --radius-4: 4px;
         --radius-8: 8px;
         --radius-12: 12px;
