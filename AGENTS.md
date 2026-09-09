@@ -124,6 +124,16 @@ The interface follows Apple's Liquid Glass. The reasoning, the citations and the
 measurements are in **[docs/LIQUID-GLASS.md](docs/LIQUID-GLASS.md)** (French,
 human-facing); what follows is the operative part.
 
+**Platform floor: Safari 16.4 / iOS 16.4** for the material itself — not
+negotiable, and not something a compiler lowers. The glass tint derives from
+the page's own background via a relative colour (`rgb(from var(--…) r g b /
+…%)`), because two hand-written values had already drifted apart once; a
+relative colour's origin is a `var()`, resolved only at run time, so no build
+target can downlevel it the way `min-width` stands in for the modern media
+query range syntax elsewhere. Below 16.4 the `@supports` fallback already
+documented below still applies — an opaque fill, not a crash — so this floor
+bounds the material only, not the rest of the layout.
+
 **The one rule everything else descends from:** there are two layers. The
 _content_ layer — schema pages, map, list rows, overview, point markers — is
 never glass. The _functional_ layer — bars, floating controls, map controls —

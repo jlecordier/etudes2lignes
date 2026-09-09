@@ -1,4 +1,5 @@
 {
+    "//media-feature-range-notation": "force la notation `(min-width: 560px)` : la notation `(width >= 560px)` que corrige stylelint --fix n'est comprise qu'à partir de Safari 16.4, et ce dépôt vise plus bas.",
     "extends": ["stylelint-config-standard"],
     "plugins": [
         "stylelint-declaration-strict-value",
@@ -8,6 +9,7 @@
     "rules": {
         "property-no-vendor-prefix": null,
         "no-descending-specificity": null,
+        "media-feature-range-notation": "prefix",
         "scale-unlimited/declaration-strict-value": [
             [
                 "color",

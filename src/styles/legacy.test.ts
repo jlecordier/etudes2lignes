@@ -769,9 +769,10 @@ describe('La couche fonctionnelle', () => {
 describe('Le verre de la couche fonctionnelle', () => {
     describe('Étant donné une barre à mettre en verre, quand la feuille pose son flou', () => {
         it('alors il est toujours doublé de sa jumelle préfixée, et jamais dans un var()', () => {
-            // Un iPhone encore sous iOS 16 ou 17 n'a que la propriété préfixée,
-            // et l'unpréfixée est cassée jusqu'à macOS 14.7 (bogue WebKit
-            // 297620) : chaque `backdrop-filter` doit voyager avec sa jumelle.
+            // Un iPhone encore sous iOS 16.4 ou une version plus récente n'a
+            // que la propriété préfixée, et l'unpréfixée est cassée jusqu'à
+            // macOS 14.7 (bogue WebKit 297620) : chaque `backdrop-filter` doit
+            // voyager avec sa jumelle.
             const flous = [...feuille.matchAll(/(?<!-webkit-)backdrop-filter:\s*([^;]+);/g)];
             const prefixes = [...feuille.matchAll(/-webkit-backdrop-filter:/g)];
 
@@ -932,8 +933,9 @@ describe('La feuille de style', () => {
                 /@media\s*\(prefers-color-scheme:\s*dark\)/.test(feuille),
             );
 
-            // Un iPhone 14 encore sous iOS 16 ou 17 n'a que la propriété
-            // préfixée : chaque `backdrop-filter` doit voyager avec sa jumelle.
+            // Un iPhone 14 encore sous iOS 16.4 ou une version plus récente
+            // n'a que la propriété préfixée : chaque `backdrop-filter` doit
+            // voyager avec sa jumelle.
             const flous = [...feuille.matchAll(/(?<!-webkit-)backdrop-filter:/g)].length;
             const flousPrefixes = [...feuille.matchAll(/-webkit-backdrop-filter:/g)].length;
             exige(
