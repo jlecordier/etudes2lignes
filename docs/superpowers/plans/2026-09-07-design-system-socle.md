@@ -2176,6 +2176,20 @@ git commit -m "Transforme en tests les mesures qu'un signalement avait fallu"
 
 - Les **onze composants** et leurs contrats ; `.header` et `.suivi-bar` fondus en un seul `bar`.
 - La **migration des noms de classes** : 41 en HTML, 11 en TypeScript, 5 en e2e, et les quatre pieges de chaines de l'ADR 0007.
+- **Avant de supprimer `legacy.test.ts`**, migrer vers `styles.test.ts` les
+  témoins qui lisent le socle et le palier sémantique, sans quoi trois
+  contrats de fichiers **permanents** disparaîtraient en silence,
+  `pnpm quality` restant vert — `legacy.test.ts` en est aujourd'hui le seul
+  témoin :
+    - L'ordre `font-size` puis `font: -apple-system-body` de la règle `html`
+      (« L'échelle typographique » → « alors la racine suit la taille
+      dynamique d'iOS, avec un repli pour les autres »).
+    - `touch-action: pan-x pan-y` et `-webkit-user-select` sur `body`
+      (les deux `exige(...)` juste après le témoin `.icon` dimensionnée et
+      tracée).
+    - La dérivation du verre depuis la même primitive que le fond groupé
+      (« La teinte du verre au repos » → « alors sa teinte se dérive du même
+      fond que la page, donc elle ne se voit pas »).
 - La mort de `screens/legacy.css`, de `screens/legacy-bridge.css` et de `styles/legacy.test.ts` — et avec elle le retour a **zero** avertissement `declaration-strict-value`.
 - Les **90 references visuelles**, generees dans le dev container — la seule
   chose qui reste a faire sur la planche, sa publication etant reglee en Task 7.
