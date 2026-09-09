@@ -5,6 +5,7 @@
         /* Le repli, pour les moteurs qui ignorent la ligne suivante. 17 px,
            parce que c'est la taille par défaut d'iOS, et non les 16 px du
            navigateur. */
+        /* stylelint-disable-next-line scale-unlimited/declaration-strict-value -- repli littéral, aucun jeton ne porte la taille par défaut d'iOS */
         font-size: 17px;
 
         /* La seule accroche web à la taille dynamique d'iOS. Elle **écrase**

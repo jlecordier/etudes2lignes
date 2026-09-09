@@ -20,7 +20,10 @@
                 "line-height",
                 "letter-spacing",
                 "border-radius",
-                "gap"
+                "gap",
+                "padding",
+                "margin",
+                "box-shadow"
             ],
             {
                 "ignoreKeywords": [
@@ -32,6 +35,7 @@
                     "unset",
                     "initial"
                 ],
+                "ignoreValues": ["0"],
                 "disableFix": true
             }
         ],
@@ -52,11 +56,7 @@
             "rules": { "scale-unlimited/declaration-strict-value": null }
         },
         {
-            "files": [
-                "src/styles/screens/legacy.css",
-                "src/style.css",
-                "src/styles/base/elements.css"
-            ],
+            "files": ["src/styles/screens/legacy.css"],
             "rules": {
                 "scale-unlimited/declaration-strict-value": [
                     [
@@ -68,7 +68,10 @@
                         "line-height",
                         "letter-spacing",
                         "border-radius",
-                        "gap"
+                        "gap",
+                        "padding",
+                        "margin",
+                        "box-shadow"
                     ],
                     {
                         "ignoreKeywords": [
@@ -80,6 +83,7 @@
                             "unset",
                             "initial"
                         ],
+                        "ignoreValues": ["0"],
                         "disableFix": true,
                         "severity": "warning"
                     }
