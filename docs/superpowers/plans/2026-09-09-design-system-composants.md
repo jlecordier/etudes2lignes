@@ -88,7 +88,7 @@ Et une leçon plus fine, payée trois fois : **mesurer le rendu, jamais la chaî
 
 **Interfaces:**
 
-- Produces: la classe `.surface`, ses modificateurs `.surface--regular` et `.surface--thick`, et le jeton de composant `--surface-blur`. Toutes les tâches suivantes composent avec elle au lieu de redéclarer le verre.
+- Produces: la classe `.surface`, ses modificateurs `.surface-regular` et `.surface-thick`, et le jeton de composant `--surface-blur`. Toutes les tâches suivantes composent avec elle au lieu de redéclarer le verre.
 
 **Pourquoi celle-ci d'abord.** Huit règles redéclarent aujourd'hui `backdrop-filter`. Tant qu'elles existent, chaque composant extrait en emporterait une copie. Ce fichier les absorbe une fois pour toutes.
 
@@ -193,7 +193,7 @@ git commit -m "Rassemble en un seul fichier le verre que huit regles redeclaraie
 **Interfaces:**
 
 - Consumes: `.surface` de la tâche 1.
-- Produces: la classe `.bar`, ses modificateurs `.bar--navigation` et `.bar--status`, et les jetons `--bar-air` et `--bar-height`.
+- Produces: la classe `.bar`, ses modificateurs `.bar-navigation` et `.bar-status`, et les jetons `--bar-air` et `--bar-height`.
 
 **C'est la tâche fondatrice du chantier.** Le défaut d'origine — un en-tête de 44 px face à une barre de suivi de 62 — venait de ce que deux règles écrivaient chacune leur rembourrage. Après cette tâche, **il n'y a plus deux barres** : il y a un composant, et deux modificateurs qui ne touchent pas à sa hauteur.
 
@@ -213,7 +213,7 @@ describe('La barre d écran', () => {
 
             expect(declarationsDeHauteur).toHaveLength(2);
             // Les modificateurs ne redefinissent ni l'un ni l'autre.
-            const modificateurs = bar.match(/\.bar--[a-z]+\s*\{([^}]*)\}/g) ?? [];
+            const modificateurs = bar.match(/\.bar-[a-z]+\s*\{([^}]*)\}/g) ?? [];
             expect(modificateurs.length).toBeGreaterThan(0);
             expect(modificateurs.filter((m) => /--bar-(?:air|height)/.test(m))).toEqual([]);
         });
@@ -253,7 +253,7 @@ La hauteur vit dans **un** jeton :
 }
 ```
 
-`.bar--navigation` reçoit ce qui appartenait à `.header` seul — la marge négative qui annule le rembourrage d'écran, le titre en ellipse, la rangée d'actions qui ne plie pas. `.bar--status` reçoit ce qui appartenait à `.suivi-bar` seul. **Ni l'un ni l'autre ne redéclare `--bar-air` ou `--bar-height`** : c'est ce que le témoin vérifie, et c'est ce qui rend la dérive impossible.
+`.bar-navigation` reçoit ce qui appartenait à `.header` seul — la marge négative qui annule le rembourrage d'écran, le titre en ellipse, la rangée d'actions qui ne plie pas. `.bar-status` reçoit ce qui appartenait à `.suivi-bar` seul. **Ni l'un ni l'autre ne redéclare `--bar-air` ou `--bar-height`** : c'est ce que le témoin vérifie, et c'est ce qui rend la dérive impossible.
 
 - [ ] **Step 4 : vérifier que la géométrie n'a pas bougé, puis committer**
 
@@ -278,7 +278,7 @@ git add src/styles && git commit -m "Fond les deux barres en un composant, et la
 **Interfaces:**
 
 - Consumes: `.surface` (tâche 1).
-- Produces: `.button` avec `.button--prominent`, `.button--plain`, `.button--destructive`, `.button--icon` ; `.button-group` ; `.floating-action`. Jetons : `--group-padding` et `--group-radius`, dont le témoin des rayons concentriques vérifie l'appariement. Le bouton, lui, prend son rayon du palier sémantique (`--radius-pill` pour la gélule) : un jeton de composant qui ne ferait que renommer un jeton de système est une indirection de plus, pas un contrat.
+- Produces: `.button` avec `.button-prominent`, `.button-plain`, `.button-destructive`, `.button-icon` ; `.button-group` ; `.floating-action`. Jetons : `--group-padding` et `--group-radius`, dont le témoin des rayons concentriques vérifie l'appariement. Le bouton, lui, prend son rayon du palier sémantique (`--radius-pill` pour la gélule) : un jeton de composant qui ne ferait que renommer un jeton de système est une indirection de plus, pas un contrat.
 
 **Les trois vont ensemble** parce que deux règles de la HIG les lient : le verre se pose **sur le groupe** et non sur chaque bouton, et les rayons sont **concentriques** — le rayon intérieur vaut l'extérieur moins le rembourrage. Séparer ces trois fichiers dans trois tâches reviendrait à écrire deux fois la même contrainte.
 
@@ -363,7 +363,7 @@ git add src/styles && git commit -m "Donne un nom aux controles, et le verre au 
 
 **Interfaces:**
 
-- Produces: `.badge`, `.row`, `.panel`, `.banner` avec `.banner--simulation` et `.banner--offline`, `.field`. Jeton : `--badge-size`.
+- Produces: `.badge`, `.row`, `.panel`, `.banner` avec `.banner-simulation` et `.banner-offline`, `.field`. Jeton : `--badge-size`.
 
 **Les cinq vont ensemble** parce qu'ils partagent une règle et une seule : **la couche de contenu ne porte jamais de verre**. « Don't use Liquid Glass in the content layer. » Un témoin unique les couvre tous les cinq, ce qui serait cinq témoins identiques si on les séparait.
 
