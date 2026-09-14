@@ -20,14 +20,6 @@
         /* Passe à 1 dans la requête média du grand écran, plus bas. */
         --large-screen: 0;
 
-        /* L'air qu'une barre laisse au-dessus et au-dessous de ses contrôles, et
-       donc ce qui fixe sa hauteur : un contrôle de 44 px et cet air deux fois.
-       Nommé pour la même raison que la marge — les deux barres d'écran doivent
-       s'accorder, et chacune l'écrivant de son côté, elles avaient dérivé de
-       18 px. L'en-tête, lui, n'en avait aucun : ses boutons touchaient les
-       deux bords. */
-        --air-barre: 0.5rem;
-
         /* Le rayon **intérieur** n'est pas une valeur de plus : il se *calcule*
        depuis celui de la section qui le contient (`--rayon-section`, alias du
        palier sémantique) moins le rembourrage qui les sépare. C'est la règle
@@ -66,109 +58,6 @@
         display: block;
         min-height: 100dvh;
         padding: var(--marge-ecran);
-    }
-
-    /* Le rythme vertical des deux barres d'écran, écrit **une** fois : l'en-tête de
-   la liste et de l'éditeur, la barre d'état du suivi. Elles jouent le même rôle
-   — la couche fonctionnelle posée au-dessus du contenu — et une barre qui change
-   de hauteur d'un écran à l'autre se voit. */
-    .header,
-    .suivi-bar {
-        padding-block: var(--air-barre);
-    }
-
-    /* La barre de navigation **flotte au-dessus** du contenu : « Liquid Glass forms
-   a distinct functional layer […] that floats above the content layer. »
-
-   Elle était en `position: static`, donc elle défilait avec la page — rien ne
-   passait jamais dessous, et son flou n'échantillonnait rien. Du verre sans
-   objet.
-
-   Et elle était encartée par le rembourrage de l'écran, ce qui en faisait une
-   carte flottante plutôt qu'une barre : les marges négatives l'annulent, et le
-   rembourrage interne lui rend l'air que la marge lui donnait. */
-    .header {
-        position: sticky;
-        top: 0;
-        z-index: 30;
-        margin-inline: calc(-1 * var(--marge-ecran));
-        padding-inline: var(--marge-ecran);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        margin-bottom: 1rem;
-
-        /* Volontairement **sans** `flex-wrap` : l'en-tête de l'éditeur porte trois
-       éléments (retour, titre, Suivre) et plier les envoyait sur trois lignes,
-       ce qui coûtait plus de hauteur qu'un titre serré. C'est le libellé des
-       boutons qui cède la place au titre, pas la ligne qui se casse. */
-    }
-
-    /* L'effet de bord de défilement, que la HIG substitue au fond d'une barre :
-   « Instead of a background, use a scroll edge effect to provide a transition
-   between content and the control area. »
-
-   Et elle précise ce qu'il n'est pas : « They don't block or darken like
-   overlays; they exist to ensure controls stay visually distinct. » C'est donc
-   un dégradé **de la couleur du fond vers rien**, et non un voile — le contenu
-   s'y fond au lieu d'y être assombri.
-
-   Il appartient au **défilement**, pas à la barre : d'où une bande posée sous
-   elle plutôt qu'une ombre portée, et transparente aux clics, pour que le
-   contenu continue de passer dessous sans qu'elle l'intercepte.
-
-   Un seul par vue, comme la HIG l'exige : l'en-tête sur la liste et l'éditeur,
-   la barre d'état sur le suivi — jamais les deux à la fois sur un même écran. */
-    .header::after,
-    .suivi-bar::after {
-        content: '';
-        position: absolute;
-        inset-inline: 0;
-        top: 100%;
-        block-size: 20px;
-        pointer-events: none;
-        background: linear-gradient(to bottom, var(--fond-groupe), transparent);
-    }
-
-    /* Un bouton d'en-tête garde sa largeur, c'est le titre qui plie : à trois
-   éléments sur un téléphone, tout se comprimait au prorata et « Suivre » se
-   cassait en deux à l'intérieur de son propre bouton. */
-    .header > button {
-        flex-shrink: 0;
-    }
-
-    /* Et « plier » veut dire **s'abréger**, pas passer à la ligne : la règle de
-   `.header` est sans `flex-wrap` précisément pour que la barre garde sa hauteur,
-   et un titre qui se casse en deux la fait grandir de tout ce qu'on voulait lui
-   épargner. Un nom de trajet est long par nature — « Paris → Bordeaux » y
-   suffisait déjà. */
-
-    /* Le titre d'une **barre de navigation** prend Headline : 17 pt semibold, le
-   corps du texte distingué par sa seule graisse — le geste de hiérarchie le
-   moins coûteux d'Apple, et le bon dans une barre.
-
-   Title 2 Bold, qu'il portait, est un titre de *contenu* : entre un chevron et
-   une action, il écrasait tout et se tronquait. Mesuré : « Paris → Bordeaux »
-   tombait à « Paris → Bordea… » sur 390 px. */
-
-    /* La barre d'actions imbriquée ne plie pas davantage : `.header` est sans
-   `flex-wrap` exprès, mais elle pliait pour son propre compte. Mesuré sur un
-   iPhone 12 mini — 360 px, la plus étroite des cibles de la HIG : l'icône
-   d'import se retrouvait seule sur une rangée au-dessus de « Nouveau trajet »,
-   et l'en-tête doublait de hauteur. */
-    .header .action-bar {
-        flex-wrap: nowrap;
-    }
-
-    .header :is(h1, h2) {
-        font-size: 1rem;
-        line-height: 1.294;
-        letter-spacing: -0.026em;
-        font-weight: 600;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
     }
 
     /* Un bouton porte un pictogramme et, souvent, un libellé masquable : c'est ce
@@ -1084,40 +973,6 @@
     .suivi-body {
         display: flex;
         align-items: flex-start;
-    }
-
-    .suivi-bar {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-
-        /* Seulement l'horizontal : le vertical est celui que les deux barres
-       partagent, et un raccourci `padding` l'écraserait. */
-        padding-inline: var(--marge-ecran);
-
-        /* Sans filet : son `::after` porte déjà l'effet de bord, et la HIG le donne
-       **à la place** d'un fond ou d'un trait. Le filet était la seule chose qui
-       restait visible quand rien n'a défilé, et la seule différence de hauteur
-       qui subsistait entre les deux barres.
-
-       Le fond opaque d'un moteur sans le verre vit dans le repli
-       `@supports not`, plus bas : sans condition ici, il gagnerait toujours
-       sur celui de `components/surface.css`, la couche `components` perdant
-       face à `screens` quelle que soit la spécificité. */
-    }
-
-    .suivi-status {
-        flex: 1;
-        min-width: 8rem;
-
-        /* Footnote : 13/18. */
-        font-size: 0.765rem;
-        line-height: 1.385;
-        color: var(--avertissement);
     }
 
     .simulation-banner {

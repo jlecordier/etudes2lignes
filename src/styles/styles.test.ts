@@ -601,16 +601,56 @@ describe('Le matériau', () => {
             const classesDuVerre = classesDe(pose?.[2] ?? '');
             const classesDuRepli = classesDe(repli?.[2] ?? '');
 
-            // `.header` et `.carte-bar` ne portaient ni fond ni ombre en
-            // dehors du verre : les omettre du repli n'est pas un oubli,
-            // c'est qu'ils n'ont jamais eu de valeur à y répéter.
-            const EXCEPTIONS = new Set(['.header', '.carte-bar']);
+            // `.carte-bar` ne portait ni fond ni ombre en dehors du verre :
+            // l'omettre du repli n'est pas un oubli, c'est qu'il n'a jamais
+            // eu de valeur à y répéter — la tâche 5 en décidera. `.header`
+            // en sortait aussi jusqu'à la tâche 2 (partie 2), mais pour la
+            // mauvaise raison : c'était le défaut fondateur du chantier, pas
+            // un choix. Il a désormais son repli, comme tous les autres.
+            const EXCEPTIONS = new Set(['.carte-bar']);
 
             const oublies = [...classesDuVerre].filter(
                 (classe) => !EXCEPTIONS.has(classe) && !classesDuRepli.has(classe),
             );
 
             expect(oublies).toEqual([]);
+        });
+    });
+});
+
+const bar = feuilles['./components/bar.css'] ?? '';
+
+describe('La barre d écran', () => {
+    describe('Étant donné les deux barres, quand on cherche ce qui fixe leur hauteur', () => {
+        it("alors un seul jeton la porte, et aucun modificateur n'y touche", () => {
+            // Le défaut fondateur : `.header` et `.suivi-bar` déclaraient
+            // chacune leur rembourrage vertical, et avaient dérivé de 18 px.
+            // Pire, celui de l'en-tête était NUL : un bouton de 44 px y
+            // touchait les deux bords.
+            const declarationsDeHauteur = bar.match(/--bar-(?:air|height):/g) ?? [];
+
+            expect(declarationsDeHauteur).toHaveLength(2);
+
+            // Les modificateurs ne redéfinissent ni l'un ni l'autre. Le plan
+            // les nomme `.bar-navigation`/`.bar-status` : cette tâche déplace
+            // des règles sans renommer leurs sélecteurs (`.header`,
+            // `.suivi-bar` restent ce qu'ils sont, la tâche 6 s'en chargera
+            // d'un bloc), mais les deux modificateurs, eux, sont neufs — rien
+            // à leur substituer.
+            const modificateurs = bar.match(/\.bar-[a-z]+\s*\{([^}]*)\}/g) ?? [];
+            expect(modificateurs.length).toBeGreaterThan(0);
+            expect(modificateurs.filter((m) => /--bar-(?:air|height)/.test(m))).toEqual([]);
+        });
+    });
+
+    describe('Étant donné une barre au repos, quand on regarde ce qui la sépare du contenu', () => {
+        it("alors c'est un effet de bord, et aucun filet", () => {
+            // « Instead of a background, use a scroll edge effect to provide a
+            // transition between content and the control area. » Un filet ET
+            // l'effet font deux transitions pour un bord, et le filet est
+            // celle qui se voit au repos.
+            expect(bar).toMatch(/\.header::after,\s*\.suivi-bar::after\s*\{/);
+            expect(bar).not.toMatch(/border-(?:bottom|block-end):\s*1px/);
         });
     });
 });

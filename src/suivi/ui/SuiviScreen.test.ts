@@ -256,6 +256,20 @@ function statut(element: HTMLElement): string {
 }
 
 describe('suivi-screen', () => {
+    describe("Étant donné les deux barres d'écran fondues en un composant, quand la barre de suivi est attachée", () => {
+        it('alors elle porte le modificateur qui ne touche pas à la hauteur commune', async () => {
+            const element = await attacherLEcran();
+
+            // `.bar-status` reçoit ce qui n'appartenait qu'à la barre de
+            // suivi — le pli des actions — sans jamais redéclarer
+            // `--bar-air` ni `--bar-height` : c'est `bar.css` qui les porte,
+            // sur `.header` et `.suivi-bar` à la fois.
+            const barre = element.querySelector('.suivi-bar');
+
+            expect(barre?.classList.contains('bar-status')).toBe(true);
+        });
+    });
+
     describe("Étant donné un trajet, quand j'attache l'écran", () => {
         it("alors ses pages sont montées et l'écran est gardé allumé", async () => {
             const element = await attacherLEcran();

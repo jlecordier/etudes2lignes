@@ -100,6 +100,20 @@ function messageDErreur(element: HTMLElement): string | null {
 }
 
 describe('trajets-list-screen', () => {
+    describe("Étant donné les deux barres d'écran fondues en un composant, quand l'en-tête est attaché", () => {
+        it('alors il porte le modificateur qui ne touche pas à la hauteur commune', async () => {
+            const element = await attacherLEcran();
+
+            // `.bar-navigation` reçoit ce qui n'appartenait qu'à l'en-tête —
+            // marge négative, titre en ellipse — sans jamais redéclarer
+            // `--bar-air` ni `--bar-height` : c'est `bar.css` qui les porte,
+            // sur `.header` et `.suivi-bar` à la fois.
+            const entete = element.querySelector('.header');
+
+            expect(entete?.classList.contains('bar-navigation')).toBe(true);
+        });
+    });
+
     describe("Étant donné l'écran attaché, quand ses boutons désignent un symbole", () => {
         it('alors le jeu de symboles est dans le document, sans quoi ils seraient vides', async () => {
             await attacherLEcran();

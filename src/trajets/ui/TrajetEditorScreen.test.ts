@@ -475,6 +475,20 @@ async function fichierPropose(): Promise<{ nom: string; contenu: unknown }> {
 }
 
 describe('trajet-editor-screen', () => {
+    describe("Étant donné les deux barres d'écran fondues en un composant, quand l'en-tête est attaché", () => {
+        it('alors il porte le modificateur qui ne touche pas à la hauteur commune', async () => {
+            const element = await attacherLEcran();
+
+            // `.bar-navigation` reçoit ce qui n'appartenait qu'à l'en-tête —
+            // marge négative, titre en ellipse — sans jamais redéclarer
+            // `--bar-air` ni `--bar-height` : c'est `bar.css` qui les porte,
+            // sur `.header` et `.suivi-bar` à la fois.
+            const entete = element.querySelector('.header');
+
+            expect(entete?.classList.contains('bar-navigation')).toBe(true);
+        });
+    });
+
     describe("Étant donné un trajet, quand j'attache l'écran", () => {
         it('alors il affiche son nom, ses pages en ordre de lecture et ses points', async () => {
             const element = await attacherLEcran();

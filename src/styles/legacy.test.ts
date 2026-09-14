@@ -35,6 +35,17 @@ const socle = readFileSync(new URL('./base/elements.css', import.meta.url), 'utf
 const materiau = readFileSync(new URL('./components/surface.css', import.meta.url), 'utf8');
 
 /**
+ * La barre d'écran, pour les témoins dont la règle a émigré hors de
+ * `feuille` : `.header` et `.suivi-bar` fusionnent leur socle commun dans
+ * `components/bar.css`, la tâche 2 de la partie 2 les en ayant sortis —
+ * `styles.test.ts` porte désormais le contrat neuf (un seul jeton pour la
+ * hauteur, aucun modificateur n'y touche) ; les témoins d'ici restent parce
+ * qu'ils affirment autre chose que ce contrat-là — le détail des propriétés
+ * de chaque barre, que la fusion ne devait pas changer.
+ */
+const bar = readFileSync(new URL('./components/bar.css', import.meta.url), 'utf8');
+
+/**
  * Ce fichier éprouve la **source** de la feuille de style, et non son effet.
  *
  * Une feuille n'a pas de test unitaire : rien n'y est appelé. Mais plusieurs de
@@ -180,8 +191,12 @@ describe('Le bord de défilement sous une barre', () => {
             // voile. Il appartient au défilement, pas à la barre : d'où une
             // bande posée sous elle, transparente aux clics, qui laisse le
             // contenu passer dessous sans l'intercepter.
+            //
+            // Lu depuis `bar` : la règle a émigré vers `components/bar.css`
+            // (tâche 2 de la partie 2), et c'est lui qui la porte désormais —
+            // plus `feuille`.
             const bande = /\n[ \t]*\.header::after,\n[ \t]*\.suivi-bar::after \{([^}]*)\}/.exec(
-                feuille,
+                bar,
             );
 
             expect(bande?.[1]).toMatch(/pointer-events:\s*none/);
@@ -200,8 +215,12 @@ describe('Une barre de navigation sur un petit iPhone', () => {
             // hauteur. La règle de `.header` est sans `flex-wrap` exprès — mais
             // l'abrègement ne visait que `h2`, et la barre d'actions imbriquée
             // pliait pour son propre compte.
-            const titre = /\n[ \t]*\.header :is\(h1, h2\) \{([^}]*)\}/.exec(feuille);
-            const actions = /\n[ \t]*\.header \.action-bar \{([^}]*)\}/.exec(feuille);
+            //
+            // Lues depuis `bar` : les deux règles ont émigré vers
+            // `components/bar.css` (tâche 2 de la partie 2), et c'est lui qui
+            // les porte désormais — plus `feuille`.
+            const titre = /\n[ \t]*\.header :is\(h1, h2\) \{([^}]*)\}/.exec(bar);
+            const actions = /\n[ \t]*\.header \.action-bar \{([^}]*)\}/.exec(bar);
 
             expect(titre?.[1]).toMatch(/text-overflow:\s*ellipsis/);
             expect(actions?.[1]).toMatch(/flex-wrap:\s*nowrap/);
@@ -229,42 +248,19 @@ describe("L'action qui conclut, dans une barre", () => {
     });
 });
 
-describe('La hauteur des barres', () => {
-    describe("Étant donné les barres d'écran, quand la feuille les dimensionne", () => {
-        it("alors une seule règle les rythme, donc aucune ne peut dériver de l'autre", () => {
-            // Mesuré : l'en-tête faisait 44 px et la barre de suivi 62 px, parce
-            // que chacune déclarait son rembourrage de son côté. Pire, celui de
-            // l'en-tête était **nul** en vertical : un bouton de 44 px y touchait
-            // les deux bords, sans un pixel d'air.
-            //
-            // Les deux barres jouent le même rôle — la couche fonctionnelle d'un
-            // écran — donc leur rythme s'écrit une fois. Écrit deux fois, il a
-            // déjà dérivé.
-            const rythme = /\n[ \t]*\.header,\n[ \t]*\.suivi-bar \{([^}]*)\}/.exec(feuille);
-
-            expect(rythme?.[1]).toMatch(/padding-block:\s*var\(--air-barre\)/);
-            expect(feuille).toMatch(/--air-barre:/);
-        });
-    });
-});
-
-describe("Le filet sous une barre d'écran", () => {
-    describe('Étant donné une barre qui porte déjà son effet de bord, quand la feuille la borde', () => {
-        it("alors elle ne trace aucun filet, que l'effet remplace", () => {
-            // « Instead of a background, use a scroll edge effect to provide a
-            // transition between content and the control area. » Un filet
-            // **et** l'effet font deux transitions pour un seul bord, et le
-            // filet est celle qui se voit au repos.
-            //
-            // Il était la dernière asymétrie mesurée entre les deux barres :
-            // la barre de suivi le portait seule, d'où 62 px contre 61.
-            const barres = /\n[ \t]*\.header::after,\n[ \t]*\.suivi-bar::after \{/.test(feuille);
-
-            expect(barres).toBe(true);
-            expect(feuille).not.toMatch(/border-(?:bottom|block-end):\s*1px/);
-        });
-    });
-});
+/**
+ * « La hauteur des barres » et « Le filet sous une barre d'écran » vivaient
+ * ici et affirmaient respectivement : un seul jeton rythme les deux barres,
+ * et l'effet de bord remplace tout filet. Les deux règles qu'elles lisaient
+ * (`.header,\n.suivi-bar { padding-block: var(--air-barre) }` et
+ * `.header::after,\n.suivi-bar::after { … }`) ont émigré vers
+ * `components/bar.css` (tâche 2 de la partie 2), et leur contrat y est
+ * repris — en mieux : `styles.test.ts` (« La barre d'écran ») affirme
+ * désormais qu'un seul jeton porte la hauteur (`--bar-air`/`--bar-height`,
+ * comptés dans tout le fichier) **et** qu'aucun modificateur n'y touche, ce
+ * qu'aucun des deux témoins d'ici ne vérifiait. Les garder ici aurait
+ * doublé, pour rien, une garantie désormais plus stricte ailleurs.
+ */
 
 describe('La teinte du verre au repos', () => {
     describe("Étant donné une barre sur un écran qu'on n'a pas encore fait défiler", () => {
@@ -314,11 +310,19 @@ describe('La barre de navigation elle-même', () => {
             // Et elle était encartée de 17 px de chaque côté par le rembourrage
             // de l'écran : une carte flottante, pas une barre. Les marges
             // négatives l'annulent, le rembourrage interne lui rend son air.
-            const barre = /\n[ \t]*\.header \{([^}]*)\}/.exec(feuille);
+            //
+            // Lu depuis `bar` : `.header` a émigré vers `components/bar.css`
+            // (tâche 2 de la partie 2), qui la porte désormais — plus
+            // `feuille`. Le socle sticky et le rembourrage horizontal sont
+            // maintenant partagés avec `.suivi-bar` dans une seule règle ;
+            // la marge négative, elle, reste propre à l'en-tête et vit dans
+            // `.bar-navigation`, son modificateur.
+            const socle = /\n[ \t]*\.header,\n[ \t]*\.suivi-bar \{([^}]*)\}/.exec(bar);
+            const navigation = /\n[ \t]*\.header,\n[ \t]*\.bar-navigation \{([^}]*)\}/.exec(bar);
 
-            expect(barre?.[1]).toMatch(/position:\s*sticky/);
-            expect(barre?.[1]).toMatch(/margin-inline:\s*calc\(-1 \* var\(--marge-ecran\)\)/);
-            expect(barre?.[1]).toMatch(/padding-inline:\s*var\(--marge-ecran\)/);
+            expect(socle?.[1]).toMatch(/position:\s*sticky/);
+            expect(socle?.[1]).toMatch(/padding-inline:\s*var\(--marge-ecran\)/);
+            expect(navigation?.[1]).toMatch(/margin-inline:\s*calc\(-1 \* var\(--marge-ecran\)\)/);
         });
     });
 });
@@ -332,9 +336,18 @@ describe("Le titre d'une barre de navigation", () => {
             // *contenu* : dans une barre, entre un chevron et une action, il
             // écrase tout et se tronque. Mesuré : « Paris → Bordeaux » tombait à
             // « Paris → Bordea… » sur 390 px.
-            const titre = /\n[ \t]*\.header :is\(h1, h2\) \{([^}]*)\}/.exec(feuille);
+            //
+            // Lu depuis `bar` : la règle a émigré vers `components/bar.css`
+            // (tâche 2 de la partie 2), et c'est lui qui la porte désormais —
+            // plus `feuille`. Elle y porte en plus une contrainte que
+            // `feuille` n'imposait pas : `scale-unlimited/declaration-
+            // strict-value` n'admet, dans `components/`, aucun littéral pour
+            // `font-size` — la taille voyage donc désormais avec ses deux
+            // jumelles du palier des primitives, au lieu du littéral `1rem`
+            // qu'elle portait seule ici.
+            const titre = /\n[ \t]*\.header :is\(h1, h2\) \{([^}]*)\}/.exec(bar);
 
-            expect(titre?.[1]).toMatch(/font-size:\s*1rem/);
+            expect(titre?.[1]).toMatch(/font-size:\s*var\(--text-headline-size\)/);
             expect(titre?.[1]).toMatch(/font-weight:\s*600/);
         });
     });
@@ -348,7 +361,11 @@ describe("Le titre d'un en-tête", () => {
             // plier les envoyait sur trois lignes. Mais alors c'est au **titre**
             // de céder — sans quoi il se casse en deux et fait grandir la barre
             // de tout ce qu'on voulait lui épargner.
-            const titre = /\n[ \t]*\.header :is\(h1, h2\) \{([^}]*)\}/.exec(feuille);
+            //
+            // Lu depuis `bar` : la règle a émigré vers `components/bar.css`
+            // (tâche 2 de la partie 2), et c'est lui qui la porte désormais —
+            // plus `feuille`.
+            const titre = /\n[ \t]*\.header :is\(h1, h2\) \{([^}]*)\}/.exec(bar);
 
             expect(titre?.[1]).toMatch(/white-space:\s*nowrap/);
             expect(titre?.[1]).toMatch(/text-overflow:\s*ellipsis/);

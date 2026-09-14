@@ -19,5 +19,6 @@
 @import url('./base/elements.css');
 @import url('./components/text.css');
 @import url('./components/surface.css');
+@import url('./components/bar.css');
 @import url('./screens/legacy-bridge.css');
 @import url('./screens/legacy.css');

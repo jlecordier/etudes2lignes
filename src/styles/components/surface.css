@@ -25,14 +25,23 @@
  * seul endroit du système où `backdrop-filter` s'écrit ; `styles.test.ts` le
  * vérifie.
  *
- * Liste de transition — Task 1 du plan de la partie 2 : les huit sélecteurs
- * qui portaient le verre avant l'existence de cette classe restent listés
- * ici, le temps que chacun d'eux la reçoive depuis son propre fichier de
- * composant. Une fois qu'un composant pose `.surface` dans son balisage, sa
- * tâche retire son sélecteur de cette liste — la tâche 5 doit la trouver
- * vide :
- *   .header, .suivi-bar, .carte-bar, .floating-add-point-button,
- *   .carte-button, .overview-button, .resume-button, .leaflet-bar
+ * Liste de transition — Task 1 du plan de la partie 2 : les sélecteurs qui
+ * portaient le verre avant l'existence de cette classe restent listés ici,
+ * le temps que chacun d'eux voie son contrat documenté par son propre
+ * fichier de composant. Une fois que c'est fait, la tâche retire son
+ * sélecteur de cette liste — la tâche 5 doit la trouver vide :
+ *   .carte-bar, .floating-add-point-button, .carte-button,
+ *   .overview-button, .resume-button, .leaflet-bar
+ *
+ * `.header` et `.suivi-bar` en sont sortis : la tâche 2 (partie 2) les a
+ * fondus dans `components/bar.css`, qui porte désormais leur contrat — la
+ * hauteur commune des deux barres, en un seul jeton. Ils restent listés,
+ * eux, dans le `@supports` ci-dessous et dans la retraction
+ * d'accessibilité plus bas : ce n'est pas une redéclaration, c'est le même
+ * mécanisme qui fait de `.surface` une classe partagée — plusieurs
+ * sélecteurs, une seule déclaration de verre. `.suivi-bar` avait déjà son
+ * repli en dessous ; `.header` n'en avait aucun — corrigé au même endroit,
+ * voir le commentaire du bloc `@supports not`.
  */
 @layer components {
     :root {
@@ -182,13 +191,25 @@
      *     classes sont posées ensemble — le même ordre que dans le
      *     `@supports` ci-dessus.
      *
-     * `.header` et `.carte-bar` restent absents, et c'est volontaire : ils
-     * ne portaient ni fond ni ombre en dehors du verre, donc les omettre
-     * n'est pas une perte. `styles.test.ts` affirme cette liste d'exceptions
-     * par son nom, pour qu'un futur oubli soit visible plutôt que silencieux. */
+     * `.carte-bar` reste seul absent, et c'est volontaire : il ne portait ni
+     * fond ni ombre en dehors du verre, donc l'omettre n'est pas une perte —
+     * la tâche 5 en décidera. `.header`, lui, ne l'est plus : c'était le
+     * défaut que la tâche 2 (partie 2) devait corriger. « L'en-tête faisait
+     * 44 px, la barre de suivi 62 » venait pour partie de là — sur un moteur
+     * sans `backdrop-filter`, l'en-tête n'avait **aucun** fond, une vitre
+     * transparente sur le contenu qui défile. Il reçoit ici le même repli
+     * que `.surface` elle-même : le fond plein et l'ombre portée seule, le
+     * matériau « regular » qu'il porte déjà dans le `@supports` ci-dessus.
+     * `styles.test.ts` affirme cette liste d'exceptions par son nom, pour
+     * qu'un futur oubli soit visible plutôt que silencieux. */
     @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
         .suivi-bar {
             background: var(--fond);
+        }
+
+        .header {
+            background: var(--fond);
+            box-shadow: var(--ombre-flottante);
         }
 
         .floating-add-point-button,
