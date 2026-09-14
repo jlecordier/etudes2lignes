@@ -493,3 +493,76 @@ describe('Les styles de texte', () => {
         });
     });
 });
+
+const surface = feuilles['./components/surface.css'] ?? '';
+
+describe('Le matériau', () => {
+    describe('Étant donné le verre, quand on cherche où il est écrit', () => {
+        it("alors un seul fichier le déclare, et c'est celui qui le nomme", () => {
+            // Huit règles le redéclaraient. Chacune était une occasion
+            // d'oublier la préfixée, le plafond de flou, ou la retraction
+            // d'accessibilité — et deux l'avaient déjà fait.
+            const fichiersQuiFloutent = Object.entries(feuilles)
+                .filter(([, contenu]) => contenu.includes('backdrop-filter:'))
+                .map(([chemin]) => chemin);
+
+            expect(fichiersQuiFloutent).toEqual(['./components/surface.css']);
+        });
+    });
+
+    describe('Étant donné WebKit, quand la règle pose le flou', () => {
+        it('alors la préfixée précède la standard, à la lettre', () => {
+            // Mesuré : sans la préfixée AVANT, WebKit ne floute rien. Et les
+            // deux valeurs doivent être identiques au caractère près, sinon
+            // les deux moteurs rendent deux matériaux différents.
+            //
+            // Ancrées en début de ligne (`^[ \t]*`, drapeau `m`) : la
+            // condition du `@supports` porte elle-même les deux chaînes
+            // `backdrop-filter:` et `-webkit-backdrop-filter:`, au milieu
+            // d'une ligne de feature-query et sans point-virgule pour la
+            // borner. Une regex non ancrée démarre là par erreur et avale,
+            // via `[^;]+`, tout le texte jusqu'au premier point-virgule
+            // réel — la vraie déclaration suivante — ce qui rend `prefixee`
+            // différente de `standard` sur un fichier pourtant conforme.
+            // Sondé : sans l'ancre, ce témoin rougissait sur `surface.css`
+            // alors que la préfixée et la standard y sont identiques.
+            const paires = [
+                ...surface.matchAll(
+                    /^[ \t]*-webkit-backdrop-filter:\s*([^;\n]+);\s*\n[ \t]*backdrop-filter:\s*([^;\n]+);/gm,
+                ),
+            ];
+
+            expect(paires.length).toBeGreaterThan(0);
+            for (const [, prefixee, standard] of paires) {
+                expect(prefixee).toBe(standard);
+            }
+            // Aucune `backdrop-filter` orpheline : autant de standards que de
+            // paires. Même ancrage que ci-dessus, pour la même raison : un
+            // `[^-]backdrop-filter:` compterait aussi l'occurrence non
+            // préfixée de la condition du `@supports`.
+            expect((surface.match(/^[ \t]*backdrop-filter:/gm) ?? []).length).toBe(paires.length);
+        });
+    });
+
+    describe('Étant donné les bogues 289800 et 297620 de WebKit, quand on écrit le flou', () => {
+        it("alors aucune variable n'entre dans la déclaration", () => {
+            // WebKit ignore un `var()` a l'interieur de `backdrop-filter` :
+            // le verre disparait sans erreur. Le plafond de 20 px s'ecrit donc
+            // en clair, et le jeton --surface-blur reste documentaire.
+            //
+            // Ancrée en début de ligne, même raison que le témoin précédent :
+            // `surface.css` porte deux conditions de `@supports` (la pose et
+            // son repli `@supports not`), chacune répétant `backdrop-filter:`
+            // sans point-virgule pour la borner. Sondé : sans l'ancre, ce
+            // témoin rougissait — la condition du repli se faisait avaler
+            // jusqu'au premier point-virgule réel, à l'intérieur du repli
+            // lui-même (`background: var(--fond);`), et y trouvait un
+            // `var(` qui n'appartient à aucun `backdrop-filter`.
+            const declarations =
+                surface.match(/^[ \t]*(-webkit-)?backdrop-filter:[^;\n]+;/gm) ?? [];
+
+            expect(declarations.length).toBeGreaterThan(0);
+            expect(declarations.filter((d) => d.includes('var('))).toEqual([]);
+        });
+    });
+});

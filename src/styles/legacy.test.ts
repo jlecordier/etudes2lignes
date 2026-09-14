@@ -24,6 +24,17 @@ const semantique = readFileSync(new URL('./tokens/semantic.css', import.meta.url
 const socle = readFileSync(new URL('./base/elements.css', import.meta.url), 'utf8');
 
 /**
+ * Le matériau, pour les témoins dont la règle a émigré hors de `feuille` :
+ * le `@supports` qui pose le verre et sa retraction d'accessibilité vivent
+ * maintenant dans `components/surface.css`, la tâche 1 de la partie 2 les en
+ * ayant sortis. `styles.test.ts` porte désormais le contrat neuf (un seul
+ * fichier qui floute, la préfixée à la lettre, aucun `var()` dans le flou) ;
+ * les témoins d'ici restent parce qu'ils affirment autre chose que ce
+ * contrat-là — la liste close des surfaces, et la non-superposition du verre.
+ */
+const materiau = readFileSync(new URL('./components/surface.css', import.meta.url), 'utf8');
+
+/**
  * Ce fichier éprouve la **source** de la feuille de style, et non son effet.
  *
  * Une feuille n'a pas de test unitaire : rien n'y est appelé. Mais plusieurs de
@@ -713,8 +724,12 @@ describe('La couche fonctionnelle', () => {
             // paresseux borné par une indentation quelconque s'arrêterait à la
             // première règle imbriquée venue, pas au bloc entier — aveugle à
             // toute règle sœur ajoutée après `.leaflet-bar`.
+            //
+            // Lu depuis `materiau` : le bloc a émigré vers
+            // `components/surface.css` (tâche 1 de la partie 2), et c'est lui
+            // qui le porte désormais — plus `feuille`.
             const pose = /^([ \t]*)@supports \(\(backdrop-filter[^{]*\{([\s\S]*?)\n\1\}/m.exec(
-                feuille.replace(/\/\*[\s\S]*?\*\//g, ' '),
+                materiau.replace(/\/\*[\s\S]*?\*\//g, ' '),
             );
 
             expect(pose?.[2]).toContain('.leaflet-bar');
@@ -729,8 +744,9 @@ describe('La couche fonctionnelle', () => {
             // content is light, and lighter when it's dark. » Un libellé fixé en
             // blanc — ce que la règle du bouton principal impose — disparaît dès
             // que le verre s'éclaircit sur une page de schéma.
+            // Lu depuis `materiau`, comme ci-dessus.
             const pose = /^([ \t]*)@supports \(\(backdrop-filter[^{]*\{([\s\S]*?)\n\1\}/m.exec(
-                feuille,
+                materiau,
             );
 
             expect(pose?.[2]).toMatch(/color:\s*var\(--label\)/);
@@ -740,17 +756,18 @@ describe('La couche fonctionnelle', () => {
 
     describe('Étant donné une surface en verre, quand la feuille la traite', () => {
         it('alors elle est de la liste close, floutée, et rendue opaque par les réglages', () => {
+            // Lu depuis `materiau`, comme ci-dessus.
             const pose = /^([ \t]*)@supports \(\(backdrop-filter[^{]*\{([\s\S]*?)\n\1\}/m.exec(
-                feuille,
+                materiau,
             );
             const retrait =
                 /^([ \t]*)@media \(prefers-reduced-transparency[^{]*\{([\s\S]*?)\n\1\}/m.exec(
-                    feuille,
+                    materiau,
                 );
 
             // Aucune surface n'est floutée en dehors de ces deux blocs : le
             // premier ajoute le verre, le second le retire.
-            const flousHorsBlocs = feuille
+            const flousHorsBlocs = materiau
                 .replace(pose?.[0] ?? '', '')
                 .replace(retrait?.[0] ?? '', '')
                 .match(/^\s*(-webkit-)?backdrop-filter:/gm);
@@ -773,8 +790,22 @@ describe('Le verre de la couche fonctionnelle', () => {
             // que la propriété préfixée, et l'unpréfixée est cassée jusqu'à
             // macOS 14.7 (bogue WebKit 297620) : chaque `backdrop-filter` doit
             // voyager avec sa jumelle.
-            const flous = [...feuille.matchAll(/(?<!-webkit-)backdrop-filter:\s*([^;]+);/g)];
-            const prefixes = [...feuille.matchAll(/-webkit-backdrop-filter:/g)];
+            // Lu depuis `materiau`, où le flou vit désormais (tâche 1 de la
+            // partie 2).
+            // Ancrées en début de ligne (`^[ \t]*`, drapeau `m`), comme dans
+            // `styles.test.ts` : `materiau` porte maintenant deux conditions
+            // de `@supports` (la pose, et son repli `@supports not` ajouté
+            // pour respecter l'ordre des couches — voir l'en-tête du
+            // fichier), chacune répétant `backdrop-filter:` et
+            // `-webkit-backdrop-filter:` au milieu d'une ligne de
+            // feature-query, sans point-virgule pour la borner. Sondé : sans
+            // l'ancre, ce témoin rougissait — une des deux conditions se
+            // faisait avaler par la valeur capturée de la déclaration réelle
+            // suivante, désynchronisant le compte des deux jumelles.
+            const flous = [
+                ...materiau.matchAll(/^[ \t]*(?<!-webkit-)backdrop-filter:\s*([^;\n]+);/gm),
+            ];
+            const prefixes = [...materiau.matchAll(/^[ \t]*-webkit-backdrop-filter:/gm)];
 
             expect(flous.length).toBeGreaterThan(0);
             expect(prefixes).toHaveLength(flous.length);
@@ -795,11 +826,12 @@ describe('Ce que les réglages retirent au verre', () => {
             // seul, il faut couper les deux propriétés, préfixée comprise. Et le
             // bloc doit venir **après** le `@supports` qui pose le verre — à
             // spécificité égale, c'est l'ordre du fichier qui tranche.
+            // Lu depuis `materiau`, comme ci-dessus.
             const retrait =
                 /@media\s*\(prefers-reduced-transparency:\s*reduce\)[^{]*\{[\s\S]*?backdrop-filter:\s*none/.exec(
-                    feuille,
+                    materiau,
                 );
-            const pose = feuille.indexOf('@supports (');
+            const pose = materiau.indexOf('@supports (');
 
             expect(retrait).not.toBeNull();
             expect(retrait?.index ?? -1).toBeGreaterThan(pose);
@@ -916,13 +948,26 @@ describe('La feuille de style', () => {
 
             // Le verre s'annule quand la personne l'a demandé — le flou ne part
             // pas tout seul, et il faut couper les deux propriétés.
+            // Lues depuis `materiau` : la retraction a émigré avec le verre
+            // qu'elle annule (tâche 1 de la partie 2).
             exige(
                 'prefers-reduced-transparency honoré',
-                /@media\s*\(prefers-reduced-transparency:\s*reduce\)/.test(feuille),
+                /@media\s*\(prefers-reduced-transparency:\s*reduce\)/.test(materiau),
             );
+            // Tolérant à la position dans la liste des conditions : la
+            // retraction couvre `prefers-reduced-transparency` **et**
+            // `prefers-contrast: more` dans le même prélude `@media`, séparées
+            // par une virgule — `prefers-contrast: more` y est la **seconde**
+            // condition, jamais collée à `@media`. Un ancrage direct
+            // (`@media\s*\(prefers-contrast`) ne la trouverait donc jamais
+            // dans la vraie règle ; mesuré : il trouvait quand même une
+            // occurrence, mais dans la **prose** d'un commentaire de l'ancien
+            // `feuille`, où `@media (prefers-contrast:\n   more)` apparaissait
+            // au fil d'une phrase repliée sur deux lignes — un faux vert que
+            // la migration vers `materiau` a fait apparaître.
             exige(
                 'prefers-contrast: more honoré',
-                /@media\s*\(prefers-contrast:\s*more\)/.test(feuille),
+                /@media[^{]*\(prefers-contrast:\s*more\)[^{]*\{/.test(materiau),
             );
             exige(
                 'prefers-reduced-motion honoré',
@@ -936,8 +981,9 @@ describe('La feuille de style', () => {
             // Un iPhone 14 encore sous iOS 16.4 ou une version plus récente
             // n'a que la propriété préfixée : chaque `backdrop-filter` doit
             // voyager avec sa jumelle.
-            const flous = [...feuille.matchAll(/(?<!-webkit-)backdrop-filter:/g)].length;
-            const flousPrefixes = [...feuille.matchAll(/-webkit-backdrop-filter:/g)].length;
+            // Lu depuis `materiau`, comme ci-dessus.
+            const flous = [...materiau.matchAll(/(?<!-webkit-)backdrop-filter:/g)].length;
+            const flousPrefixes = [...materiau.matchAll(/-webkit-backdrop-filter:/g)].length;
             exige(
                 `autant de -webkit-backdrop-filter que de backdrop-filter (${String(flousPrefixes)} pour ${String(flous)})`,
                 flous > 0 && flousPrefixes === flous,

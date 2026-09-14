@@ -1,0 +1,207 @@
+/* Le matériau : le verre de Liquid Glass, écrit une seule fois.
+ *
+ * `.surface` porte le flou, l'ombre et la couleur monochrome communs aux deux
+ * variantes ; ses modificateurs `.surface-regular` et `.surface-thick`
+ * choisissent laquelle des deux teintes du palier sémantique l'habite. Un
+ * seul tiret, et non la double barre BEM que le plan nomme : le
+ * `selector-class-pattern` hérité de `stylelint-config-standard`
+ * (`^([a-z][a-z0-9]*)(-[a-z0-9]+)*$`, sans override pour `components/`) rejette
+ * toute classe à tirets consécutifs — mesuré, deux erreurs bloquantes sur
+ * `.surface--regular` et `.surface--thick`. Le plan nomme cette syntaxe pour
+ * chaque composant à venir (`.bar--navigation`, `.button--prominent`…) : la
+ * configuration Stylelint devra l'admettre avant que ces tâches n'atteignent
+ * le même mur — ce n'est pas à cette tâche de la changer, `.stylelintrc.json`
+ * n'étant pas un fichier qu'elle nomme.
+ * `--surface-blur` documente le plafond de flou (20 px) — il ne peut pas
+ * l'écrire lui-même, WebKit ignorant tout `var()` posé dans un
+ * `backdrop-filter` (bogues 289800, 297620) : la valeur vit donc en clair
+ * dans les deux déclarations ci-dessous, et ce jeton n'est qu'une référence
+ * lisible pour qui cherche le nombre.
+ *
+ * Le défaut historique qu'il rend inécrivable : huit règles de
+ * `screens/legacy.css` redéclaraient chacune `backdrop-filter`, avec autant
+ * d'occasions d'oublier la préfixée, le plafond de flou, ou la retraction
+ * d'accessibilité — deux l'avaient déjà fait. Ce fichier est désormais le
+ * seul endroit du système où `backdrop-filter` s'écrit ; `styles.test.ts` le
+ * vérifie.
+ *
+ * Liste de transition — Task 1 du plan de la partie 2 : les huit sélecteurs
+ * qui portaient le verre avant l'existence de cette classe restent listés
+ * ici, le temps que chacun d'eux la reçoive depuis son propre fichier de
+ * composant. Une fois qu'un composant pose `.surface` dans son balisage, sa
+ * tâche retire son sélecteur de cette liste — la tâche 5 doit la trouver
+ * vide :
+ *   .header, .suivi-bar, .carte-bar, .floating-add-point-button,
+ *   .carte-button, .overview-button, .resume-button, .leaflet-bar
+ */
+@layer components {
+    :root {
+        /* Documentaire seulement — voir l'en-tête. */
+        --surface-blur: 20px;
+
+        /* L'ombre composée du verre : le reflet intérieur et l'ombre portée,
+       dans cet ordre. `scale-unlimited/declaration-strict-value` (en erreur
+       ici, sans l'assouplissement que `screens/legacy.css` reçoit) n'admet
+       qu'un seul `var()` par déclaration de `box-shadow` — jamais une liste
+       de plusieurs, même tous jetons. Ce jeton de composant compose donc les
+       deux références du palier sémantique une fois, pour que la règle plus
+       bas n'en porte qu'une. */
+        --surface-shadow: var(--verre-reflet), var(--ombre-flottante);
+    }
+
+    /* Le verre proprement dit.
+     *
+     * « Liquid Glass forms a distinct functional layer for controls and
+     * navigation elements […] that floats above the content layer. »
+     *
+     * Trois contraintes de moteur, chacune payée d'un bogue :
+     *
+     * 1. `-webkit-backdrop-filter` précède `backdrop-filter` avec la **même**
+     *    valeur : un iPhone encore sous iOS 16.4 ou une version plus récente
+     *    ne lit que la préfixée, et l'unpréfixée est cassée jusqu'à
+     *    macOS 14.7 (bogue WebKit 297620).
+     * 2. **Pas de `var()` dans un `backdrop-filter`** : WebKit l'ignore
+     *    purement et simplement (bogues 289800, 297620) — c'est la seule
+     *    chose que les jetons ne peuvent pas tenir, d'où un flou écrit en
+     *    clair.
+     * 3. Le fond opaque se déclare **avant** le verre, pour qu'un moteur qui
+     *    ne reconnaît ni `backdrop-filter` ni `-webkit-backdrop-filter` voie
+     *    une surface pleine, et non une vitre transparente. Il vit
+     *    maintenant dans un `@supports not` symétrique du `@supports`
+     *    ci-dessous, et non plus, sans condition, dans le fichier de chaque
+     *    composant : sans cette condition, sa déclaration gagnerait
+     *    **toujours** sur celle du verre, plutôt que de s'effacer devant
+     *    elle. C'est la couche `@layer components` qui l'impose — voir le
+     *    bloc `@supports not`, plus bas, pour la mesure qui l'a révélé.
+     *
+     * 20 px de flou : au-delà de 24, un grand élément fixe flouté fait caler
+     * le premier rendu de Safari pendant des secondes (bogue 319187). Rien ne
+     * l'anime, la HIG demandant d'« avoid animating into and out of blurs ».
+     *
+     * `saturate` n'est pas cosmétique : `blur()` seul est un filtre
+     * passe-bas, et rend le voile laiteux caractéristique. C'est la
+     * saturation qui rend au verre la couleur de ce qu'il laisse passer. */
+    @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        .surface,
+        /* Les deux barres épinglées et la barre flottante de la carte : une
+       par écran, du texte à porter, donc le verre « regular ». */
+        .header,
+    .suivi-bar,
+    .carte-bar,
+    /* Les contrôles isolés qui flottent sur le contenu. Deux au plus visibles à
+       la fois par écran, ce qui tient le budget. */
+    .floating-add-point-button,
+    .carte-button,
+    .overview-button,
+    .resume-button,
+    /* La colonne de contrôles de Leaflet. Elle vit dans
+       `.leaflet-control-container`, **hors** de `.leaflet-map-pane` qui est
+       positionné par transformation — un verre à l'intérieur perdrait son
+       flou. */
+    /* La colonne, et **pas** ses boutons : `.carte-recentrer` l'habite, et deux
+       verres empilés sont refusés — « avoid overcrowding or layering Liquid
+       Glass elements on top of each other ». */
+    .leaflet-bar {
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            backdrop-filter: blur(20px) saturate(180%);
+            background: var(--verre);
+
+            /* Monochrome, et c'est la règle : « symbols and text on these elements
+           follow a monochromatic color scheme, becoming darker when the
+           underlying content is light, and lighter when it's dark ». Un libellé
+           fixé en blanc — ce que la règle du bouton principal imposait à
+           « Ajouter un point » — disparaît dès que le verre s'éclaircit sur une
+           page de schéma. */
+            color: var(--label);
+            box-shadow: var(--surface-shadow);
+        }
+
+        /* Les modificateurs de matériau : sans consommateur pour l'instant —
+       les huit sélecteurs ci-dessus fixent encore `--verre` en dur, hérité
+       de l'ancienne feuille. Ils font partie du contrat que cette tâche
+       doit produire pour les tâches 2 à 5, qui poseront l'une ou l'autre
+       classe sur leur propre balisage plutôt que de redéclarer le verre. */
+        .surface-regular {
+            background: var(--verre);
+        }
+
+        .surface-thick {
+            background: var(--verre-epais);
+        }
+    }
+
+    /* Le repli d'un moteur qui ne reconnaît ni `backdrop-filter` ni
+     * `-webkit-backdrop-filter` : le fond et l'ombre pleins que ces
+     * sélecteurs portaient avant le verre, sans le flou qui n'aurait rien eu
+     * à échantillonner.
+     *
+     * Vit désormais dans `@supports not`, l'exact miroir du `@supports`
+     * ci-dessus, et non plus, sans condition, dans la règle de base de
+     * chaque sélecteur : les deux vivaient auparavant dans le **même**
+     * fichier et la **même** couche (`screens/legacy.css`), où le second,
+     * plus loin dans le fichier, l'emportait sur le premier par simple ordre
+     * de source, à spécificité égale. Depuis que le verre vit dans
+     * `@layer components`, cet ordre ne suffit plus : une couche déclarée
+     * plus tard gagne **toujours**, quelle que soit la spécificité ou la
+     * position dans le fichier — et `screens`, où vivent encore les règles
+     * de base de ces sélecteurs, est déclarée après `components`. Une
+     * déclaration inconditionnelle là-bas l'emporterait donc sur celle-ci
+     * même quand le moteur reconnaît le verre. Mesuré : c'est exactement ce
+     * qui s'est produit sur les cinq moteurs de `pnpm test:e2e`, où l'ombre
+     * du bouton flottant « Ajouter un point » perdait son reflet — d'où ce
+     * bloc, condition explicite plutôt qu'ordre implicite.
+     *
+     * `.leaflet-bar` seule porte un repli distinct des sept autres — épaisse
+     * et sans ombre portée, plutôt que régulière avec reflet et ombre — la
+     * colonne de contrôles Leaflet portant déjà ce même matériau avant que
+     * ce fichier n'existe. `.header` et `.carte-bar` n'ont besoin d'aucun
+     * repli : ils ne portaient ni fond ni ombre en dehors du verre. */
+    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        .suivi-bar {
+            background: var(--fond);
+        }
+
+        .floating-add-point-button,
+        .overview-button,
+        .carte-button,
+        .resume-button {
+            box-shadow: var(--ombre-flottante);
+        }
+
+        .leaflet-bar {
+            background: var(--verre-epais);
+            box-shadow: var(--verre-reflet);
+        }
+    }
+
+    /* Ce que les réglages retirent au verre.
+     *
+     * « Test your interface with a variety of display and accessibility
+     * settings. » Rendre la surface opaque ne suffit pas : **le flou ne part
+     * pas tout seul**, il faut couper les deux propriétés, préfixée comprise.
+     *
+     * Ce bloc vient après le `@supports` ci-dessus, et c'est structurel : les
+     * deux sélecteurs ont la même spécificité, donc c'est l'ordre du fichier
+     * qui tranche.
+     *
+     * iOS ne publie toujours pas `prefers-reduced-transparency` — la requête
+     * ne couvre donc pas la plateforme où le verre est le plus visible. Le
+     * contraste renforcé, lui, y est honoré, d'où les deux conditions dans la
+     * même liste. */
+    @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+        .surface,
+        .header,
+        .suivi-bar,
+        .carte-bar,
+        .floating-add-point-button,
+        .carte-button,
+        .overview-button,
+        .resume-button,
+        .leaflet-bar {
+            -webkit-backdrop-filter: none;
+            backdrop-filter: none;
+            background: var(--fond);
+            color: var(--label);
+        }
+    }
+}

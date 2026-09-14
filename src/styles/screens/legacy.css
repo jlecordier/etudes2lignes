@@ -655,7 +655,15 @@
         right: 1rem;
         bottom: 1rem;
         z-index: 20;
-        box-shadow: var(--ombre-flottante);
+
+        /* L'ombre portée d'un moteur sans le verre vit dans le repli
+       `@supports not`, plus bas : `components/surface.css` la porte
+       désormais pour les autres, combinée au reflet. Une déclaration ici,
+       sans condition, gagnerait toujours sur la sienne — la couche
+       `components` perd face à `screens` quelle que soit la spécificité ou
+       l'ordre des règles, et c'est la cascade des couches, pas l'ordre du
+       fichier, qui devrait maintenant trancher. Mesuré : sans ce repli,
+       l'ombre du bouton flottant perdait son reflet en e2e. */
     }
 
     /* L'aiguillage carte/schéma prend le coin opposé à l'action : on ne veut pas
@@ -1090,12 +1098,16 @@
         /* Seulement l'horizontal : le vertical est celui que les deux barres
        partagent, et un raccourci `padding` l'écraserait. */
         padding-inline: var(--marge-ecran);
-        background: var(--fond);
 
         /* Sans filet : son `::after` porte déjà l'effet de bord, et la HIG le donne
        **à la place** d'un fond ou d'un trait. Le filet était la seule chose qui
        restait visible quand rien n'a défilé, et la seule différence de hauteur
-       qui subsistait entre les deux barres. */
+       qui subsistait entre les deux barres.
+
+       Le fond opaque d'un moteur sans le verre vit dans le repli
+       `@supports not`, plus bas : sans condition ici, il gagnerait toujours
+       sur celui de `components/surface.css`, la couche `components` perdant
+       face à `screens` quelle que soit la spécificité. */
     }
 
     .suivi-status {
@@ -1145,7 +1157,8 @@
         left: 50%;
         transform: translateX(-50%);
         z-index: 20;
-        box-shadow: var(--ombre-flottante);
+
+        /* Même repli `@supports not` que les boutons flottants, plus haut. */
     }
 
     .offline-indicator {
@@ -1234,8 +1247,12 @@
         border: none;
         border-radius: var(--rayon-controle);
         overflow: hidden;
-        background: var(--verre-epais);
-        box-shadow: var(--verre-reflet);
+
+        /* Le fond et l'ombre d'un moteur sans le verre — épais et sans ombre
+       portée, à la différence des autres surfaces — vivent dans le repli
+       `@supports not`, plus bas. Même raison que `.suivi-bar` : sans
+       condition ici, ils gagneraient toujours sur ceux, distincts, que
+       `components/surface.css` pose quand le verre est disponible. */
     }
 
     /* leaflet.css vit maintenant dans la couche `vendor`, la plus basse de la
@@ -1285,109 +1302,28 @@
         color: var(--accent);
     }
 
-    /* Le contraste renforcé.
+    /* Le verre de la couche fonctionnelle — le bloc `@supports` qui le pose, sa
+   retraction d'accessibilité, le contraste renforcé qui les motive tous deux,
+   et désormais aussi le repli pour un moteur qui ne reconnaît ni
+   `backdrop-filter` ni `-webkit-backdrop-filter` — a émigré dans
+   `components/surface.css` (Task 1 de la partie 2) : la classe `.surface` et
+   ses modificateurs y remplacent la redéclaration que huit règles d'ici
+   répétaient chacune.
 
-   La HIG demande une variante par apparence, et pas un simple assombrissement :
-   « define a custom color with light and dark variants, and an increased
-   contrast option for each variant that provides a significantly higher amount
-   of visual differentiation ». Les valeurs vivent maintenant au palier
-   sémantique, redéfinies dans une seule requête `@media (prefers-contrast:
-   more)` qui couvre les deux apparences par `light-dark()` — là où il en
-   fallait deux ici, une par apparence, pour la même redéfinition.
-
-   Le verre s'y opacifie presque complètement ; le bloc de retrait, plus bas,
-   finit le travail en coupant le flou. */
-
-    /* La barre de suivi, en verre.
-
-   « Liquid Glass forms a distinct functional layer for controls and navigation
-   elements […] that floats above the content layer. » C'est la première surface
-   à passer de l'autre côté de la frontière : elle est épinglée en haut, la pile
-   des pages défile dessous, et c'est exactement la situation que le matériau
-   décrit.
-
-   Trois contraintes de moteur, chacune payée d'un bogue :
-
-   1. `-webkit-backdrop-filter` précède `backdrop-filter` avec la **même**
-      valeur : un iPhone encore sous iOS 16.4 ou une version plus récente ne lit
-      que la préfixée, et l'unpréfixée est cassée jusqu'à macOS 14.7 (bogue
-      WebKit 297620).
-   2. **Pas de `var()` dans un `backdrop-filter`** : WebKit l'ignore purement et
-      simplement (bogues 289800, 297620) — c'est la seule chose que les jetons ne
-      peuvent pas tenir, d'où un flou écrit en clair.
-   3. Le fond opaque se déclare **avant**, sans condition (plus haut), et le
-      verre ne s'ajoute que dans ce `@supports`. L'inverse, un repli dans un
-      `@supports not`, laisserait les moteurs partiels sans rien.
-
-   20 px de flou : au-delà de 24, un grand élément fixe flouté fait caler le
-   premier rendu de Safari pendant des secondes (bogue 319187). Rien ne l'anime,
-   la HIG demandant d'« avoid animating into and out of blurs ».
-
-   `saturate` n'est pas cosmétique : `blur()` seul est un filtre passe-bas, et
-   rend le voile laiteux caractéristique. C'est la saturation qui rend au verre
-   la couleur de ce qu'il laisse passer. */
-    @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-        /* Les deux barres épinglées et la barre flottante de la carte : une par
-       écran, du texte à porter, donc le verre « regular ». */
-        .header,
-    .suivi-bar,
-    .carte-bar,
-    /* Les contrôles isolés qui flottent sur le contenu. Deux au plus visibles à
-       la fois par écran, ce qui tient le budget. */
-    .floating-add-point-button,
-    .carte-button,
-    .overview-button,
-    .resume-button,
-    /* La colonne de contrôles de Leaflet. Elle vit dans
-       `.leaflet-control-container`, **hors** de `.leaflet-map-pane` qui est
-       positionné par transformation — un verre à l'intérieur perdrait son
-       flou. */
-    /* La colonne, et **pas** ses boutons : `.carte-recentrer` l'habite, et deux
-       verres empilés sont refusés — « avoid overcrowding or layering Liquid
-       Glass elements on top of each other ». */
-    .leaflet-bar {
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            backdrop-filter: blur(20px) saturate(180%);
-            background: var(--verre);
-
-            /* Monochrome, et c'est la règle : « symbols and text on these elements
-           follow a monochromatic color scheme, becoming darker when the
-           underlying content is light, and lighter when it's dark ». Un libellé
-           fixé en blanc — ce que la règle du bouton principal imposait à
-           « Ajouter un point » — disparaît dès que le verre s'éclaircit sur une
-           page de schéma. */
-            color: var(--label);
-            box-shadow: var(--verre-reflet), var(--ombre-flottante);
-        }
-    }
-
-    /* Ce que les réglages retirent au verre.
-
-   « Test your interface with a variety of display and accessibility settings. »
-   Rendre la surface opaque ne suffit pas : **le flou ne part pas tout seul**, il
-   faut couper les deux propriétés, préfixée comprise.
-
-   Ce bloc vient après le `@supports` ci-dessus, et c'est structurel : les deux
-   sélecteurs ont la même spécificité, donc c'est l'ordre du fichier qui tranche.
-
-   iOS ne publie toujours pas `prefers-reduced-transparency` — la requête ne
-   couvre donc pas la plateforme où le verre est le plus visible. Le contraste
-   renforcé, lui, y est honoré, d'où les deux conditions dans la même liste. */
-    @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-        .header,
-        .suivi-bar,
-        .carte-bar,
-        .floating-add-point-button,
-        .carte-button,
-        .overview-button,
-        .resume-button,
-        .leaflet-bar {
-            -webkit-backdrop-filter: none;
-            backdrop-filter: none;
-            background: var(--fond);
-            color: var(--label);
-        }
-    }
+   Le repli n'était pas écrit à part avant ce déplacement : il vivait, sans
+   condition, dans la règle de base de chaque sélecteur, plus haut dans ce
+   même fichier, et le bloc `@supports`, plus loin dans le **même** fichier,
+   l'emportait tout seul par simple ordre de source, à spécificité égale.
+   Depuis que ce bloc vit dans `@layer components`, cet ordre ne suffit plus :
+   une couche déclarée plus tard gagne toujours, quelle que soit la
+   spécificité ou la position dans le fichier — et `screens` est déclarée
+   après `components`. Une déclaration posée ici sans condition l'emporterait
+   donc **toujours** sur celle de `components/surface.css`, y compris sur les
+   moteurs qui reconnaissent le verre. Mesuré : c'est exactement ce qui s'est
+   produit sur les cinq moteurs de `pnpm test:e2e`, où l'ombre du bouton
+   flottant « Ajouter un point » perdait son reflet — d'où le repli sous
+   condition explicite, à côté du verre plutôt que dans les règles de base
+   d'ici. */
 
     /* Le mouvement.
 
