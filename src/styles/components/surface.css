@@ -67,12 +67,14 @@
      * 3. Le fond opaque se déclare **avant** le verre, pour qu'un moteur qui
      *    ne reconnaît ni `backdrop-filter` ni `-webkit-backdrop-filter` voie
      *    une surface pleine, et non une vitre transparente. Il vit
-     *    maintenant dans un `@supports not` symétrique du `@supports`
-     *    ci-dessous, et non plus, sans condition, dans le fichier de chaque
-     *    composant : sans cette condition, sa déclaration gagnerait
-     *    **toujours** sur celle du verre, plutôt que de s'effacer devant
-     *    elle. C'est la couche `@layer components` qui l'impose — voir le
-     *    bloc `@supports not`, plus bas, pour la mesure qui l'a révélé.
+     *    maintenant dans un `@supports not`, plus bas, et non plus, sans
+     *    condition, dans le fichier de chaque composant : sans cette
+     *    condition, sa déclaration gagnerait **toujours** sur celle du
+     *    verre, plutôt que de s'effacer devant elle. C'est la couche
+     *    `@layer components` qui l'impose — voir le bloc `@supports not`
+     *    pour la mesure qui l'a révélé, et pour la raison, propre à
+     *    `.surface`, `.surface-regular` et `.surface-thick`, qui les fait
+     *    y figurer elles aussi.
      *
      * 20 px de flou : au-delà de 24, un grand élément fixe flouté fait caler
      * le premier rendu de Safari pendant des secondes (bogue 319187). Rien ne
@@ -135,27 +137,55 @@
      * sélecteurs portaient avant le verre, sans le flou qui n'aurait rien eu
      * à échantillonner.
      *
-     * Vit désormais dans `@supports not`, l'exact miroir du `@supports`
-     * ci-dessus, et non plus, sans condition, dans la règle de base de
-     * chaque sélecteur : les deux vivaient auparavant dans le **même**
-     * fichier et la **même** couche (`screens/legacy.css`), où le second,
-     * plus loin dans le fichier, l'emportait sur le premier par simple ordre
-     * de source, à spécificité égale. Depuis que le verre vit dans
-     * `@layer components`, cet ordre ne suffit plus : une couche déclarée
-     * plus tard gagne **toujours**, quelle que soit la spécificité ou la
-     * position dans le fichier — et `screens`, où vivent encore les règles
-     * de base de ces sélecteurs, est déclarée après `components`. Une
-     * déclaration inconditionnelle là-bas l'emporterait donc sur celle-ci
-     * même quand le moteur reconnaît le verre. Mesuré : c'est exactement ce
-     * qui s'est produit sur les cinq moteurs de `pnpm test:e2e`, où l'ombre
-     * du bouton flottant « Ajouter un point » perdait son reflet — d'où ce
-     * bloc, condition explicite plutôt qu'ordre implicite.
+     * Vit désormais dans `@supports not`, et non plus, sans condition, dans
+     * la règle de base de chaque sélecteur : les deux vivaient auparavant
+     * dans le **même** fichier et la **même** couche (`screens/legacy.css`),
+     * où le second, plus loin dans le fichier, l'emportait sur le premier
+     * par simple ordre de source, à spécificité égale. Depuis que le verre
+     * vit dans `@layer components`, cet ordre ne suffit plus : une couche
+     * déclarée plus tard gagne **toujours**, quelle que soit la spécificité
+     * ou la position dans le fichier — et `screens`, où vivent encore les
+     * règles de base de ces sélecteurs, est déclarée après `components`.
+     * Une déclaration inconditionnelle là-bas l'emporterait donc sur
+     * celle-ci même quand le moteur reconnaît le verre. Mesuré : c'est
+     * exactement ce qui s'est produit sur les cinq moteurs de
+     * `pnpm test:e2e`, où l'ombre du bouton flottant « Ajouter un point »
+     * perdait son reflet — d'où ce bloc, condition explicite plutôt qu'ordre
+     * implicite.
      *
-     * `.leaflet-bar` seule porte un repli distinct des sept autres — épaisse
-     * et sans ombre portée, plutôt que régulière avec reflet et ombre — la
-     * colonne de contrôles Leaflet portant déjà ce même matériau avant que
-     * ce fichier n'existe. `.header` et `.carte-bar` n'ont besoin d'aucun
-     * repli : ils ne portaient ni fond ni ombre en dehors du verre. */
+     * Pas un miroir exact du `@supports` ci-dessus : celui-ci pose `.surface`
+     * ET les huit sélecteurs hérités, mais seuls ces derniers avaient une
+     * règle de base à ce fichier — `.surface`, `.surface-regular` et
+     * `.surface-thick` sont **neufs**, sans historique dans
+     * `screens/legacy.css` à préserver. Les en absenter serait pourtant le
+     * défaut que cette tâche existe pour éliminer : la classe est le mode
+     * d'emploi que les tâches 2 à 5 doivent suivre — composer `.surface` au
+     * lieu de redéclarer le verre —, et un composant qui s'y fierait seule
+     * rendrait sans aucun fond sur un moteur sans `backdrop-filter`, la
+     * vitre transparente que l'invariant 3 interdit. Leur repli est donc
+     * choisi par cohérence avec ce que les huit héritées reçoivent déjà,
+     * plutôt qu'inventé :
+     *   - `.surface`, comme `.surface-regular`, prend le repli **régulier**
+     *     — le même que les sélecteurs qui, une fois flous, portent le
+     *     matériau `--verre` : un fond plein (`--fond`, comme `.suivi-bar`)
+     *     et l'ombre portée seule (`--ombre-flottante`, comme les quatre
+     *     boutons flottants). Aucun sélecteur hérité n'avait besoin des deux
+     *     à la fois, mais `.surface` réunit ce qu'ils faisaient séparément :
+     *     c'est elle qui remplace leur redéclaration commune.
+     *   - `.surface-thick` prend le repli de `.leaflet-bar`, seul précédent
+     *     du matériau `--verre-epais` : un fond plein plus épais et le
+     *     reflet seul (`--verre-reflet`), sans ombre portée — c'est le choix
+     *     que la colonne de contrôles Leaflet faisait déjà avant ce fichier,
+     *     et `.surface-thick` ne fait que le nommer. Déclarée après
+     *     `.surface` : à spécificité égale, l'ordre du fichier tranche, et
+     *     elle doit donc venir en dernier pour l'emporter quand les deux
+     *     classes sont posées ensemble — le même ordre que dans le
+     *     `@supports` ci-dessus.
+     *
+     * `.header` et `.carte-bar` restent absents, et c'est volontaire : ils
+     * ne portaient ni fond ni ombre en dehors du verre, donc les omettre
+     * n'est pas une perte. `styles.test.ts` affirme cette liste d'exceptions
+     * par son nom, pour qu'un futur oubli soit visible plutôt que silencieux. */
     @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
         .suivi-bar {
             background: var(--fond);
@@ -169,6 +199,20 @@
         }
 
         .leaflet-bar {
+            background: var(--verre-epais);
+            box-shadow: var(--verre-reflet);
+        }
+
+        .surface {
+            background: var(--fond);
+            box-shadow: var(--ombre-flottante);
+        }
+
+        .surface-regular {
+            background: var(--fond);
+        }
+
+        .surface-thick {
             background: var(--verre-epais);
             box-shadow: var(--verre-reflet);
         }

@@ -565,4 +565,52 @@ describe('Le matériau', () => {
             expect(declarations.filter((d) => d.includes('var('))).toEqual([]);
         });
     });
+
+    describe('Étant donné le verre, quand on cherche son repli', () => {
+        it('alors tout sélecteur qui le porte a sa contrepartie dans le repli, sauf les deux exceptions nommées', () => {
+            // Le défaut à couvrir : le bloc `@supports not` n'a longtemps
+            // couvert que les huit sélecteurs hérités de `screens/legacy.css`
+            // — ni `.surface`, ni `.surface-regular`, ni `.surface-thick`, la
+            // classe même que cette tâche produit. Dormant tant que rien ne
+            // consomme encore `.surface`, ce défaut serait devenu un vrai
+            // trou visuel — une vitre sans aucun fond — dès qu'une tâche
+            // suivante s'y serait fiée seule sur un moteur sans
+            // `backdrop-filter`.
+            //
+            // Sans commentaires : un exemple en prose ne doit pas compter
+            // comme un sélecteur. Ancré sur l'indentation de `@supports`,
+            // rejouée en rétro-référence pour sa propre fermeture — même
+            // technique que `legacy.test.ts`, pour la même raison : un
+            // quantificateur paresseux borné par une indentation quelconque
+            // s'arrêterait à la première règle imbriquée, pas au bloc entier.
+            const sansProse = surface.replace(/\/\*[\s\S]*?\*\//g, ' ');
+
+            const pose = /^([ \t]*)@supports \(\(backdrop-filter[^{]*\{([\s\S]*?)\n\1\}/m.exec(
+                sansProse,
+            );
+            const repli = /^([ \t]*)@supports not \(\(backdrop-filter[^{]*\{([\s\S]*?)\n\1\}/m.exec(
+                sansProse,
+            );
+
+            expect(pose?.[2]).toBeTruthy();
+            expect(repli?.[2]).toBeTruthy();
+
+            const classesDe = (bloc: string): Set<string> =>
+                new Set([...bloc.matchAll(/\.[a-z][\w-]*/g)].map((m) => m[0]));
+
+            const classesDuVerre = classesDe(pose?.[2] ?? '');
+            const classesDuRepli = classesDe(repli?.[2] ?? '');
+
+            // `.header` et `.carte-bar` ne portaient ni fond ni ombre en
+            // dehors du verre : les omettre du repli n'est pas un oubli,
+            // c'est qu'ils n'ont jamais eu de valeur à y répéter.
+            const EXCEPTIONS = new Set(['.header', '.carte-bar']);
+
+            const oublies = [...classesDuVerre].filter(
+                (classe) => !EXCEPTIONS.has(classe) && !classesDuRepli.has(classe),
+            );
+
+            expect(oublies).toEqual([]);
+        });
+    });
 });
