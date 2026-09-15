@@ -784,6 +784,156 @@ function proprietesDuCorps(corps: string): string[] {
     );
 }
 
+/**
+ * Les familles de propriétés dans lesquelles un abrégé et un long se
+ * disputent la même chose. Le mécanisme n'est pas la ressemblance des noms :
+ * `padding-block` (posé par un composant) et `padding` (resté dans
+ * `screens/`) écrivent tous deux le rembourrage vertical d'un élément, donc
+ * la couche tranche entre eux avant que la spécificité n'entre en jeu —
+ * exactement comme elle l'a fait pour `flex-wrap` contre `flex-wrap`, sauf
+ * qu'ici les deux noms diffèrent et qu'une comparaison de chaînes littérales
+ * ne les verrait jamais entrer en collision.
+ *
+ * La table n'a pas besoin d'être exhaustive : elle couvre les familles que
+ * ce dépôt emploie réellement, déclinaisons logiques comprises
+ * (`-block`, `-inline`, `-block-start`…) — celles des règles que les tâches
+ * 3 à 5 s'apprêtent justement à extraire (`.action-bar`, les rangées de
+ * liste), où ce dépôt mélange déjà l'abrégé et le long.
+ *
+ * `border-radius` est délibérément une famille à part, et non un membre de
+ * `border` : les deux ne se disputent rien, l'un la bordure, l'autre son
+ * rayon — un témoin qui les confondrait crierait à tort.
+ */
+const FAMILLES_DE_PROPRIETES: Record<string, string[]> = {
+    padding: [
+        'padding',
+        'padding-block',
+        'padding-inline',
+        'padding-block-start',
+        'padding-block-end',
+        'padding-inline-start',
+        'padding-inline-end',
+        'padding-top',
+        'padding-right',
+        'padding-bottom',
+        'padding-left',
+    ],
+    margin: [
+        'margin',
+        'margin-block',
+        'margin-inline',
+        'margin-block-start',
+        'margin-block-end',
+        'margin-inline-start',
+        'margin-inline-end',
+        'margin-top',
+        'margin-right',
+        'margin-bottom',
+        'margin-left',
+    ],
+    border: [
+        'border',
+        'border-width',
+        'border-style',
+        'border-color',
+        'border-block',
+        'border-inline',
+        'border-block-start',
+        'border-block-end',
+        'border-inline-start',
+        'border-inline-end',
+        'border-top',
+        'border-right',
+        'border-bottom',
+        'border-left',
+    ],
+    'border-radius': [
+        'border-radius',
+        'border-start-start-radius',
+        'border-start-end-radius',
+        'border-end-start-radius',
+        'border-end-end-radius',
+        'border-top-left-radius',
+        'border-top-right-radius',
+        'border-bottom-left-radius',
+        'border-bottom-right-radius',
+    ],
+    background: [
+        'background',
+        'background-color',
+        'background-image',
+        'background-position',
+        'background-size',
+        'background-repeat',
+        'background-attachment',
+        'background-clip',
+        'background-origin',
+        'background-blend-mode',
+    ],
+    font: [
+        'font',
+        'font-family',
+        'font-size',
+        'font-weight',
+        'font-style',
+        'font-variant',
+        'font-stretch',
+        'line-height',
+    ],
+    flex: ['flex', 'flex-grow', 'flex-shrink', 'flex-basis'],
+    'flex-flow': ['flex-flow', 'flex-direction', 'flex-wrap'],
+    gap: ['gap', 'row-gap', 'column-gap'],
+    inset: [
+        'inset',
+        'inset-block',
+        'inset-inline',
+        'inset-block-start',
+        'inset-block-end',
+        'inset-inline-start',
+        'inset-inline-end',
+        'top',
+        'right',
+        'bottom',
+        'left',
+    ],
+    overflow: ['overflow', 'overflow-x', 'overflow-y', 'overflow-block', 'overflow-inline'],
+};
+
+const FAMILLE_PAR_PROPRIETE = new Map<string, string>(
+    Object.entries(FAMILLES_DE_PROPRIETES).flatMap(([famille, proprietes]) =>
+        proprietes.map((propriete): [string, string] => [propriete, famille]),
+    ),
+);
+
+/** La famille d'une propriété — elle-même si la table ne lui en connaît pas,
+ *  auquel cas la comparaison reste l'égalité de chaîne d'avant cette
+ *  extension. */
+function familleDe(propriete: string): string {
+    return FAMILLE_PAR_PROPRIETE.get(propriete) ?? propriete;
+}
+
+interface ProprieteEnConflit {
+    composant: string;
+    ecran: string;
+}
+
+/** Les paires (propriété de composant, propriété d'écran) de même famille —
+ *  abrégé contre long compris. */
+function proprietesEnConflit(
+    proprietesComposant: Set<string>,
+    proprietesEcran: Set<string>,
+): ProprieteEnConflit[] {
+    const conflits: ProprieteEnConflit[] = [];
+    for (const proprieteEcran of proprietesEcran) {
+        for (const proprieteComposant of proprietesComposant) {
+            if (familleDe(proprieteComposant) === familleDe(proprieteEcran)) {
+                conflits.push({ composant: proprieteComposant, ecran: proprieteEcran });
+            }
+        }
+    }
+    return conflits;
+}
+
 interface RegleUtile {
     chemin: string;
     selecteur: string;
@@ -809,19 +959,23 @@ function reglesUtiles(fichiers: [string, string][]): RegleUtile[] {
 }
 
 /** Décrit la collision entre une règle de composant et une règle d'écran —
- *  `null` si elles ne partagent ni classe ni propriété. */
+ *  `null` si elles ne partagent ni classe ni propriété de même famille. */
 function decrireInversion(composant: RegleUtile, ecran: RegleUtile): string | null {
     const classesCommunes = [...ecran.classes].filter((classe) => composant.classes.has(classe));
-    const proprietesCommunes = [...ecran.proprietes].filter((propriete) =>
-        composant.proprietes.has(propriete),
-    );
-    if (classesCommunes.length === 0 || proprietesCommunes.length === 0) {
+    const conflits = proprietesEnConflit(composant.proprietes, ecran.proprietes);
+    if (classesCommunes.length === 0 || conflits.length === 0) {
         return null;
     }
 
     const classes = classesCommunes.map((classe) => `.${classe}`).join(', ');
-    const proprietesTexte = proprietesCommunes.map((propriete) => `« ${propriete} »`).join(', ');
-    return `${composant.chemin} « ${composant.selecteur} » et ${ecran.chemin} « ${ecran.selecteur} » déclarent tous deux ${proprietesTexte} sur ${classes}`;
+    const proprietesTexte = conflits
+        .map(({ composant: proprieteComposant, ecran: proprieteEcran }) =>
+            proprieteComposant === proprieteEcran ?
+                `« ${proprieteEcran} »`
+            :   `« ${proprieteComposant} » (composant) contre « ${proprieteEcran} » (écran)`,
+        )
+        .join(', ');
+    return `${composant.chemin} « ${composant.selecteur} » et ${ecran.chemin} « ${ecran.selecteur} » se disputent ${proprietesTexte} sur ${classes}`;
 }
 
 /** Toute paire (règle de composant, règle d'écran) qui partage une classe
