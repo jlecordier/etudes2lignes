@@ -46,6 +46,24 @@ const materiau = readFileSync(new URL('./components/surface.css', import.meta.ur
 const bar = readFileSync(new URL('./components/bar.css', import.meta.url), 'utf8');
 
 /**
+ * La famille des contrôles, pour les témoins dont la règle a émigré hors de
+ * `feuille` : `button`, `.icon`, `.action-bar`, `.image-bar`,
+ * `.point-actions` et les six contrôles flottants ont rejoint
+ * `components/button.css`, `components/button-group.css` et
+ * `components/floating-action.css` (tâche 3 de la partie 2). `styles.test.ts`
+ * porte le contrat neuf (le verre sur le groupe, jamais l'enfant ; le rayon
+ * intérieur qui se calcule ; la cible plancher sur les deux dimensions) ; les
+ * témoins d'ici restent parce qu'ils affirment autre chose — le détail des
+ * propriétés que le déplacement ne devait pas changer.
+ */
+const boutonCss = readFileSync(new URL('./components/button.css', import.meta.url), 'utf8');
+const groupeCss = readFileSync(new URL('./components/button-group.css', import.meta.url), 'utf8');
+const flottantCss = readFileSync(
+    new URL('./components/floating-action.css', import.meta.url),
+    'utf8',
+);
+
+/**
  * Ce fichier éprouve la **source** de la feuille de style, et non son effet.
  *
  * Une feuille n'a pas de test unitaire : rien n'y est appelé. Mais plusieurs de
@@ -116,11 +134,13 @@ describe('Les pictogrammes', () => {
             // `<svg>` sans taille sort en 300 × 150, et un tracé sans `fill:
             // none` sort en noir plein. Sans cette règle, chaque bouton de
             // l'interface affiche un pavé.
-            expect(feuille).toMatch(/\.icon\s*\{[^}]*fill:\s*none/s);
+            // `.icon` a émigré vers `components/button.css` (tâche 3 de la
+            // partie 2) : c'est `boutonCss` qui le porte désormais.
+            expect(boutonCss).toMatch(/\.icon\s*\{[^}]*fill:\s*none/s);
             // Insensible à la casse : le contrat est un tracé de la couleur
             // courante, pas l'orthographe de `currentcolor` que Stylelint choisit.
-            expect(feuille).toMatch(/\.icon\s*\{[^}]*stroke:\s*currentcolor/is);
-            expect(feuille).toMatch(/\.icon\s*\{[^}]*inline-size:/s);
+            expect(boutonCss).toMatch(/\.icon\s*\{[^}]*stroke:\s*currentcolor/is);
+            expect(boutonCss).toMatch(/\.icon\s*\{[^}]*inline-size:/s);
         });
     });
 });
@@ -134,11 +154,15 @@ describe('Les contrôles', () => {
             // plus étrangère de toute la feuille.
             //
             // « A button needs a hit region of at least 44x44 pt » : le bouton
-            // d'avant faisait 37 px de haut.
-            const bouton = /\n[ \t]*button\s*\{([^}]*)\}/s.exec(feuille);
+            // d'avant faisait 37 px de haut. `button` a émigré vers
+            // `components/button.css` (tâche 3 de la partie 2), qui porte
+            // désormais le rayon et la cible sur un jeton de système plutôt
+            // que sur ces deux littéraux — `styles.test.ts` (« famille des
+            // contrôles ») affirme le contrat neuf sur les deux dimensions.
+            const bouton = /\n[ \t]*button\s*\{([^}]*)\}/s.exec(boutonCss);
 
-            expect(bouton?.[1]).toMatch(/border-radius:\s*999px/);
-            expect(bouton?.[1]).toMatch(/min-block-size:\s*44px/);
+            expect(bouton?.[1]).toMatch(/border-radius:\s*var\(--radius-pill\)/);
+            expect(bouton?.[1]).toMatch(/min-block-size:\s*var\(--hit-target\)/);
         });
     });
 });
@@ -150,8 +174,8 @@ describe('Le contour des contrôles', () => {
             // le dessine, teintée pour l'action principale et neutre sinon. La
             // bordure d'avant doublait le fond de la même couleur sur le bouton
             // principal, et cerclait de bleu les secondaires, dont la HIG veut
-            // justement qu'ils s'effacent.
-            const bouton = /\n[ \t]*button\s*\{([^}]*)\}/s.exec(feuille);
+            // justement qu'ils s'effacent. Lu depuis `boutonCss`, comme ci-dessus.
+            const bouton = /\n[ \t]*button\s*\{([^}]*)\}/s.exec(boutonCss);
 
             expect(bouton?.[1]).toMatch(/border:\s*none/);
         });
@@ -218,17 +242,15 @@ describe('Une barre de navigation sur un petit iPhone', () => {
             //
             // Le titre a émigré vers `components/bar.css` (tâche 2 de la
             // partie 2), qui le porte désormais — plus `feuille`. La barre
-            // d'actions imbriquée, elle, y est retournée après un aller :
-            // postée un temps dans `components/bar.css`, elle y perdait
-            // *toujours* contre `.action-bar { flex-wrap: wrap }` restée
-            // dans `screens/legacy.css` — `components` perd face à
-            // `screens` quelle que soit la spécificité. Elle reste donc ici,
-            // à côté de la règle qu'elle doit battre, avec la dette qui dit
-            // pourquoi (voir le commentaire sur `.header .action-bar`
-            // ci-dessus, et le témoin générique plus bas dans
-            // `styles.test.ts`).
+            // d'actions imbriquée a émigré à son tour, avec `.action-bar`
+            // elle-même, vers `components/button-group.css` (tâche 3) : les
+            // deux vivent maintenant dans la même couche, et la dette qui les
+            // séparait (l'une postée un temps dans `components/bar.css`,
+            // l'autre restée dans `screens/legacy.css`, `components` perdant
+            // face à `screens` quelle que soit la spécificité) est refermée —
+            // voir l'en-tête de `button-group.css`.
             const titre = /\n[ \t]*\.header :is\(h1, h2\) \{([^}]*)\}/.exec(bar);
-            const actions = /\n[ \t]*\.header \.action-bar \{([^}]*)\}/.exec(feuille);
+            const actions = /\n[ \t]*\.header \.action-bar \{([^}]*)\}/.exec(groupeCss);
 
             expect(titre?.[1]).toMatch(/text-overflow:\s*ellipsis/);
             expect(actions?.[1]).toMatch(/flex-wrap:\s*nowrap/);
@@ -450,11 +472,23 @@ describe('Un bouton dans une barre', () => {
             // L'exception est nommée : `:not(.secondary)` est l'action
             // proéminente, une par barre, et elle garde sa teinte — « apply
             // color to the background rather than to symbols or text ».
-            const groupe =
-                /\n[ \t]*\.header button\.secondary,\n[ \t]*\.suivi-bar button\.secondary,\n[ \t]*\.carte-bar button\.secondary,\n[ \t]*\.point-actions button,\n[ \t]*\.image-bar button \{([^}]*)\}/.exec(
+            //
+            // La règle groupée d'origine s'est scindée en deux, une par
+            // couche : `.header`/`.suivi-bar`/`.carte-bar button.secondary`
+            // restent ici — `.carte-bar` est encore hors composant, tâche 5 —
+            // et `.point-actions button`/`.image-bar button` ont émigré vers
+            // `components/button-group.css` (tâche 3) avec leurs groupes.
+            const barre =
+                /\n[ \t]*\.header button\.secondary,\n[ \t]*\.suivi-bar button\.secondary,\n[ \t]*\.carte-bar button\.secondary \{([^}]*)\}/.exec(
                     feuille,
                 );
+            const groupe =
+                /\n[ \t]*\.point-actions button,\n[ \t]*\.image-bar button \{([^}]*)\}/.exec(
+                    groupeCss,
+                );
 
+            expect(barre?.[1]).toMatch(/background:\s*none/);
+            expect(barre?.[1]).toMatch(/color:\s*var\(--label\)/);
             expect(groupe?.[1]).toMatch(/background:\s*none/);
             expect(groupe?.[1]).toMatch(/color:\s*var\(--label\)/);
         });
@@ -472,7 +506,9 @@ describe("Une barre d'actions", () => {
             //
             // « Use style — not size — to visually distinguish the preferred
             // choice » : elles gardent donc leur taille et perdent leur teinte.
-            const barre = /\n[ \t]*\.action-bar button \{([^}]*)\}/.exec(feuille);
+            // `.action-bar button` a émigré vers `components/button-group.css`
+            // (tâche 3), avec `.action-bar` elle-même.
+            const barre = /\n[ \t]*\.action-bar button \{([^}]*)\}/.exec(groupeCss);
 
             expect(barre?.[1]).toMatch(/background:\s*color-mix\(/);
             expect(barre?.[1]).toMatch(/color:\s*var\(--accent\)/);
@@ -489,8 +525,9 @@ describe("L'ordre des actions dans le panneau de saisie", () => {
             //
             // C'est l'annulation qui pousse, et non la validation qui est
             // poussée : en logique d'écriture, la marge automatique appartient à
-            // l'élément qui cède la place.
-            const annuler = /\n[ \t]*#cancel-carte-button \{([^}]*)\}/.exec(feuille);
+            // l'élément qui cède la place. `#cancel-carte-button` a émigré vers
+            // `components/floating-action.css` (tâche 3).
+            const annuler = /\n[ \t]*#cancel-carte-button \{([^}]*)\}/.exec(flottantCss);
 
             expect(annuler?.[1]).toMatch(/margin-inline-end:\s*auto/);
         });
@@ -505,8 +542,10 @@ describe('Les surfaces qui se répètent', () => {
             // exemplaires là où le budget mesuré sur mobile est de trois à cinq.
             // Or le besoin est la lisibilité, pas l'optique — un fond suffit, et
             // sans lui ces boutons sont illisibles sur un schéma chargé.
+            // `.point-actions` et `.image-bar` ont émigré vers
+            // `components/button-group.css` (tâche 3).
             for (const surface of ['.point-actions', '.image-bar']) {
-                const regle = new RegExp(`\\n[ \\t]*\\${surface} \\{([^}]*)\\}`).exec(feuille);
+                const regle = new RegExp(`\\n[ \\t]*\\${surface} \\{([^}]*)\\}`).exec(groupeCss);
 
                 expect(regle?.[1]).toMatch(/background:\s*var\(--verre/);
                 expect(regle?.[1]).not.toMatch(/backdrop-filter/);
@@ -570,7 +609,9 @@ describe('La couleur sur les contrôles', () => {
             // Le remplissage se **dérive** de la couleur du texte plutôt que de
             // vivre dans son propre jeton : il suit ainsi les deux apparences
             // sans qu'aucune valeur ne soit à tenir à jour deux fois.
-            const secondaire = /button\.secondary\s*\{([^}]*)\}/.exec(feuille);
+            // `button.secondary` a émigré vers `components/button.css`
+            // (tâche 3 de la partie 2).
+            const secondaire = /\n[ \t]*button\.secondary \{([^}]*)\}/.exec(boutonCss);
 
             expect(secondaire?.[1]).toMatch(/background:\s*color-mix\(/);
             expect(secondaire?.[1]).not.toMatch(/var\(--fond\)/);
@@ -584,7 +625,9 @@ describe('Les actions destructrices', () => {
             // « Never make the destructive action the prominent one » : un aplat
             // rouge attire précisément le pouce qu'on veut voir hésiter. Le
             // rouge nomme l'action ; la surface reste celle des autres boutons.
-            const danger = /button\.danger\s*\{([^}]*)\}/.exec(feuille);
+            // `button.danger` a émigré vers `components/button.css` (tâche 3
+            // de la partie 2).
+            const danger = /\n[ \t]*button\.danger \{([^}]*)\}/.exec(boutonCss);
 
             expect(danger?.[1]).toMatch(/color:\s*var\(--destructif\)/);
             expect(danger?.[1]).not.toMatch(/background:\s*var\(--destructif\)/);
@@ -954,9 +997,11 @@ describe('La feuille de style', () => {
             // Les symboles ne portent ni épaisseur ni taille : la feuille les
             // donne, sinon chaque pictogramme sort en 300 × 150 rempli de noir.
             // Insensible à la casse, pour la même raison que le test dédié plus haut.
+            // `.icon` a émigré vers `components/button.css` (tâche 3 de la
+            // partie 2) : c'est `boutonCss` qui le porte désormais.
             exige(
                 '.icon dimensionnée et tracée',
-                /\.icon\s*\{[^}]*stroke:\s*currentcolor/is.test(feuille),
+                /\.icon\s*\{[^}]*stroke:\s*currentcolor/is.test(boutonCss),
             );
 
             // Le verre s'annule quand la personne l'a demandé — le flou ne part

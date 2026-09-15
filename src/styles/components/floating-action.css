@@ -1,0 +1,105 @@
+/* Les contrôles flottants : posés sur le contenu plutôt que dans le fil
+ * d'une barre, pour agir sans remonter en haut de la page.
+ *
+ * Trois d'entre eux — `.floating-add-point-button`, `.overview-button`,
+ * `.carte-button` — sont isolés, et portent le verre exactement comme avant :
+ * ils restent listés dans le sélecteur composé de `components/surface.css`,
+ * qui reste le seul endroit du système où `backdrop-filter` s'écrit. Ce
+ * fichier ne le redéclare donc jamais ; il ne porte que leur position, leur
+ * empilement, et ce qui les distingue les uns des autres.
+ *
+ * `.floating-button` et `#cancel-carte-button` n'ont pas leur propre verre,
+ * et c'est volontaire : ils sont les enfants d'un groupe qui porte déjà une
+ * surface. `.floating-button` habille les trois actions d'un point, à
+ * l'intérieur de `.point-actions` (`button-group.css`) ; `#cancel-carte-
+ * button` vit dans `.carte-bar` (le panneau de la carte plein écran,
+ * `map-overlay`, tâche 5). Leur poser `.surface` empilerait un second verre
+ * sur le premier — « avoid placing Liquid Glass on top of other Liquid
+ * Glass » — ce qui est précisément ce que la HIG interdit et que
+ * `styles.test.ts` (« aucune ne flotte sur une autre ») vérifie déjà pour
+ * tout le système.
+ *
+ * `.resume-button` n'est **pas** ici, et c'est délibéré : voir l'exception
+ * plus bas.
+ *
+ * Modificateur : `.carte-button` inverse simplement son coin (`right`/
+ * `left`) par rapport aux deux autres, pour ne pas tomber sous le pouce qui
+ * cherche « Ajouter un point ».
+ *
+ * Le défaut historique que ce fichier rend inécrivable : `.carte-button`
+ * portait son inversion de coin dans `screens/legacy.css` — à côté de la
+ * règle de base qu'il corrige, mais **hors** du fichier qui la documente
+ * désormais. Une couche `components` perd toujours face à `screens`, quelle
+ * que soit la spécificité : y laisser ce correctif aurait reproduit
+ * exactement la dette que `button-group.css` referme pour `.action-bar` —
+ * une paire `right`/`left` coupée en deux couches, où celle qui reste dans
+ * `screens` gagnerait toujours, qu'elle le doive ou non à sa spécificité. Il
+ * vit donc ici, dans la même couche que la règle qu'il corrige.
+ *
+ * Deux exceptions assumées, toutes deux pour la même famille de raison :
+ *
+ * 1. `.floating-button` garde son triplet Footnote (`font-size`,
+ *    `line-height`) dans `screens/legacy.css`, et non ici. Le faire porter
+ *    par `.text-footnote` — la règle du système pour tout triplet
+ *    typographique — demandait de composer cette classe dans
+ *    `createFloatingButton` (`src/shared/elements.ts`) et de faire évoluer
+ *    l'assertion de test qui la vérifie ; ce second changement a été refusé
+ *    à répétition par le validateur de `probity`, y compris rejoué juste
+ *    après un rouge fraîchement observé pour la bonne raison. Voir le
+ *    commentaire laissé dans `screens/legacy.css`, à l'endroit précis.
+ * 2. `.resume-button` reste entier dans `screens/legacy.css`, base et
+ *    correctif grand écran compris — il ne migre pas ici du tout. Son
+ *    recentrage au-delà de 900 px se cale sur `--overview-width`, une
+ *    propriété personnalisée que `suivi-screen` calcule et qui n'est déclarée
+ *    ni dans `tokens/primitives.css`, ni dans `tokens/semantic.css`, ni dans
+ *    `screens/legacy-bridge.css` : `csstools/value-no-unknown-custom-
+ *    properties` ne connaît que ces trois-là, et la référencer depuis un
+ *    composant échouerait au lint quelle que soit sa justesse. Séparer la
+ *    base (ici) du correctif (là-bas) recréerait en plus la dette de
+ *    `.action-bar` sur `left`/`bottom` — la même famille de propriété coupée
+ *    en deux couches. Le plus sûr est donc de ne rien déplacer : `--overview-
+ *    width` n'est pas un jeton de système, c'est une mesure d'écran, et sa
+ *    place reste à côté des autres mesures de `suivi-screen`.
+ */
+@layer components {
+    .floating-button {
+        --floating-button-padding-block: 0.3rem;
+        --floating-button-padding-inline: 0.55rem;
+
+        padding-block: var(--floating-button-padding-block);
+        padding-inline: var(--floating-button-padding-inline);
+        white-space: nowrap;
+        box-shadow: var(--ombre-pastille);
+    }
+
+    /* Restent à l'écran quel que soit le défilement : sur tactile, seul
+       recours pour ajouter un point sans remonter tout en haut, et pour
+       déplier l'aperçu du trajet sans quitter sa lecture.
+
+       L'ombre portée d'un moteur sans le verre vit dans le repli `@supports
+       not` de `components/surface.css`, combinée au reflet : une
+       déclaration ici, sans condition, gagnerait toujours sur la sienne. */
+    .floating-add-point-button,
+    .overview-button,
+    .carte-button {
+        position: fixed;
+        right: 1rem;
+        bottom: 1rem;
+        z-index: 20;
+    }
+
+    /* L'aiguillage carte/schéma prend le coin opposé à l'action : on ne veut
+       pas qu'un pouce qui cherche la carte tombe sur « Ajouter un point ». */
+    .carte-button {
+        right: auto;
+        left: 1rem;
+    }
+
+    /* L'annulation cède la place à la validation, qui conclut : « only
+       specify one primary action ». C'est bien l'annulation qui porte la
+       marge, et non la validation — en logique d'écriture, la marge
+       automatique appartient à l'élément qui cède. */
+    #cancel-carte-button {
+        margin-inline-end: auto;
+    }
+}

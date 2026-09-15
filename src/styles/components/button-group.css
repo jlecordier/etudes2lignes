@@ -1,0 +1,135 @@
+/* Les regroupements de boutons apparentés : « group related controls and
+ * apply Liquid Glass to the group rather than to each control ».
+ *
+ * Trois formes, une seule contrainte. `.action-bar` est la plus nue — une
+ * rangée sans surface propre, chaque bouton restant sa propre gélule teintée
+ * ou neutre (`button.css`) ; `.image-bar` et `.point-actions` portent, eux,
+ * la teinte du verre **sans son flou** — une par page ou par point, et les
+ * flouter en donnerait trop d'exemplaires pour le budget mesuré sur mobile
+ * (trois à cinq flous simultanés). Dans les trois cas, un bouton du groupe
+ * n'apporte jamais sa propre surface : c'est la barre qui en porte une, et
+ * deux surfaces empilées sont exactement ce que la HIG refuse.
+ *
+ * Jetons : `--group-radius`/`--group-padding` portent le rayon et le
+ * rembourrage de `.image-bar` et `.point-actions`, et leur rayon **intérieur**
+ * — celui que reçoivent leurs boutons enfants — se calcule depuis les deux :
+ * `calc(var(--group-radius) - var(--group-padding))`. C'est la règle
+ * concentrique d'Apple : « consider aligning the shape of controls with
+ * other rounded elements » — deux rayons écrits séparément dérivent, un
+ * calcul ne le peut pas. `--action-bar-gap`, `--image-bar-gap`,
+ * `--image-bar-padding-inline`, `--image-bar-margin-block-end` et
+ * `--point-actions-gap` sont des mesures propres à chaque groupe, sans
+ * portée en dehors de lui. `--point-actions-shadow` compose en un seul jeton
+ * les deux références du palier sémantique que porte son ombre : `scale-
+ * unlimited/declaration-strict-value` n'admet qu'un seul `var()` par
+ * déclaration de `box-shadow`, même assouplissement que `--surface-shadow`
+ * dans `surface.css`.
+ *
+ * Le défaut historique que ce fichier rend inécrivable — une dette écrite
+ * par la tâche précédente, dans `screens/legacy.css` : `.header .action-bar
+ * { flex-wrap: nowrap }` devait battre `.action-bar { flex-wrap: wrap }`, et
+ * une couche `components` perd **toujours** face à `screens`, quelle que
+ * soit la spécificité. Postée seule dans `components/bar.css`, cette règle
+ * perdait donc *systématiquement* contre `.action-bar` restée dans
+ * `screens/legacy.css` — mesuré : `flex-wrap` calculé à `wrap` sur
+ * `.action-bar` à 360 px, l'icône d'import seule sur une rangée au-dessus de
+ * « Nouveau trajet », l'en-tête doublant de hauteur. Les deux règles vivent
+ * maintenant dans ce même fichier, donc dans la même couche : la
+ * spécificité, plus élevée pour `.header .action-bar`, retrouve son pouvoir
+ * de trancher entre elles, et `styles.test.ts` (« L'inversion de cascade… »)
+ * empêche qu'une future extraction ne sépare à nouveau les deux moitiés
+ * d'une même paire abrégé/long ou classe/propriété.
+ */
+@layer components {
+    :root {
+        --group-radius: 999px;
+        --group-padding: 2px;
+        --action-bar-gap: 0.5rem;
+        --image-bar-gap: 0.5rem;
+        --image-bar-padding-inline: 0.5rem;
+        --image-bar-margin-block-end: 0.5rem;
+        --point-actions-gap: 2px;
+        --point-actions-shadow: var(--verre-reflet), var(--ombre-flottante);
+    }
+
+    /* La barre d'actions d'un écran : nue, chaque bouton restant sa propre
+       gélule (`button.css`). */
+    .action-bar {
+        display: flex;
+        gap: var(--action-bar-gap);
+        flex-wrap: wrap;
+    }
+
+    /* Voir l'en-tête du fichier : cette règle doit sa victoire à vivre dans
+       la même couche que `.action-bar` ci-dessus, pas seulement à sa
+       spécificité plus élevée. */
+    .header .action-bar {
+        flex-wrap: nowrap;
+    }
+
+    /* Des **pairs**, donc aucune teinte propre : « keep the number of
+       prominent buttons to one or two per view ». Elles gardent leur taille
+       en perdant leur couleur — « use style, not size, to visually
+       distinguish the preferred choice ». L'exception qui rend à l'action
+       conclusive de l'en-tête sa teinte (`.header .action-bar
+       button:not(.secondary)`) reste dans `screens/legacy.css` : sa
+       spécificité plus élevée la fait gagner contre cette règle-ci quelle
+       que soit la couche où celle-ci vit, puisque `screens` l'emporte de
+       toute façon sur `components`. */
+    .action-bar button {
+        background: color-mix(in srgb, var(--label) 8%, transparent);
+        color: var(--accent);
+    }
+
+    /* La barre d'une page : son nom et les actions qui la déplacent. Même
+       raisonnement qu'un point — une teinte de verre par page, sans le
+       flou. */
+    .image-bar {
+        display: flex;
+        align-items: center;
+        gap: var(--image-bar-gap);
+        margin-block-end: var(--image-bar-margin-block-end);
+        padding-block: var(--group-padding);
+        padding-inline: var(--image-bar-padding-inline);
+        border-radius: var(--group-radius);
+        background: var(--verre-epais);
+        box-shadow: var(--verre-reflet);
+    }
+
+    /* Les trois actions d'un point : un seul porteur, et c'est lui qui porte
+       la surface. Sa position reste dans `screens/legacy.css`, à côté de
+       `--point-line-thickness` : `csstools/value-no-unknown-custom-
+       properties` ne reconnaît que les jetons importés de `tokens/
+       primitives.css`, `tokens/semantic.css` et `screens/legacy-bridge.css`
+       — pas les propriétés personnalisées propres à `screens/legacy.css`,
+       où vit la géométrie partagée du repère. */
+    .point-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--point-actions-gap);
+        padding: var(--group-padding);
+        border-radius: var(--group-radius);
+        background: var(--verre-epais);
+        box-shadow: var(--point-actions-shadow);
+        pointer-events: auto;
+    }
+
+    /* Dans une barre, un bouton n'apporte pas sa propre surface : c'est elle
+       qui en porte une, et deux surfaces empilées sont exactement ce que la
+       HIG refuse — « put the glass on the group, not on each button ». Les
+       items y sont donc monochromes, et leur rayon **se dérive** de celui du
+       groupe plutôt que de rester la gélule générique de `button.css` : la
+       règle concentrique d'Apple. */
+    .point-actions button,
+    .image-bar button {
+        background: none;
+        box-shadow: none;
+        color: var(--label);
+        border-radius: calc(var(--group-radius) - var(--group-padding));
+    }
+
+    .point-actions button.danger,
+    .image-bar button.danger {
+        color: var(--destructif);
+    }
+}

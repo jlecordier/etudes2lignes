@@ -20,5 +20,8 @@
 @import url('./components/text.css');
 @import url('./components/surface.css');
 @import url('./components/bar.css');
+@import url('./components/button.css');
+@import url('./components/button-group.css');
+@import url('./components/floating-action.css');
 @import url('./screens/legacy-bridge.css');
 @import url('./screens/legacy.css');

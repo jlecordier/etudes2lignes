@@ -658,6 +658,68 @@ describe('La barre d écran', () => {
     });
 });
 
+const bouton = sansCommentaires(feuilles['./components/button.css'] ?? '');
+const groupe = sansCommentaires(feuilles['./components/button-group.css'] ?? '');
+
+describe('La famille des contrôles', () => {
+    describe('Étant donné un groupe de boutons, quand le verre se pose', () => {
+        it('alors il se pose sur le groupe, jamais sur ses enfants', () => {
+            // « Group related controls and apply Liquid Glass to the group
+            // rather than to each control. » Deux verres empilés ne
+            // floutent pas deux fois : le second échantillonne le premier,
+            // et le matériau devient laiteux. Un enfant garde le droit à son
+            // propre remplissage plat — les « pairs » de `.action-bar
+            // button` par exemple — ce que la règle interdit, c'est qu'il
+            // porte le matériau lui-même : `backdrop-filter`, ou une teinte
+            // `--verre*` qui l'imiterait. Sans commentaires : un exemple en
+            // prose ne doit ni faire rougir ce témoin, ni compter comme une
+            // vraie déclaration — même piège que celui déjà couvert par « La
+            // grammaire de light-dark() ».
+            expect(groupe).toMatch(/\.point-actions\b/);
+            expect(groupe).toMatch(/\.image-bar\b/);
+
+            const reglesEnfants =
+                groupe.match(
+                    /\.(?:action-bar|image-bar|point-actions)\s+[^\s{,][^{,]*\{([^}]*)\}/g,
+                ) ?? [];
+
+            expect(reglesEnfants.length).toBeGreaterThan(0);
+            expect(
+                reglesEnfants.filter((regle) => /backdrop-filter|var\(--verre/.test(regle)),
+            ).toEqual([]);
+        });
+    });
+
+    describe('Étant donné des rayons imbriqués, quand on les calcule', () => {
+        it("alors l'intérieur se dérive de l'extérieur, au lieu d'être écrit à côté", () => {
+            // « Consider aligning the shape of controls with other rounded
+            // elements. » Deux rayons écrits séparément dérivent ; un calcul
+            // ne le peut pas. Sans commentaires, pour la même raison que
+            // ci-dessus : sondé — sans le retrait, ce témoin restait vert
+            // même quand la vraie déclaration ne portait plus que
+            // `var(--group-radius)` seul, parce que l'en-tête du fichier cite
+            // la formule complète en exemple.
+            expect(groupe).toMatch(/--group-radius:/);
+            expect(groupe).toMatch(/--group-padding:/);
+            expect(groupe).toMatch(
+                /calc\(\s*var\(--group-radius\)\s*-\s*var\(--group-padding\)\s*\)/,
+            );
+        });
+    });
+
+    describe('Étant donné un bouton, quand on mesure sa cible', () => {
+        it('alors les deux dimensions ont leur plancher, pas seulement la hauteur', () => {
+            // Mesuré en partie 1 : onze boutons à pictogramme rendaient
+            // 36x44 sous WebKit. La règle citait « at least 44x44 pt » et
+            // n'en planchait qu'une.
+            const regle = /(?:^|\n)\s*button\s*\{([^}]*)\}/.exec(bouton);
+
+            expect(regle?.[1]).toMatch(/min-block-size:\s*var\(--hit-target\)/);
+            expect(regle?.[1]).toMatch(/min-inline-size:\s*var\(--hit-target\)/);
+        });
+    });
+});
+
 interface RegleBrute {
     selecteur: string;
     corps: string;
@@ -767,12 +829,20 @@ function dernierMaillon(selecteurUnique: string): string {
 }
 
 /** Les classes que le dernier maillon de chaque alternative d'un sélecteur
- *  cible réellement — jamais celles d'un simple ancêtre. */
+ *  cible réellement — jamais celles d'un simple ancêtre, ni celle qu'un
+ *  `:not(...)` exclut. `button:not(.secondary)` et `button.secondary` ne
+ *  peuvent jamais styler le même élément : le premier ne « cible » pas
+ *  `.secondary`, il l'écarte. Sans ce retrait, `.header .action-bar
+ *  button:not(.secondary)` (screens) se disputerait à tort `.secondary`
+ *  avec `button.secondary` (components) — deux sélecteurs mutuellement
+ *  exclusifs, jamais deux règles qui se recouvrent. */
 function classesCiblees(selecteur: string): string[] {
     return separerSelecteurs(selecteur).flatMap((partie) =>
-        [...dernierMaillon(partie).matchAll(/\.([a-zA-Z][\w-]*)/g)].map(
-            (correspondance) => correspondance[1] ?? '',
-        ),
+        [
+            ...dernierMaillon(partie)
+                .replace(/:not\([^)]*\)/g, '')
+                .matchAll(/\.([a-zA-Z][\w-]*)/g),
+        ].map((correspondance) => correspondance[1] ?? ''),
     );
 }
 
@@ -978,6 +1048,21 @@ function decrireInversion(composant: RegleUtile, ecran: RegleUtile): string | nu
     return `${composant.chemin} « ${composant.selecteur} » et ${ecran.chemin} « ${ecran.selecteur} » se disputent ${proprietesTexte} sur ${classes}`;
 }
 
+/**
+ * `.carte-bar` est le seul sélecteur que la tâche 1 a explicitement laissé
+ * hors de son propre témoin structurel (`Le matériau`, « son repli ») en
+ * attendant la tâche 5 — le panneau de la carte plein écran n'a pas encore
+ * son fichier de composant. Une règle qui le cible aux côtés d'un sélecteur
+ * déjà migré (`.header button.secondary, .suivi-bar button.secondary,
+ * .carte-bar button.secondary`, par exemple) reste donc, par construction,
+ * coupée entre `components/` et `screens/` tant que cette tâche n'est pas
+ * faite : ce n'est pas une dette que la tâche courante pourrait refermer
+ * sans anticiper celle-là, et cet invariant ne doit pas exiger l'impossible.
+ */
+function viseCarteBar(regle: RegleUtile): boolean {
+    return /\.carte-bar\b/.test(regle.selecteur);
+}
+
 /** Toute paire (règle de composant, règle d'écran) qui partage une classe
  *  ciblée et une propriété : une couche `components` déclarée plus tôt que
  *  `screens` ne peut jamais gagner une telle paire, quelle que soit sa
@@ -987,7 +1072,9 @@ function trouverInversions(feuillesDuSysteme: Record<string, string>): string[] 
     const composants = reglesUtiles(
         entrees.filter(([chemin]) => chemin.startsWith('./components/')),
     );
-    const ecrans = reglesUtiles(entrees.filter(([chemin]) => chemin.startsWith('./screens/')));
+    const ecrans = reglesUtiles(
+        entrees.filter(([chemin]) => chemin.startsWith('./screens/')),
+    ).filter((regle) => !viseCarteBar(regle));
 
     const inversions: string[] = [];
     for (const composant of composants) {

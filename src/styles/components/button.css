@@ -1,0 +1,119 @@
+/* Le bouton : la gélule commune à tous les contrôles de l'application, ses
+ * deux modificateurs plats, et les deux pièces qui l'accompagnent partout où
+ * il paraît — l'étiquette masquable et le pictogramme.
+ *
+ * `button` porte la forme — une gélule, jamais un rectangle — et le
+ * remplissage teinté par défaut : l'action proéminente d'un écran. Aucun
+ * contour : un contrôle d'iOS se délimite par sa **surface**, teintée pour
+ * l'action principale et neutre sinon.
+ *
+ * Modificateurs : `.secondary` rend le bouton neutre — un remplissage dérivé
+ * de la couleur du texte plutôt qu'un aplat blanc, pour ne pas empiler une
+ * carte de plus sur une barre qui en porte déjà une : « refrain from adding
+ * color to the background of multiple controls ». `.danger` porte le rouge
+ * dans le **libellé** seul, jamais en aplat : « never make the destructive
+ * action the prominent one » — un aplat rouge attirerait précisément le
+ * pouce qu'on veut voir hésiter.
+ *
+ * Deux pièces qui l'accompagnent, sans être des modificateurs : `.button-
+ * label` masque le texte sous 560 px pour ne laisser que le pictogramme —
+ * son contrepoint, le regroupement de plusieurs boutons dans une même barre,
+ * vit dans `button-group.css` ; et `.icon` dessine ce pictogramme,
+ * monochrome et calé sur la graisse du texte voisin : « because SF Symbols
+ * use equivalent weights, you can achieve precise weight matching between
+ * symbols and adjacent text ».
+ *
+ * Jetons : `--button-gap` (l'espace entre le pictogramme et le libellé),
+ * `--button-padding-block`/`--button-padding-inline` (le rembourrage, en
+ * deux jetons plutôt qu'un raccourci `padding` — `scale-unlimited/
+ * declaration-strict-value` interdit un littéral dans `components/`, et deux
+ * jetons disent explicitement que les deux axes peuvent un jour diverger).
+ * La gélule elle-même **ne prend pas** de jeton de composant : son rayon est
+ * `var(--radius-pill)`, celui du palier sémantique — un jeton de composant
+ * qui ne ferait que le renommer serait une indirection de plus, pas un
+ * contrat. Et la cible minimale est `var(--hit-target)`, la mesure de
+ * système que plusieurs composants lisent (`bar.css` la lit déjà pour sa
+ * propre hauteur), jamais un jeton propre à ce fichier.
+ *
+ * Le défaut historique que ce fichier rend inécrivable : `min-block-size`
+ * seule plancherait la hauteur à 44 px et laisserait la largeur au hasard de
+ * la somme de l'icône, du rembourrage et de l'espace entre eux — mesuré, un
+ * bouton à pictogramme seul (libellé masqué sous 560 px) rendait 36 px de
+ * large sous WebKit réel, alors que la HIG demande « at least 44x44 pt » sur
+ * les **deux** dimensions. Planchées ensemble, et sur le même jeton de
+ * système plutôt que sur le littéral `44px` que la partie 1 avait laissé,
+ * les deux dimensions ne peuvent plus diverger d'une future refonte à
+ * l'autre. Les deux exceptions à ce plancher — la pastille numérotée d'un
+ * point et les contrôles de carte — annulent déjà `min-inline-size` avec une
+ * spécificité supérieure à celle-ci ; elles restent dans
+ * `screens/legacy.css`, hors du périmètre de ce fichier.
+ */
+@layer components {
+    button {
+        --button-gap: 0.35rem;
+        --button-padding-block: 0.5rem;
+        --button-padding-inline: 0.75rem;
+
+        font: inherit;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--button-gap);
+        min-block-size: var(--hit-target);
+        min-inline-size: var(--hit-target);
+        padding-block: var(--button-padding-block);
+        padding-inline: var(--button-padding-inline);
+        border: none;
+        border-radius: var(--radius-pill);
+        background: var(--accent);
+        color: var(--sur-teinte);
+        cursor: pointer;
+    }
+
+    button.secondary {
+        background: color-mix(in srgb, var(--label) 8%, transparent);
+        color: var(--accent);
+    }
+
+    button.danger {
+        color: var(--destructif);
+        background: color-mix(in srgb, var(--label) 8%, transparent);
+    }
+
+    /* Le nom accessible doit alors vivre dans `aria-label`, seul endroit que
+       ce masquage n'atteint pas — `createButton` le rend obligatoire
+       (`ariaLabel` est requis), et les boutons écrits à la main dans un
+       gabarit sont vérifiés par le test de leur propre écran. */
+    .button-label {
+        display: none;
+    }
+
+    @media (min-width: 560px) {
+        .button-label {
+            display: inline;
+        }
+    }
+
+    .icon {
+        /* Deux règles Stylelint se disputent l'orthographe de ce mot-clé, et
+           aucun des deux choix littéraux ne les satisfait toutes les deux :
+           `value-keyword-case` (de `stylelint-config-standard`) exige
+           `currentcolor` en minuscules, `scale-unlimited/declaration-strict-
+           value` — sans l'assouplissement que `screens/legacy.css` reçoit —
+           n'admet la casse exacte `currentColor` de son `ignoreKeywords`. Un
+           jeton de composant, comme `--surface-blur` pour le plafond de flou,
+           tranche : la valeur vit ici, en minuscules, et `stroke` ne porte
+           plus qu'un `var()`. */
+        --icon-stroke: currentcolor;
+
+        inline-size: 1.29em;
+        block-size: 1.29em;
+        flex: none;
+        fill: none;
+        stroke: var(--icon-stroke);
+        stroke-width: 1.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vertical-align: -0.18em;
+    }
+}

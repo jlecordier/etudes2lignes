@@ -60,72 +60,9 @@
         padding: var(--marge-ecran);
     }
 
-    /* Un bouton porte un pictogramme et, souvent, un libellé masquable : c'est ce
-   `gap` qui les espace, et non une espace dans le texte — laquelle laisserait
-   une traîne à droite du pictogramme une fois le libellé retiré. */
-    button {
-        font: inherit;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.35rem;
-
-        /* **Une gélule**, et non les 6 px d'avant : c'est la forme que le système
-       donne aux contrôles, et la forme par défaut du matériau est littéralement
-       une capsule. « Consider aligning the shape of controls with other rounded
-       elements throughout the interface. »
-
-       **44 px de cible**, et non les 37 px d'avant : « a button needs a hit
-       region of at least 44x44 pt ». Sur `min-block-size` et non `block-size`,
-       pour qu'un libellé puisse doubler de taille sans être coupé.
-
-       Et sur les deux dimensions : sans `min-inline-size`, la largeur ne
-       tenait qu'à la somme de l'icône, du `padding` et du `gap` — assez sous
-       Chromium et Firefox pour dépasser 44 px par coïncidence, mais pas
-       ailleurs. Mesuré : un bouton à pictogramme seul (libellé masqué sous
-       560 px) rend 36 px de large sous WebKit réel, où `1.29em` (`.icon`)
-       résout plus petit — le même écart de taille de police que documente
-       déjà `-apple-system-body`. Les deux exceptions à ce plancher — la
-       pastille numérotée et les contrôles de carte — annulent déjà
-       `min-inline-size` avec une spécificité supérieure à celle-ci ; elles ne
-       grandissent pas. */
-        min-block-size: 44px;
-        min-inline-size: 44px;
-        padding: 0.5rem 0.75rem;
-
-        /* Aucun contour : un contrôle d'iOS est délimité par sa **surface**, teintée
-       pour l'action principale et neutre sinon. La bordure d'avant doublait le
-       fond de la même couleur sur le bouton principal, et cerclait de bleu les
-       secondaires — dont la HIG veut justement qu'ils s'effacent. */
-        border: none;
-        border-radius: 999px;
-        background: var(--accent);
-        color: var(--sur-teinte);
-        cursor: pointer;
-    }
-
-    /* Un remplissage neutre, et non un aplat blanc : « Refrain from adding color to
-   the background of multiple controls. » Un fond plein sur chaque bouton
-   secondaire faisait de chacun une petite carte, et empilait deux surfaces là où
-   la barre en porte déjà une.
-
-   Il se **dérive** de la couleur du texte au lieu de vivre dans son propre
-   jeton : il suit ainsi l'apparence claire et l'apparence sombre sans qu'aucune
-   valeur ne soit à tenir à jour deux fois. */
-    button.secondary {
-        background: color-mix(in srgb, var(--label) 8%, transparent);
-        color: var(--accent);
-    }
-
-    /* Les actions destructrices se repèrent au premier coup d'œil — mais le rouge
-   est dans le **libellé**, jamais en aplat sous lui : « Never make the
-   destructive action the prominent one. » Un aplat rouge attire précisément le
-   pouce qu'on veut voir hésiter. La surface reste celle des autres boutons ; ce
-   qui distingue l'action, c'est son nom. */
-    button.danger {
-        color: var(--destructif);
-        background: color-mix(in srgb, var(--label) 8%, transparent);
-    }
+    /* `button`, `button.secondary`, `button.danger` : la gélule commune à tous
+       les contrôles, et ses deux modificateurs plats. Vivent désormais dans
+       `components/button.css`, avec leur en-tête de contrat. */
 
     .trajets-list {
         list-style: none;
@@ -227,19 +164,9 @@
         margin-top: 1rem;
     }
 
-    /* La barre d'une page : son nom et les trois actions qui la déplacent. Même
-   raisonnement que les actions d'un point — une par page, donc la teinte du
-   verre sans son flou, qui se multiplierait par le nombre de pages. */
-    .image-bar {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-bottom: 0.5rem;
-        padding: 2px 0.5rem;
-        border-radius: 999px;
-        background: var(--verre-epais);
-        box-shadow: var(--verre-reflet);
-    }
+    /* `.image-bar` vit désormais dans `components/button-group.css`, avec
+       `.action-bar` et `.point-actions` : les trois groupes de boutons dont
+       le verre se pose sur le groupe, jamais sur l'enfant. */
 
     .image-name {
         flex: 1;
@@ -264,91 +191,27 @@
         display: none !important;
     }
 
-    .action-bar {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-    }
-
-    /* Dette délibérée, et non un oubli : cette règle **doit** rester dans la
-       même couche que `.action-bar` ci-dessus, sans quoi elle ne peut plus
-       jamais gagner contre elle. `@layer vendor, reset, tokens, base,
-       components, screens` — une couche déclarée plus tard l'emporte
-       toujours, quelle que soit la spécificité. Postée dans
-       `components/bar.css` (tâche 2 de la partie 2), elle perdait donc
-       *systématiquement* contre `.action-bar { flex-wrap: wrap }` restée
-       ici, alors même que sa spécificité plus haute la faisait gagner avant
-       le déplacement. Mesuré : `flex-wrap` calculé à `wrap` sur `.action-bar`
-       à 360 px, malgré cette règle postée dans `components/`.
-
-       `.header` est lui-même sans `flex-wrap` — c'est le titre qui doit
-       céder, pas la ligne qui doit se casser — mais la barre d'actions
-       imbriquée pliait pour son propre compte. Mesuré sur un iPhone 12 mini,
-       360 px, la plus étroite des cibles de la HIG : sans ce `nowrap`,
-       l'icône d'import se retrouve seule sur une rangée au-dessus de
-       « Nouveau trajet », et l'en-tête double de hauteur — précisément le
-       défaut que cette règle existe pour empêcher, et qu'elle n'empêchait
-       plus depuis son détour par `components/`.
-
-       Elle rejoindra `components/bar.css` — ou plutôt `button-group.css` —
-       quand la tâche 3 y aura déplacé `.action-bar` lui-même : les deux
-       vivront alors de nouveau dans la même couche, et cette dette
-       disparaîtra avec elle. D'ici là, elle reste ici, à dessein. */
-    .header .action-bar {
-        flex-wrap: nowrap;
-    }
-
-    /* Des **pairs**, donc aucune teinte : « Keep the number of prominent buttons to
-   one or two per view. » Sur l'éditeur la proéminente est « Suivre », dans
-   l'en-tête ; ces trois-là sont de même rang. Teintées toutes les trois, elles
-   faisaient quatre aplats bleus sur un écran, et plus rien ne disait laquelle
-   compte.
-
-   Elles gardent leur taille en perdant leur teinte : « use style — not size — to
-   visually distinguish the preferred choice ». */
-    .action-bar button {
-        background: color-mix(in srgb, var(--label) 8%, transparent);
-        color: var(--accent);
-    }
+    /* `.action-bar`, `.header .action-bar` et `.action-bar button` vivent
+       désormais dans `components/button-group.css` : la dette qui gardait
+       la seconde ici (voir son historique dans `bar.css`) est refermée en
+       les réunissant dans la même couche. */
 
     /* Sauf dans une **barre**, où ce qui n'est pas `.secondary` est l'action qui
-   conclut. La règle des pairs ci-dessus attrapait « Nouveau trajet » — l'action
-   proéminente de la liste — et cet écran n'en avait alors plus aucune : plus
-   rien ne disait laquelle compte. La spécificité de ce sélecteur est ce qui le
-   fait gagner contre elle. */
+   conclut. La règle des pairs — `.action-bar button`, dans `components/
+   button-group.css` — attrapait « Nouveau trajet » — l'action proéminente
+   de la liste — et cet écran n'en avait alors plus aucune : plus rien ne
+   disait laquelle compte. La spécificité de ce sélecteur est ce qui le fait
+   gagner contre elle, quelle que soit la couche où elle vit désormais —
+   `screens` l'emporte de toute façon sur `components`. */
     .header .action-bar button:not(.secondary) {
         background: var(--accent);
         color: var(--sur-teinte);
     }
 
-    /* Un libellé enveloppé dans un `.button-label` accepte de disparaître : sous
-   560 px il ne reste que le pictogramme. C'est ce qui fait tenir la barre
-   d'actions de l'éditeur sur une ligne au lieu de trois, et les trois actions
-   d'un trajet ou d'un point à côté de leur texte au lieu de dessous. Un bouton
-   dont le libellé doit rester en toute largeur — « Nouveau trajet », l'action
-   principale de l'accueil — ne porte simplement pas la classe.
-
-   La contrepartie est une obligation : le nom accessible doit vivre dans
-   `aria-label`, seul endroit que le masquage n'atteint pas, sinon le bouton
-   s'annonce par son seul dessin. `createButton` la rend impossible à oublier
-   (`ariaLabel` y est requis) ; pour les boutons écrits à la main dans un
-   gabarit, c'est `TrajetEditorScreen.test.ts` qui la vérifie. Les parcours e2e
-   joués sur iPhone 14 (390 px) et Pixel 7 (412 px) sont tous deux sous le seuil
-   et désignent les boutons par leur nom : ils échouent si un `aria-label`
-   manque.
-
-   Le seuil est propre à cette convention : `--large-screen` (900 px) est celui
-   de la carte, et le réutiliser réduirait ces barres à des pictogrammes
-   minuscules sur un iPad en portrait. */
-    .button-label {
-        display: none;
-    }
-
-    @media (min-width: 560px) {
-        .button-label {
-            display: inline;
-        }
-    }
+    /* `.button-label` et `.icon` vivent désormais dans `components/button.css`.
+       Le seuil de 560 px reste propre à cette convention : `--large-screen`
+       (900 px) est celui de la carte, et le réutiliser réduirait ces barres
+       à des pictogrammes minuscules sur un iPad en portrait. */
 
     .hint-banner {
         background: var(--fond-consigne);
@@ -488,106 +351,71 @@
         pointer-events: none;
     }
 
-    /* Boutons flottants posés sur chaque trait : agir sur un point sans remonter en
-   haut de la page.
+    /* `.point-actions` (les trois actions d'un point) vit désormais dans
+       `components/button-group.css`, avec `.action-bar` et `.image-bar` :
+       les trois groupes dont le verre se pose sur le groupe, jamais sur
+       l'enfant.
 
-   Entièrement **au-dessus** du trait, et non plus à cheval sur lui : à cheval,
-   leur moitié basse couvrait la cote que le trait désigne, c'est-à-dire
-   exactement ce qu'on venait lire. Le décalage part de la boîte de padding, qui
-   commence sous le trait : lui rendre son épaisseur pose les boutons au ras du
-   trait, et le terme suivant est donc exactement l'espace qui se voit. Il en faut
-   franchement — à 2 px, les boutons touchaient encore la ligne et se lisaient
-   comme lui appartenant. */
-
-    /* Les trois actions d'un point forment **un seul** porteur, et c'est lui qui
-   porte la surface : « Put the glass on the group, not on each button. »
-   Superposer deux verres est justement ce que la HIG interdit.
-
-   La teinte du verre **sans son flou** : ce groupe existe une fois par point, et
-   les flouter en donnerait trente exemplaires là où le budget mesuré sur mobile
-   est de trois à cinq flous simultanés. Ce qu'il fallait ici est la lisibilité,
-   pas l'optique — sans fond, ces boutons étaient illisibles sur un schéma
-   chargé. */
+       Sa position reste ici, seule : elle se cale sur `--point-line-
+       thickness`, une propriété personnalisée déclarée dans le `:root` de ce
+       fichier et non dans `tokens/primitives.css`, `tokens/semantic.css` ou
+       `screens/legacy-bridge.css`. `csstools/value-no-unknown-custom-
+       properties` ne connaît que ces trois-là : un composant qui la
+       référencerait échouerait au lint, quelle que soit sa justesse. */
     .point-actions {
         position: absolute;
         right: 0.25rem;
         bottom: calc(var(--point-line-thickness) + 0.75rem);
-        display: flex;
-        align-items: center;
-        gap: 2px;
-        padding: 2px;
-        border-radius: 999px;
-        background: var(--verre-epais);
-        box-shadow: var(--verre-reflet), var(--ombre-flottante);
-        pointer-events: auto;
     }
 
     /* Dans une barre, un bouton n'apporte pas sa propre surface : c'est la barre qui
    en porte une, et deux surfaces empilées sont exactement ce que la HIG refuse —
    « put the glass on the group, not on each button ».
 
-   Les items y sont donc monochromes. « Trajets » montrait une pastille grise et
-   « Suivre » une pastille bleue posées sur le verre de l'en-tête : c'est ce qui
-   faisait que cet en-tête n'avait pas le bon style.
-
    L'exception est nommée et se lit dans le sélecteur : `:not(.secondary)` est
    l'action proéminente — une par barre — et elle garde sa gélule teintée,
-   « apply color to the background rather than to symbols or text ». */
+   « apply color to the background rather than to symbols or text ».
+
+   `.point-actions button` et `.image-bar button` reçoivent la même
+   neutralisation, mais vivent désormais dans `components/button-group.css`
+   avec leurs groupes : `.carte-bar`, lui, reste ici — tâche 5. */
     .header button.secondary,
     .suivi-bar button.secondary,
-    .carte-bar button.secondary,
-    .point-actions button,
-    .image-bar button {
+    .carte-bar button.secondary {
         background: none;
         box-shadow: none;
         color: var(--label);
     }
 
-    .point-actions button.danger,
-    .image-bar button.danger {
-        color: var(--destructif);
-    }
+    /* `.floating-button`, `.floating-add-point-button`, `.overview-button`
+       et `.carte-button` vivent désormais dans `components/floating-
+       action.css`, avec leur en-tête de contrat. `.floating-add-point-
+       button`, `.overview-button` et `.resume-button` restent listés dans
+       `components/surface.css` : c'est là qu'ils reçoivent le verre,
+       exactement comme avant.
 
-    /* Un cran plus grands que le minuscule d'origine : à 24 px de haut, ces trois
-   boutons se manquaient sous le pouce et leur pictogramme se perdait dans un
-   schéma chargé. Ils restent plus petits que les boutons de la barre d'actions —
-   posés sur l'image, ils lui empruntent sa place. */
+       `.resume-button` ne migre pas, lui — base et correctif grand écran
+       restent ici, tous les deux. Voir l'exception nommée dans l'en-tête de
+       `components/floating-action.css` pour la raison, propre à
+       `--overview-width`.
+
+       `.floating-button` garde ici son triplet Footnote (`font-size`,
+       `line-height`) : le faire porter par `.text-footnote` demandait de
+       composer cette classe dans `createFloatingButton`
+       (`src/shared/elements.ts`), donc de faire évoluer l'assertion de test
+       correspondante — changement que le validateur de `probity` a refusé à
+       quatre reprises, y compris rejoué immédiatement après un rouge fraîchement
+       observé pour la bonne raison. Conformément à sa propre consigne, plutôt
+       que de contourner le refus, l'incrément est coupé : ce littéral reste
+       ici, dans la seule feuille où `scale-unlimited/declaration-strict-value`
+       n'est qu'un avertissement plutôt qu'une erreur, à charge d'une tâche
+       ultérieure de finir la migration. */
     .floating-button {
-        padding: 0.3rem 0.55rem;
-
-        /* Footnote : 13/18. */
+        /* Footnote : 13/18. Voir le commentaire ci-dessus pour pourquoi ce
+           triplet n'a que deux propriétés sur trois : l'approche
+           (`letter-spacing`) manquait déjà avant cette tâche. */
         font-size: 0.765rem;
         line-height: 1.385;
-        white-space: nowrap;
-        box-shadow: var(--ombre-pastille);
-    }
-
-    /* Restent à l'écran quel que soit le défilement : sur tactile, seul recours pour
-   ajouter un point sans remonter tout en haut (pas de clic droit), et pour
-   déplier l'aperçu du trajet sans quitter sa lecture. */
-    .floating-add-point-button,
-    .overview-button,
-    .carte-button {
-        position: fixed;
-        right: 1rem;
-        bottom: 1rem;
-        z-index: 20;
-
-        /* L'ombre portée d'un moteur sans le verre vit dans le repli
-       `@supports not`, plus bas : `components/surface.css` la porte
-       désormais pour les autres, combinée au reflet. Une déclaration ici,
-       sans condition, gagnerait toujours sur la sienne — la couche
-       `components` perd face à `screens` quelle que soit la spécificité ou
-       l'ordre des règles, et c'est la cascade des couches, pas l'ordre du
-       fichier, qui devrait maintenant trancher. Mesuré : sans ce repli,
-       l'ombre du bouton flottant perdait son reflet en e2e. */
-    }
-
-    /* L'aiguillage carte/schéma prend le coin opposé à l'action : on ne veut pas
-   qu'un pouce qui cherche la carte tombe sur « Ajouter un point ». */
-    .carte-button {
-        right: auto;
-        left: 1rem;
     }
 
     /* Par-dessus le schéma, et non plus au-dessus de lui : sous les boutons
@@ -818,7 +646,11 @@
             right: var(--overview-width);
         }
 
-        /* Recentré sur la pile, pas sur la fenêtre. */
+        /* Recentré sur la pile, pas sur la fenêtre. Reste ici, avec la règle
+           de base qu'il corrige (`.resume-button`, plus bas) : les deux se
+           calent sur `--overview-width`, une mesure d'écran plutôt qu'un
+           jeton de système — voir l'exception nommée dans l'en-tête de
+           `components/floating-action.css`. */
         suivi-screen .resume-button {
             left: calc((100% - var(--overview-width)) / 2);
         }
@@ -935,16 +767,9 @@
         align-items: center;
     }
 
-    /* L'annulation cède la place : elle reste du côté entrant, et pousse la
-   validation vers le côté sortant — « Only specify one primary action », et les
-   barres d'outils la placent au bout. Les deux tombaient collées à gauche sur
-   leur ligne, sans rien pour dire laquelle conclut.
-
-   C'est bien l'annulation qui porte la marge, et non la validation : en logique
-   d'écriture, la marge automatique appartient à l'élément qui cède. */
-    #cancel-carte-button {
-        margin-inline-end: auto;
-    }
+    /* `#cancel-carte-button` vit désormais dans `components/floating-action.css` :
+       il n'a pas son propre verre, étant l'enfant de `.carte-bar` qui en
+       porte déjà un — poser `.surface` dessus empilerait deux surfaces. */
 
     .carte-bar input {
         font: inherit;
@@ -1034,14 +859,17 @@
         right: var(--overview-width);
     }
 
+    /* Reste ici plutôt que dans `components/floating-action.css`, avec son
+       correctif grand écran (`suivi-screen .resume-button`, plus haut) :
+       voir l'exception nommée dans l'en-tête de ce fichier. Même repli
+       `@supports not` que les autres boutons flottants, dans
+       `components/surface.css`. */
     .resume-button {
         position: fixed;
         bottom: 1rem;
         left: 50%;
         transform: translateX(-50%);
         z-index: 20;
-
-        /* Même repli `@supports not` que les boutons flottants, plus haut. */
     }
 
     .offline-indicator {
@@ -1052,28 +880,9 @@
         line-height: 1.385;
     }
 
-    /* Les pictogrammes.
-
-   Le jeu (`src/shared/Icons.html`) ne porte ni épaisseur, ni bouts, ni taille :
-   tout est ici, une fois, pour que les vingt et un symboles ne puissent pas
-   diverger. `currentColor` partout, ce qui leur donne gratuitement l'apparence
-   claire, le contraste renforcé et le retournement monochrome d'une barre —
-   très exactement ce qu'un emoji ne savait pas faire.
-
-   L'épaisseur suit la graisse du texte voisin, comme le font les SF Symbols :
-   « Because SF Symbols use equivalent weights, you can achieve precise weight
-   matching between symbols and adjacent text. » */
-    .icon {
-        inline-size: 1.29em;
-        block-size: 1.29em;
-        flex: none;
-        fill: none;
-        stroke: currentcolor;
-        stroke-width: 1.6;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-        vertical-align: -0.18em;
-    }
+    /* `.icon` vit désormais dans `components/button.css`, avec `button` : le
+       jeu (`src/shared/Icons.html`) ne porte ni épaisseur, ni bouts, ni
+       taille, pour que les vingt et un symboles ne puissent pas diverger. */
 
     /* L'apparence sombre.
 
