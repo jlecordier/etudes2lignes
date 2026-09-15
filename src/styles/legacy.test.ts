@@ -194,10 +194,10 @@ describe('Le bord de défilement sous une barre', () => {
             //
             // Lu depuis `bar` : la règle a émigré vers `components/bar.css`
             // (tâche 2 de la partie 2), et c'est lui qui la porte désormais —
-            // plus `feuille`.
-            const bande = /\n[ \t]*\.header::after,\n[ \t]*\.suivi-bar::after \{([^}]*)\}/.exec(
-                bar,
-            );
+            // plus `feuille`. Son sélecteur s'est aussi simplifié : `.bar`,
+            // posé sur les deux barres à la fois, la porte seule là où
+            // `.header::after,\n.suivi-bar::after` la portait à deux.
+            const bande = /\n[ \t]*\.bar::after \{([^}]*)\}/.exec(bar);
 
             expect(bande?.[1]).toMatch(/pointer-events:\s*none/);
             expect(bande?.[1]).toMatch(/linear-gradient\(\s*to bottom,\s*var\(--fond/);
@@ -216,11 +216,19 @@ describe('Une barre de navigation sur un petit iPhone', () => {
             // l'abrègement ne visait que `h2`, et la barre d'actions imbriquée
             // pliait pour son propre compte.
             //
-            // Lues depuis `bar` : les deux règles ont émigré vers
-            // `components/bar.css` (tâche 2 de la partie 2), et c'est lui qui
-            // les porte désormais — plus `feuille`.
+            // Le titre a émigré vers `components/bar.css` (tâche 2 de la
+            // partie 2), qui le porte désormais — plus `feuille`. La barre
+            // d'actions imbriquée, elle, y est retournée après un aller :
+            // postée un temps dans `components/bar.css`, elle y perdait
+            // *toujours* contre `.action-bar { flex-wrap: wrap }` restée
+            // dans `screens/legacy.css` — `components` perd face à
+            // `screens` quelle que soit la spécificité. Elle reste donc ici,
+            // à côté de la règle qu'elle doit battre, avec la dette qui dit
+            // pourquoi (voir le commentaire sur `.header .action-bar`
+            // ci-dessus, et le témoin générique plus bas dans
+            // `styles.test.ts`).
             const titre = /\n[ \t]*\.header :is\(h1, h2\) \{([^}]*)\}/.exec(bar);
-            const actions = /\n[ \t]*\.header \.action-bar \{([^}]*)\}/.exec(bar);
+            const actions = /\n[ \t]*\.header \.action-bar \{([^}]*)\}/.exec(feuille);
 
             expect(titre?.[1]).toMatch(/text-overflow:\s*ellipsis/);
             expect(actions?.[1]).toMatch(/flex-wrap:\s*nowrap/);
@@ -314,11 +322,12 @@ describe('La barre de navigation elle-même', () => {
             // Lu depuis `bar` : `.header` a émigré vers `components/bar.css`
             // (tâche 2 de la partie 2), qui la porte désormais — plus
             // `feuille`. Le socle sticky et le rembourrage horizontal sont
-            // maintenant partagés avec `.suivi-bar` dans une seule règle ;
-            // la marge négative, elle, reste propre à l'en-tête et vit dans
-            // `.bar-navigation`, son modificateur.
-            const socle = /\n[ \t]*\.header,\n[ \t]*\.suivi-bar \{([^}]*)\}/.exec(bar);
-            const navigation = /\n[ \t]*\.header,\n[ \t]*\.bar-navigation \{([^}]*)\}/.exec(bar);
+            // maintenant partagés avec `.suivi-bar` sous un troisième nom,
+            // `.bar`, posé sur les deux gabarits à côté de leur sélecteur
+            // hérité ; la marge négative, elle, reste propre à l'en-tête et
+            // vit dans `.bar-navigation`, son modificateur.
+            const socle = /\n[ \t]*\.bar \{([^}]*)\}/.exec(bar);
+            const navigation = /\n[ \t]*\.bar-navigation \{([^}]*)\}/.exec(bar);
 
             expect(socle?.[1]).toMatch(/position:\s*sticky/);
             expect(socle?.[1]).toMatch(/padding-inline:\s*var\(--marge-ecran\)/);
@@ -327,31 +336,18 @@ describe('La barre de navigation elle-même', () => {
     });
 });
 
-describe("Le titre d'une barre de navigation", () => {
-    describe("Étant donné le titre d'un écran, quand il vit dans la barre", () => {
-        it("alors il prend Headline, et non le style d'un titre de contenu", () => {
-            // Le titre d'une barre de navigation iOS est **Headline** : 17 pt
-            // semibold, c'est-à-dire le corps du texte distingué par sa seule
-            // graisse. Title 2 Bold — 22 px, graisse 700 — est un titre de
-            // *contenu* : dans une barre, entre un chevron et une action, il
-            // écrase tout et se tronque. Mesuré : « Paris → Bordeaux » tombait à
-            // « Paris → Bordea… » sur 390 px.
-            //
-            // Lu depuis `bar` : la règle a émigré vers `components/bar.css`
-            // (tâche 2 de la partie 2), et c'est lui qui la porte désormais —
-            // plus `feuille`. Elle y porte en plus une contrainte que
-            // `feuille` n'imposait pas : `scale-unlimited/declaration-
-            // strict-value` n'admet, dans `components/`, aucun littéral pour
-            // `font-size` — la taille voyage donc désormais avec ses deux
-            // jumelles du palier des primitives, au lieu du littéral `1rem`
-            // qu'elle portait seule ici.
-            const titre = /\n[ \t]*\.header :is\(h1, h2\) \{([^}]*)\}/.exec(bar);
-
-            expect(titre?.[1]).toMatch(/font-size:\s*var\(--text-headline-size\)/);
-            expect(titre?.[1]).toMatch(/font-weight:\s*600/);
-        });
-    });
-});
+/**
+ * « Le titre d'une barre de navigation » affirmait ici que le titre prend
+ * Headline (taille, graisse) plutôt que le style d'un titre de contenu. La
+ * règle qu'elle lisait (`.header :is(h1, h2) { font-size: … }`) a quitté
+ * `components/bar.css` : le triplet Headline se consomme désormais en
+ * portant `.text-headline` (règle des paliers — un composant ne référence
+ * que le palier sémantique, et `components/text.css` dit lui-même que ses
+ * trois jetons ne s'écrivent qu'à cet endroit). Le contrat ne se lit donc
+ * plus dans une feuille de style, mais dans le balisage : « alors son titre
+ * porte le style Headline du système, pas ses propres jetons », dans
+ * `TrajetsListScreen.test.ts` et `TrajetEditorScreen.test.ts`.
+ */
 
 describe("Le titre d'un en-tête", () => {
     describe("Étant donné un nom trop long pour la barre, quand l'en-tête le pose", () => {

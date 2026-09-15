@@ -101,16 +101,28 @@ function messageDErreur(element: HTMLElement): string | null {
 
 describe('trajets-list-screen', () => {
     describe("Étant donné les deux barres d'écran fondues en un composant, quand l'en-tête est attaché", () => {
-        it('alors il porte le modificateur qui ne touche pas à la hauteur commune', async () => {
+        it('alors il porte le composant partagé et son modificateur', async () => {
             const element = await attacherLEcran();
 
-            // `.bar-navigation` reçoit ce qui n'appartenait qu'à l'en-tête —
-            // marge négative, titre en ellipse — sans jamais redéclarer
-            // `--bar-air` ni `--bar-height` : c'est `bar.css` qui les porte,
-            // sur `.header` et `.suivi-bar` à la fois.
+            // `.bar` porte le socle commun (`--bar-air`/`--bar-height`, sticky,
+            // flex) ; `.bar-navigation` reçoit ce qui n'appartenait qu'à
+            // l'en-tête — marge négative, `z-index`. Ni l'un ni l'autre
+            // modificateur ne redéclare `--bar-air` ni `--bar-height`.
             const entete = element.querySelector('.header');
 
+            expect(entete?.classList.contains('bar')).toBe(true);
             expect(entete?.classList.contains('bar-navigation')).toBe(true);
+        });
+
+        it('alors son titre porte le style Headline du système, pas ses propres jetons', async () => {
+            const element = await attacherLEcran();
+
+            // Le triplet taille/interligne/approche ne s'écrit qu'à un seul
+            // endroit du système (`components/text.css`) : ailleurs, on porte
+            // la classe `.text-headline` plutôt que de relire ses jetons.
+            const titre = element.querySelector('h1');
+
+            expect(titre?.classList.contains('text-headline')).toBe(true);
         });
     });
 

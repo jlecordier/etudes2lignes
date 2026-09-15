@@ -1,31 +1,28 @@
 /* La barre d'écran : le rythme vertical que partagent l'en-tête (`.header`,
  * sur la liste et l'éditeur) et la barre d'état du suivi (`.suivi-bar`).
  *
- * Les deux sélecteurs restent ce qu'ils sont — cette tâche déplace des
- * règles, elle ne les renomme pas ; la tâche 6 du plan renommera tout d'un
- * bloc. La même règle les porte désormais tous les deux à la fois pour ce
- * qu'ils ont en commun : le socle sticky, la ligne flexible, le rembourrage
- * horizontal et l'effet de bord au défilement. `.bar-navigation` et
- * `.bar-status` sont les deux modificateurs neufs que cette tâche produit,
- * et qui reçoivent chacun ce qui n'appartenait qu'à une seule des deux
- * barres : le premier ce qui était propre à l'en-tête, le second ce qui
- * était propre à la barre de suivi.
+ * `.bar` est le sélecteur partagé — le troisième nom que les deux barres
+ * portent désormais, à côté de `.header`/`.suivi-bar` (gelés dans le
+ * témoin e2e des hauteurs) et de leur modificateur. Il porte le socle
+ * commun : sticky, flex, le rembourrage horizontal, l'effet de bord au
+ * défilement. `.bar-navigation` et `.bar-status` sont les deux
+ * modificateurs neufs que cette tâche produit, et qui reçoivent chacun ce
+ * qui n'appartenait qu'à une seule des deux barres : le premier ce qui
+ * était propre à l'en-tête, le second ce qui était propre à la barre de
+ * suivi. Ni l'un ni l'autre ne touche à `--bar-air`/`--bar-height`.
  *
- * Chaque modificateur est groupé avec le sélecteur hérité qu'il modifie
- * (`.header,\n.bar-navigation { … }`, `.suivi-bar,\n.bar-status { … }`) —
- * même mécanisme que `.surface, .header` dans `components/surface.css` :
- * plusieurs sélecteurs, une seule déclaration, jamais deux. C'est ce qui
- * rend la classe neuve sans risque à poser sur un gabarit HTML dès cette
- * tâche, sans attendre la migration des noms de classes de la tâche 6 :
- * `.header`/`.suivi-bar` continuent de porter la géométrie tant qu'un
- * gabarit ne pose pas encore le modificateur. Les trois gabarits
- * (`trajet-editor-screen.html`, `trajets-list-screen.html`,
- * `suivi-screen.html`) posent déjà, respectivement, `.bar-navigation` ou
- * `.bar-status` à côté de leur sélecteur hérité.
+ * Les trois classes sont posées côte à côte sur les gabarits HTML, en plus
+ * de `.header`/`.suivi-bar` — jamais à leur place : c'est l'approche
+ * additive déjà choisie pour `.surface` dans `components/surface.css`, et
+ * celle qui permet à cette tâche de composer sans casser le sélecteur que
+ * l'e2e a gelé.
  *
  * Le verre lui-même reste étranger à ce fichier : `.header` et `.suivi-bar`
  * le reçoivent depuis `components/surface.css` (tâche 1), qui reste le seul
- * endroit du système où `backdrop-filter` s'écrit.
+ * endroit du système où `backdrop-filter` s'écrit. Le triplet Headline/
+ * Footnote du titre et de l'état, lui, se consomme en portant `.text-
+ * headline`/`.text-footnote` (`components/text.css`) — le seul endroit du
+ * système où `font-size`, `line-height` et `letter-spacing` s'écrivent.
  *
  * Jetons exposés : `--bar-air`, l'air qu'une barre laisse au-dessus et
  * au-dessous de ses contrôles — et donc ce qui fixe sa hauteur, un contrôle
@@ -42,10 +39,23 @@
  * **nul** : un bouton de 44 px y touchait les deux bords, sans un pixel
  * d'air. Un seul jeton porte désormais la hauteur, et aucun des deux
  * modificateurs n'y touche : la dérive n'a plus où s'écrire.
+ *
+ * Un second défaut, mesuré cette fois pendant cette tâche et non avant
+ * elle : `.header .action-bar { flex-wrap: nowrap }` vivait ici tant
+ * qu'elle restait dans `screens/legacy.css`, la même couche que
+ * `.action-bar { flex-wrap: wrap }` qu'elle devait battre par spécificité.
+ * Une couche `components` perd **toujours** face à `screens`, quelle que
+ * soit la spécificité — cette règle ne peut donc plus gagner depuis ce
+ * fichier, et un `flex-wrap` calculé à `wrap` sur `.action-bar` à 360 px
+ * l'a confirmé. Elle est donc restée dans `screens/legacy.css`, avec la
+ * dette écrite qui dit pourquoi et ce qui l'en libérera (la tâche 3, quand
+ * `.action-bar` lui-même y rejoindra `button-group.css`). Le témoin
+ * générique plus bas (`styles.test.ts`, « L'inversion de cascade… ») existe
+ * pour qu'aucune des trois extractions restantes ne reproduise ce piège
+ * sans qu'un test rougisse.
  */
 @layer components {
-    .header,
-    .suivi-bar {
+    .bar {
         /* La hauteur, en un seul jeton — voir l'en-tête du fichier pour
            pourquoi --bar-height reste documentaire. */
         --bar-air: 0.5rem;
@@ -57,7 +67,7 @@
         align-items: center;
 
         /* Seulement l'horizontal ici : le vertical est le rythme commun,
-           juste en dessous — un raccourci `padding` l'écraserait. */
+           juste au-dessus — un raccourci `padding` l'écraserait. */
         padding-inline: var(--marge-ecran);
         padding-block: var(--bar-air);
     }
@@ -79,8 +89,7 @@
        sur un même écran. Et sans filet : un filet et cet effet feraient
        deux transitions pour un seul bord, et le filet est celle qui se voit
        au repos. */
-    .header::after,
-    .suivi-bar::after {
+    .bar::after {
         content: '';
         position: absolute;
         inset-inline: 0;
@@ -90,19 +99,13 @@
         background: linear-gradient(to bottom, var(--fond-groupe), transparent);
     }
 
-    /* `.bar-navigation` : ce qui n'appartenait qu'à l'en-tête. Groupée avec
-       `.header`, comme `.bar-status` l'est avec `.suivi-bar` plus bas — même
-       mécanisme qu'ailleurs dans le système (`.surface, .header` dans
-       `components/surface.css`) : plusieurs sélecteurs, une seule
-       déclaration, pas une redéclaration.
-
-       La barre de navigation flotte au-dessus du contenu : « Liquid Glass
-       forms a distinct functional layer […] that floats above the content
-       layer. » Elle était encartée par le rembourrage de l'écran, ce qui en
-       faisait une carte flottante plutôt qu'une barre : la marge négative
-       l'annule, et le rembourrage horizontal du socle commun lui rend l'air
-       que la marge lui donnait. */
-    .header,
+    /* `.bar-navigation` : ce qui n'appartenait qu'à l'en-tête. La barre de
+       navigation flotte au-dessus du contenu : « Liquid Glass forms a
+       distinct functional layer […] that floats above the content layer. »
+       Elle était encartée par le rembourrage de l'écran, ce qui en faisait
+       une carte flottante plutôt qu'une barre : la marge négative l'annule,
+       et le rembourrage horizontal du socle commun lui rend l'air que la
+       marge lui donnait. */
     .bar-navigation {
         /* Mesure propre au composant, même principe que le jeton de hauteur
            ci-dessus : `scale-unlimited/declaration-strict-value` n'admet,
@@ -125,38 +128,26 @@
         flex-shrink: 0;
     }
 
-    /* La barre d'actions imbriquée ne plie pas davantage : `.header` est
-       sans `flex-wrap` exprès, mais elle pliait pour son propre compte.
-       Mesuré sur un iPhone 12 mini — 360 px, la plus étroite des cibles de
-       la HIG : l'icône d'import se retrouvait seule sur une rangée
-       au-dessus de « Nouveau trajet », et l'en-tête doublait de hauteur. */
-    .header .action-bar {
-        flex-wrap: nowrap;
-    }
+    /* `.header .action-bar { flex-wrap: nowrap }` n'est plus ici : voir
+       l'en-tête du fichier. Elle vit dans `screens/legacy.css`, à côté de
+       `.action-bar` elle-même, le temps que la tâche 3 les réunisse dans
+       `button-group.css`. */
 
-    /* Le titre d'une barre de navigation iOS est Headline : 17 pt semibold,
-       le corps du texte distingué par sa seule graisse. Et « plier » veut
-       dire s'abréger, pas passer à la ligne : `.header` est sans
-       `flex-wrap` précisément pour que la barre garde sa hauteur, un titre
-       qui se casse en deux la ferait grandir de tout ce qu'on voulait lui
+    /* La troncature du titre d'une barre de navigation : c'est au titre de
+       céder, pas à la ligne de se casser — `.header` est sans `flex-wrap`
+       précisément pour que la barre garde sa hauteur, et un titre qui se
+       casse en deux la ferait grandir de tout ce qu'on voulait lui
        épargner. Mesuré : « Paris → Bordeaux » tombait à « Paris → Bordea… »
-       sur 390 px sans l'ellipse. */
+       sur 390 px sans l'ellipse. Le style Headline lui-même — taille,
+       interligne, approche — n'est pas ici : il vit dans `.text-headline`,
+       porté par le titre dans son gabarit HTML. */
     .header :is(h1, h2) {
-        /* Le triplet Headline du palier des primitives (`text.css` compose
-           avec les mêmes trois jetons pour `.text-headline`) : une taille ne
-           voyage jamais seule. */
-        font-size: var(--text-headline-size);
-        line-height: var(--text-headline-leading);
-        letter-spacing: var(--text-headline-tracking);
-        font-weight: 600;
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
     }
 
-    /* `.bar-status` : ce qui n'appartenait qu'à la barre de suivi. Groupée
-       avec `.suivi-bar` — voir l'en-tête du fichier pour pourquoi. */
-    .suivi-bar,
+    /* `.bar-status` : ce qui n'appartenait qu'à la barre de suivi. */
     .bar-status {
         /* Mesure propre au composant, même principe que le jeton de hauteur
            ci-dessus. */
@@ -167,14 +158,12 @@
         flex-wrap: wrap;
     }
 
-    /* Footnote : 13/18 — les deux jetons que porte le triplet ici, la
-       troisième (l'approche) manquant déjà avant cette tâche, ce qui n'est
-       pas à elle de corriger. */
+    /* L'état du suivi. Le style Footnote — taille, interligne, approche —
+       n'est pas ici non plus : il vit dans `.text-footnote`, porté par
+       l'élément dans son gabarit HTML. */
     .suivi-status {
         flex: 1;
         min-width: 8rem;
-        font-size: var(--text-footnote-size);
-        line-height: var(--text-footnote-leading);
         color: var(--avertissement);
     }
 }

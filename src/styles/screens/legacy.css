@@ -270,6 +270,34 @@
         flex-wrap: wrap;
     }
 
+    /* Dette délibérée, et non un oubli : cette règle **doit** rester dans la
+       même couche que `.action-bar` ci-dessus, sans quoi elle ne peut plus
+       jamais gagner contre elle. `@layer vendor, reset, tokens, base,
+       components, screens` — une couche déclarée plus tard l'emporte
+       toujours, quelle que soit la spécificité. Postée dans
+       `components/bar.css` (tâche 2 de la partie 2), elle perdait donc
+       *systématiquement* contre `.action-bar { flex-wrap: wrap }` restée
+       ici, alors même que sa spécificité plus haute la faisait gagner avant
+       le déplacement. Mesuré : `flex-wrap` calculé à `wrap` sur `.action-bar`
+       à 360 px, malgré cette règle postée dans `components/`.
+
+       `.header` est lui-même sans `flex-wrap` — c'est le titre qui doit
+       céder, pas la ligne qui doit se casser — mais la barre d'actions
+       imbriquée pliait pour son propre compte. Mesuré sur un iPhone 12 mini,
+       360 px, la plus étroite des cibles de la HIG : sans ce `nowrap`,
+       l'icône d'import se retrouve seule sur une rangée au-dessus de
+       « Nouveau trajet », et l'en-tête double de hauteur — précisément le
+       défaut que cette règle existe pour empêcher, et qu'elle n'empêchait
+       plus depuis son détour par `components/`.
+
+       Elle rejoindra `components/bar.css` — ou plutôt `button-group.css` —
+       quand la tâche 3 y aura déplacé `.action-bar` lui-même : les deux
+       vivront alors de nouveau dans la même couche, et cette dette
+       disparaîtra avec elle. D'ici là, elle reste ici, à dessein. */
+    .header .action-bar {
+        flex-wrap: nowrap;
+    }
+
     /* Des **pairs**, donc aucune teinte : « Keep the number of prominent buttons to
    one or two per view. » Sur l'éditeur la proéminente est « Suivre », dans
    l'en-tête ; ces trois-là sont de même rang. Teintées toutes les trois, elles

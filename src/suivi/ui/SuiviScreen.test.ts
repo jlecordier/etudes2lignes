@@ -257,16 +257,28 @@ function statut(element: HTMLElement): string {
 
 describe('suivi-screen', () => {
     describe("Étant donné les deux barres d'écran fondues en un composant, quand la barre de suivi est attachée", () => {
-        it('alors elle porte le modificateur qui ne touche pas à la hauteur commune', async () => {
+        it('alors elle porte le composant partagé et son modificateur', async () => {
             const element = await attacherLEcran();
 
-            // `.bar-status` reçoit ce qui n'appartenait qu'à la barre de
-            // suivi — le pli des actions — sans jamais redéclarer
-            // `--bar-air` ni `--bar-height` : c'est `bar.css` qui les porte,
-            // sur `.header` et `.suivi-bar` à la fois.
+            // `.bar` porte le socle commun (`--bar-air`/`--bar-height`, sticky,
+            // flex) ; `.bar-status` reçoit ce qui n'appartenait qu'à la barre
+            // de suivi — le pli des actions. Ni l'un ni l'autre modificateur
+            // ne redéclare `--bar-air` ni `--bar-height`.
             const barre = element.querySelector('.suivi-bar');
 
+            expect(barre?.classList.contains('bar')).toBe(true);
             expect(barre?.classList.contains('bar-status')).toBe(true);
+        });
+
+        it('alors son état porte le style Footnote du système, pas ses propres jetons', async () => {
+            const element = await attacherLEcran();
+
+            // Même règle que le titre de l'en-tête : le triplet Footnote ne
+            // s'écrit qu'à un seul endroit (`components/text.css`), consommé
+            // ailleurs en portant `.text-footnote`.
+            const statut = element.querySelector('#suivi-status');
+
+            expect(statut?.classList.contains('text-footnote')).toBe(true);
         });
     });
 

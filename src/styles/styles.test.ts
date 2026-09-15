@@ -631,12 +631,15 @@ describe('La barre d écran', () => {
 
             expect(declarationsDeHauteur).toHaveLength(2);
 
-            // Les modificateurs ne redéfinissent ni l'un ni l'autre. Le plan
-            // les nomme `.bar-navigation`/`.bar-status` : cette tâche déplace
-            // des règles sans renommer leurs sélecteurs (`.header`,
-            // `.suivi-bar` restent ce qu'ils sont, la tâche 6 s'en chargera
-            // d'un bloc), mais les deux modificateurs, eux, sont neufs — rien
-            // à leur substituer.
+            // Compter ne suffit pas : un jeton déclaré puis ignoré ne
+            // protège rien. Le socle doit réellement s'en servir pour fixer
+            // le rembourrage — sans quoi une édition future pourrait
+            // déclarer `--bar-air` d'un côté et écrire `padding-block:
+            // 0.5rem` en dur de l'autre, et passer ce témoin tout en
+            // recréant exactement la dérive qu'il existe pour interdire.
+            expect(bar).toMatch(/padding-block:\s*var\(--bar-air\)/);
+
+            // Les modificateurs ne redéfinissent ni l'un ni l'autre.
             const modificateurs = bar.match(/\.bar-[a-z]+\s*\{([^}]*)\}/g) ?? [];
             expect(modificateurs.length).toBeGreaterThan(0);
             expect(modificateurs.filter((m) => /--bar-(?:air|height)/.test(m))).toEqual([]);
@@ -649,8 +652,221 @@ describe('La barre d écran', () => {
             // transition between content and the control area. » Un filet ET
             // l'effet font deux transitions pour un bord, et le filet est
             // celle qui se voit au repos.
-            expect(bar).toMatch(/\.header::after,\s*\.suivi-bar::after\s*\{/);
+            expect(bar).toMatch(/\.bar::after\s*\{/);
             expect(bar).not.toMatch(/border-(?:bottom|block-end):\s*1px/);
+        });
+    });
+});
+
+interface RegleBrute {
+    selecteur: string;
+    corps: string;
+}
+interface BlocEnCours {
+    selecteur: string;
+    debut: number;
+    enfants: boolean;
+}
+
+/** Referme le bloc en tête de pile : l'enregistre comme règle feuille s'il
+ *  n'a lui-même reçu aucun enfant, et marque son parent comme en ayant un —
+ *  extrait de `reglesFeuilles` pour garder chaque fonction lisible d'un
+ *  coup d'œil. */
+function fermerBloc(pile: BlocEnCours[], texte: string, fin: number, regles: RegleBrute[]): void {
+    const bloc = pile.pop();
+    if (!bloc) {
+        return;
+    }
+    if (!bloc.enfants) {
+        regles.push({ selecteur: bloc.selecteur, corps: texte.slice(bloc.debut, fin) });
+    }
+    const parent = pile[pile.length - 1];
+    if (parent) {
+        parent.enfants = true;
+    }
+}
+
+/**
+ * Une règle « feuille » : un sélecteur suivi de déclarations, sans aucune
+ * accolade imbriquée dans son corps — par opposition à un conteneur
+ * (`@media`, `@supports`, `@layer`), dont les propres règles internes sont,
+ * elles, remontées individuellement par le même parcours.
+ */
+function reglesFeuilles(texte: string): RegleBrute[] {
+    const sansCommentaires = texte.replace(/\/\*[\s\S]*?\*\//g, ' ');
+    const regles: RegleBrute[] = [];
+    const pile: BlocEnCours[] = [];
+    let tampon = '';
+
+    for (let i = 0; i < sansCommentaires.length; i += 1) {
+        const caractere = sansCommentaires[i] ?? '';
+        if (caractere === '{') {
+            pile.push({ selecteur: tampon.trim(), debut: i + 1, enfants: false });
+            tampon = '';
+        } else if (caractere === '}') {
+            fermerBloc(pile, sansCommentaires, i, regles);
+            tampon = '';
+        } else {
+            tampon += caractere;
+        }
+    }
+
+    return regles;
+}
+
+/** Coupe une liste de sélecteurs séparés par des virgules de sommet — jamais
+ *  à l'intérieur d'une parenthèse, comme celle de `:is(h1, h2)`. */
+function separerSelecteurs(selecteur: string): string[] {
+    const parties: string[] = [];
+    let profondeur = 0;
+    let debut = 0;
+
+    for (let i = 0; i < selecteur.length; i += 1) {
+        const caractere = selecteur[i] ?? '';
+        if (caractere === '(') {
+            profondeur += 1;
+        }
+        if (caractere === ')') {
+            profondeur -= 1;
+        }
+        if (caractere === ',' && profondeur === 0) {
+            parties.push(selecteur.slice(debut, i));
+            debut = i + 1;
+        }
+    }
+    parties.push(selecteur.slice(debut));
+
+    return parties.map((partie) => partie.trim()).filter((partie) => partie.length > 0);
+}
+
+/**
+ * Le dernier maillon d'un sélecteur composé — celui dont dépend l'élément
+ * réellement stylé, en ignorant ses ancêtres. `.header .action-bar` et
+ * `.action-bar` ciblent le même maillon, donc le même élément ; `.header
+ * button.secondary` et `.header` non — l'un style un bouton descendant,
+ * l'autre l'en-tête lui-même.
+ */
+function dernierMaillon(selecteurUnique: string): string {
+    let profondeur = 0;
+    let derniereCoupure = 0;
+
+    for (let i = 0; i < selecteurUnique.length; i += 1) {
+        const caractere = selecteurUnique[i] ?? '';
+        if (caractere === '(') {
+            profondeur += 1;
+        }
+        if (caractere === ')') {
+            profondeur -= 1;
+        }
+        if (profondeur === 0 && /[\s>+~]/.test(caractere)) {
+            derniereCoupure = i + 1;
+        }
+    }
+
+    return selecteurUnique.slice(derniereCoupure).trim();
+}
+
+/** Les classes que le dernier maillon de chaque alternative d'un sélecteur
+ *  cible réellement — jamais celles d'un simple ancêtre. */
+function classesCiblees(selecteur: string): string[] {
+    return separerSelecteurs(selecteur).flatMap((partie) =>
+        [...dernierMaillon(partie).matchAll(/\.([a-zA-Z][\w-]*)/g)].map(
+            (correspondance) => correspondance[1] ?? '',
+        ),
+    );
+}
+
+/** Les propriétés qu'un corps de règle déclare, jetons de composant
+ *  compris — `;` ou début de corps devant chacune. */
+function proprietesDuCorps(corps: string): string[] {
+    return [...corps.matchAll(/(?:^|;)\s*(-{0,2}[a-zA-Z][\w-]*)\s*:/g)].map(
+        (correspondance) => correspondance[1] ?? '',
+    );
+}
+
+interface RegleUtile {
+    chemin: string;
+    selecteur: string;
+    classes: Set<string>;
+    proprietes: Set<string>;
+}
+
+/** Les règles d'un ensemble de feuilles qui ciblent au moins une classe et
+ *  déclarent au moins une propriété — les seules qui peuvent entrer en
+ *  collision avec une autre. */
+function reglesUtiles(fichiers: [string, string][]): RegleUtile[] {
+    const resultat: RegleUtile[] = [];
+    for (const [chemin, contenu] of fichiers) {
+        for (const regle of reglesFeuilles(contenu)) {
+            const classes = new Set(classesCiblees(regle.selecteur));
+            const proprietes = new Set(proprietesDuCorps(regle.corps));
+            if (classes.size > 0 && proprietes.size > 0) {
+                resultat.push({ chemin, selecteur: regle.selecteur, classes, proprietes });
+            }
+        }
+    }
+    return resultat;
+}
+
+/** Décrit la collision entre une règle de composant et une règle d'écran —
+ *  `null` si elles ne partagent ni classe ni propriété. */
+function decrireInversion(composant: RegleUtile, ecran: RegleUtile): string | null {
+    const classesCommunes = [...ecran.classes].filter((classe) => composant.classes.has(classe));
+    const proprietesCommunes = [...ecran.proprietes].filter((propriete) =>
+        composant.proprietes.has(propriete),
+    );
+    if (classesCommunes.length === 0 || proprietesCommunes.length === 0) {
+        return null;
+    }
+
+    const classes = classesCommunes.map((classe) => `.${classe}`).join(', ');
+    const proprietesTexte = proprietesCommunes.map((propriete) => `« ${propriete} »`).join(', ');
+    return `${composant.chemin} « ${composant.selecteur} » et ${ecran.chemin} « ${ecran.selecteur} » déclarent tous deux ${proprietesTexte} sur ${classes}`;
+}
+
+/** Toute paire (règle de composant, règle d'écran) qui partage une classe
+ *  ciblée et une propriété : une couche `components` déclarée plus tôt que
+ *  `screens` ne peut jamais gagner une telle paire, quelle que soit sa
+ *  spécificité. */
+function trouverInversions(feuillesDuSysteme: Record<string, string>): string[] {
+    const entrees = Object.entries(feuillesDuSysteme);
+    const composants = reglesUtiles(
+        entrees.filter(([chemin]) => chemin.startsWith('./components/')),
+    );
+    const ecrans = reglesUtiles(entrees.filter(([chemin]) => chemin.startsWith('./screens/')));
+
+    const inversions: string[] = [];
+    for (const composant of composants) {
+        for (const ecran of ecrans) {
+            const description = decrireInversion(composant, ecran);
+            if (description) {
+                inversions.push(description);
+            }
+        }
+    }
+    return inversions;
+}
+
+describe("L'inversion de cascade entre un composant et un écran", () => {
+    describe('Étant donné une classe stylée à la fois par un composant et par screens/, quand on cherche qui gagne', () => {
+        it('alors aucune : components perd toujours face à screens, quelle que soit la spécificité', () => {
+            // `@layer vendor, reset, tokens, base, components, screens` —
+            // une couche déclarée plus tard l'emporte **toujours**, quelle
+            // que soit la spécificité. Une règle qui reste dans `screens/`
+            // après qu'une autre a migré vers `components/` pour la même
+            // classe et la même propriété ne peut donc plus jamais perdre
+            // contre elle, même si sa spécificité était plus faible avant
+            // le déplacement.
+            //
+            // Mesuré : `.header .action-bar { flex-wrap: nowrap }`, posée un
+            // temps dans `components/bar.css`, perdait *toujours* contre
+            // `.action-bar { flex-wrap: wrap }` restée dans
+            // `screens/legacy.css` — `flex-wrap` calculé à `wrap` sur
+            // `.action-bar` à 360 px, l'en-tête à deux rangées au lieu
+            // d'une. Ce témoin est générique — il ne nomme aucune classe —
+            // pour attraper la même dérive sur n'importe laquelle des trois
+            // extractions qui restent après cette tâche.
+            expect(trouverInversions(feuilles)).toEqual([]);
         });
     });
 });
