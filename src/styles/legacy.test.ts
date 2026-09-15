@@ -64,6 +64,34 @@ const flottantCss = readFileSync(
 );
 
 /**
+ * Rend la valeur **effective** d'une propriété de `.icon`, un `var()` résolu.
+ *
+ * Écrire `/\.icon\s*\{[^}]*stroke:\s*currentcolor/` ne marche plus depuis que
+ * la règle porte un jeton : `[^}]*` avale jusqu'à `--icon-` et la sous-chaîne
+ * `stroke: currentcolor` du **nom de la propriété personnalisée** satisfait le
+ * motif. Mesuré : le témoin restait vert sur un `stroke: red`, c'est-à-dire à
+ * travers une régression qui aurait peint tous les pictogrammes de la mauvaise
+ * couleur. Le `(?<![\w-])` est ce qui distingue la propriété de son jeton.
+ *
+ * La résolution ne descend que d'un niveau, et c'est assez : le contrat est que
+ * le tracé vaille la couleur courante, pas qu'il passe par un nom précis. Une
+ * réécriture qui supprimerait le jeton pour réécrire `stroke: currentcolor`
+ * directement doit rester verte — vérifié.
+ */
+const valeurEffectiveDeLIcone = (css: string, propriete: string): string | undefined => {
+    const bloc = /\.icon\s*\{([^}]*)\}/s.exec(css)?.[1] ?? '';
+    const brut = new RegExp(`(?<![\\w-])${propriete}:\\s*([^;]+);`, 'i').exec(bloc)?.[1]?.trim();
+    if (brut === undefined) {
+        return undefined;
+    }
+    const jeton = /^var\(\s*(--[\w-]+)\s*\)$/.exec(brut)?.[1];
+    if (jeton === undefined) {
+        return brut.toLowerCase();
+    }
+    return new RegExp(`${jeton}:\\s*([^;]+);`, 'i').exec(bloc)?.[1]?.trim().toLowerCase();
+};
+
+/**
  * Ce fichier éprouve la **source** de la feuille de style, et non son effet.
  *
  * Une feuille n'a pas de test unitaire : rien n'y est appelé. Mais plusieurs de
@@ -136,10 +164,11 @@ describe('Les pictogrammes', () => {
             // l'interface affiche un pavé.
             // `.icon` a émigré vers `components/button.css` (tâche 3 de la
             // partie 2) : c'est `boutonCss` qui le porte désormais.
-            expect(boutonCss).toMatch(/\.icon\s*\{[^}]*fill:\s*none/s);
-            // Insensible à la casse : le contrat est un tracé de la couleur
-            // courante, pas l'orthographe de `currentcolor` que Stylelint choisit.
-            expect(boutonCss).toMatch(/\.icon\s*\{[^}]*stroke:\s*currentcolor/is);
+            expect(valeurEffectiveDeLIcone(boutonCss, 'fill')).toBe('none');
+            // La valeur effective, jeton résolu, et en minuscules : le contrat
+            // est un tracé de la couleur courante, pas l'orthographe de
+            // `currentcolor` que Stylelint choisit ni le nom du jeton qui la porte.
+            expect(valeurEffectiveDeLIcone(boutonCss, 'stroke')).toBe('currentcolor');
             expect(boutonCss).toMatch(/\.icon\s*\{[^}]*inline-size:/s);
         });
     });
@@ -1001,7 +1030,7 @@ describe('La feuille de style', () => {
             // partie 2) : c'est `boutonCss` qui le porte désormais.
             exige(
                 '.icon dimensionnée et tracée',
-                /\.icon\s*\{[^}]*stroke:\s*currentcolor/is.test(boutonCss),
+                valeurEffectiveDeLIcone(boutonCss, 'stroke') === 'currentcolor',
             );
 
             // Le verre s'annule quand la personne l'a demandé — le flou ne part
