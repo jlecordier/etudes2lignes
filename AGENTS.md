@@ -124,15 +124,28 @@ The interface follows Apple's Liquid Glass. The reasoning, the citations and the
 measurements are in **[docs/LIQUID-GLASS.md](docs/LIQUID-GLASS.md)** (French,
 human-facing); what follows is the operative part.
 
-**Platform floor: Safari 16.4 / iOS 16.4** for the material itself — not
-negotiable, and not something a compiler lowers. The glass tint derives from
-the page's own background via a relative colour (`rgb(from var(--…) r g b /
-…%)`), because two hand-written values had already drifted apart once; a
-relative colour's origin is a `var()`, resolved only at run time, so no build
-target can downlevel it the way `min-width` stands in for the modern media
-query range syntax elsewhere. Below 16.4 the `@supports` fallback already
-documented below still applies — an opaque fill, not a crash — so this floor
-bounds the material only, not the rest of the layout.
+**Platform floor: Safari 16.4 / iOS 16.4**, and it binds the whole sheet — not
+only the glass. Two independent things put it there, and they are not equally
+negotiable.
+
+The material's half is irreducible. The glass tint derives from the page's own
+background via a relative colour (`rgb(from var(--…) r g b / …%)`), because two
+hand-written values had already drifted apart once; a relative colour's origin
+is a `var()`, resolved only at run time, so no build target downlevels it —
+measured, at `safari 16.0` as at `safari 16.4`, lightningcss emits it verbatim.
+Below 16.4 the `@supports` fallback documented below applies: an opaque fill,
+not a crash.
+
+The layout's half is an artefact of the build, and it is the reason this floor
+is not the material's alone. The sheets are written `@media (min-width: 900px)`,
+but the bundler re-emits `@media (width >= 900px)` — range syntax, itself 16.4 —
+so below that the large-screen rules are dropped entirely, and the two-column
+editor with them. Measured on the built CSS, not deduced. Setting an explicit
+`css.lightningcss.targets` of Safari 16.0 restores `min-width` and costs the
+colours nothing; it is a deliberate trade the repo has not taken, because it
+would also pin every other lowering decision Vite currently makes on its own.
+Do not write range syntax by hand — `stylelint --fix` once rewrote `min-width`
+into it, which is how this floor was raised without anyone deciding to.
 
 **The one rule everything else descends from:** there are two layers. The
 _content_ layer — schema pages, map, list rows, overview, point markers — is
@@ -140,10 +153,13 @@ never glass. The _functional_ layer — bars, floating controls, map controls �
 is glass and floats above it. Apple states the corollary in as many words:
 "Don't use Liquid Glass in the content layer."
 
-- **The glass list is closed**: `.header`, `.suivi-bar`, `.carte-bar`, the four
-  floating buttons, `.leaflet-bar`. Nothing else in the sheet carries a
-  `backdrop-filter`, and `src/style.test.ts` fails if that changes. To add one,
-  change the list in the test first and justify it.
+- **One file writes the glass, and it is the one that names it.**
+  `src/styles/components/surface.css` is the sole declarer of `backdrop-filter`;
+  [`src/styles/styles.test.ts`](src/styles/styles.test.ts) fails the moment a
+  second sheet declares one. Eight rules used to redeclare it, and each was a
+  chance to forget the `-webkit-` twin, the blur ceiling or the accessibility
+  retraction — two had already forgotten. To give something glass, have it carry
+  `.surface`; do not write the property a second time.
 - **A repeated surface gets the tint without the blur.** `.image-bar` exists once
   per page, `.point-actions` once per point; the measured mobile ceiling is three
   to five simultaneous blurs. Legibility is what those needed, and a fill gives
@@ -219,7 +235,8 @@ true` buys. **Modifying an existing test does not.** So to change a contract:
   `backdrop-filter` doubled by its `-webkit-` twin, the accessibility retraction
   after the `@supports` that it retracts. Those fail on a future edit made in
   good faith, and they legitimately demand a whole block in one write.
-  [`src/style.test.ts`](src/style.test.ts) holds both kinds; prefer the second.
+  [`src/styles/styles.test.ts`](src/styles/styles.test.ts) holds both kinds;
+  prefer the second.
 - **Do not edit `probity.config.ts`.** Its two deviations from the defaults are
   annotated as "décidés par l'auteur du dépôt — pas par l'agent que la règle
   contraint". Widening the gate to make your own increment fit is exactly what

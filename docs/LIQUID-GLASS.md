@@ -178,7 +178,8 @@ Ceux-là ne se devinent pas, et chacun a coûté un défaut visible :
 
 ## Le témoin
 
-[`src/style.test.ts`](../src/style.test.ts) relit la **source** de la feuille.
+[`src/styles/styles.test.ts`](../src/styles/styles.test.ts) relit la **source**
+des feuilles.
 C'est grossier, et c'est le prix à payer pour que ces règles cessent d'être
 tacites : jsdom n'applique aucune feuille externe, et un navigateur ne dirait
 rien d'une règle simplement absente.
