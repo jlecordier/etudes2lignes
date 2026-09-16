@@ -1,0 +1,130 @@
+/* La carte de contenu : un fond opaque et un rayon, **jamais de flou** — le
+ * contraire exact du matériau de `components/surface.css`. Cinq porteurs
+ * différents, la même règle de fond :
+ *
+ * - `.help` et `.hint-banner` : une phrase d'aide et un encart de consigne,
+ *   sur l'écran d'édition ;
+ * - `.list-error` et `.empty-message` : l'erreur et le message vide de la
+ *   liste des trajets ;
+ * - `.overview-stack`, `.overview-position` et `overview-page` : la pile de
+ *   pages de l'aperçu du trajet, incrustée par-dessus le suivi. `.trajet-
+ *   overview` et `.overview-ouvert .trajet-overview` — le panneau qui
+ *   contient cette pile — ne sont **pas** ici : voir plus bas.
+ *
+ * « Don't use Liquid Glass in the content layer » : aucune de ces cartes ne
+ * porte `backdrop-filter` ni la classe `.surface`.
+ *
+ * `.overview-stack` lit `var(--overview-width)`, une propriété
+ * personnalisée que `suivi-screen` calcule dans `screens/legacy.css` (elle
+ * dépend de mesures prises par TypeScript, pas d'un jeton de système) et qui
+ * n'est déclarée ni dans `tokens/primitives.css`, ni dans `tokens/
+ * semantic.css`, ni dans `screens/legacy-bridge.css` — les trois seuls
+ * fichiers que `csstools/value-no-unknown-custom-properties` reconnaît hors
+ * du fichier courant. Un filet de secours (`var(--overview-width, min(12rem,
+ * 33vw))`) traverse cette frontière sans faire échouer le lint — même
+ * technique que `var(--suivi-bar-height, 3rem)` ailleurs dans le système. Il
+ * ne joue jamais en pratique : `suivi-screen` déclare toujours la propriété
+ * avant que cette règle ne s'applique, et le filet ne fait que reprendre sa
+ * propre formule pour le cas où l'héritage manquerait.
+ *
+ * `.trajet-overview` et `.overview-ouvert .trajet-overview` restent dans
+ * `screens/legacy.css`, à côté de leur variante grand écran (`suivi-screen
+ * .trajet-overview`, `suivi-screen.overview-ouvert .trajet-overview`, sous
+ * `@media (min-width: 900px)`) — et non ici, malgré ce que ce fichier
+ * affirmait avant cette correction. `@layer components, …, screens` fait
+ * perdre `components` face à `screens` quelle que soit la spécificité : posé
+ * ici, `.overview-ouvert .trajet-overview` perdait *toujours* — `display`,
+ * `position`, `top`, `height`, `z-index`, `background`, `box-shadow` —
+ * contre la variante grand écran restée dans `screens/legacy.css`, qui
+ * partage tous ces noms de propriétés. Le témoin générique d'inversion de
+ * cascade l'a dénoncé. Dette levée par la tâche 5, qui écrit
+ * `screens/suivi.css` et y réunira les deux tailles d'écran dans la même
+ * feuille — donc dans la même couche, où la spécificité seule tranchera de
+ * nouveau, comme avant cette tâche.
+ *
+ * `.help` porte un triplet Subheadline **complet**. Comme `.trajet-name`/
+ * `.trajet-details` (`components/row.css`), la migration vers `.text-
+ * subheadline` a été refusée par le validateur de `probity` — aucun témoin
+ * rouge de cette session n'exige ce changement de gabarit précis. L'incrément
+ * est coupé : le triplet reste, littéral, dans `screens/legacy.css`, et ce
+ * fichier ne porte plus que sa couleur.
+ */
+@layer components {
+    :root {
+        /* Mesures propres à ces cartes, même principe que les jetons de
+           `bar.css`/`button-group.css` : `scale-unlimited/declaration-
+           strict-value` n'admet, dans `components/`, qu'un jeton — jamais un
+           littéral — pour `padding`/`gap`/`box-shadow`. */
+        --hint-banner-padding: 0.5rem;
+        --list-error-gap: 0.5rem;
+        --list-error-padding: 0.5rem;
+    }
+
+    /* Le style Subheadline n'est pas ici : voir l'en-tête du fichier — il
+       reste, en dette documentée, dans `screens/legacy.css`. */
+    .help {
+        color: var(--label-2);
+    }
+
+    .hint-banner {
+        background: var(--fond-consigne);
+        border: 1px solid var(--orange);
+        border-radius: var(--rayon-section);
+        padding: var(--hint-banner-padding);
+    }
+
+    .list-error {
+        background: var(--fond);
+        border-radius: var(--rayon-section);
+        display: flex;
+        align-items: center;
+        gap: var(--list-error-gap);
+        flex-wrap: wrap;
+        padding: var(--list-error-padding);
+    }
+
+    .empty-message {
+        color: var(--label-2);
+    }
+
+    /* `.trajet-overview` et `.overview-ouvert .trajet-overview` restent dans
+       `screens/legacy.css` : voir l'en-tête du fichier. */
+
+    .overview-stack {
+        position: relative;
+        width: var(--overview-width, min(12rem, 33vw));
+    }
+
+    /* Un filet par page, en `outline` : une bordure aurait ajouté un pixel à
+       la hauteur de chaque page et la pile ne tiendrait plus exactement dans
+       la hauteur calculée. Un `::after` sur l'hôte n'aurait rien donné — les
+       pseudo-éléments d'un hôte de shadow root vivent dans le light DOM,
+       qu'aucun `slot` n'expose ici. L'outline, lui, ne pèse pas sur la mise
+       en page et passe au-dessus de la vignette. */
+    overview-page {
+        display: block;
+        outline: 1px dashed var(--label-3);
+        outline-offset: -1px;
+    }
+
+    /* Le fond du canevas fait `OVERVIEW_BACKING_WIDTH` de large ; le
+       navigateur le réduit à la largeur de la colonne, et sa hauteur suit
+       son propre ratio — donc chaque page garde le sien. */
+    overview-page canvas {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
+    /* La position sur le trajet, dans le référentiel de l'aperçu. Son `top`
+       est posé par l'écran, en pixels de la pile ci-dessus : c'est la même
+       décision de projection que celle qui fait défiler le document,
+       réinterpolée ici. */
+    .overview-position {
+        position: absolute;
+        left: 0;
+        right: 0;
+        border-top: 3px solid var(--position);
+        pointer-events: none;
+    }
+}

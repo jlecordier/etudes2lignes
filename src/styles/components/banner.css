@@ -1,0 +1,42 @@
+/* Le bandeau d'état : une phrase en pleine largeur, sans carte ni fond —
+ * contrairement aux cartes de `components/panel.css`, un bandeau se fond
+ * dans l'écran plutôt que de s'en détacher.
+ *
+ * `.simulation-banner` (le mode simulation du suivi) et `.offline-indicator`
+ * (l'appli prête hors ligne) partagent la même intention — informer sans
+ * réclamer d'action — et la même teinte de succès. Aucun des deux ne porte
+ * `backdrop-filter` ni la classe `.surface` : un bandeau appartient à la
+ * couche de contenu, jamais à la couche fonctionnelle.
+ *
+ * Les deux gardent leur triplet Footnote **incomplet** en clair : l'approche
+ * (`letter-spacing`) manquait déjà avant cette tâche, comme pour `.image-
+ * name` (`components/row.css`) et `.floating-button` (tâche 3) — le porter
+ * par `.text-footnote` ajouterait une valeur plutôt que de la préserver.
+ */
+@layer components {
+    :root {
+        /* Mesures propres au bandeau, même principe que les jetons de
+           `bar.css`/`button-group.css` : `scale-unlimited/declaration-
+           strict-value` n'admet, dans `components/`, qu'un jeton — jamais un
+           littéral. Footnote incomplète (l'approche manque) : voir l'en-tête
+           du fichier. */
+        --banner-padding-block: 0.25rem;
+        --banner-font-size: 0.765rem;
+        --banner-line-height: 1.385;
+    }
+
+    .simulation-banner {
+        width: 100%;
+        margin: 0;
+        padding: var(--banner-padding-block) 0;
+        font-size: var(--banner-font-size);
+        line-height: var(--banner-line-height);
+        color: var(--succes);
+    }
+
+    .offline-indicator {
+        color: var(--succes);
+        font-size: var(--banner-font-size);
+        line-height: var(--banner-line-height);
+    }
+}

@@ -23,5 +23,10 @@
 @import url('./components/button.css');
 @import url('./components/button-group.css');
 @import url('./components/floating-action.css');
+@import url('./components/badge.css');
+@import url('./components/row.css');
+@import url('./components/panel.css');
+@import url('./components/banner.css');
+@import url('./components/field.css');
 @import url('./screens/legacy-bridge.css');
 @import url('./screens/legacy.css');

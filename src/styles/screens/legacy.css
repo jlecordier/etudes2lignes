@@ -28,21 +28,19 @@
         --ecart-interne: 8px;
         --rayon-interieur: calc(var(--rayon-section) - var(--ecart-interne));
 
-        /* La géométrie du repère d'un point, posée ici parce que trois règles la
-       partagent : la pastille sur l'image, la même pastille sur la carte, et le
-       trait sur le milieu duquel la première se cale. Écrite une fois, elle ne
-       peut pas dériver d'une vue à l'autre — c'est tout l'objet du symbole
-       commun. */
+        /* L'épaisseur du trait qui traverse la page à la hauteur d'un point,
+       et sur le milieu duquel la pastille se cale. Reste ici, propre à ce
+       fichier : `point-marker, .point-ghost` (le trait lui-même) et
+       `.point-actions` (sa position) la lisent encore d'ici.
 
-        /* **En pixels, et non en `rem`**, pour deux raisons qui vont dans le même
-       sens. La HIG d'abord : une pastille est une annotation posée sur un schéma
-       dense, sa taille visible porte l'information, et c'est la *cible* qu'on
-       agrandit quand il faut — jamais le dessin, qui couvrirait les cotes qu'il
-       désigne. Et la mesure ensuite : en `rem`, les deux vues calculaient la
-       même taille à quinze microns de pixel près sous Firefox, ce que
-       `points.spec.ts` compare au strict. Un entier absolu ne peut pas diverger
-       d'une vue à l'autre. */
-        --point-badge-size: 26px;
+       La taille de la pastille elle-même — `--badge-size`, ex-
+       `--point-badge-size` — a émigré dans `components/badge.css` avec les
+       trois règles qui la portaient (la pastille du schéma, celle de la
+       carte, leur centrage). `point-marker .point-number`, plus bas, reste
+       seul ici : sa position se cale à la fois sur `--point-line-thickness`
+       et sur la taille de la pastille, et `csstools/value-no-unknown-
+       custom-properties` ne reconnaît `--badge-size` que via le filet de
+       secours documenté à l'endroit précis. */
         --point-line-thickness: 2px;
 
         /* Le disque de « ma position ». Plus petit que la pastille d'un point : il
@@ -64,96 +62,51 @@
        les contrôles, et ses deux modificateurs plats. Vivent désormais dans
        `components/button.css`, avec leur en-tête de contrat. */
 
-    .trajets-list {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
+    /* `.trajets-list`, `trajet-row`, `.trajet-footer`, `.image-name` et la
+       mise en page de `.trajet-name`/`.trajet-details` vivent désormais dans
+       `components/row.css` : la rangée de liste et son pendant sur une page
+       d'éditeur. `.list-error`, `.empty-message` et la couleur de `.help`
+       vivent dans `components/panel.css` : trois cartes de contenu, jamais
+       de verre. Le triplet Subheadline de `.help` reste ici — voir le
+       commentaire à son endroit précis, juste après `.trajet-details`.
 
-    .empty-message {
-        color: var(--label-2);
-    }
+       `point-row` — qui partageait la surface de `trajet-row` et
+       `.list-error` dans l'ancienne règle — n'a pas migré : aucun gabarit ne
+       définit `<point-row>`, ni comme élément personnalisé ni comme balise
+       littérale, un seul commentaire de `TrajetRow.ts` le citant en exemple
+       de nommage. Son retrait ne change donc aucun rendu. */
 
-    /* La surface des cartes de liste, écrite une fois pour les trois porteurs.
-
-   Le rayon monte de 6 px à 22 px : « Sections have an increased corner radius to
-   match the curvature of controls across the system. » Et la bordure s'en va —
-   le fond de la carte se distingue déjà de celui de la vue, ce qui est
-   exactement comment se lit une liste groupée d'iOS. Un filet en plus n'y
-   ajoutait qu'un pixel de bruit. */
-    trajet-row,
-    point-row,
-    .list-error {
-        background: var(--fond);
-        border-radius: var(--rayon-section);
-    }
-
-    point-row,
-    .list-error {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-        padding: 0.5rem;
-    }
-
-    /* Deux lignes, et dans cet ordre : le trajet d'abord, ce qui agit dessus
-   ensuite. Les actions occupaient auparavant la moitié de la hauteur. */
-    trajet-row {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-        padding: 0.75rem;
-    }
-
-    /* Le titre de la ligne, pas un champ de saisie : à plat, aligné à gauche et
-   dans le bleu des actions — c'est ce qu'on touche pour ouvrir le trajet. */
+    /* `.trajet-name` et `.trajet-details` portent chacun un triplet
+       typographique complet (Headline, Subheadline) qui reste ici plutôt que
+       dans `components/row.css`. La migration correcte — composer
+       `.text-headline`/`.text-subheadline` dans `TrajetRow.html`, comme
+       `.text-headline` sur le titre de `.header` (`bar.css`, tâche 2) — a
+       été refusée par le validateur de `probity` : aucun témoin rouge de
+       cette session n'exige ce changement de gabarit précis, et le hook l'a
+       lu comme une écriture de production sans test qui la commande.
+       Conformément à sa propre consigne, l'incrément est coupé plutôt que
+       contourné. `components/row.css` porte la mise en page des deux
+       sélecteurs ; ce fichier ne porte plus que leur triplet. */
     .trajet-name {
-        justify-content: flex-start;
-        padding: 0;
-        border: none;
-        background: none;
-        color: var(--accent);
-
         /* Headline : Apple ne le distingue de Body que par la graisse. C'est son
        geste de hiérarchie le moins coûteux, et le bon sur une interface dense. */
         font-size: 1rem;
         line-height: 1.294;
         letter-spacing: -0.026em;
         font-weight: 600;
-        text-align: left;
-    }
-
-    .trajet-footer {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        flex-wrap: wrap;
     }
 
     .trajet-details {
-        /* Occupe le reste de la ligne, ce qui pousse les actions contre le bord.
-       `min-width` explicite, et pas de `nowrap` : sans quoi le compte impose sa
-       largeur entière comme plancher (`min-width: auto` d'un élément flex vaut
-       sa taille min-content), et un trajet à trois chiffres de points renverrait
-       les trois actions à la ligne suivante. */
-        flex: 1;
-        min-width: 5rem;
-        color: var(--label-2);
-
         /* Subhead : 15/20. */
         font-size: 0.882rem;
         line-height: 1.333;
         letter-spacing: -0.016em;
     }
 
+    /* `.help` porte le même triplet Subheadline, pour la même raison : voir
+       le commentaire de `.trajet-name`/`.trajet-details`, ci-dessus. Sa
+       couleur vit dans `components/panel.css`. */
     .help {
-        color: var(--label-2);
-
-        /* Subhead : 15/20. */
         font-size: 0.882rem;
         line-height: 1.333;
         letter-spacing: -0.016em;
@@ -168,17 +121,8 @@
        `.action-bar` et `.point-actions` : les trois groupes de boutons dont
        le verre se pose sur le groupe, jamais sur l'enfant. */
 
-    .image-name {
-        flex: 1;
-
-        /* Footnote : 13/18. */
-        font-size: 0.765rem;
-        line-height: 1.385;
-        color: var(--label-2);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
+    /* `.image-name` vit désormais dans `components/row.css`, avec le reste de
+       la rangée de liste. */
 
     /* La géométrie de l'image vit dans le shadow root de `schema-page` ; l'éditeur
    n'ajoute que sa décoration, sur l'hôte. */
@@ -213,12 +157,8 @@
        (900 px) est celui de la carte, et le réutiliser réduirait ces barres
        à des pictogrammes minuscules sur un iPad en portrait. */
 
-    .hint-banner {
-        background: var(--fond-consigne);
-        border: 1px solid var(--orange);
-        border-radius: var(--rayon-section);
-        padding: 0.5rem;
-    }
+    /* `.hint-banner` vit désormais dans `components/panel.css`, avec `.help`
+       et `.list-error` : les cartes de contenu de l'écran d'édition. */
 
     .image-area {
         position: relative;
@@ -228,9 +168,19 @@
         cursor: crosshair;
     }
 
-    /* Tant qu'on vise une hauteur, toute l'image est cible : la pastille redevient
-   transparente, sans quoi elle avalerait le clic sur ses 26 px et le point ne
-   pourrait pas se poser à la hauteur d'un point existant. */
+    /* `.placement-active .point-number` reste ici, à côté de la pastille
+       (`components/badge.css`) plutôt qu'avec elle : `@layer components, …,
+       screens` fait perdre `components` face à `screens` quelle que soit la
+       spécificité, et `point-marker .point-number { pointer-events: auto }`,
+       plus bas, gagnerait alors toujours contre ce `pointer-events: none` —
+       la pastille redeviendrait cliquable en plein mode de visée. Dette
+       levée par la tâche 5, qui réunit `point-marker` et `.placement-active`
+       dans la même feuille d'écran.
+
+       Tant qu'on vise une hauteur sur le schéma, toute l'image est cible :
+       la pastille redevient transparente, sans quoi elle avalerait le clic
+       sur ses 26 px et le point ne pourrait pas se poser à la hauteur d'un
+       point existant. */
     .placement-active .point-number {
         pointer-events: none;
     }
@@ -253,55 +203,15 @@
         pointer-events: none;
     }
 
-    /* Le numéro d'un point : un seul symbole, sur l'image comme sur la carte. Chaque
-   vue avait le sien — une pilule plate ici, un disque cerclé de blanc là — et
-   l'œil ne reconnaissait pas le même point en passant de l'une à l'autre. Une
-   seule règle, donc : les sélecteurs de la carte viennent la chercher ici plutôt
-   que d'entretenir un sosie ailleurs dans la feuille.
+    /* Le numéro d'un point (`.point-number`, `.carte-marker`) et le numéro de
+       page (`.page-number`) vivent désormais dans `components/badge.css`.
 
-   Ils restent scopés sous leur conteneur : leaflet.css arrive après dans le
-   bundle, et son `.leaflet-marker-icon { display: block }` écraserait le centrage
-   flex d'un sélecteur de même poids.
-
-   Largeur fixe, et non `min-width` : un numéro à trois chiffres débordera du
-   disque, mais symétriquement, donc toujours centré sur ce qu'il désigne — une
-   pastille qui s'allonge vers la droite décalerait le marqueur de sa coordonnée. */
-    .point-number,
-    .carte-points .carte-marker,
-    #carte-container .carte-marker {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: var(--point-badge-size);
-        height: var(--point-badge-size);
-
-        /* La cible de 44 px que la règle du bouton impose est **neutralisée ici**,
-       et c'est la seule fois de la feuille. Une pastille est une annotation
-       posée sur un schéma dense : sa taille visible porte l'information, et la
-       HIG demande d'agrandir la cible, pas le dessin. Sans ces deux lignes, la
-       pastille du schéma gonflait à 44 px quand celle de la carte — un `div`,
-       hors de portée de la règle du bouton — restait à sa taille : les deux vues
-       cessaient de montrer le même symbole, ce que `points.spec.ts` mesure au
-       pixel près. */
-        min-inline-size: 0;
-        min-block-size: 0;
-
-        /* La pastille du schéma est un bouton : sans cela, le `padding` de la règle
-       globale `button` déformerait le disque, et seulement de ce côté-ci — les
-       deux vues cesseraient de montrer la même pastille. */
-        padding: 0;
-        background: var(--destructif);
-        color: var(--sur-teinte);
-        border: 2px solid var(--sur-teinte);
-        border-radius: 999px;
-
-        /* Caption 1 : 12/16, et la graisse accentuée qu'Apple lui donne. Un numéro
-       posé sur un schéma dense doit se lire d'un coup d'œil. */
-        font-size: 0.706rem;
-        line-height: 1;
-        font-weight: 600;
-        box-shadow: var(--ombre-pastille);
-    }
+       `point-marker .point-number`, plus bas, reste seul ici : sa position
+       se cale à la fois sur `--point-line-thickness` (propre à ce fichier)
+       et sur la taille de la pastille (`--badge-size`, dans
+       `components/badge.css`) — voir le commentaire du `:root`, en tête de
+       fichier, pour le filet de secours qui lui permet de la lire malgré
+       `csstools/value-no-unknown-custom-properties`. */
 
     /* Sur l'image, la pastille est centrée sur le trait : c'est la hauteur du point
    qu'elle annonce, et un numéro posé à côté de son trait se lit comme celui du
@@ -311,7 +221,14 @@
     point-marker .point-number {
         position: absolute;
         left: 0.25rem;
-        top: calc((var(--point-line-thickness) + var(--point-badge-size)) / -2);
+
+        /* `--badge-size` (26 px) est déclaré dans `components/badge.css`,
+           pas dans les trois fichiers que `csstools/value-no-unknown-
+           custom-properties` reconnaît hors du fichier courant. Le filet de
+           secours ne joue jamais en pratique : `--badge-size` est déclaré
+           sur `:root` dans `badge.css` et hérité par tout le document avant
+           que cette règle ne s'applique. */
+        top: calc((var(--point-line-thickness) + var(--badge-size, 26px)) / -2);
 
         /* Le repère est transparent aux clics ; la pastille, elle, en attend un. */
         pointer-events: auto;
@@ -326,29 +243,6 @@
    assumé avec le marqueur de la carte, qui montre `grab` dès le survol. */
     point-marker .point-number:active {
         cursor: grabbing;
-    }
-
-    /* Le numéro de la page, compté depuis le haut de la pile. Sombre et translucide,
-   pour ne pas se confondre avec un numéro de point ; transparent aux clics,
-   comme le repère, sans quoi il volerait le placement d'un point posé sous lui.
-
-   Sans `z-index` : les repères viennent après lui dans le document, donc un point
-   posé tout en haut de la page couvre le numéro plutôt que d'être couvert par
-   lui. C'est le bon ordre — le numéro de page se retrouve, un point masqué non. */
-    .page-number {
-        position: absolute;
-        left: 0.25rem;
-        top: 0.25rem;
-        background: var(--fond-page);
-        color: var(--sur-teinte);
-        border-radius: 999px;
-        padding: 0 0.4rem;
-
-        /* Caption 2 : 11/13 — un cran sous le numéro d'un point, parce qu'il ne se
-       lit pas, il se retrouve. */
-        font-size: 0.647rem;
-        line-height: 1.182;
-        pointer-events: none;
     }
 
     /* `.point-actions` (les trois actions d'un point) vit désormais dans
@@ -459,14 +353,25 @@
         padding-bottom: 6rem;
     }
 
-    /* L'aperçu du trajet entier. Replié par défaut — donc `display: none`, donc
-   aucune image mise en page ni chargée : sur petit écran il ne coûte rien tant
-   qu'on ne l'ouvre pas. C'est la classe posée par la bascule qui le déplie, en
-   incrustation par-dessus la pile ; celle-ci ne bouge alors pas d'un pixel et
-   garde ses offsets, donc le suivi continue pendant qu'on consulte l'aperçu.
+    /* `.overview-stack`, `overview-page` et `.overview-position` — la pile
+       de pages que l'aperçu incruste — vivent désormais dans
+       `components/panel.css`.
 
-   Le seuil du mode est ici et nulle part ailleurs : le TypeScript ne fait que
-   basculer la classe, il n'a aucun 900 à recopier. */
+       `.trajet-overview` et `.overview-ouvert .trajet-overview` restent
+       ici, eux, avec leur variante grand écran (plus bas, `suivi-screen
+       .trajet-overview`, sous `@media (min-width: 900px)`) : `@layer
+       components, …, screens` fait perdre `components` face à `screens`
+       quelle que soit la spécificité, et la variante grand écran ne peut
+       pas migrer avant que `screens/suivi.css` n'existe — le tableau de
+       structure du plan l'y range, à écrire par la tâche 5. Poser le
+       panneau replié dans `components/panel.css` pendant que sa variante
+       grand écran restait ici aurait donc fait perdre le premier
+       *toujours* : `display`, `position`, `top`, `height`, `z-index`,
+       `background`, `box-shadow` sont disputés par les deux, et
+       `screens` gagne sans condition. Mesuré par le témoin générique
+       d'inversion de cascade. Dette levée par la tâche 5, qui réunira les
+       deux tailles d'écran dans la même feuille — donc dans la même
+       couche. */
     .trajet-overview {
         display: none;
     }
@@ -491,43 +396,6 @@
         /* En ombre et non en bordure : la largeur du panneau doit rester exactement
        celle de sa pile, dont le repère se sert pour savoir où s'arrêter. */
         box-shadow: -1px 0 0 var(--separateur);
-    }
-
-    .overview-stack {
-        position: relative;
-        width: var(--overview-width);
-    }
-
-    /* Un filet par page, en `outline` : une bordure aurait ajouté un pixel à la
-   hauteur de chaque page et la pile ne tiendrait plus exactement dans la hauteur
-   calculée. Un `::after` sur l'hôte n'aurait rien donné — les pseudo-éléments
-   d'un hôte de shadow root vivent dans le light DOM, qu'aucun `slot` n'expose
-   ici. L'outline, lui, ne pèse pas sur la mise en page et passe au-dessus de
-   la vignette. */
-    overview-page {
-        display: block;
-        outline: 1px dashed var(--label-3);
-        outline-offset: -1px;
-    }
-
-    /* Le fond du canevas fait `OVERVIEW_BACKING_WIDTH` de large ; le navigateur le
-   réduit à la largeur de la colonne, et sa hauteur suit son propre ratio — donc
-   chaque page garde le sien. */
-    overview-page canvas {
-        display: block;
-        width: 100%;
-        height: auto;
-    }
-
-    /* La position sur le trajet, dans le référentiel de l'aperçu. Son `top` est posé
-   par l'écran, en pixels de la pile ci-dessus : c'est la même décision de
-   projection que celle qui fait défiler le document, réinterpolée ici. */
-    .overview-position {
-        position: absolute;
-        left: 0;
-        right: 0;
-        border-top: 3px solid var(--position);
-        pointer-events: none;
     }
 
     /* Carte des points + images : empilées sur mobile (carte au-dessus),
@@ -559,18 +427,8 @@
         z-index: 0;
     }
 
-    .carte-position-bar {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-        justify-content: space-between;
-        margin: 0;
-
-        /* Footnote : 13/18. */
-        font-size: 0.765rem;
-        line-height: 1.385;
-        color: var(--label-2);
-    }
+    /* `.carte-position-bar` vit désormais dans `components/field.css`, avec
+       `.carte-bar input` et `.carte-position-status`. */
 
     .images-column {
         min-width: 0;
@@ -656,19 +514,9 @@
         }
     }
 
-    /* L'apparence du marqueur est celle de la pastille commune, plus haut. Ne reste
-   ici que ce qui n'appartient qu'à la carte : le centrage sur la coordonnée et le
-   curseur de préhension.
-
-   Cette marge négative tient le rôle de l'`iconAnchor` de Leaflet, que
-   `numberedIcon` ne donne plus — pas plus que l'`iconSize` : les deux
-   inscriraient la taille du symbole une seconde fois, en TypeScript, et les deux
-   vues finiraient par ne plus montrer la même pastille. */
-    .carte-points .carte-marker,
-    #carte-container .carte-marker {
-        margin: calc(var(--point-badge-size) / -2) 0 0 calc(var(--point-badge-size) / -2);
-        cursor: grab;
-    }
+    /* Le centrage du marqueur de la carte sur sa coordonnée, et son curseur
+       de préhension, vivent désormais dans `components/badge.css`, avec
+       l'apparence de la pastille commune. */
 
     /* « Ma position » : un disque bleu cerclé de blanc — ni la pastille rouge
    numérotée d'un point, ni l'épingle bleue du marqueur de sélection.
@@ -771,30 +619,14 @@
        il n'a pas son propre verre, étant l'enfant de `.carte-bar` qui en
        porte déjà un — poser `.surface` dessus empilerait deux surfaces. */
 
-    .carte-bar input {
-        font: inherit;
-        padding: 0.5rem;
-        border: 1px solid var(--separateur);
+    /* `.carte-bar input` vit désormais dans `components/field.css` : son
+       rayon concentrique y lit `var(--rayon-interieur, 14px)`, le filet de
+       secours documenté à l'endroit précis pour traverser la frontière que
+       `csstools/value-no-unknown-custom-properties` impose entre ce fichier
+       et `components/`. */
 
-        /* Concentrique avec le panneau qui le porte : son rayon moins le
-       rembourrage qui les sépare. */
-        border-radius: var(--rayon-interieur);
-        width: 8rem;
-    }
-
-    /* La phrase qui dit pourquoi la position manque prend sa propre ligne, en tête
-   de barre (`flex-wrap` est déjà posé plus haut). Elle a sa raison d'être ici et
-   nulle part ailleurs : cette carte recouvre l'écran de suivi, donc sa ligne
-   d'état avec — sans cette phrase, l'absence de marqueur ne s'expliquerait pas. */
-    .carte-position-status {
-        flex: 1 0 100%;
-        margin: 0;
-
-        /* Footnote : 13/18. */
-        font-size: 0.765rem;
-        line-height: 1.385;
-        color: var(--label-2);
-    }
+    /* `.carte-position-status` vit désormais dans `components/field.css`,
+       avec `.carte-bar input` et `.carte-position-bar`. */
 
     /* Écran de suivi */
     suivi-screen {
@@ -828,16 +660,8 @@
         align-items: flex-start;
     }
 
-    .simulation-banner {
-        width: 100%;
-        margin: 0;
-        padding: 0.25rem 0;
-
-        /* Footnote : 13/18. */
-        font-size: 0.765rem;
-        line-height: 1.385;
-        color: var(--succes);
-    }
+    /* `.simulation-banner` vit désormais dans `components/banner.css`, avec
+       `.offline-indicator`. */
 
     .guide-line {
         position: fixed;
@@ -872,13 +696,8 @@
         z-index: 20;
     }
 
-    .offline-indicator {
-        color: var(--succes);
-
-        /* Footnote : 13/18. */
-        font-size: 0.765rem;
-        line-height: 1.385;
-    }
+    /* `.offline-indicator` vit désormais dans `components/banner.css`, avec
+       `.simulation-banner`. */
 
     /* `.icon` vit désormais dans `components/button.css`, avec `button` : le
        jeu (`src/shared/Icons.html`) ne porte ni épaisseur, ni bouts, ni

@@ -64,6 +64,15 @@ const flottantCss = readFileSync(
 );
 
 /**
+ * La rangée de liste, pour le témoin dont la règle a émigré hors de
+ * `feuille` : `trajet-row` a rejoint `components/row.css` (tâche 4 de la
+ * partie 2), qui ne le partage plus avec `point-row` (jamais posé par aucun
+ * gabarit) ni `.list-error` (`components/panel.css`) — chacun porte
+ * désormais sa propre règle.
+ */
+const rowCss = readFileSync(new URL('./components/row.css', import.meta.url), 'utf8');
+
+/**
  * Rend la valeur **effective** d'une propriété de `.icon`, un `var()` résolu.
  *
  * Écrire `/\.icon\s*\{[^}]*stroke:\s*currentcolor/` ne marche plus depuis que
@@ -617,7 +626,7 @@ describe('Les cartes de contenu', () => {
             // of controls across the system. » Une bordure d'un pixel n'a plus
             // lieu d'être quand le fond de la carte se distingue déjà de celui
             // de la vue : c'est ainsi qu'une liste groupée d'iOS se lit.
-            const carte = /\n[ \t]*trajet-row,[\s\S]*?\{([^}]*)\}/.exec(feuille);
+            const carte = /\n[ \t]*trajet-row\s*\{([^}]*)\}/.exec(rowCss);
 
             // Le rayon passe par son jeton : « Les rayons », plus haut, refuse
             // désormais toute valeur écrite en clair.

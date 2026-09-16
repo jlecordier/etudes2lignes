@@ -1,0 +1,119 @@
+/* La rangée de liste : la carte qui représente un trajet (`trajet-row`), et
+ * ce qui l'habite — son titre (`.trajet-name`), la ligne de compte et
+ * d'actions qui le suit (`.trajet-footer`, `.trajet-details`) — plus le
+ * pendant de ce titre sur une page d'éditeur (`.image-name`).
+ *
+ * La surface de la carte reprend celle des listes groupées d'iOS : « Sections
+ * have an increased corner radius to match the curvature of controls across
+ * the system. » Le rayon monte à `--rayon-section`, et sans filet — le fond
+ * de la carte se distingue déjà de celui de la vue, et un filet en plus n'y
+ * ajoutait qu'un pixel de bruit.
+ *
+ * `.trajet-name` et `.trajet-details` portent chacun un triplet
+ * typographique **complet** (Headline pour l'un, Subheadline pour l'autre) —
+ * et `components/text.css` reste le seul endroit du système où `font-size`,
+ * `line-height` et `letter-spacing` s'écrivent ensemble. La migration
+ * correcte (composer `.text-headline`/`.text-subheadline` dans
+ * `TrajetRow.html`, à côté du sélecteur hérité, comme `.text-headline` sur
+ * le titre de `.header` — `bar.css`, tâche 2) a été **refusée par le
+ * validateur de `probity`** : rien dans la session ne montre de témoin rouge
+ * qui exigerait ce changement de gabarit précis, et le hook l'a lu comme une
+ * écriture de production sans test qui la commande. Conformément à sa
+ * propre consigne, l'incrément est coupé plutôt que contourné : les deux
+ * triplets restent, littéraux, dans `screens/legacy.css`, à l'endroit
+ * précis — ce fichier ne porte que la mise en page des deux sélecteurs.
+ *
+ * `.image-name`, elle, garde son triplet Footnote **incomplet** — deux
+ * propriétés sur trois, l'approche manquant déjà avant cette tâche — en
+ * jetons de composant : un triplet incomplet n'est pas le triplet que la
+ * règle interdit d'écrire ailleurs qu'à `text.css`, comme pour `.floating-
+ * button` (tâche 3, `screens/legacy.css`).
+ *
+ * `point-row` a disparu de la règle partagée que trois sélecteurs portaient
+ * ensemble dans l'ancienne feuille (`trajet-row, point-row, .list-error`) :
+ * aucun gabarit ne définit `<point-row>`, ni comme élément personnalisé
+ * (`customElements.define`) ni comme balise littérale — seul un commentaire
+ * de `TrajetRow.ts` le cite en exemple de nommage. Sans élément à cibler,
+ * son retrait ne change aucun rendu ; `.list-error` reçoit sa part de la
+ * règle partagée dans `components/panel.css`, une carte de contenu comme
+ * elle.
+ */
+@layer components {
+    :root {
+        /* Mesures propres à la rangée, même principe que les jetons de
+           `bar.css`/`button-group.css` : `scale-unlimited/declaration-
+           strict-value` n'admet, dans `components/`, qu'un jeton — jamais un
+           littéral — pour `gap`/`padding`. */
+        --row-list-gap: 0.5rem;
+        --row-gap: 0.5rem;
+        --row-padding: 0.75rem;
+        --row-footer-gap: 0.5rem;
+
+        /* Footnote incomplète (l'approche manque) : voir l'en-tête du
+           fichier. */
+        --image-name-font-size: 0.765rem;
+        --image-name-line-height: 1.385;
+    }
+
+    .trajets-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--row-list-gap);
+    }
+
+    /* Deux lignes, et dans cet ordre : le trajet d'abord, ce qui agit dessus
+       ensuite. Les actions occupaient auparavant la moitié de la hauteur. */
+    trajet-row {
+        background: var(--fond);
+        border-radius: var(--rayon-section);
+        display: flex;
+        flex-direction: column;
+        gap: var(--row-gap);
+        padding: var(--row-padding);
+    }
+
+    /* Le titre de la ligne, pas un champ de saisie : à plat, aligné à
+       gauche et dans le bleu des actions — c'est ce qu'on touche pour ouvrir
+       le trajet. Le style Headline n'est pas ici : voir l'en-tête du fichier
+       — il reste, en dette documentée, dans `screens/legacy.css`. */
+    .trajet-name {
+        justify-content: flex-start;
+        padding: 0;
+        border: none;
+        background: none;
+        color: var(--accent);
+        text-align: left;
+    }
+
+    .trajet-footer {
+        display: flex;
+        align-items: center;
+        gap: var(--row-footer-gap);
+        flex-wrap: wrap;
+    }
+
+    /* Occupe le reste de la ligne, ce qui pousse les actions contre le bord.
+       `min-width` explicite, et pas de `nowrap` : sans quoi le compte impose
+       sa largeur entière comme plancher (`min-width: auto` d'un élément flex
+       vaut sa taille min-content), et un trajet à trois chiffres de points
+       renverrait les trois actions à la ligne suivante. Le style Subheadline
+       n'est pas ici : voir l'en-tête du fichier. */
+    .trajet-details {
+        flex: 1;
+        min-width: 5rem;
+        color: var(--label-2);
+    }
+
+    .image-name {
+        flex: 1;
+        font-size: var(--image-name-font-size);
+        line-height: var(--image-name-line-height);
+        color: var(--label-2);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}

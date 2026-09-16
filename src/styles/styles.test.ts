@@ -1111,3 +1111,42 @@ describe("L'inversion de cascade entre un composant et un écran", () => {
         });
     });
 });
+
+const contenu = ['badge', 'row', 'panel', 'banner', 'field'];
+
+describe('La couche de contenu', () => {
+    describe('Étant donné un composant de contenu, quand on regarde sa surface', () => {
+        it("alors aucun n'emprunte le verre, qui appartient à la couche fonctionnelle", () => {
+            // « Liquid Glass forms a distinct functional layer […] that floats
+            // above the content layer », et son corollaire explicite : « Don't
+            // use Liquid Glass in the content layer. »
+            const fautifs = contenu.filter((nom) => {
+                // `sansCommentaires` : l'en-tête de contrat de `panel.css` et
+                // de `banner.css` cite en prose l'interdit qu'il applique —
+                // « ne porte backdrop-filter ni la classe .surface » —, et
+                // cette citation, lue telle quelle, satisfait le motif que
+                // ce témoin est censé faire échouer. Une prose ne doit pas
+                // pouvoir faire rougir l'invariant qu'elle documente.
+                const f = sansCommentaires(feuilles[`./components/${nom}.css`] ?? '');
+                return /backdrop-filter|\.surface\b/.test(f);
+            });
+
+            expect(fautifs).toEqual([]);
+        });
+    });
+
+    describe('Étant donné la pastille, quand on cherche ce qui fixe sa taille', () => {
+        it('alors un seul jeton la porte, pour tous ses contextes', () => {
+            // Mesure : la pastille du schema faisait 44 px et celle de la
+            // carte 27,6 — le plancher de la regle du bouton s'appliquait a
+            // l'une et pas a l'autre, et les deux vues cessaient de montrer le
+            // meme reperage.
+            const badge = feuilles['./components/badge.css'] ?? '';
+            const tailles = badge.match(/--badge-size:/g) ?? [];
+
+            expect(tailles).toHaveLength(1);
+            expect(badge).toMatch(/min-inline-size:\s*0/);
+            expect(badge).toMatch(/min-block-size:\s*0/);
+        });
+    });
+});

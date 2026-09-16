@@ -1,0 +1,149 @@
+/* La pastille : le repère numéroté qui identifie un point, sur le schéma
+ * (`.point-number`, posé par `PointMarker.html`) comme sur la carte
+ * (`.carte-marker`, posé par `numberedIcon.ts`) — un seul symbole, jamais
+ * deux sosies qui pourraient diverger d'une vue à l'autre. `.page-number`
+ * (le numéro de page de `ImageFrame.html`) vit dans ce même fichier : un
+ * autre repère numéroté, mais qui ne partage ni la taille ni la forme de la
+ * pastille d'un point — regroupé ici pour la famille, pas pour un jeton
+ * commun.
+ *
+ * Jeton : `--badge-size`, **en pixels absolus et non en `rem`** — mesuré en
+ * partie 1 : une valeur relative faisait diverger Firefox de `27.633346`
+ * contre `27.633331` sur une comparaison au pixel près, et le témoin e2e
+ * « les pastilles ont la même taille ici et là » (`e2e/points.spec.ts`)
+ * cassait. Un entier absolu ne peut pas diverger d'une vue à l'autre.
+ *
+ * Le défaut historique que ce fichier rend inécrivable : la cible de 44 px
+ * que `button.css` impose (`min-block-size`/`min-inline-size:
+ * var(--hit-target)`) s'applique à `.point-number` — un `<button>` — mais
+ * pas à `.carte-marker` — un `<div>` de `L.divIcon`, hors de portée de la
+ * règle du bouton. Sans les deux lignes qui l'annulent ci-dessous, la
+ * pastille du schéma gonflait à 44 px pendant que celle de la carte restait
+ * à 26 px : les deux vues cessaient de montrer le même repère, ce que
+ * `points.spec.ts` mesure au pixel près.
+ *
+ * `.page-number` garde son triplet Caption 2 incomplet en clair (l'approche
+ * manquait déjà avant cette tâche), et `.point-number`/`.carte-marker`
+ * gardent une taille et un interligne choisis pour un numéro dans un petit
+ * disque plutôt que les métriques exactes de Caption 1 (son interligne y
+ * vaut 1, pas les 1.333 que la HIG publie) : ni l'un ni l'autre n'est donc un
+ * triplet complet qui devrait porter `.text-*` — les migrer le rendrait
+ * complet, ce qu'ils n'ont jamais été, une valeur ajoutée plutôt que
+ * préservée.
+ *
+ * `point-marker .point-number` reste positionné dans `screens/legacy.css`,
+ * et non ici : sa formule se cale sur `--point-line-thickness`, une
+ * propriété personnalisée déclarée dans le `:root` de ce fichier — et non
+ * dans `tokens/primitives.css`, `tokens/semantic.css` ou
+ * `screens/legacy-bridge.css`, les trois seuls que `csstools/value-no-
+ * unknown-custom-properties` reconnaît. Même contrainte, déjà rencontrée par
+ * la tâche 3 pour la position de `.point-actions`. Elle y lit désormais
+ * `var(--badge-size, 26px)` — le filet de secours ne joue jamais en
+ * pratique, `--badge-size` étant toujours déclaré plus bas dans ce fichier
+ * et hérité par tout le document, mais c'est ce filet qui autorise la
+ * référence à traverser le fichier sans faire échouer le lint.
+ *
+ * `.placement-active .point-number` reste, lui aussi, dans
+ * `screens/legacy.css`, pour une raison différente : la cascade, pas le
+ * lint. Voir le commentaire à l'endroit où la règle aurait dû vivre, plus
+ * bas dans ce fichier. */
+@layer components {
+    :root {
+        --badge-size: 26px;
+
+        /* Un numéro posé sur un schéma dense doit se lire d'un coup d'œil :
+           l'interligne serré (1, pas les 1.333 de Caption 1) et la graisse
+           accentuée sont un choix propre à la pastille, pas le style
+           Caption 1 lui-même — voir l'en-tête du fichier. */
+        --badge-font-size: 0.706rem;
+        --badge-line-height: 1;
+    }
+
+    .point-number,
+    .carte-points .carte-marker,
+    #carte-container .carte-marker {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--badge-size);
+        height: var(--badge-size);
+
+        /* La cible de 44 px que la règle du bouton impose est **neutralisée
+           ici**, et c'est la seule fois du système : voir l'en-tête du
+           fichier. */
+        min-inline-size: 0;
+        min-block-size: 0;
+
+        /* La pastille du schéma est un bouton : sans cela, le `padding` de
+           la règle globale `button` déformerait le disque, et seulement de
+           ce côté-ci — les deux vues cesseraient de montrer la même
+           pastille. */
+        padding: 0;
+        background: var(--destructif);
+        color: var(--sur-teinte);
+        border: 2px solid var(--sur-teinte);
+        border-radius: var(--radius-pill);
+        font-size: var(--badge-font-size);
+        line-height: var(--badge-line-height);
+        font-weight: 600;
+        box-shadow: var(--ombre-pastille);
+    }
+
+    /* `.placement-active .point-number` reste dans `screens/legacy.css`, et
+       non ici : `@layer components, … , screens` fait perdre `components`
+       face à `screens` quelle que soit la spécificité, et
+       `point-marker .point-number { pointer-events: auto }` — qui doit
+       rester dans `screens/legacy.css`, sa position se calant sur
+       `--point-line-thickness` — gagnerait alors *toujours* contre ce
+       `pointer-events: none`. Mesuré en posant la règle ici : le témoin
+       générique d'inversion de cascade la dénonce aussitôt. La pastille
+       redeviendrait cliquable en plein mode de visée, empêchant de poser un
+       point à la hauteur d'un point existant. Tâche 5, qui réunit
+       `point-marker` et `.placement-active` dans la même feuille d'écran,
+       lèvera cette dette. */
+
+    /* L'apparence du marqueur de la carte est celle de la pastille commune,
+       ci-dessus. Ne reste ici que ce qui n'appartient qu'à la carte : le
+       centrage sur la coordonnée.
+       Cette marge négative tient le rôle de l'`iconAnchor` de Leaflet, que
+       `numberedIcon.ts` ne donne plus — pas plus que l'`iconSize` : les deux
+       inscriraient la taille du symbole une seconde fois, en TypeScript, et
+       les deux vues finiraient par ne plus montrer la même pastille. */
+    .carte-points .carte-marker,
+    #carte-container .carte-marker {
+        margin: calc(var(--badge-size) / -2) 0 0 calc(var(--badge-size) / -2);
+        cursor: grab;
+    }
+
+    /* Le numéro de la page, compté depuis le haut de la pile. Sombre et
+       translucide, pour ne pas se confondre avec un numéro de point ;
+       transparent aux clics, comme le repère, sans quoi il volerait le
+       placement d'un point posé sous lui.
+
+       Sans `z-index` : les repères viennent après lui dans le document, donc
+       un point posé tout en haut de la page couvre le numéro plutôt que
+       d'être couvert par lui. C'est le bon ordre — le numéro de page se
+       retrouve, un point masqué non. */
+    .page-number {
+        /* Mesures propres à ce repère, même principe que le jeton de taille
+           ci-dessus : `scale-unlimited/declaration-strict-value` n'admet,
+           dans `components/`, qu'un jeton — jamais un littéral. */
+        --page-number-padding-inline: 0.4rem;
+
+        /* Caption 2 : 12/13. L'approche manquait déjà avant cette tâche —
+           voir l'en-tête du fichier. */
+        --page-number-font-size: 0.647rem;
+        --page-number-line-height: 1.182;
+
+        position: absolute;
+        left: 0.25rem;
+        top: 0.25rem;
+        background: var(--fond-page);
+        color: var(--sur-teinte);
+        border-radius: var(--radius-pill);
+        padding: 0 var(--page-number-padding-inline);
+        font-size: var(--page-number-font-size);
+        line-height: var(--page-number-line-height);
+        pointer-events: none;
+    }
+}
