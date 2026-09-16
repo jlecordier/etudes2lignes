@@ -1,6 +1,13 @@
 /* L'écran de la liste : placement seulement. Tout ce qu'il montre —
  * `.trajets-list`, `trajet-row` — est composé depuis `components/row.css` ;
  * cette feuille ne pose que le custom element racine.
+ *
+ * **Défaut historique rendu inécrivable : aucun**, et le dire vaut mieux que
+ * d'en inventer un — même précédent que `components/field.css`. La règle
+ * arrive telle quelle de la feuille en transit, sans correction ni
+ * regroupement. Ce que ce fichier apporte est une adresse : quand une règle
+ * de liste devra changer, elle se cherchera ici et non dans huit cents lignes
+ * partagées avec le reste de l'application.
  */
 @layer screens {
     /* Un custom element est `inline` par défaut : l'écran doit le dire, là où

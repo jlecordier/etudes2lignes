@@ -1026,9 +1026,25 @@ describe('La feuille de style', () => {
             // Lu depuis `carteOverlay` : le seul `@media (prefers-color-scheme:
             // dark)` restant du système assombrit les tuiles de la carte
             // (`components/map-overlay.css`, tâche 5) — plus `feuille`.
+            //
+            // **Commentaires retirés, et c'est la condition pour que cette
+            // ligne garde quoi que ce soit.** L'en-tête de `map-overlay.css`
+            // cite la requête deux fois en prose : sur quatre occurrences du
+            // motif dans le fichier, trois sont du texte. Mesuré — le vrai bloc
+            // supprimé et la prose laissée, l'ancienne formule rendait toujours
+            // `true`. C'est le septième témoin vide de ce chantier et le second
+            // de ce fichier ; la réconciliation Leaflet, quelques lignes plus
+            // haut, avait exactement le même défaut avec `!important`.
+            //
+            // Ce que la même sonde a montré de rassurant : la régression est
+            // bel et bien attrapée, mais par « Les tuiles de la carte », pas
+            // par ici. Cette ligne n'était pas le dernier rempart — elle
+            // annonçait seulement une garde qu'elle n'assurait plus.
             exige(
                 'apparence sombre fournie',
-                /@media\s*\(prefers-color-scheme:\s*dark\)/.test(carteOverlay),
+                /@media\s*\(prefers-color-scheme:\s*dark\)/.test(
+                    carteOverlay.replace(/\/\*[\s\S]*?\*\//g, ''),
+                ),
             );
 
             // Un iPhone 14 encore sous iOS 16.4 ou une version plus récente

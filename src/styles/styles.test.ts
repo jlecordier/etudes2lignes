@@ -1160,16 +1160,56 @@ describe('La couche de contenu', () => {
 describe('Les écrans', () => {
     describe("Étant donné une feuille d'écran, quand on regarde ce qu'elle déclare", () => {
         it('alors elle place, et ne peint pas', () => {
-            // Un ecran compose des composants ; il ne redecide pas leur
-            // apparence. Une couleur ou un rayon ecrit ici est un composant
-            // qui n'a pas ete nomme.
+            // Un écran compose des composants ; il ne redécide pas leur
+            // apparence. Une couleur ou un rayon écrit ici est un composant
+            // qu'on n'a pas nommé.
             const ecrans = ['trajets-list', 'trajet-editor', 'suivi'];
-            const fautifs = ecrans.flatMap((nom) => {
-                const f = (feuilles[`./screens/${nom}.css`] ?? '').replace(/\/\*[\s\S]*?\*\//g, '');
-                return ['color:', 'background:', 'font-size:', 'border-radius:']
-                    .filter((propriete) => f.includes(propriete))
-                    .map((propriete) => `${nom} declare ${propriete}`);
-            });
+
+            // Garde de non-vacuité : `ecrans` est écrit à la main, `feuilles`
+            // vient du disque. Sans lui, renommer une feuille d'écran ferait
+            // porter la recherche sur la chaîne vide et ce témoin passerait au
+            // vert en ne gardant plus rien — le même défaut que le témoin de la
+            // couche de contenu portait avant la tâche 4.
+            const absents = ecrans.filter(
+                (nom) => !Object.hasOwn(feuilles, `./screens/${nom}.css`),
+            );
+
+            expect(absents).toEqual([]);
+
+            // La liste dit ce que « peindre » veut dire, et elle a été élargie
+            // après la tâche 5 : les quatre propriétés d'origine laissaient
+            // passer `border`, `box-shadow`, `fill`, `stroke` et
+            // `background-color`, c'est-à-dire de la peinture entière. Mesuré :
+            // les neuf sont propres aujourd'hui, à une exception près.
+            const peintures = [
+                'color:',
+                'background:',
+                'background-color:',
+                'font-size:',
+                'border-radius:',
+                'border:',
+                'box-shadow:',
+                'fill:',
+                'stroke:',
+            ];
+
+            // L'exception, nommée plutôt que tolérée : `image-frame
+            // schema-page` porte un filet dans `trajet-editor.css`. Il vient
+            // tel quel de la feuille en transit, et il attend le composant qui
+            // l'accueillera — la tâche 7, quand les gabarits porteront les noms
+            // du système. L'exception est porteuse : la vider fait rougir ce
+            // témoin.
+            const exceptions = ['trajet-editor declare border:'];
+
+            const fautifs = ecrans
+                .flatMap((nom) => {
+                    const f = sansCommentaires(feuilles[`./screens/${nom}.css`] ?? '');
+
+                    return peintures
+                        .filter((propriete) => f.includes(propriete))
+                        .map((propriete) => `${nom} declare ${propriete}`);
+                })
+                .filter((fautif) => !exceptions.includes(fautif));
 
             expect(fautifs).toEqual([]);
         });
