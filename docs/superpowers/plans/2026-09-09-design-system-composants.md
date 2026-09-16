@@ -466,12 +466,24 @@ describe('Les écrans', () => {
         it('alors elle ne porte plus aucune règle', () => {
             // Le critere de la tache : ce qui reste est vide, et la tache 7
             // pourra la supprimer sans rien emporter.
-            const transit = (feuilles['./screens/legacy.css'] ?? '').replace(
+            //
+            // Les preludes d'at-regles (`@layer`, `@media`, `@supports`)
+            // deviennent de simples accolades avant l'analyse : ce sont des
+            // enveloppes, pas des regles, et une feuille parfaitement videe
+            // garde son `@layer screens { }`. Sonde a l'ecriture, sur six
+            // cas : enveloppe seule, enveloppe avec commentaire, `@media`
+            // vide, une regle simple, une regle sous `@media`, un selecteur
+            // d'element nu.
+            const sansProse = (feuilles['./screens/legacy.css'] ?? '').replace(
                 /\/\*[\s\S]*?\*\//g,
                 '',
             );
+            const sansEnveloppes = sansProse.replace(/@[^{}]*\{/g, '{');
+            const restantes = [...sansEnveloppes.matchAll(/([^{}\s][^{}]*?)\s*\{/g)].map((m) =>
+                m[1].trim(),
+            );
 
-            expect(transit).not.toMatch(/[.#a-z\[][^{}]*\{/);
+            expect(restantes).toEqual([]);
         });
     });
 });
