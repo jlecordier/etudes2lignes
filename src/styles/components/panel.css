@@ -48,6 +48,13 @@
  * rouge de cette session n'exige ce changement de gabarit précis. L'incrément
  * est coupé : le triplet reste, littéral, dans `screens/legacy.css`, et ce
  * fichier ne porte plus que sa couleur.
+ *
+ * **Le défaut historique que ce fichier rend inécrivable :** une carte de
+ * contenu empruntait sa surface à une règle dont le premier sélecteur était
+ * une rangée de liste (`trajet-row, point-row, .list-error`), et le troisième
+ * un élément qu'aucun gabarit ne pose. Les cartes vivent ici, les rangées
+ * dans `components/row.css` : leur fond et leur rayon ne peuvent plus changer
+ * ensemble parce qu'ils partageaient une accolade.
  */
 @layer components {
     :root {

@@ -22,6 +22,15 @@
  * `.carte-position-bar` et `.carte-position-status` gardent leur triplet
  * Footnote **incomplet** en clair, comme `components/banner.css` et
  * `components/row.css` : l'approche manquait déjà avant cette tâche.
+ *
+ * **Défaut historique rendu inécrivable : aucun**, et le dire vaut mieux que
+ * d'en inventer un. Les trois règles arrivent ici telles quelles — le rayon
+ * passait déjà par `--rayon-interieur` avant le déplacement, il n'y avait pas
+ * de littéral à faire dériver. Ce que ce fichier apporte est un rangement,
+ * pas une correction ; sa seule dette est le filet de secours ci-dessus, que
+ * la tâche du `map-overlay` retirera.
+ * Footnote **incomplet** en clair, comme `components/banner.css` et
+ * `components/row.css` : l'approche manquait déjà avant cette tâche.
  */
 @layer components {
     :root {

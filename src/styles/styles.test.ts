@@ -1120,6 +1120,22 @@ describe('La couche de contenu', () => {
             // « Liquid Glass forms a distinct functional layer […] that floats
             // above the content layer », et son corollaire explicite : « Don't
             // use Liquid Glass in the content layer. »
+            // Garde de non-vacuité, et il est porteur : `contenu` est une
+            // liste écrite à la main, `feuilles` vient du disque. Si l'un des
+            // cinq fichiers était renommé ou supprimé, la recherche porterait
+            // sur la chaîne vide, `fautifs` resterait vide, et le seul témoin
+            // du « pas de verre dans la couche de contenu » passerait au vert
+            // en ne gardant plus rien. Mesuré sur la liste : retirer
+            // `panel.css` du disque laisse `fautifs` à `[]` et remplit
+            // `absents`. La liste reste écrite à la main à dessein — elle
+            // nomme la couche de contenu, et les composants fonctionnels que
+            // les tâches suivantes ajouteront ne doivent pas y entrer.
+            const absents = contenu.filter(
+                (nom) => !Object.hasOwn(feuilles, `./components/${nom}.css`),
+            );
+
+            expect(absents).toEqual([]);
+
             const fautifs = contenu.filter((nom) => {
                 // `sansCommentaires` : l'en-tête de contrat de `panel.css` et
                 // de `banner.css` cite en prose l'interdit qu'il applique —

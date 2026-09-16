@@ -37,6 +37,15 @@
  * son retrait ne change aucun rendu ; `.list-error` reçoit sa part de la
  * règle partagée dans `components/panel.css`, une carte de contenu comme
  * elle.
+ *
+ * **Le défaut historique que ce fichier rend inécrivable :** une rangée de
+ * liste et une carte de contenu empruntaient la même surface, écrite une fois
+ * pour trois porteurs (`trajet-row, point-row, .list-error`, deux fois dans
+ * l'ancienne feuille), et le fantôme servait de glu entre les deux. Une
+ * rangée vit désormais ici et une carte dans `components/panel.css` : elles
+ * ne peuvent plus dériver ensemble par accident, ni accueillir un quatrième
+ * sélecteur que rien ne pose.
+ * elle.
  */
 @layer components {
     :root {

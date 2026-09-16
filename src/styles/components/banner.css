@@ -12,6 +12,14 @@
  * (`letter-spacing`) manquait déjà avant cette tâche, comme pour `.image-
  * name` (`components/row.css`) et `.floating-button` (tâche 3) — le porter
  * par `.text-footnote` ajouterait une valeur plutôt que de la préserver.
+ *
+ * **Le défaut historique que ce fichier rend inécrivable :** les deux
+ * bandeaux portaient les mêmes métriques Footnote en littéraux, écrites deux
+ * fois à quarante-quatre lignes d'écart dans l'ancienne feuille. Trois jetons
+ * les portent maintenant ensemble : corriger l'un sans l'autre n'est plus
+ * possible. C'est la même dérive qui avait déjà séparé deux valeurs de verre
+ * écrites à la main, en partie 1.
+ * par `.text-footnote` ajouterait une valeur plutôt que de la préserver.
  */
 @layer components {
     :root {
