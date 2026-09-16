@@ -1,6 +1,13 @@
 /* Le socle : des défauts d'éléments, et **aucune classe** — un test l'affirme.
  * Ce qui a besoin d'un nom est un composant, pas un défaut. */
 @layer base {
+    /* Le modèle de boîte : sans lui, `width`/`height` ne compteraient pas le
+       rembourrage ni la bordure, et toute mesure du système devrait en tenir
+       compte à part. Un défaut d'élément, pas un composant — rien ne le nomme. */
+    * {
+        box-sizing: border-box;
+    }
+
     html {
         /* Le repli, pour les moteurs qui ignorent la ligne suivante. 17 px,
            parce que c'est la taille par défaut d'iOS, et non les 16 px du
@@ -108,5 +115,35 @@
     input {
         -webkit-user-select: text;
         user-select: text;
+    }
+
+    /* L'attribut hidden doit toujours gagner, même sur les blocs en
+       display:flex — seize appels TypeScript le bascule, dont plusieurs sur
+       des conteneurs déjà en flex. Un défaut d'élément : `[hidden]` est un
+       attribut HTML natif, pas une classe du système. */
+    [hidden] {
+        display: none !important;
+    }
+
+    /* Le mouvement.
+     *
+     * Ce qui part, ce sont les transitions — **pas** le défilement automatique,
+     * qui *est* la fonction de l'application : « don't make people wait for an
+     * animation to complete before they can do anything ». La HIG demande
+     * d'éviter le mouvement sur les interactions fréquentes, et le GPS en
+     * produit une par seconde.
+     *
+     * Une durée de 1 ms plutôt que `none` : les gestionnaires de
+     * `transitionend` continuent de recevoir leur événement, là où `none` les
+     * rendrait muets et laisserait un état d'attente ouvert pour toujours. */
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            transition-duration: 1ms !important;
+            animation-duration: 1ms !important;
+            animation-iteration-count: 1 !important;
+            scroll-behavior: auto !important;
+        }
     }
 }

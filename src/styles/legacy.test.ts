@@ -2,13 +2,6 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 /**
- * Lue depuis le disque, et non importée : Vitest neutralise les imports CSS —
- * un `./screens/legacy.css?raw` rend une chaîne vide, et le témoin serait vert
- * sur une feuille inexistante.
- */
-const feuille = readFileSync(new URL('./screens/legacy.css', import.meta.url), 'utf8');
-
-/**
  * Le palier sémantique, pour les deux témoins qui doivent y suivre une
  * dérivation : `--fond-groupe` et `--verre` ne sont plus, dans `feuille`, que
  * des alias (`legacy-bridge.css`) vers `--color-background-grouped` et
@@ -73,6 +66,20 @@ const flottantCss = readFileSync(
 const rowCss = readFileSync(new URL('./components/row.css', import.meta.url), 'utf8');
 
 /**
+ * La carte plein écran, pour les témoins dont la règle a émigré hors de
+ * `feuille` : `#carte-container`, `.carte-bar`, la réconciliation Leaflet et
+ * `--large-screen` ont rejoint `components/map-overlay.css` (tâche 5 de la
+ * partie 2).
+ */
+const carteOverlay = readFileSync(new URL('./components/map-overlay.css', import.meta.url), 'utf8');
+
+/**
+ * L'écran de suivi, pour le témoin dont la règle a émigré hors de `feuille` :
+ * `.guide-line` a rejoint `screens/suivi.css` (tâche 5 de la partie 2).
+ */
+const suivi = readFileSync(new URL('./screens/suivi.css', import.meta.url), 'utf8');
+
+/**
  * Rend la valeur **effective** d'une propriété de `.icon`, un `var()` résolu.
  *
  * Écrire `/\.icon\s*\{[^}]*stroke:\s*currentcolor/` ne marche plus depuis que
@@ -114,55 +121,25 @@ const valeurEffectiveDeLIcone = (css: string, propriete: string): string | undef
  * navigateur ne dirait rien d'une règle simplement absente.
  */
 
-/** La feuille privée de ses blocs de jetons : tout le reste du fichier. */
-function horsDesJetons(): string {
-    return feuille.replace(/:root\s*\{[^}]*\}/gs, '');
-}
-
-describe('Les couleurs de la feuille', () => {
-    describe('Étant donné une couleur à poser, quand la règle la nomme', () => {
-        it("alors elle passe par un jeton, car aucune n'est écrite en clair hors des jetons", () => {
-            // La HIG prévient que « the actual color values may fluctuate from
-            // release to release ». Une valeur recopiée dans une règle est une
-            // valeur qui échappera à la prochaine mise à jour — et surtout à
-            // l'apparence sombre, qui ne peut redéfinir que des jetons.
-            const literales = [
-                ...horsDesJetons().matchAll(/#[0-9a-fA-F]{3,8}\b|\brgba?\([^)]*\)/g),
-            ].map((trouve) => trouve[0]);
-
-            expect(literales).toEqual([]);
-        });
-    });
-});
-
-describe("La couverture de l'apparence sombre", () => {
-    describe("Étant donné un jeton de couleur, quand l'apparence bascule", () => {
-        it("alors aucune couleur ne vit plus dans une requête d'apparence : light-dark() ne laisse pas la place à l'oubli", () => {
-            // Ce témoin exigeait qu'un jeton **ajouté après** l'écriture du bloc
-            // sombre y ait sa contrepartie — un piège qui a laissé passer
-            // `--verre` resté blanc en apparence sombre, et le bouton « Ajouter
-            // un point » devenu un disque blanc portant un symbole blanc.
-            //
-            // L'invariant devient vrai pour une autre raison : il n'y a plus de
-            // second bloc à tenir à jour. `screens/legacy.css` ne redéfinit plus
-            // aucun jeton de couleur dans un `@media (prefers-color-scheme: dark)`
-            // ni dans un `@media (prefers-contrast: more)` — ces jetons vivent
-            // maintenant au palier sémantique (`tokens/semantic.css`), une seule
-            // fois chacun, par `light-dark()`. Une contrepartie oubliée y serait
-            // une erreur de syntaxe, pas une omission silencieuse.
-            const blocsApparence =
-                feuille.match(
-                    /@media \(prefers-(?:color-scheme: dark|contrast: more)(?:\)|[^{]*\)) \{[\s\S]*?\n {4}\}/g,
-                ) ?? [];
-
-            const couleursDedans = blocsApparence.filter((bloc) =>
-                /--[a-z-]+:\s*rgba?\(/.test(bloc),
-            );
-
-            expect(couleursDedans).toEqual([]);
-        });
-    });
-});
+/**
+ * « Les couleurs de la feuille » et « La couverture de l'apparence sombre »
+ * vivaient ici et affirmaient respectivement : aucune couleur littérale hors
+ * des jetons, et aucune redéfinition de jeton dans une requête d'apparence.
+ * Les deux lisaient `feuille`, qui ne porte plus aucune règle depuis la
+ * tâche 5 — les garder aurait été affirmer un invariant devenu vrai par
+ * vacuité, sur un fichier vide, pour toujours : exactement le défaut de
+ * témoin que cette série de tâches a appris à reconnaître. Le premier
+ * invariant n'a plus de témoin dédié — chaque composant écrit ses couleurs en
+ * jetons, et `styles.test.ts` affirme déjà qu'un seul fichier peut flouter,
+ * qu'aucune surface n'en superpose une autre, etc., sans qu'un test générique
+ * « aucune couleur littérale nulle part » ait jamais existé au niveau du
+ * système. Le second est toujours vrai, mais pour une raison structurelle :
+ * `tokens/semantic.css` porte les deux apparences dans une seule déclaration
+ * `light-dark()` par jeton, et l'unique `@media (prefers-color-scheme: dark)`
+ * restant dans le système (`components/map-overlay.css`, testé plus loin dans
+ * « Les tuiles de la carte ») redéfinit un `filter`, jamais un jeton de
+ * couleur.
+ */
 
 describe('Les pictogrammes', () => {
     describe('Étant donné un symbole du jeu, quand une règle doit le dessiner', () => {
@@ -231,8 +208,13 @@ describe('Les conteneurs de carte face aux panneaux de Leaflet', () => {
             // Mesuré : le formulaire de saisie, à `z-index: 10`, était
             // intégralement recouvert par les tuiles — invisible, alors que sa
             // boîte et son fond étaient corrects.
+            // Lu depuis `carteOverlay` : les deux règles ont émigré vers
+            // `components/map-overlay.css` (tâche 5 de la partie 2), et c'est
+            // lui qui les porte désormais — plus `feuille`.
             for (const conteneur of ['#carte-container', '.carte-points']) {
-                const regle = new RegExp(`\\n[ \\t]*\\${conteneur} \\{([^}]*)\\}`).exec(feuille);
+                const regle = new RegExp(`\\n[ \\t]*\\${conteneur} \\{([^}]*)\\}`).exec(
+                    carteOverlay,
+                );
 
                 expect(regle?.[1]).toMatch(/position:\s*(absolute|relative)/);
                 expect(regle?.[1]).toMatch(/z-index:\s*0/);
@@ -308,8 +290,13 @@ describe("L'action qui conclut, dans une barre", () => {
             // Dans une **barre**, ce qui n'est pas `.secondary` est l'action qui
             // conclut : le sélecteur le dit, et sa spécificité le fait gagner
             // contre la règle des pairs.
+            // Lu depuis `groupeCss` : la règle a émigré vers
+            // `components/button-group.css` (tâche 5 de la partie 2), à côté
+            // de la règle des pairs qu'elle bat — plus `feuille`.
             const proeminente =
-                /\n[ \t]*\.header \.action-bar button:not\(\.secondary\) \{([^}]*)\}/.exec(feuille);
+                /\n[ \t]*\.header \.action-bar button:not\(\.secondary\) \{([^}]*)\}/.exec(
+                    groupeCss,
+                );
 
             expect(proeminente?.[1]).toMatch(/background:\s*var\(--accent\)/);
         });
@@ -438,8 +425,11 @@ describe('Les contrôles de la carte', () => {
             // carrée — un rond dans un carré — et surtout **du verre sur du
             // verre**, que la HIG refuse : « avoid overcrowding or layering
             // Liquid Glass elements on top of each other ».
+            // Lu depuis `carteOverlay` : la règle a émigré vers
+            // `components/map-overlay.css` (tâche 5 de la partie 2), et c'est
+            // lui qui la porte désormais — plus `feuille`.
             const partagee = /\n[ \t]*\.leaflet-bar a,\n[ \t]*\.carte-recentrer \{([^}]*)\}/.exec(
-                feuille,
+                carteOverlay,
             );
 
             expect(partagee?.[1]).toMatch(/inline-size:\s*34px/);
@@ -466,10 +456,14 @@ describe('Les tuiles de la carte', () => {
             // conteneur : un `filter` sur un ancêtre du verre en annulerait le
             // flou. Le panneau des contrôles est un frère du panneau des tuiles,
             // donc il y échappe.
-            const tuiles = /\n[ \t]*\.leaflet-tile-pane \{([^}]*)\}/.exec(feuille);
+            // Lu depuis `carteOverlay` : les deux règles ont émigré vers
+            // `components/map-overlay.css` (tâche 5 de la partie 2), qui reste
+            // désormais le seul endroit du système où un `@media
+            // (prefers-color-scheme: dark)` s'écrit — plus `feuille`.
+            const tuiles = /\n[ \t]*\.leaflet-tile-pane \{([^}]*)\}/.exec(carteOverlay);
             const sombre =
                 /@media \(prefers-color-scheme: dark\) \{\s*\.leaflet-tile-pane \{([^}]*)\}/.exec(
-                    feuille,
+                    carteOverlay,
                 );
 
             expect(tuiles?.[1]).toMatch(/filter:\s*saturate\(/);
@@ -486,8 +480,11 @@ describe('La carte de saisie de coordonnée', () => {
             // the same plane. » Le formulaire était une rangée *sous* la carte,
             // qui lui prenait sa hauteur : c'est le seul écran où la carte est le
             // sujet, et elle n'en occupait pas le bas.
-            const conteneur = /\n[ \t]*#carte-container \{([^}]*)\}/.exec(feuille);
-            const barre = /\n[ \t]*\.carte-bar \{([^}]*)\}/.exec(feuille);
+            // Lu depuis `carteOverlay` : les deux règles ont émigré vers
+            // `components/map-overlay.css` (tâche 5 de la partie 2), et c'est
+            // lui qui les porte désormais — plus `feuille`.
+            const conteneur = /\n[ \t]*#carte-container \{([^}]*)\}/.exec(carteOverlay);
+            const barre = /\n[ \t]*\.carte-bar \{([^}]*)\}/.exec(carteOverlay);
 
             expect(conteneur?.[1]).toMatch(/position:\s*absolute/);
             expect(conteneur?.[1]).toMatch(/inset:\s*0/);
@@ -513,12 +510,13 @@ describe('Un bouton dans une barre', () => {
             //
             // La règle groupée d'origine s'est scindée en deux, une par
             // couche : `.header`/`.suivi-bar`/`.carte-bar button.secondary`
-            // restent ici — `.carte-bar` est encore hors composant, tâche 5 —
-            // et `.point-actions button`/`.image-bar button` ont émigré vers
+            // vivent désormais dans `components/bar.css` — les trois barres
+            // sont maintenant toutes trois des composants (tâche 5) — et
+            // `.point-actions button`/`.image-bar button` ont émigré vers
             // `components/button-group.css` (tâche 3) avec leurs groupes.
             const barre =
                 /\n[ \t]*\.header button\.secondary,\n[ \t]*\.suivi-bar button\.secondary,\n[ \t]*\.carte-bar button\.secondary \{([^}]*)\}/.exec(
-                    feuille,
+                    bar,
                 );
             const groupe =
                 /\n[ \t]*\.point-actions button,\n[ \t]*\.image-bar button \{([^}]*)\}/.exec(
@@ -592,32 +590,27 @@ describe('Les surfaces qui se répètent', () => {
     });
 });
 
-describe('Les rayons', () => {
-    describe('Étant donné une surface arrondie, quand la règle lui donne son rayon', () => {
-        it("alors c'est une gélule, un angle vif, ou un jeton — jamais un nombre inventé", () => {
-            // « Consider aligning the shape of controls with other rounded
-            // elements throughout the interface. » Trois rayons de 6 px avaient
-            // survécu à la refonte, et deux « 22px » étaient écrits en clair :
-            // autant d'occasions de dériver.
-            //
-            // Surtout, un rayon **intérieur** se calcule depuis celui qui le
-            // contient, moins le rembourrage qui les sépare — c'est la règle
-            // concentrique d'Apple, et un `calc()` la tient là où deux
-            // constantes l'auraient perdue.
-            const rayons = [...feuille.matchAll(/border-radius:\s*([^;]+);/g)].map((trouve) =>
-                (trouve[1] ?? '').replace(/\s*!important$/, '').trim(),
-            );
-
-            const admis = (rayon: string): boolean =>
-                rayon === '0' ||
-                rayon === '999px' ||
-                rayon === 'inherit' ||
-                rayon.split(/\s+/).every((part) => part === '0' || part.startsWith('var(--rayon-'));
-
-            expect(rayons.filter((rayon) => !admis(rayon))).toEqual([]);
-        });
-    });
-});
+/**
+ * « Les rayons » vivait ici et affirmait qu'aucun rayon n'était un nombre
+ * inventé, en scrutant `feuille` entière pour `border-radius:`. Supprimée, et
+ * non laissée vide.
+ *
+ * Son mécanisme n'était pas cassé : mesuré, poser `.foo { border-radius: 6px
+ * }` dans `screens/legacy.css` le fait toujours rougir (`fautifs: ['6px']`).
+ * Ce n'est donc pas la même famille de défaut que les cinq témoins vides déjà
+ * trouvés sur ce chantier — la formule fonctionne encore. Le problème est
+ * plus simple : son **sujet** a disparu. `screens/legacy.css` ne porte plus
+ * aucune règle depuis cette même tâche et n'en reportera plus jamais — la
+ * tâche 7 supprime le fichier — donc plus rien, dans le fonctionnement normal
+ * du dépôt, ne pourra plus jamais faire rougir ce témoin : il resterait vert
+ * par construction, pour toujours, ce qui revient au même risque que les cinq
+ * précédents vu de l'extérieur (une protection qu'on croit avoir alors
+ * qu'elle ne garde plus rien). `screens/legacy.css` reste protégé par un
+ * témoin plus général et plus récent (`styles.test.ts`, « Les écrans » : zéro
+ * règle, quelle qu'elle soit, pas seulement un rayon), et chaque composant
+ * qui pose un rayon le fait déjà par jeton — voir le test qui suit pour
+ * `trajet-row`.
+ */
 
 describe('Les cartes de contenu', () => {
     describe('Étant donné une ligne de la liste, quand la feuille lui donne sa surface', () => {
@@ -699,77 +692,23 @@ describe("L'échelle typographique", () => {
     });
 });
 
-describe('Les corps de texte', () => {
-    /**
-     * Les onze styles d'iOS au corps par défaut, exprimés en fraction du corps
-     * de texte (Body = 17 pt = 1 rem, la racine suivant la taille dynamique) :
-     *
-     *   Large Title 34/17 = 2      Title 1 28/17 = 1.647   Title 2 22/17 = 1.294
-     *   Title 3     20/17 = 1.176  Headline/Body   = 1     Callout 16/17 = 0.941
-     *   Subhead     15/17 = 0.882  Footnote 13/17 = 0.765  Caption 1 12/17 = 0.706
-     *   Caption 2   11/17 = 0.647
-     *
-     * Headline ne diffère de Body que par la graisse : c'est le geste de
-     * hiérarchie le moins coûteux d'Apple, et le bon sur une interface dense.
-     */
-    const echelle = [
-        '2',
-        '1.647',
-        '1.294',
-        '1.176',
-        '1',
-        '0.941',
-        '0.882',
-        '0.765',
-        '0.706',
-        '0.647',
-    ];
-
-    describe('Étant donné un texte à dimensionner, quand la règle choisit son corps', () => {
-        it("alors c'est un des onze styles d'iOS, et jamais une taille inventée", () => {
-            /**
-             * Une taille est admise si elle est le corps de référence lui-même
-             * (`17px` sur la racine), si elle suit celle de son voisin (`em`,
-             * comme un pictogramme), ou si c'est un des onze styles en `rem`.
-             */
-            const admise = (taille: string): boolean =>
-                taille === '17px' ||
-                (taille.endsWith('em') && !taille.endsWith('rem')) ||
-                echelle.includes(taille.replace(/rem$/, ''));
-
-            const hors = [...feuille.matchAll(/font-size:\s*([^;]+);/g)]
-                .map((trouve) => (trouve[1] ?? '').trim())
-                .filter((taille) => !admise(taille));
-
-            expect(hors).toEqual([]);
-        });
-    });
-});
-
-describe("L'apparence sombre", () => {
-    describe('Étant donné une personne qui a choisi le thème sombre, quand la feuille se charge', () => {
-        it('alors elle ne redéfinit plus aucun jeton : la seconde apparence vit dans la déclaration `light-dark()` du palier sémantique', () => {
-            // « Even if your app ships in a single appearance mode, provide both
-            // light and dark colors to support Liquid Glass adaptivity. » Elle
-            // sert aussi le cas d'usage : un schéma de ligne se lit de nuit,
-            // dans un train — mais ce n'est plus cette feuille qui la fournit.
-            //
-            // Ce témoin vérifiait qu'un `@media (prefers-color-scheme: dark)`
-            // redéfinissait `:root`, et rien que `:root`. Il n'y a désormais plus
-            // aucun `:root` à redéfinir dans un bloc d'apparence de cette feuille
-            // — `tokens/semantic.css` porte les deux apparences dans une seule
-            // déclaration `light-dark()` par jeton, une fois pour toutes. Le seul
-            // `@media (prefers-color-scheme: dark)` restant ici n'a jamais porté
-            // de jeton : il assombrit les tuiles de la carte, un `filter`, testé
-            // plus loin dans « Les tuiles de la carte ».
-            const rootSombre = /@media\s*\(prefers-color-scheme:\s*dark\)\s*\{\s*:root\s*\{/.exec(
-                feuille,
-            );
-
-            expect(rootSombre).toBeNull();
-        });
-    });
-});
+/**
+ * « Les corps de texte » et « L'apparence sombre » vivaient ici et
+ * affirmaient respectivement : aucune taille hors de l'échelle des onze
+ * styles d'iOS, et aucune redéfinition de `:root` dans un bloc d'apparence —
+ * toutes deux en scrutant `feuille` entière. Supprimées, et non laissées
+ * vides, pour la même raison que « Les rayons » un peu plus haut : leur
+ * mécanisme n'est pas cassé (mesuré : `.foo { font-size: 13px }` fait
+ * toujours rougir la première, un `@media (prefers-color-scheme: dark) {
+ * :root { … } }` fait toujours rougir la seconde), mais leur sujet a
+ * disparu — `screens/legacy.css` ne porte plus aucune règle depuis cette
+ * même tâche et n'en reportera plus jamais avant sa suppression en tâche 7.
+ * Les deux resteraient vertes pour toujours, par construction. `feuille` est
+ * protégée par le témoin général de `styles.test.ts` (« Les écrans » : zéro
+ * règle, quelle qu'elle soit) ; les tailles de texte du système sont
+ * garanties par `components/text.css` (le triplet complet) et par les jetons
+ * de composant partout ailleurs.
+ */
 
 describe('La couche fonctionnelle', () => {
     /**
@@ -942,29 +881,31 @@ describe('La réconciliation avec Leaflet', () => {
             // leaflet.css arrivait après nous dans le bundle, avec une
             // spécificité que `.carte-recentrer` ne pouvait pas battre.
             //
-            // Bornée avant le bloc du mouvement réduit : ses quatre
-            // `!important` sont légitimes et lui survivent quelle que soit
-            // l'issue de cette réconciliation — ils ne relèvent pas de
-            // Leaflet, mais se trouvent après `.leaflet-bar` dans le fichier.
-            const debut = feuille.indexOf('.leaflet-bar');
-            const fin = feuille.indexOf('@media (prefers-reduced-motion');
+            // Lue depuis `carteOverlay` : la réconciliation Leaflet a émigré
+            // vers `components/map-overlay.css` (tâche 5 de la partie 2), et
+            // le bloc du mouvement réduit qui la bornait ici a émigré à son
+            // tour vers `base/elements.css` (tâche 5) — il n'y a donc plus
+            // besoin de le retrancher : `.leaflet-bar` et tout ce qui le suit
+            // dans ce fichier appartiennent à la réconciliation.
+            const debut = carteOverlay.indexOf('.leaflet-bar');
 
             // Garde indispensable : indexOf renvoie -1 si le marqueur n'existe
-            // pas, et slice(-1, X) crée une tranche vide qui passe
-            // l'assertion sans rien affirmer. Si l'un disparaît ou se déplace
-            // avant l'autre, ce test doit échouer bruyamment, pas passer en
-            // silence.
+            // pas, et slice(-1) rendrait tout le fichier au lieu d'une tranche
+            // vide. Si le marqueur disparaît, ce test doit échouer bruyamment,
+            // pas passer en silence.
             expect(debut).toBeGreaterThanOrEqual(0);
-            expect(fin).toBeGreaterThanOrEqual(0);
-            expect(fin).toBeGreaterThan(debut);
 
-            const zoneLeaflet = feuille.slice(debut, fin);
+            // Sans commentaires : la prose de ce même fichier, un peu plus
+            // bas, cite `!important` pour expliquer qu'il n'en a plus besoin
+            // — une citation qui satisferait le motif si on la laissait
+            // entrer dans ce que ce témoin analyse.
+            const zoneLeaflet = carteOverlay.slice(debut).replace(/\/\*[\s\S]*?\*\//g, '');
 
             expect(zoneLeaflet).not.toContain('!important');
             // L'autre moitié de ce contrat — leaflet.css chargé en couche
             // vendor — s'affirme désormais dans `styles.test.ts` : cette
             // ligne vit dans `index.css` depuis que les couches sont
-            // devenues l'ossature du système, pas dans cette feuille d'écran.
+            // devenues l'ossature du système, pas dans une feuille d'écran.
         });
     });
 });
@@ -978,9 +919,12 @@ describe('Le mouvement', () => {
             // recevoir leur événement, là où `none` les rendrait muets.
             // Rétro-référencé sur l'indentation de `@media`, comme les blocs de
             // « La couche fonctionnelle » : le même angle mort s'y appliquait.
+            // Lu depuis `socle` : la règle a émigré vers `base/elements.css`
+            // (tâche 5 de la partie 2) — c'est un défaut d'élément, et non un
+            // composant — plus `feuille`.
             const bloc =
                 /^([ \t]*)@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([\s\S]*?)\n\1\}/m.exec(
-                    feuille,
+                    socle,
                 );
 
             expect(bloc?.[2]).toMatch(/transition-duration:\s*1ms/);
@@ -1001,29 +945,37 @@ describe('La feuille de style', () => {
 
             // Le seuil du grand écran ne s'écrit qu'ici : `TrajetEditorScreen`
             // et `e2e/helpers.ts` lisent ce drapeau au lieu de recopier 900 px.
-            exige('--large-screen sur :root', /:root[^}]*--large-screen:\s*0/s.test(feuille));
+            // Lu depuis `carteOverlay` : `--large-screen` a émigré vers
+            // `components/map-overlay.css` (tâche 5) — c'est le seuil de la
+            // carte — plus `feuille`.
+            exige('--large-screen sur :root', /:root[^}]*--large-screen:\s*0/s.test(carteOverlay));
             // Le seuil et le drapeau font le contrat, pas la notation de la
             // requête média : `min-width: 900px` et `width >= 900px` l'expriment
             // aussi bien l'une que l'autre.
             exige(
                 '--large-screen: 1 dans la requête média des 900 px',
                 /@media\s*\((?:min-width:\s*900px|width\s*>=\s*900px)\)[\s\S]*--large-screen:\s*1/.test(
-                    feuille,
+                    carteOverlay,
                 ),
             );
 
             // Le repère du suivi tombe là où le domaine vise, et se mesure en
             // `dvh` parce que le calcul du défilement lit `window.innerHeight`.
+            // Lu depuis `suivi` : `.guide-line` a émigré vers
+            // `screens/suivi.css` (tâche 5) — plus `feuille`.
             exige(
                 '.guide-line calée sur --fraction-position en dvh',
-                /--fraction-position,\s*0\.75\)\s*\*\s*100dvh/.test(feuille),
+                /--fraction-position,\s*0\.75\)\s*\*\s*100dvh/.test(suivi),
             );
 
             // Seize appels TypeScript basculent `hidden`, dont plusieurs sur des
             // conteneurs en `display: flex` — et le jeu de symboles en dépend.
+            // Lu depuis `socle` : `[hidden]` a émigré vers `base/elements.css`
+            // (tâche 5) — c'est un défaut d'élément, et non un composant —
+            // plus `feuille`.
             exige(
                 '[hidden] gagne sur tout',
-                /\[hidden\]\s*\{[^}]*display:\s*none\s*!important/s.test(feuille),
+                /\[hidden\]\s*\{[^}]*display:\s*none\s*!important/s.test(socle),
             );
 
             // Trois parcours e2e lisent ces valeurs calculées, WebKit seulement
@@ -1065,13 +1017,18 @@ describe('La feuille de style', () => {
                 'prefers-contrast: more honoré',
                 /@media[^{]*\(prefers-contrast:\s*more\)[^{]*\{/.test(materiau),
             );
+            // Lu depuis `socle` : le bloc a émigré vers `base/elements.css`
+            // (tâche 5) — plus `feuille`.
             exige(
                 'prefers-reduced-motion honoré',
-                /@media\s*\(prefers-reduced-motion:\s*reduce\)/.test(feuille),
+                /@media\s*\(prefers-reduced-motion:\s*reduce\)/.test(socle),
             );
+            // Lu depuis `carteOverlay` : le seul `@media (prefers-color-scheme:
+            // dark)` restant du système assombrit les tuiles de la carte
+            // (`components/map-overlay.css`, tâche 5) — plus `feuille`.
             exige(
                 'apparence sombre fournie',
-                /@media\s*\(prefers-color-scheme:\s*dark\)/.test(feuille),
+                /@media\s*\(prefers-color-scheme:\s*dark\)/.test(carteOverlay),
             );
 
             // Un iPhone 14 encore sous iOS 16.4 ou une version plus récente

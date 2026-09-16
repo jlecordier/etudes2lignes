@@ -1,0 +1,13 @@
+/* L'écran de la liste : placement seulement. Tout ce qu'il montre —
+ * `.trajets-list`, `trajet-row` — est composé depuis `components/row.css` ;
+ * cette feuille ne pose que le custom element racine.
+ */
+@layer screens {
+    /* Un custom element est `inline` par défaut : l'écran doit le dire, là où
+       un <section> l'aurait d'office. */
+    trajets-list-screen {
+        display: block;
+        min-height: 100dvh;
+        padding: var(--marge-ecran);
+    }
+}

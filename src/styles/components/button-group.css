@@ -81,6 +81,17 @@
         color: var(--accent);
     }
 
+    /* Sauf dans une **barre**, où ce qui n'est pas `.secondary` est l'action
+       qui conclut. Cette règle des pairs attrapait aussi « Nouveau trajet » —
+       l'action proéminente de la liste — et cet écran n'avait alors plus
+       aucune action teintée : plus rien ne disait laquelle compte. La
+       spécificité de ce sélecteur est ce qui le fait gagner contre la règle
+       des pairs, ci-dessus, dans la même couche. */
+    .header .action-bar button:not(.secondary) {
+        background: var(--accent);
+        color: var(--sur-teinte);
+    }
+
     /* La barre d'une page : son nom et les actions qui la déplacent. Même
        raisonnement qu'un point — une teinte de verre par page, sans le
        flou. */

@@ -26,27 +26,24 @@
  * vérifie.
  *
  * Liste de transition — Task 1 du plan de la partie 2 : les sélecteurs qui
- * portaient le verre avant l'existence de cette classe restent listés ici,
+ * portaient le verre avant l'existence de cette classe restaient listés ici,
  * le temps que chacun d'eux voie son contrat documenté par son propre
- * fichier de composant. Une fois que c'est fait, la tâche retire son
- * sélecteur de cette liste — la tâche 5 doit la trouver vide :
- *   .carte-bar, .leaflet-bar
- *
- * `.header` et `.suivi-bar` en sont sortis : la tâche 2 (partie 2) les a
- * fondus dans `components/bar.css`, qui porte désormais leur contrat — la
- * hauteur commune des deux barres, en un seul jeton. `.floating-add-point-
- * button`, `.carte-button`, `.overview-button` et `.resume-button` en
- * sortent à leur tour : la tâche 3 (partie 2) les a documentés dans
- * `components/floating-action.css`, avec la position, l'empilement et les
- * deux correctifs (l'aiguillage de coin, le recentrage sur grand écran) qui
- * les distinguent. Tous restent listés, eux, dans le `@supports` ci-dessous
- * et dans la retraction d'accessibilité plus bas : ce n'est pas une
+ * fichier de composant, chaque tâche retirant son sélecteur au fur et à
+ * mesure. **Elle est maintenant vide** : `.header` et `.suivi-bar` en sont
+ * sortis en tâche 2 (partie 2, `components/bar.css`, la hauteur commune des
+ * deux barres en un seul jeton) ; `.floating-add-point-button`,
+ * `.carte-button`, `.overview-button` et `.resume-button` en tâche 3
+ * (`components/floating-action.css`, la position, l'empilement et les deux
+ * correctifs qui les distinguent) ; `.carte-bar` et `.leaflet-bar` en tâche 5
+ * (`components/map-overlay.css`, la carte plein écran et sa réconciliation
+ * avec Leaflet). Tous restent listés, eux, dans le `@supports` ci-dessous et
+ * dans la retraction d'accessibilité plus bas : ce n'est pas une
  * redéclaration, c'est le même mécanisme qui fait de `.surface` une classe
  * partagée — plusieurs sélecteurs, une seule déclaration de verre.
- * `.suivi-bar` avait déjà son repli en dessous ; `.header` n'en avait
- * aucun — corrigé au même endroit, voir le commentaire du bloc `@supports
- * not`. Les quatre contrôles flottants avaient, eux, déjà le leur depuis
- * cette même tâche 1.
+ * `.suivi-bar` et `.leaflet-bar` avaient déjà leur repli en dessous ;
+ * `.header` n'en avait aucun — corrigé au même endroit, voir le commentaire
+ * du bloc `@supports not`. Les quatre contrôles flottants avaient, eux, déjà
+ * le leur depuis cette même tâche 1.
  */
 @layer components {
     :root {

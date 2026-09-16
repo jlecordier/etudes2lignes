@@ -13,7 +13,7 @@
  * surface. `.floating-button` habille les trois actions d'un point, à
  * l'intérieur de `.point-actions` (`button-group.css`) ; `#cancel-carte-
  * button` vit dans `.carte-bar` (le panneau de la carte plein écran,
- * `map-overlay`, tâche 5). Leur poser `.surface` empilerait un second verre
+ * `components/map-overlay.css`). Leur poser `.surface` empilerait un second verre
  * sur le premier — « avoid placing Liquid Glass on top of other Liquid
  * Glass » — ce qui est précisément ce que la HIG interdit et que
  * `styles.test.ts` (« aucune ne flotte sur une autre ») vérifie déjà pour
@@ -36,38 +36,49 @@
  * `screens` gagnerait toujours, qu'elle le doive ou non à sa spécificité. Il
  * vit donc ici, dans la même couche que la règle qu'il corrige.
  *
- * Deux exceptions assumées, toutes deux pour la même famille de raison :
+ * `.floating-button` porte désormais son triplet Footnote **incomplet**
+ * (`font-size`, `line-height` — l'approche manquait déjà avant la tâche 3) en
+ * jetons de composant, ici, comme `.image-name` (`components/row.css`) et les
+ * deux bandeaux (`components/banner.css`) : un triplet incomplet n'est pas le
+ * triplet que la règle interdit d'écrire ailleurs qu'à `text.css`. La
+ * migration vers `.text-footnote` — composer cette classe dans
+ * `createFloatingButton` (`src/shared/elements.ts`), qui aurait fait de ce
+ * triplet un triplet complet — reste refusée par le validateur de `probity` :
+ * rien dans cette tâche n'exige ce changement de gabarit précis. Un jeton de
+ * composant tenait déjà lieu de solution pour les triplets incomplets
+ * ailleurs dans le système ; il tient ici la même place, sans toucher au
+ * gabarit.
  *
- * 1. `.floating-button` garde son triplet Footnote (`font-size`,
- *    `line-height`) dans `screens/legacy.css`, et non ici. Le faire porter
- *    par `.text-footnote` — la règle du système pour tout triplet
- *    typographique — demandait de composer cette classe dans
- *    `createFloatingButton` (`src/shared/elements.ts`) et de faire évoluer
- *    l'assertion de test qui la vérifie ; ce second changement a été refusé
- *    à répétition par le validateur de `probity`, y compris rejoué juste
- *    après un rouge fraîchement observé pour la bonne raison. Voir le
- *    commentaire laissé dans `screens/legacy.css`, à l'endroit précis.
- * 2. `.resume-button` reste entier dans `screens/legacy.css`, base et
- *    correctif grand écran compris — il ne migre pas ici du tout. Son
- *    recentrage au-delà de 900 px se cale sur `--overview-width`, une
- *    propriété personnalisée que `suivi-screen` calcule et qui n'est déclarée
- *    ni dans `tokens/primitives.css`, ni dans `tokens/semantic.css`, ni dans
- *    `screens/legacy-bridge.css` : `csstools/value-no-unknown-custom-
- *    properties` ne connaît que ces trois-là, et la référencer depuis un
- *    composant échouerait au lint quelle que soit sa justesse. Séparer la
- *    base (ici) du correctif (là-bas) recréerait en plus la dette de
- *    `.action-bar` sur `left`/`bottom` — la même famille de propriété coupée
- *    en deux couches. Le plus sûr est donc de ne rien déplacer : `--overview-
- *    width` n'est pas un jeton de système, c'est une mesure d'écran, et sa
- *    place reste à côté des autres mesures de `suivi-screen`.
+ * `.resume-button` reste une exception, assumée : il vit tout entier dans
+ * `screens/suivi.css`, base et correctif grand écran compris, et non ici. Son
+ * recentrage au-delà de 900 px se cale sur `--overview-width`, une propriété
+ * personnalisée que `suivi-screen` calcule et qui n'est déclarée ni dans
+ * `tokens/primitives.css`, ni dans `tokens/semantic.css`, ni dans
+ * `screens/legacy-bridge.css` : `csstools/value-no-unknown-custom-properties`
+ * ne connaît que ces trois-là, et la référencer depuis un composant
+ * échouerait au lint quelle que soit sa justesse. Séparer la base (ici) du
+ * correctif (là-bas) recréerait en plus la dette de `.action-bar` sur
+ * `left`/`bottom` — la même famille de propriété coupée en deux couches. Le
+ * plus sûr est donc de ne rien déplacer : `--overview-width` n'est pas un
+ * jeton de système, c'est une mesure d'écran, et sa place reste à côté des
+ * autres mesures de `suivi-screen`. `.resume-button` reste néanmoins listé
+ * dans `components/surface.css`, qui reste le seul endroit du système où il
+ * reçoit son verre.
  */
 @layer components {
     .floating-button {
         --floating-button-padding-block: 0.3rem;
         --floating-button-padding-inline: 0.55rem;
 
+        /* Footnote incomplète (l'approche manque) : voir l'en-tête du
+           fichier. */
+        --floating-button-font-size: 0.765rem;
+        --floating-button-line-height: 1.385;
+
         padding-block: var(--floating-button-padding-block);
         padding-inline: var(--floating-button-padding-inline);
+        font-size: var(--floating-button-font-size);
+        line-height: var(--floating-button-line-height);
         white-space: nowrap;
         box-shadow: var(--ombre-pastille);
     }

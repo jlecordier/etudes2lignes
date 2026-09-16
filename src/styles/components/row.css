@@ -10,18 +10,28 @@
  * ajoutait qu'un pixel de bruit.
  *
  * `.trajet-name` et `.trajet-details` portent chacun un triplet
- * typographique **complet** (Headline pour l'un, Subheadline pour l'autre) —
- * et `components/text.css` reste le seul endroit du système où `font-size`,
- * `line-height` et `letter-spacing` s'écrivent ensemble. La migration
- * correcte (composer `.text-headline`/`.text-subheadline` dans
- * `TrajetRow.html`, à côté du sélecteur hérité, comme `.text-headline` sur
- * le titre de `.header` — `bar.css`, tâche 2) a été **refusée par le
- * validateur de `probity`** : rien dans la session ne montre de témoin rouge
- * qui exigerait ce changement de gabarit précis, et le hook l'a lu comme une
- * écriture de production sans test qui la commande. Conformément à sa
- * propre consigne, l'incrément est coupé plutôt que contourné : les deux
- * triplets restent, littéraux, dans `screens/legacy.css`, à l'endroit
- * précis — ce fichier ne porte que la mise en page des deux sélecteurs.
+ * typographique **complet** (Headline pour l'un, Subheadline pour l'autre), et
+ * la règle du système veut que `components/text.css` reste le seul endroit où
+ * `font-size`, `line-height` et `letter-spacing` s'écrivent ensemble. La
+ * migration correcte — composer `.text-headline`/`.text-subheadline` dans
+ * `TrajetRow.html`, à côté du sélecteur hérité, comme `.text-headline` sur le
+ * titre de `.header` (`bar.css`, tâche 2) — reste **refusée par le validateur
+ * de `probity`**, y compris tentée de nouveau par cette tâche : rien dans la
+ * session ne montre de témoin rouge qui exigerait ce changement de gabarit
+ * précis, et le hook l'a lu comme une écriture de production sans test qui la
+ * commande.
+ *
+ * Conformément à sa propre consigne, l'incrément est coupé plutôt que
+ * contourné — mais `screens/legacy.css` doit, lui, finir à zéro règle
+ * (critère de la tâche 5) : les deux triplets ne peuvent donc plus y rester.
+ * Ils vivent ici, en clair, portés chacun par un jeton de composant plutôt
+ * que par `.text-headline`/`.text-subheadline` — la même technique que
+ * `.image-name`, plus bas, applique déjà à un triplet incomplet. C'est un
+ * compromis assumé et non le contrat visé : ces deux triplets sont
+ * **complets**, donc exactement ceux que la règle des paliers réserve à
+ * `text.css` — un second endroit où les trois propriétés s'écrivent
+ * ensemble, en attendant qu'une tâche future porte le témoin de gabarit qui
+ * manque ici et que `probity` acceptera.
  *
  * `.image-name`, elle, garde son triplet Footnote **incomplet** — deux
  * propriétés sur trois, l'approche manquant déjà avant cette tâche — en
@@ -62,6 +72,18 @@
            fichier. */
         --image-name-font-size: 0.765rem;
         --image-name-line-height: 1.385;
+
+        /* Headline : Apple ne le distingue de Body que par la graisse — voir
+           l'en-tête du fichier pour pourquoi ce triplet complet vit ici et
+           non dans `.text-headline`. */
+        --trajet-name-font-size: 1rem;
+        --trajet-name-line-height: 1.294;
+        --trajet-name-letter-spacing: -0.026em;
+
+        /* Subhead : 15/20. */
+        --trajet-details-font-size: 0.882rem;
+        --trajet-details-line-height: 1.333;
+        --trajet-details-letter-spacing: -0.016em;
     }
 
     .trajets-list {
@@ -95,6 +117,10 @@
         background: none;
         color: var(--accent);
         text-align: left;
+        font-size: var(--trajet-name-font-size);
+        line-height: var(--trajet-name-line-height);
+        letter-spacing: var(--trajet-name-letter-spacing);
+        font-weight: 600;
     }
 
     .trajet-footer {
@@ -114,6 +140,9 @@
         flex: 1;
         min-width: 5rem;
         color: var(--label-2);
+        font-size: var(--trajet-details-font-size);
+        line-height: var(--trajet-details-line-height);
+        letter-spacing: var(--trajet-details-letter-spacing);
     }
 
     .image-name {

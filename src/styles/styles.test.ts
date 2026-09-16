@@ -1048,33 +1048,23 @@ function decrireInversion(composant: RegleUtile, ecran: RegleUtile): string | nu
     return `${composant.chemin} « ${composant.selecteur} » et ${ecran.chemin} « ${ecran.selecteur} » se disputent ${proprietesTexte} sur ${classes}`;
 }
 
-/**
- * `.carte-bar` est le seul sélecteur que la tâche 1 a explicitement laissé
- * hors de son propre témoin structurel (`Le matériau`, « son repli ») en
- * attendant la tâche 5 — le panneau de la carte plein écran n'a pas encore
- * son fichier de composant. Une règle qui le cible aux côtés d'un sélecteur
- * déjà migré (`.header button.secondary, .suivi-bar button.secondary,
- * .carte-bar button.secondary`, par exemple) reste donc, par construction,
- * coupée entre `components/` et `screens/` tant que cette tâche n'est pas
- * faite : ce n'est pas une dette que la tâche courante pourrait refermer
- * sans anticiper celle-là, et cet invariant ne doit pas exiger l'impossible.
- */
-function viseCarteBar(regle: RegleUtile): boolean {
-    return /\.carte-bar\b/.test(regle.selecteur);
-}
-
 /** Toute paire (règle de composant, règle d'écran) qui partage une classe
  *  ciblée et une propriété : une couche `components` déclarée plus tôt que
  *  `screens` ne peut jamais gagner une telle paire, quelle que soit sa
- *  spécificité. */
+ *  spécificité.
+ *
+ *  `.carte-bar` n'a plus besoin de son exception : la tâche 1 l'avait
+ *  explicitement laissé hors de ce témoin en attendant la tâche 5, qui vient
+ *  de lui donner son fichier de composant (`components/map-overlay.css`) —
+ *  `.carte-bar` n'apparaît donc plus jamais dans une feuille de `screens/`,
+ *  et `viseCarteBar` (le filtre qui l'excluait) devenait de l'échafaudage
+ *  mort. */
 function trouverInversions(feuillesDuSysteme: Record<string, string>): string[] {
     const entrees = Object.entries(feuillesDuSysteme);
     const composants = reglesUtiles(
         entrees.filter(([chemin]) => chemin.startsWith('./components/')),
     );
-    const ecrans = reglesUtiles(
-        entrees.filter(([chemin]) => chemin.startsWith('./screens/')),
-    ).filter((regle) => !viseCarteBar(regle));
+    const ecrans = reglesUtiles(entrees.filter(([chemin]) => chemin.startsWith('./screens/')));
 
     const inversions: string[] = [];
     for (const composant of composants) {
@@ -1163,6 +1153,50 @@ describe('La couche de contenu', () => {
             expect(tailles).toHaveLength(1);
             expect(badge).toMatch(/min-inline-size:\s*0/);
             expect(badge).toMatch(/min-block-size:\s*0/);
+        });
+    });
+});
+
+describe('Les écrans', () => {
+    describe("Étant donné une feuille d'écran, quand on regarde ce qu'elle déclare", () => {
+        it('alors elle place, et ne peint pas', () => {
+            // Un ecran compose des composants ; il ne redecide pas leur
+            // apparence. Une couleur ou un rayon ecrit ici est un composant
+            // qui n'a pas ete nomme.
+            const ecrans = ['trajets-list', 'trajet-editor', 'suivi'];
+            const fautifs = ecrans.flatMap((nom) => {
+                const f = (feuilles[`./screens/${nom}.css`] ?? '').replace(/\/\*[\s\S]*?\*\//g, '');
+                return ['color:', 'background:', 'font-size:', 'border-radius:']
+                    .filter((propriete) => f.includes(propriete))
+                    .map((propriete) => `${nom} declare ${propriete}`);
+            });
+
+            expect(fautifs).toEqual([]);
+        });
+    });
+
+    describe('Étant donné la feuille en transit, quand cette tâche est finie', () => {
+        it('alors elle ne porte plus aucune règle', () => {
+            // Le critere de la tache : ce qui reste est vide, et la tache 7
+            // pourra la supprimer sans rien emporter.
+            //
+            // Les preludes d'at-regles (`@layer`, `@media`, `@supports`)
+            // deviennent de simples accolades avant l'analyse : ce sont des
+            // enveloppes, pas des regles, et une feuille parfaitement videe
+            // garde son `@layer screens { }`. Sonde a l'ecriture, sur six
+            // cas : enveloppe seule, enveloppe avec commentaire, `@media`
+            // vide, une regle simple, une regle sous `@media`, un selecteur
+            // d'element nu.
+            const sansProse = (feuilles['./screens/legacy.css'] ?? '').replace(
+                /\/\*[\s\S]*?\*\//g,
+                '',
+            );
+            const sansEnveloppes = sansProse.replace(/@[^{}]*\{/g, '{');
+            const restantes = [...sansEnveloppes.matchAll(/([^{}\s][^{}]*?)\s*\{/g)].map((m) =>
+                (m[1] ?? '').trim(),
+            );
+
+            expect(restantes).toEqual([]);
         });
     });
 });

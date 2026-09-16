@@ -1,0 +1,353 @@
+/* La carte plein écran : le sélecteur de coordonnée qui recouvre tout l'écran
+ * de saisie (`.screen-carte`, `#carte-container`), la colonne qui l'intègre à
+ * la page de l'éditeur (`.carte-column`, `.carte-points`) et qui peut aussi la
+ * faire passer plein écran (`.carte-ouverte`), son panneau de saisie flottant
+ * (`.carte-bar`), et la réconciliation avec Leaflet — ses contrôles de zoom et
+ * de recentrage, l'assourdissement des tuiles, le marqueur et le cercle de «
+ * ma position ».
+ *
+ * Jetons : `--position-badge-size` (le disque de position, plus petit que la
+ * pastille numérotée d'un point puisqu'il n'a pas de numéro à porter) ;
+ * `--ecart-interne`/`--rayon-interieur` (le rembourrage et le rayon
+ * **intérieur** de `.carte-bar`, qui se déduit de celui de la colonne moins
+ * son rembourrage — la règle concentrique d'Apple, tenue par un `calc()` là où
+ * deux constantes l'auraient perdue) ; `--large-screen`, le seul endroit du
+ * système où le seuil des 900 px devient un drapeau plutôt qu'un simple
+ * point de rupture — `TrajetEditorScreen` et `e2e/helpers.ts` le lisent au
+ * lieu de recopier `900px`, qui pouvait diverger sans que rien ne le
+ * signale. C'est le seuil de la carte : au-delà, la colonne se fixe à côté de
+ * la pile d'images et la bascule plein écran n'a plus d'objet.
+ *
+ * Trois choses à ne pas perdre :
+ *
+ * 1. `#carte-container` garde son `z-index: 0`. Les panneaux de Leaflet
+ *    portent `z-index: 400` ; un conteneur positionné mais en `z-index: auto`
+ *    n'ouvre **aucun** contexte d'empilement, et ces 400 remontent alors dans
+ *    celui du parent, où ils battent tout ce que l'application pose
+ *    au-dessus. Mesuré : sans cette ligne, le formulaire de saisie — pourtant
+ *    à `z-index: 10`, avec la bonne boîte et le bon fond — était
+ *    intégralement recouvert par les tuiles. `.carte-points` porte la même
+ *    ligne, pour la même raison.
+ * 2. Les contrôles de carte (`.leaflet-bar a`, `.carte-recentrer`) gardent
+ *    leurs **34 px** : le plancher absolu de la HIG est 28 px, et des
+ *    contrôles de 44 px feraient déborder leur colonne sur la vignette de
+ *    carte. Le groupe `.leaflet-bar` porte le matériau (`components/
+ *    surface.css`) et le rayon ; **ses enfants n'ont ni l'un ni l'autre** —
+ *    « avoid overcrowding or layering Liquid Glass elements on top of each
+ *    other », et deux flous empilés donnaient un rond dans un carré.
+ * 3. Le filtre des tuiles en apparence sombre — `.leaflet-tile-pane` sous
+ *    `@media (prefers-color-scheme: dark)` — est le **seul**
+ *    `@media (prefers-color-scheme: dark)` légitime du système : il applique
+ *    un `filter`, jamais une couleur. Toute autre apparence sombre passe par
+ *    `light-dark()` au palier sémantique ; OpenStreetMap, lui, ne sert aucun
+ *    jeu de tuiles nocturne, et inverser/recolorer est le seul recours pour
+ *    ne pas laisser un rectangle éclatant au milieu d'une interface noire.
+ *
+ * Le défaut historique que ce fichier rend inécrivable : la carte plein écran
+ * (`#carte-container`, positionné mais sans `z-index`) laissait les panneaux
+ * de Leaflet — tous à `z-index: 400` — s'échapper de tout contexte
+ * d'empilement et recouvrir un formulaire de saisie pourtant posé au-dessus
+ * d'elle dans le document. Regroupées ici, la carte et sa réconciliation
+ * Leaflet ne peuvent plus dériver chacune de son côté : la ligne qui ouvre le
+ * contexte d'empilement vit à côté de tout ce qui en dépend.
+ *
+ * Deux dettes de cascade, écrites par les tâches 2 et 4, se referment ici en
+ * réunissant un sélecteur resté dans `screens/legacy.css` avec son ancien
+ * fichier de composant :
+ *
+ * - `.header button.secondary, .suivi-bar button.secondary, .carte-bar
+ *   button.secondary` (neutraliser la surface d'un bouton secondaire dans une
+ *   barre) vit maintenant tout entière dans `components/bar.css`, `.carte-bar`
+ *   n'étant plus hors composant.
+ * - `.placement-active .point-number` (`pointer-events`) et `point-marker
+ *   .point-number` (`pointer-events: auto`, dont elle doit gagner) vivent
+ *   maintenant ensemble dans `screens/trajet-editor.css` : voir l'en-tête de
+ *   ce fichier pour la mesure.
+ *
+ * `.leaflet-bar` lui-même ne redéclare pas le verre : il reste dans la liste
+ * fermée de `components/surface.css`, qui reste le seul endroit du système où
+ * `backdrop-filter` s'écrit. Ce fichier ne porte que sa forme (`border-radius`,
+ * `overflow: hidden`) et ce qui le traverse.
+ */
+@layer components {
+    :root {
+        --position-badge-size: 16px;
+
+        /* Mesures propres à ce fichier, même principe que les jetons de
+           `bar.css`/`button-group.css` : `scale-unlimited/declaration-
+           strict-value` n'admet, dans `components/`, qu'un jeton — jamais un
+           littéral — pour `padding`/`gap`/`line-height`/`font-size`. */
+        --carte-ouverte-padding: 0.5rem;
+        --carte-column-gap: 0.5rem;
+        --carte-bar-gap: 0.5rem;
+        --leaflet-control-line-height: 1;
+        --leaflet-attribution-padding: 4px 7px;
+        --leaflet-attribution-font-size: 0.647rem;
+
+        /* Le rayon **intérieur** n'est pas une valeur de plus : il se
+           *calcule* depuis celui de la section qui le contient
+           (`--rayon-section`, alias du palier sémantique) moins le
+           rembourrage qui les sépare — la règle concentrique d'Apple. */
+        --ecart-interne: 8px;
+        --rayon-interieur: calc(var(--rayon-section) - var(--ecart-interne));
+
+        /* Passe à 1 dans la requête média des 900 px, plus bas — le seuil de
+           la carte, et nulle part ailleurs. */
+        --large-screen: 0;
+    }
+
+    /* Sélecteur de coordonnée : carte plein écran par-dessus l'écran courant. */
+    .screen-carte {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        background: var(--fond);
+    }
+
+    /* La carte occupe **tout** l'écran de saisie, et le formulaire flotte
+     * au-dessus.
+     *
+     * « Extend content to fill the screen or window […] Controls and
+     * navigation components appear **on top of** content rather than on the
+     * same plane. » Le formulaire était une rangée *sous* la carte, à qui il
+     * prenait sa hauteur : or c'est le seul écran où la carte est le sujet,
+     * et elle n'en occupait pas le bas.
+     *
+     * `absolute` plutôt que `relative` : la carte remplit son parent en
+     * `fixed`, et reste un ancêtre positionné — voir l'en-tête du fichier
+     * pour la mesure sur `z-index`. */
+    #carte-container {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+    }
+
+    /* Par-dessus le schéma, et non plus au-dessus de lui : sous les boutons
+     * flottants (20), au-dessus de tout le reste. La carte reprend sa hauteur
+     * de vignette dès qu'on la referme — c'est `resized()` qui la fait se
+     * remesurer. C'est la **colonne** qui bascule, et non la carte seule : sa
+     * barre doit rester avec elle, sans quoi la phrase qui explique l'absence
+     * de marqueur resterait derrière l'écran que la carte recouvre. */
+    .carte-ouverte .carte-column {
+        position: fixed;
+        inset: 0;
+        z-index: 15;
+        background: var(--fond);
+        padding: var(--carte-ouverte-padding);
+    }
+
+    .carte-ouverte .carte-points {
+        height: auto;
+        flex: 1;
+        border: none;
+        border-radius: 0;
+    }
+
+    /* Rien à placer tant que la carte couvre l'image : le bouton reviendra
+       avec elle. */
+    .carte-ouverte .floating-add-point-button {
+        display: none;
+    }
+
+    /* Carte des points + images : empilées sur mobile (carte au-dessus), côte
+       à côte à partir de 900 px — un iPad en paysage passe le seuil, en
+       portrait non (même seuil dans `TrajetEditorScreen.ts`). */
+    .carte-column {
+        display: flex;
+        flex-direction: column;
+        gap: var(--carte-column-gap);
+    }
+
+    .carte-points {
+        /* Indispensable : les panneaux Leaflet sont positionnés en absolu ;
+           sans ancêtre positionné, ils échappent au `overflow: hidden` du
+           conteneur et se dessinent par-dessus toute la page. */
+        position: relative;
+        height: 45vh;
+        border: 1px solid var(--separateur);
+        border-radius: var(--rayon-section);
+
+        /* Sous les boutons flottants et les écrans superposés — voir l'en-tête
+           du fichier. */
+        z-index: 0;
+    }
+
+    /* Le formulaire, en panneau de verre flottant sur la carte.
+     *
+     * Inséré des bords plutôt que collé à eux, comme une demi-feuille d'iOS :
+     * « half sheets are inset from the edge of the display to allow content
+     * to peek through from beneath them ». La carte se voit donc de tous les
+     * côtés, ce qui est le sujet de cet écran.
+     *
+     * Les marges suivent `env(safe-area-inset-*)` : sans elles le panneau
+     * tomberait sous la barre d'accueil. C'est `viewport-fit=cover`, dans
+     * `index.html`, qui donne une valeur à ces fonctions — sans lui elles
+     * valent 0px. */
+    .carte-bar {
+        position: absolute;
+        inset-inline: max(0.75rem, env(safe-area-inset-left));
+        inset-block-end: max(0.75rem, env(safe-area-inset-bottom));
+        z-index: 10;
+        display: flex;
+        gap: var(--carte-bar-gap);
+        padding: var(--ecart-interne);
+        border-radius: var(--rayon-section);
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    /* Les contrôles de Leaflet rejoignent la couche fonctionnelle.
+     *
+     * C'est la **colonne** qui porte la surface — le verre lui est donné par
+     * `components/surface.css` — et ses boutons la traversent, comme les
+     * trois actions d'un point traversent leur groupe
+     * (`components/button-group.css`). Le recentrage partage donc exactement
+     * la boîte du zoom : le traiter à part donnait une gélule de 44 px dans
+     * une boîte carrée. */
+    .leaflet-bar {
+        border: none;
+        border-radius: var(--rayon-controle);
+        overflow: hidden;
+
+        /* Le fond et l'ombre d'un moteur sans le verre vivent dans le repli
+           `@supports not` de `components/surface.css` : sans condition ici,
+           ils gagneraient toujours sur ceux que ce fichier pose quand le
+           verre est disponible. */
+    }
+
+    /* leaflet.css vit dans la couche `vendor`, la plus basse de la cascade :
+       ces règles n'ont plus besoin d'`!important`, une déclaration hors
+       couche gagnant sur toute déclaration en couche, quelle que soit sa
+       spécificité. */
+    .leaflet-bar a,
+    .carte-recentrer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        inline-size: 34px;
+        block-size: 34px;
+
+        /* Les deux minimums aussi : voir l'en-tête du fichier — la cible de
+           44 px de la règle du bouton survivrait à la hauteur fixée, et le
+           recentrage dépasserait le zoom d'un tiers dans la colonne qu'ils
+           partagent. */
+        min-inline-size: 34px;
+        min-block-size: 34px;
+        padding: 0;
+        border: none;
+        border-radius: 0;
+        background: none;
+        box-shadow: none;
+        color: var(--label);
+        line-height: var(--leaflet-control-line-height);
+    }
+
+    /* Un filet entre deux contrôles empilés : c'est ce qui les sépare sans
+       leur donner chacun une surface. */
+    .leaflet-bar a + a,
+    .leaflet-bar a + .carte-recentrer {
+        border-block-start: 1px solid var(--separateur);
+    }
+
+    .leaflet-control-attribution {
+        padding: var(--leaflet-attribution-padding);
+        border-radius: var(--rayon-controle) 0 0;
+        background: var(--verre-epais);
+        color: var(--label-2);
+        font-size: var(--leaflet-attribution-font-size);
+    }
+
+    .leaflet-control-attribution a {
+        color: var(--accent);
+    }
+
+    /* Les tuiles s'assourdissent : « consider using the muted emphasis style
+     * […] when you overlay information-rich content on the map ». Cette carte
+     * porte des pastilles numérotées et un disque de position — elle ne doit
+     * pas leur faire concurrence.
+     *
+     * Le filtre va sur le **panneau des tuiles**, et surtout pas sur le
+     * conteneur : un `filter` posé sur un ancêtre du verre en annulerait le
+     * flou. Le panneau des contrôles est un frère de celui-ci, donc il y
+     * échappe. */
+    .leaflet-tile-pane {
+        filter: saturate(0.82) contrast(0.96);
+    }
+
+    /* Voir l'en-tête du fichier : le seul `@media (prefers-color-scheme:
+       dark)` légitime du système, puisqu'il applique un filtre et non une
+       couleur. OpenStreetMap ne sert aucun jeu de tuiles nocturne : on
+       inverse et on recolore, faute de mieux. */
+    @media (prefers-color-scheme: dark) {
+        .leaflet-tile-pane {
+            filter: invert(1) hue-rotate(180deg) saturate(0.72) brightness(0.92);
+        }
+    }
+
+    /* « Ma position » : un disque bleu cerclé de blanc — ni la pastille rouge
+     * numérotée d'un point, ni l'épingle bleue du marqueur de sélection.
+     *
+     * Scopé sous son conteneur, parce que leaflet.css arrive après dans le
+     * bundle et que son `.leaflet-marker-icon { display: block }` écraserait
+     * un sélecteur de même poids. Et même partage des rôles : la géométrie
+     * est ici, `positionLayers.ts` neutralise l'`iconSize` pour ne pas
+     * l'écrire une seconde fois. */
+    .carte-points .carte-position-marker,
+    #carte-container .carte-position-marker {
+        width: var(--position-badge-size);
+        height: var(--position-badge-size);
+        background: var(--position);
+        border: 3px solid var(--sur-teinte);
+
+        /* `--radius-pill` est un jeton primitif (`tokens/primitives.css`), et
+           non sémantique — même écart déjà assumé par `components/badge.css`
+           et `components/button.css` pour la même gélule, à trancher par une
+           tâche ultérieure (voir le registre de la tâche 4). */
+        border-radius: var(--radius-pill);
+        box-shadow: var(--ombre-pastille);
+
+        /* Tient le rôle de l'`iconAnchor` que Leaflet ne reçoit pas : le
+           disque est centré sur sa coordonnée, et non posé à sa droite. */
+        margin: calc(var(--position-badge-size) / -2) 0 0 calc(var(--position-badge-size) / -2);
+    }
+
+    /* Le cercle d'incertitude : une surface, pas un halo décoratif — c'est la
+       zone dans laquelle on se trouve réellement, au rayon que la source a
+       mesuré. */
+    .carte-points .carte-position-circle,
+    #carte-container .carte-position-circle {
+        fill: var(--position);
+        fill-opacity: 0.12;
+        stroke: var(--position);
+        stroke-width: 1;
+        stroke-opacity: 0.5;
+    }
+
+    @media (min-width: 900px) {
+        /* Le seuil du grand écran est défini ici, et nulle part ailleurs : le
+           TypeScript et les tests lisent ce drapeau au lieu de recopier
+           900px, qui pouvait diverger sans que rien ne le signale. */
+        :root {
+            --large-screen: 1;
+        }
+
+        .carte-column {
+            /* Épinglée : elle ne bouge pas pendant le défilement des images. */
+            position: sticky;
+            top: 1rem;
+            height: calc(100dvh - 2rem);
+            flex: 1;
+        }
+
+        .carte-points {
+            flex: 1;
+        }
+
+        /* La carte est déjà à côté de la pile : rien à aiguiller. */
+        .carte-button {
+            display: none;
+        }
+    }
+}

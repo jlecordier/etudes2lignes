@@ -31,21 +31,22 @@
  * complet, ce qu'ils n'ont jamais été, une valeur ajoutée plutôt que
  * préservée.
  *
- * `point-marker .point-number` reste positionné dans `screens/legacy.css`,
- * et non ici : sa formule se cale sur `--point-line-thickness`, une
- * propriété personnalisée déclarée dans le `:root` de ce fichier — et non
- * dans `tokens/primitives.css`, `tokens/semantic.css` ou
- * `screens/legacy-bridge.css`, les trois seuls que `csstools/value-no-
- * unknown-custom-properties` reconnaît. Même contrainte, déjà rencontrée par
- * la tâche 3 pour la position de `.point-actions`. Elle y lit désormais
- * `var(--badge-size, 26px)` — le filet de secours ne joue jamais en
- * pratique, `--badge-size` étant toujours déclaré plus bas dans ce fichier
- * et hérité par tout le document, mais c'est ce filet qui autorise la
+ * `point-marker .point-number` reste positionné dans
+ * `screens/trajet-editor.css`, et non ici : sa formule se cale sur
+ * `--point-line-thickness`, une propriété personnalisée déclarée dans le
+ * `:root` de ce fichier-là — et non dans `tokens/primitives.css`,
+ * `tokens/semantic.css` ou `screens/legacy-bridge.css`, les trois seuls que
+ * `csstools/value-no-unknown-custom-properties` reconnaît. Même contrainte,
+ * déjà rencontrée par la tâche 3 pour la position de `.point-actions`. Elle y
+ * lit `var(--badge-size, 26px)` — le filet de secours ne joue jamais en
+ * pratique, `--badge-size` étant toujours déclaré plus bas dans **ce**
+ * fichier et hérité par tout le document, mais c'est ce filet qui autorise la
  * référence à traverser le fichier sans faire échouer le lint.
  *
- * `.placement-active .point-number` reste, lui aussi, dans
- * `screens/legacy.css`, pour une raison différente : la cascade, pas le
- * lint. Voir le commentaire à l'endroit où la règle aurait dû vivre, plus
+ * `.placement-active .point-number` vit, lui aussi, dans
+ * `screens/trajet-editor.css`, pour une raison différente : la cascade, pas
+ * le lint — voir l'en-tête de ce fichier-là pour la mesure qui a levé la
+ * dette. Voir le commentaire à l'endroit où la règle aurait dû vivre, plus
  * bas dans ce fichier. */
 @layer components {
     :root {
@@ -89,18 +90,18 @@
         box-shadow: var(--ombre-pastille);
     }
 
-    /* `.placement-active .point-number` reste dans `screens/legacy.css`, et
-       non ici : `@layer components, … , screens` fait perdre `components`
+    /* `.placement-active .point-number` vit dans `screens/trajet-editor.css`,
+       et non ici : `@layer components, … , screens` fait perdre `components`
        face à `screens` quelle que soit la spécificité, et
-       `point-marker .point-number { pointer-events: auto }` — qui doit
-       rester dans `screens/legacy.css`, sa position se calant sur
-       `--point-line-thickness` — gagnerait alors *toujours* contre ce
-       `pointer-events: none`. Mesuré en posant la règle ici : le témoin
-       générique d'inversion de cascade la dénonce aussitôt. La pastille
-       redeviendrait cliquable en plein mode de visée, empêchant de poser un
-       point à la hauteur d'un point existant. Tâche 5, qui réunit
-       `point-marker` et `.placement-active` dans la même feuille d'écran,
-       lèvera cette dette. */
+       `point-marker .point-number { pointer-events: auto }` — qui vit dans
+       ce même fichier, sa position se calant sur `--point-line-thickness` —
+       gagnerait alors *toujours* contre ce `pointer-events: none`. Mesuré en
+       posant la règle ici : le témoin générique d'inversion de cascade la
+       dénonce aussitôt. La pastille redeviendrait cliquable en plein mode de
+       visée, empêchant de poser un point à la hauteur d'un point existant.
+       Réunies dans `screens/trajet-editor.css` (tâche 5), la spécificité
+       tranche de nouveau entre elles — voir l'en-tête de ce fichier pour la
+       mesure. */
 
     /* L'apparence du marqueur de la carte est celle de la pastille commune,
        ci-dessus. Ne reste ici que ce qui n'appartient qu'à la carte : le

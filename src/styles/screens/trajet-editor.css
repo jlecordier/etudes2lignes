@@ -1,0 +1,174 @@
+/* L'écran d'édition : placement seulement — la mise en page de la colonne
+ * d'images à côté de la carte, et l'interaction de visée d'un point sur le
+ * schéma. Aucune couleur, aucun fond, aucune taille de texte, aucun rayon
+ * n'est décidé ici : ce que cet écran compose vit dans ses composants.
+ *
+ * `--point-line-thickness` reste ici, propre à ce fichier : le trait qui
+ * traverse la page à la hauteur d'un point, et sur le milieu duquel la
+ * pastille se cale, n'a de sens que sur cette page — `point-marker`,
+ * `.point-ghost` (le trait lui-même) et `.point-actions` (sa position) sont
+ * les trois seuls à le lire, tous ici. `--badge-size`, la taille de la
+ * pastille elle-même, vit dans `components/badge.css` ; `point-marker
+ * .point-number` la lit avec un filet de secours (`var(--badge-size, 26px)`),
+ * `csstools/value-no-unknown-custom-properties` ne reconnaissant que
+ * `tokens/primitives.css`, `tokens/semantic.css` et `screens/legacy-
+ * bridge.css` hors du fichier courant.
+ *
+ * **La dette que ce fichier referme, écrite par la tâche 4 dans
+ * `components/badge.css` :** `.placement-active .point-number`
+ * (`pointer-events: none`, le mode de visée) et `point-marker .point-number`
+ * (`pointer-events: auto`, la pastille cliquable) se disputaient le même
+ * repère depuis deux couches différentes — la première restait dans
+ * `screens/legacy.css` parce qu'une couche `components` perd *toujours* face
+ * à `screens`, quelle que soit la spécificité, et `point-marker
+ * .point-number`, elle, ne pouvait pas migrer vers `badge.css` à cause du
+ * filet de secours ci-dessus. Réunies ici, dans le même fichier donc la même
+ * couche, c'est de nouveau la spécificité qui tranche : `.placement-active
+ * .point-number` (deux classes, (0,2,0)) bat `point-marker .point-number`
+ * (un type et une classe, (0,1,1)) sur la seule force du nombre de classes,
+ * comme avant que badge.css n'existe. Mesuré : `getComputedStyle` sur la
+ * pastille en mode de visée rend `pointer-events: none`, la même valeur
+ * qu'avant la tâche 4.
+ */
+@layer screens {
+    :root {
+        --point-line-thickness: 2px;
+
+        /* `scale-unlimited/declaration-strict-value` n'admet, hors de
+           `screens/legacy.css`, qu'un jeton — jamais un littéral — pour
+           `gap`. */
+        --editor-body-gap: 1rem;
+    }
+
+    trajet-editor-screen {
+        display: block;
+        min-height: 100dvh;
+        padding: var(--marge-ecran);
+
+        /* Les boutons flottants ne doivent jamais masquer la fin du contenu :
+           on réserve leur place tout en bas, pour pouvoir faire défiler
+           au-delà. */
+        padding-bottom: 6rem;
+    }
+
+    image-frame {
+        display: block;
+        margin-top: 1rem;
+    }
+
+    /* La géométrie de l'image vit dans le shadow root de `schema-page` ;
+       l'éditeur n'ajoute que sa décoration, sur l'hôte. */
+    image-frame schema-page {
+        border: 1px solid var(--separateur);
+    }
+
+    .image-area {
+        position: relative;
+    }
+
+    .placement-active .image-area {
+        cursor: crosshair;
+    }
+
+    /* Voir l'en-tête du fichier pour la mesure : réunie ici avec `point-marker
+       .point-number`, cette règle gagne de nouveau par spécificité.
+       Tant qu'on vise une hauteur sur le schéma, toute l'image est cible : la
+       pastille redevient transparente, sans quoi elle avalerait le clic sur
+       ses 26 px et le point ne pourrait pas se poser à la hauteur d'un point
+       existant. */
+    .placement-active .point-number {
+        pointer-events: none;
+    }
+
+    /* Le trait qui traverse la page à la hauteur du point. En pointillé :
+     * plein, il effaçait sur toute la largeur la ligne de cotes qu'il est là
+     * pour désigner.
+     *
+     * Le fantôme d'un appui long porte **la même** déclaration, et non une
+     * cousine : il sert à lire où le point va tomber, donc il doit se lire
+     * comme le trait qui le remplacera. Deux règles jumelles auraient fini
+     * par diverger. Ce qui distingue le fantôme reste franc : ni pastille, ni
+     * boutons. */
+    point-marker,
+    .point-ghost {
+        display: block;
+        position: absolute;
+        left: 0;
+        right: 0;
+        border-top: var(--point-line-thickness) dashed var(--destructif);
+        pointer-events: none;
+    }
+
+    /* Sur l'image, la pastille est centrée sur le trait : c'est la hauteur du
+     * point qu'elle annonce, et un numéro posé à côté de son trait se lit
+     * comme celui du trait voisin. Le décalage se compte depuis la boîte de
+     * padding, qui commence sous le trait — d'où la demi-épaisseur de
+     * celui-ci ajoutée à la moitié de la pastille pour remonter jusqu'à son
+     * milieu. */
+    point-marker .point-number {
+        position: absolute;
+        left: 0.25rem;
+
+        /* `--badge-size` (26 px) est déclaré dans `components/badge.css` —
+           voir l'en-tête du fichier pour le filet de secours. */
+        top: calc((var(--point-line-thickness) + var(--badge-size, 26px)) / -2);
+
+        /* Le repère est transparent aux clics ; la pastille, elle, en attend
+           un. */
+        pointer-events: auto;
+
+        /* Sans quoi le doigt posé dessus fait défiler la page au lieu de
+           glisser le point. On y perd d'amorcer un défilement depuis ces
+           26 px. */
+        touch-action: none;
+    }
+
+    /* Le curseur reste `pointer` au survol — la pastille annonce d'abord ce
+       qu'un clic en fait — et ne confirme le glisser qu'au moment où il
+       commence. Écart assumé avec le marqueur de la carte, qui montre `grab`
+       dès le survol. */
+    point-marker .point-number:active {
+        cursor: grabbing;
+    }
+
+    /* Sa surface (verre sans flou, teinte) vit dans `components/
+       button-group.css`, avec `.action-bar` et `.image-bar` : les trois
+       groupes dont le verre se pose sur le groupe, jamais sur l'enfant. Sa
+       position reste ici, seule : elle se cale sur `--point-line-thickness`,
+       propre à ce fichier. */
+    .point-actions {
+        position: absolute;
+        right: 0.25rem;
+        bottom: calc(var(--point-line-thickness) + 0.75rem);
+    }
+
+    .awaiting-click,
+    .awaiting-click * {
+        cursor: crosshair !important;
+    }
+
+    /* Carte des points + images : empilées sur mobile (carte au-dessus), côte
+       à côte à partir de 900 px — un iPad en paysage passe le seuil, en
+       portrait non (même seuil dans `TrajetEditorScreen.ts`). */
+    .editor-body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--editor-body-gap);
+        margin-top: 1rem;
+    }
+
+    .images-column {
+        min-width: 0;
+    }
+
+    @media (min-width: 900px) {
+        .editor-body {
+            flex-direction: row;
+            align-items: flex-start;
+        }
+
+        .images-column {
+            flex: 1;
+        }
+    }
+}

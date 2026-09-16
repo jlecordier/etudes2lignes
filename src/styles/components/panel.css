@@ -27,27 +27,44 @@
  * avant que cette règle ne s'applique, et le filet ne fait que reprendre sa
  * propre formule pour le cas où l'héritage manquerait.
  *
- * `.trajet-overview` et `.overview-ouvert .trajet-overview` restent dans
- * `screens/legacy.css`, à côté de leur variante grand écran (`suivi-screen
- * .trajet-overview`, `suivi-screen.overview-ouvert .trajet-overview`, sous
- * `@media (min-width: 900px)`) — et non ici, malgré ce que ce fichier
- * affirmait avant cette correction. `@layer components, …, screens` fait
- * perdre `components` face à `screens` quelle que soit la spécificité : posé
- * ici, `.overview-ouvert .trajet-overview` perdait *toujours* — `display`,
- * `position`, `top`, `height`, `z-index`, `background`, `box-shadow` —
- * contre la variante grand écran restée dans `screens/legacy.css`, qui
- * partage tous ces noms de propriétés. Le témoin générique d'inversion de
- * cascade l'a dénoncé. Dette levée par la tâche 5, qui écrit
- * `screens/suivi.css` et y réunira les deux tailles d'écran dans la même
- * feuille — donc dans la même couche, où la spécificité seule tranchera de
- * nouveau, comme avant cette tâche.
+ * `.trajet-overview` et `.overview-ouvert .trajet-overview` **ne sont plus ici
+ * qu'à moitié** — l'autre moitié vit dans `screens/suivi.css`. Posées ici en
+ * entier, `display`, `position`, `top`, `height`, `z-index`, `background` et
+ * `box-shadow` auraient été disputés par la variante mobile (ici) et sa
+ * variante grand écran (`suivi-screen .trajet-overview`, `suivi-screen
+ * .overview-ouvert .trajet-overview`, sous `@media (min-width: 900px)`,
+ * restée dans `screens/legacy.css`) depuis deux couches différentes —
+ * `@layer components, …, screens` fait perdre `components` face à `screens`
+ * *toujours*, quelle que soit la spécificité. Le témoin générique d'inversion
+ * de cascade l'avait dénoncé.
+ *
+ * La tâche 5, qui écrit `screens/suivi.css`, y réunit les deux tailles
+ * d'écran pour les propriétés de **placement**
+ * (`display`/`position`/`top`/`height`/`z-index`) : la spécificité y tranche
+ * de nouveau entre elles, comme avant leur extraction. Ce que ces deux
+ * variantes **peignent** — `background`, `box-shadow` — reste ici, dans la
+ * couche de contenu : `screens/suivi.css` ne déclare plus ni l'une ni
+ * l'autre, donc les deux moitiés ne se recontredisent pas en restant chacune
+ * dans son fichier.
+ *
+ * `background: var(--verre-epais)` peut surprendre dans un fichier dont
+ * l'en-tête dit « jamais de flou » : ce n'est pas une contradiction.
+ * `.trajet-overview` n'est pas une carte de contenu au repos comme les cinq
+ * autres de ce fichier — c'est le fond du panneau qui sépare visuellement
+ * l'aperçu incrusté du contenu qui défile derrière lui, sans
+ * `backdrop-filter` ni la classe `.surface` : la même teinte-sans-flou que
+ * `components/button-group.css` pose déjà sur `.image-bar`/`.point-actions`,
+ * pour la même raison budgétaire (un flou de plus par élément qui se
+ * répète).
  *
  * `.help` porte un triplet Subheadline **complet**. Comme `.trajet-name`/
  * `.trajet-details` (`components/row.css`), la migration vers `.text-
- * subheadline` a été refusée par le validateur de `probity` — aucun témoin
- * rouge de cette session n'exige ce changement de gabarit précis. L'incrément
- * est coupé : le triplet reste, littéral, dans `screens/legacy.css`, et ce
- * fichier ne porte plus que sa couleur.
+ * subheadline` reste refusée par le validateur de `probity` — aucun témoin
+ * rouge de cette session n'exige ce changement de gabarit précis. Mais
+ * `screens/legacy.css` doit finir à zéro règle (critère de la tâche 5) : le
+ * triplet ne peut plus y rester, et vit désormais ici, en clair, porté par un
+ * jeton de composant plutôt que par `.text-subheadline` — même compromis
+ * assumé que `components/row.css`, pour la même raison.
  *
  * **Le défaut historique que ce fichier rend inécrivable :** une carte de
  * contenu empruntait sa surface à une règle dont le premier sélecteur était
@@ -65,12 +82,25 @@
         --hint-banner-padding: 0.5rem;
         --list-error-gap: 0.5rem;
         --list-error-padding: 0.5rem;
+
+        /* Subhead : 15/20 — voir l'en-tête du fichier pour pourquoi ce
+           triplet complet vit ici et non dans `.text-subheadline`. */
+        --help-font-size: 0.882rem;
+        --help-line-height: 1.333;
+        --help-letter-spacing: -0.016em;
+
+        /* En ombre et non en bordure : la largeur du panneau doit rester
+           exactement celle de sa pile, dont le repère se sert pour savoir où
+           s'arrêter. Un seul jeton pour les deux tailles d'écran, plus bas :
+           la valeur ne peut plus diverger entre elles. */
+        --overview-panel-shadow: -1px 0 0 var(--separateur);
     }
 
-    /* Le style Subheadline n'est pas ici : voir l'en-tête du fichier — il
-       reste, en dette documentée, dans `screens/legacy.css`. */
     .help {
         color: var(--label-2);
+        font-size: var(--help-font-size);
+        line-height: var(--help-line-height);
+        letter-spacing: var(--help-letter-spacing);
     }
 
     .hint-banner {
@@ -94,8 +124,20 @@
         color: var(--label-2);
     }
 
-    /* `.trajet-overview` et `.overview-ouvert .trajet-overview` restent dans
-       `screens/legacy.css` : voir l'en-tête du fichier. */
+    /* Voir l'en-tête du fichier : le placement de ces deux règles vit dans
+       `screens/suivi.css`, sous les mêmes deux sélecteurs. */
+    .overview-ouvert .trajet-overview {
+        background: var(--verre-epais);
+        box-shadow: var(--overview-panel-shadow);
+    }
+
+    @media (min-width: 900px) {
+        suivi-screen .trajet-overview,
+        suivi-screen.overview-ouvert .trajet-overview {
+            background: none;
+            box-shadow: var(--overview-panel-shadow);
+        }
+    }
 
     .overview-stack {
         position: relative;

@@ -53,6 +53,14 @@
  * générique plus bas (`styles.test.ts`, « L'inversion de cascade… ») existe
  * pour qu'aucune des trois extractions restantes ne reproduise ce piège
  * sans qu'un test rougisse.
+ *
+ * Un troisième défaut, refermé par la tâche 5 : `.header button.secondary,
+ * .suivi-bar button.secondary, .carte-bar button.secondary` restait dans
+ * `screens/legacy.css`, `.carte-bar` n'ayant pas encore son propre fichier de
+ * composant (`components/map-overlay.css`). Les trois barres sont désormais
+ * toutes trois des composants ; la règle qui neutralise la surface d'un
+ * bouton secondaire à l'intérieur de l'une d'elles vit ici, où deux des trois
+ * classes qu'elle cible vivent déjà.
  */
 @layer components {
     .bar {
@@ -165,5 +173,19 @@
         flex: 1;
         min-width: 8rem;
         color: var(--avertissement);
+    }
+
+    /* Dans une barre, un bouton n'apporte pas sa propre surface : c'est la
+       barre qui en porte une, et deux surfaces empilées sont exactement ce
+       que la HIG refuse — « put the glass on the group, not on each
+       button ». `.carte-bar` (le panneau de la carte plein écran,
+       `components/map-overlay.css`) porte la même règle que les deux barres
+       d'écran : voir l'en-tête du fichier. */
+    .header button.secondary,
+    .suivi-bar button.secondary,
+    .carte-bar button.secondary {
+        background: none;
+        box-shadow: none;
+        color: var(--label);
     }
 }

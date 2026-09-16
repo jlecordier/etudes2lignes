@@ -1,0 +1,182 @@
+/* L'écran de suivi : placement seulement — la pile qui défile, le repère de
+ * position, et l'aperçu du trajet qui s'incruste ou se range à côté selon la
+ * largeur. Aucune couleur, aucun fond, aucune taille de texte, aucun rayon
+ * n'est décidé ici.
+ *
+ * `--overview-height`/`--overview-width` restent propres à cet écran : la
+ * largeur de l'aperçu n'a pas de taille de système, elle se déduit de ce qui
+ * fait tenir toute la pile de pages dans la hauteur disponible — une mesure
+ * d'écran, pas un jeton (voir `components/floating-action.css` pour la même
+ * exception sur `.resume-button`).
+ *
+ * **La dette que ce fichier referme, écrite par la tâche 4 dans
+ * `components/panel.css` :** `.trajet-overview`/`.overview-ouvert
+ * .trajet-overview` (l'incrustation mobile) et `suivi-screen
+ * .trajet-overview`/`suivi-screen.overview-ouvert .trajet-overview` (la
+ * variante grand écran, sous `@media (min-width: 900px)`) se disputaient
+ * `display`, `position`, `top`, `height`, `z-index` depuis deux couches
+ * différentes — posées toutes deux dans `components/panel.css`, l'une des
+ * deux tailles d'écran aurait perdu *toujours* contre l'autre, quelle que
+ * soit sa spécificité, `@layer components, …, screens` ne laissant jamais une
+ * couche antérieure l'emporter. Réunies ici, dans le même fichier donc la
+ * même couche, la spécificité retrouve son pouvoir de trancher entre elles —
+ * exactement comme avant leur extraction.
+ *
+ * Ce que ces deux variantes **peignent** (`background`, `box-shadow`) reste,
+ * lui, dans `components/panel.css` : c'est le fond du panneau, pas son
+ * emplacement, et cette feuille ne peint pas. Le partage ne recrée pas la
+ * dette qu'il referme, puisqu'aucune des deux propriétés qui restent ici
+ * n'est plus disputée par `panel.css` — chaque fichier ne porte plus qu'une
+ * moitié disjointe des propriétés, et non plus les deux couches sur les mêmes
+ * propriétés.
+ */
+@layer screens {
+    /* Un custom element est `inline` par défaut : l'écran doit le dire, là où
+       un <section> l'aurait d'office. Sans rembourrage propre, à la
+       différence des deux autres écrans : la pile, le repère et l'aperçu
+       posent chacun leur propre mesure plutôt que de respirer contre le bord
+       de l'écran. */
+    suivi-screen {
+        display: block;
+        min-height: 100dvh;
+        padding: 0;
+
+        /* L'aperçu du trajet n'a pas de taille propre : sa largeur est celle
+           qui fait tenir la pile entière dans la hauteur disponible, soit
+           `hauteur ÷ Σ(hauteur/largeur)`. Le TypeScript écrit la seule chose
+           que le CSS ne peut pas deviner — la somme des ratios, un ratio par
+           page, aucune uniformité supposée — et la division se fait ici.
+
+           Les deux plafonds servent les trajets courts et les pages très
+           larges, où la division rendrait une colonne absurdement grande.
+           Plafonner ne peut que faire tenir l'aperçu *davantage* dans la
+           hauteur, jamais moins ; et comme la barre se place sur des offsets
+           mesurés, elle reste juste quelle que soit la largeur réellement
+           appliquée.
+
+           Les replis (`3rem`, `1`) ne sont pas décoratifs : un `var()` non
+           résolu invalide tout le `calc()`, donc la largeur — l'aperçu
+           n'aurait aucune taille entre le montage et la première mesure. */
+        --overview-height: calc(100dvh - var(--suivi-bar-height, 3rem));
+        --overview-width: min(
+            calc(var(--overview-height) / var(--overview-ratios-sum, 1)),
+            12rem,
+            33vw
+        );
+    }
+
+    .suivi-body {
+        display: flex;
+        align-items: flex-start;
+    }
+
+    .suivi-stack {
+        flex: 1;
+
+        /* Sans lui, le `min-width: auto` d'un élément flex vaut sa taille
+           min-content : une page large imposerait sa largeur et l'aperçu
+           n'aurait plus de place. */
+        min-width: 0;
+        padding-bottom: 6rem;
+    }
+
+    /* Voir l'en-tête du fichier pour la mesure : le fond et l'ombre du
+       panneau vivent dans `components/panel.css`, disjoints de ce que cette
+       règle place. */
+    .trajet-overview {
+        display: none;
+    }
+
+    .overview-ouvert .trajet-overview {
+        display: flex;
+        justify-content: center;
+
+        /* Sans lui, l'étirement par défaut donnerait à la pile la hauteur du
+           panneau au lieu de celle de ses pages : la pile doit envelopper
+           exactement ce qu'elle contient, puisque c'est sur elle que la
+           barre se repère. */
+        align-items: flex-start;
+        position: fixed;
+        right: 0;
+        top: var(--suivi-bar-height, 3rem);
+        height: var(--overview-height);
+
+        /* Au-dessus du repère (5), sous les boutons flottants (20). */
+        z-index: 15;
+    }
+
+    .guide-line {
+        position: fixed;
+        left: 0;
+        right: 0;
+
+        /* La fraction vient du domaine (`POSITION_VIEWPORT_FRACTION`), posée
+           sur :root par l'écran de suivi : le repère ne peut plus mentir sur
+           la position que le défilement vise réellement. */
+        top: calc(var(--fraction-position, 0.75) * 100dvh);
+        border-top: 2px dashed var(--position);
+        pointer-events: none;
+        z-index: 5;
+    }
+
+    /* Incrustation dépliée : le repère s'arrête là où elle commence, comme il
+       s'arrête au bord de la colonne sur grand écran. */
+    .overview-ouvert .guide-line {
+        right: var(--overview-width);
+    }
+
+    /* Le contrôle « Ma position », que la carte pose elle-même — en verre et
+       monochrome (`components/surface.css`), et non teinté : sur cet écran
+       la proéminente est « Suivre ».
+       Reste entier ici, base et correctif grand écran compris, plutôt que
+       dans `components/floating-action.css` : voir l'exception nommée dans
+       l'en-tête de ce fichier, propre à `--overview-width`. */
+    .resume-button {
+        position: fixed;
+        bottom: 1rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+    }
+
+    @media (min-width: 900px) {
+        /* L'aperçu du trajet est là en permanence : il prend sa place à côté
+           de la pile au lieu de la recouvrir, et la bascule n'a plus d'objet.
+
+           Sélecteurs délibérément plus spécifiques que ceux de l'incrustation,
+           plus haut dans ce même fichier : le seuil ne s'écrit qu'ici — le
+           répéter dans une seconde requête média aurait recopié le 900 —,
+           donc c'est la spécificité qui tranche, et non l'ordre. */
+        suivi-screen .trajet-overview,
+        suivi-screen.overview-ouvert .trajet-overview {
+            display: flex;
+            justify-content: center;
+
+            /* Voir l'incrustation : la pile enveloppe ses pages, elle ne
+               s'étire pas. */
+            align-items: flex-start;
+            position: sticky;
+            top: var(--suivi-bar-height, 3rem);
+            height: var(--overview-height);
+            flex: 0 0 auto;
+
+            /* Sous la barre d'état (10), au-dessus de la pile. */
+            z-index: 0;
+        }
+
+        suivi-screen .overview-button {
+            display: none;
+        }
+
+        /* Le repère ne dit la position que de la vue qui défile : il
+           s'arrête au bord de l'aperçu au lieu de le traverser. */
+        suivi-screen .guide-line {
+            right: var(--overview-width);
+        }
+
+        /* Recentré sur la pile, pas sur la fenêtre. */
+        suivi-screen .resume-button {
+            left: calc((100% - var(--overview-width)) / 2);
+        }
+    }
+}
