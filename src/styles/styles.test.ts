@@ -1200,3 +1200,178 @@ describe('Les écrans', () => {
         });
     });
 });
+
+/** Les feuilles hors du palier des jetons : c'est là qu'une valeur littérale
+ *  est une dérive, alors que `tokens/` est précisément l'endroit où elle doit
+ *  vivre. Commentaires retirés — six témoins de ce chantier sont nés vides
+ *  parce qu'une prose entrait dans ce qu'ils analysaient. */
+function reglesHorsDesJetons(): [string, string][] {
+    return Object.entries(feuilles)
+        .filter(([chemin]) => !chemin.startsWith('./tokens/'))
+        .map(([chemin, contenu]) => [chemin, sansCommentaires(contenu)]);
+}
+
+/** Résout un niveau de `var(--x)` contre les déclarations du système entier.
+ *  Un niveau suffit : le contrat porte sur la valeur obtenue, pas sur le nom
+ *  qui la transporte. */
+function valeurResolue(brut: string): string {
+    const jeton = /^var\(\s*(--[\w-]+)\s*\)$/.exec(brut.trim())?.[1];
+    if (jeton === undefined) {
+        return brut.trim();
+    }
+    return new RegExp(`${jeton}:\\s*([^;]+);`).exec(sansCommentaires(systeme))?.[1]?.trim() ?? brut;
+}
+
+/** Réduit chaque groupe parenthésé à un marqueur, du plus intérieur au plus
+ *  extérieur. Le marqueur ne porte pas de parenthèses, sinon la réduction se
+ *  stabilise sans jamais atteindre le groupe extérieur : `(…)` rendu en `()`
+ *  reste une paire que le tour suivant réduit en elle-même, et
+ *  `calc(var(--a) - var(--b))` se découpait alors en trois morceaux dont aucun
+ *  n'était admissible. */
+function sansParentheses(valeur: string): string {
+    let reduit = valeur;
+    let precedent = '';
+
+    while (reduit !== precedent) {
+        precedent = reduit;
+        reduit = reduit.replace(/\([^()]*\)/g, '~');
+    }
+
+    return reduit;
+}
+
+describe('Les valeurs littérales du système', () => {
+    describe('Étant donné une couleur à poser, quand une règle la nomme', () => {
+        it("alors elle passe par un jeton, car aucune n'est écrite en clair hors du palier", () => {
+            // La HIG prévient que « the actual color values may fluctuate from
+            // release to release ». Une valeur recopiée dans une règle est une
+            // valeur qui échappera à la prochaine mise à jour — et surtout à
+            // l'apparence sombre, qui ne peut redéfinir que des jetons.
+            //
+            // Ce témoin portait autrefois sur la seule feuille en transit. Elle
+            // est vide depuis la tâche 5, ce qui l'avait rendu vacant ; il
+            // renaît ici au périmètre du système. Stylelint ne le remplace pas :
+            // mesuré, `border: 1px solid #333` ne déclenche aucune règle de
+            // `declaration-strict-value`, qui ne connaît pas les abrégés.
+            const litterales = reglesHorsDesJetons().flatMap(([chemin, contenu]) =>
+                [...contenu.matchAll(/#[0-9a-fA-F]{3,8}\b|\brgba?\([^)]*\)/g)].map(
+                    (trouve) => `${chemin} « ${trouve[0]} »`,
+                ),
+            );
+
+            expect(litterales).toEqual([]);
+        });
+    });
+
+    describe('Étant donné une surface arrondie, quand la règle lui donne son rayon', () => {
+        it("alors c'est un angle vif, un jeton ou un calcul — jamais un nombre inventé", () => {
+            // « Consider aligning the shape of controls with other rounded
+            // elements throughout the interface. » Trois rayons de 6 px avaient
+            // survécu à une refonte, et deux « 22px » étaient écrits en clair :
+            // autant d'occasions de dériver.
+            const admis = (part: string): boolean =>
+                part === '0' ||
+                part === 'inherit' ||
+                part.startsWith('var~') ||
+                part.startsWith('calc~');
+
+            // Deux jetons de composant portent encore un nombre en clair, et
+            // c'est une duplication connue, pas une tolérance de principe :
+            // `--group-radius: 999px` réécrit ce que `--radius-pill` porte
+            // déjà, et `--group-padding: 2px` ne passe par aucune échelle.
+            // L'exception est porteuse — la vider fait rougir ce témoin — et se
+            // lève en faisant pointer les deux vers le palier.
+            const duplicationsConnues = ['--group-radius', '--group-padding'];
+
+            // Un jeton déclaré dans `tokens/` est admissible quelle que soit sa
+            // valeur : c'est précisément là qu'un nombre doit vivre. Le témoin
+            // ne descend donc que dans ceux qu'un composant ou un écran déclare
+            // pour son propre compte — et c'est ce que Stylelint ne sait pas
+            // faire. Mesuré : `--rayon-invente: 7px; border-radius:
+            // var(--rayon-invente);` ne déclenche aucune règle de
+            // `declaration-strict-value`, qui se contente de voir un `var()` et
+            // ne regarde jamais ce qu'il vaut.
+            const declareHorsDuPalier = (jeton: string): boolean =>
+                Object.entries(feuilles)
+                    .filter(([chemin]) => !chemin.startsWith('./tokens/'))
+                    .some(([, contenu]) =>
+                        new RegExp(`${jeton}:\\s`).test(sansCommentaires(contenu)),
+                    );
+
+            const jetonInvente = (rayon: string): string | undefined =>
+                (rayon.match(/--[\w-]+/g) ?? [])
+                    .filter((jeton) => !duplicationsConnues.includes(jeton))
+                    .filter(declareHorsDuPalier)
+                    .find((jeton) => {
+                        const valeur = valeurResolue(`var(${jeton})`);
+                        return (
+                            valeur !== `var(${jeton})` &&
+                            !sansParentheses(valeur).split(/\s+/).every(admis)
+                        );
+                    });
+
+            const inventes = reglesHorsDesJetons().flatMap(([chemin, contenu]) =>
+                [...contenu.matchAll(/border-radius:\s*([^;]+);/g)]
+                    .map((trouve) => (trouve[1] ?? '').trim())
+                    .flatMap((rayon) => {
+                        if (!sansParentheses(rayon).split(/\s+/).every(admis)) {
+                            return [`${chemin} « ${rayon} » : nombre écrit en clair`];
+                        }
+
+                        const jeton = jetonInvente(rayon);
+
+                        return jeton === undefined ?
+                                []
+                            :   [
+                                    `${chemin} « ${rayon} » : ${jeton} vaut ${valeurResolue(
+                                        `var(${jeton})`,
+                                    )}`,
+                                ];
+                    }),
+            );
+
+            expect(inventes).toEqual([]);
+        });
+    });
+
+    describe('Étant donné un texte à dimensionner, quand la règle choisit son corps', () => {
+        it("alors c'est un des onze styles d'iOS, et jamais une taille inventée", () => {
+            // Les onze styles au corps par défaut, en fraction du corps de
+            // texte (Body = 17 pt = 1 rem, la racine suivant la taille
+            // dynamique) : Large Title 2, Title 1 1.647, Title 2 1.294,
+            // Title 3 1.176, Headline/Body 1, Callout 0.941, Subhead 0.882,
+            // Footnote 0.765, Caption 1 0.706, Caption 2 0.647.
+            //
+            // `17px` est admis pour la seule racine : c'est le repli de
+            // `base/elements.css` pour les moteurs qui ignorent
+            // `font: -apple-system-body`, et il vaut Body par construction.
+            //
+            // Un `var()` est résolu d'un niveau : un jeton de composant comme
+            // `--banner-font-size` doit porter une valeur de l'échelle, sans
+            // quoi il suffirait de nommer une taille inventée pour la faire
+            // passer.
+            const echelle = [
+                '2rem',
+                '1.647rem',
+                '1.294rem',
+                '1.176rem',
+                '1rem',
+                '0.941rem',
+                '0.882rem',
+                '0.765rem',
+                '0.706rem',
+                '0.647rem',
+                '17px',
+            ];
+
+            const inventees = reglesHorsDesJetons().flatMap(([chemin, contenu]) =>
+                [...contenu.matchAll(/font-size:\s*([^;]+);/g)]
+                    .map((trouve) => (trouve[1] ?? '').trim())
+                    .filter((corps) => !echelle.includes(valeurResolue(corps)))
+                    .map((corps) => `${chemin} « ${corps} » → ${valeurResolue(corps)}`),
+            );
+
+            expect(inventees).toEqual([]);
+        });
+    });
+});
