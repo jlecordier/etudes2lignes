@@ -577,11 +577,22 @@ describe('Le vocabulaire', () => {
                 ...Object.keys(import.meta.glob('../**/*.html', { eager: false })),
                 '../../index.html',
             ];
+            // **L'attribut se decoupe, il ne se compare pas.** Mesure :
+            // `class="header bar bar-navigation"`, `class="secondary
+            // overview-button"` et `class="suivi-bar bar bar-status"` existent
+            // deja dans les gabarits. Un `includes('class="header"')` y repond
+            // `false` et declarerait migrees les trois classes les plus
+            // avancees — exactement celles ou une migration partielle peut se
+            // cacher. C'est le neuvieme temoin vide de ce chantier, et le seul
+            // ecrit d'avance dans le plan.
+            const porteLaClasse = (html: string, nom: string): boolean =>
+                [...html.matchAll(/class="([^"]*)"/g)].some((attribut) =>
+                    (attribut[1] ?? '').split(/\s+/).includes(nom),
+                );
+
             const restantes = anciennes.filter((nom) =>
                 gabarits.some((chemin) =>
-                    readFileSync(new URL(chemin, import.meta.url), 'utf8').includes(
-                        `class="${nom}"`,
-                    ),
+                    porteLaClasse(readFileSync(new URL(chemin, import.meta.url), 'utf8'), nom),
                 ),
             );
 
