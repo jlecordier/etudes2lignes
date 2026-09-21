@@ -269,8 +269,8 @@ describe('Une barre de navigation sur un petit iPhone', () => {
             // l'autre restée dans `screens/legacy.css`, `components` perdant
             // face à `screens` quelle que soit la spécificité) est refermée —
             // voir l'en-tête de `button-group.css`.
-            const titre = /\n[ \t]*\.header :is\(h1, h2\) \{([^}]*)\}/.exec(bar);
-            const actions = /\n[ \t]*\.header \.action-bar \{([^}]*)\}/.exec(groupeCss);
+            const titre = /\n[ \t]*\.bar-navigation :is\(h1, h2\) \{([^}]*)\}/.exec(bar);
+            const actions = /\n[ \t]*\.bar-navigation \.button-group \{([^}]*)\}/.exec(groupeCss);
 
             expect(titre?.[1]).toMatch(/text-overflow:\s*ellipsis/);
             expect(actions?.[1]).toMatch(/flex-wrap:\s*nowrap/);
@@ -281,11 +281,11 @@ describe('Une barre de navigation sur un petit iPhone', () => {
 describe("L'action qui conclut, dans une barre", () => {
     describe("Étant donné une barre où une action conclut, quand la feuille l'habille", () => {
         it('alors elle garde sa teinte, que la règle des pairs lui avait prise', () => {
-            // Régression mesurée : `.action-bar button` neutralise les actions de
-            // même rang de l'éditeur — à juste titre —, mais elle attrapait aussi
-            // « Nouveau trajet », l'action proéminente de la liste. Cet écran
-            // n'en avait alors plus **aucune**, et plus rien ne disait laquelle
-            // compte.
+            // Régression mesurée : `.button-group button` neutralise les actions
+            // de même rang de l'éditeur — à juste titre —, mais elle attrapait
+            // aussi « Nouveau trajet », l'action proéminente de la liste. Cet
+            // écran n'en avait alors plus **aucune**, et plus rien ne disait
+            // laquelle compte.
             //
             // Dans une **barre**, ce qui n'est pas `.secondary` est l'action qui
             // conclut : le sélecteur le dit, et sa spécificité le fait gagner
@@ -294,7 +294,7 @@ describe("L'action qui conclut, dans une barre", () => {
             // `components/button-group.css` (tâche 5 de la partie 2), à côté
             // de la règle des pairs qu'elle bat — plus `feuille`.
             const proeminente =
-                /\n[ \t]*\.header \.action-bar button:not\(\.secondary\) \{([^}]*)\}/.exec(
+                /\n[ \t]*\.bar-navigation \.button-group button:not\(\.secondary\) \{([^}]*)\}/.exec(
                     groupeCss,
                 );
 
@@ -408,7 +408,7 @@ describe("Le titre d'un en-tête", () => {
             // Lu depuis `bar` : la règle a émigré vers `components/bar.css`
             // (tâche 2 de la partie 2), et c'est lui qui la porte désormais —
             // plus `feuille`.
-            const titre = /\n[ \t]*\.header :is\(h1, h2\) \{([^}]*)\}/.exec(bar);
+            const titre = /\n[ \t]*\.bar-navigation :is\(h1, h2\) \{([^}]*)\}/.exec(bar);
 
             expect(titre?.[1]).toMatch(/white-space:\s*nowrap/);
             expect(titre?.[1]).toMatch(/text-overflow:\s*ellipsis/);
@@ -484,7 +484,7 @@ describe('La carte de saisie de coordonnée', () => {
             // `components/map-overlay.css` (tâche 5 de la partie 2), et c'est
             // lui qui les porte désormais — plus `feuille`.
             const conteneur = /\n[ \t]*#carte-container \{([^}]*)\}/.exec(carteOverlay);
-            const barre = /\n[ \t]*\.carte-bar \{([^}]*)\}/.exec(carteOverlay);
+            const barre = /\n[ \t]*\.map-overlay-bar \{([^}]*)\}/.exec(carteOverlay);
 
             expect(conteneur?.[1]).toMatch(/position:\s*absolute/);
             expect(conteneur?.[1]).toMatch(/inset:\s*0/);
@@ -515,11 +515,11 @@ describe('Un bouton dans une barre', () => {
             // `.point-actions button`/`.image-bar button` ont émigré vers
             // `components/button-group.css` (tâche 3) avec leurs groupes.
             const barre =
-                /\n[ \t]*\.header button\.secondary,\n[ \t]*\.suivi-bar button\.secondary,\n[ \t]*\.carte-bar button\.secondary \{([^}]*)\}/.exec(
+                /\n[ \t]*\.bar-navigation button\.secondary,\n[ \t]*\.bar-status button\.secondary,\n[ \t]*\.map-overlay-bar button\.secondary \{([^}]*)\}/.exec(
                     bar,
                 );
             const groupe =
-                /\n[ \t]*\.point-actions button,\n[ \t]*\.image-bar button \{([^}]*)\}/.exec(
+                /\n[ \t]*\.button-group-point button,\n[ \t]*\.button-group-image button \{([^}]*)\}/.exec(
                     groupeCss,
                 );
 
@@ -544,7 +544,7 @@ describe("Une barre d'actions", () => {
             // choice » : elles gardent donc leur taille et perdent leur teinte.
             // `.action-bar button` a émigré vers `components/button-group.css`
             // (tâche 3), avec `.action-bar` elle-même.
-            const barre = /\n[ \t]*\.action-bar button \{([^}]*)\}/.exec(groupeCss);
+            const barre = /\n[ \t]*\.button-group button \{([^}]*)\}/.exec(groupeCss);
 
             expect(barre?.[1]).toMatch(/background:\s*color-mix\(/);
             expect(barre?.[1]).toMatch(/color:\s*var\(--accent\)/);
@@ -580,7 +580,7 @@ describe('Les surfaces qui se répètent', () => {
             // sans lui ces boutons sont illisibles sur un schéma chargé.
             // `.point-actions` et `.image-bar` ont émigré vers
             // `components/button-group.css` (tâche 3).
-            for (const surface of ['.point-actions', '.image-bar']) {
+            for (const surface of ['.button-group-point', '.button-group-image']) {
                 const regle = new RegExp(`\\n[ \\t]*\\${surface} \\{([^}]*)\\}`).exec(groupeCss);
 
                 expect(regle?.[1]).toMatch(/background:\s*var\(--verre/);
@@ -726,13 +726,13 @@ describe('La couche fonctionnelle', () => {
      * colonne de contrôles de Leaflet.
      */
     const surfaces = [
-        '.header',
-        '.suivi-bar',
-        '.carte-bar',
-        '.floating-add-point-button',
-        '.carte-button',
-        '.overview-button',
-        '.resume-button',
+        '.bar-navigation',
+        '.bar-status',
+        '.map-overlay-bar',
+        '.floating-action-add-point',
+        '.floating-action-carte',
+        '.floating-action-overview',
+        '.floating-action-resume',
         '.leaflet-bar',
     ];
     // `.carte-recentrer` **n'y est pas**, et c'est une correction : il vit dans

@@ -42,7 +42,7 @@
         <!-- L'indicateur parle de l'application, pas d'un écran : il reste donc
              dans la coquille, où le service worker peut l'allumer quel que soit
              l'écran monté à ce moment-là. -->
-        <p id="offline-indicator" class="offline-indicator" hidden>
+        <p id="offline-indicator" class="banner-offline" hidden>
             <svg class="icon" aria-hidden="true"><use href="#i-arrow-down-circle" /></svg>
             Application disponible hors ligne
         </p>
@@ -52,7 +52,7 @@
              et ne peut pas être masquée par la navigation. -->
         <section id="screen-carte" class="screen-carte" hidden>
             <div id="carte-container"></div>
-            <div class="carte-bar">
+            <div class="map-overlay-bar">
                 <p id="carte-position-status" class="carte-position-status" hidden></p>
                 <input
                     id="latitude-input"

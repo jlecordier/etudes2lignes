@@ -19,18 +19,18 @@ export function createTrajetRow(summary: TrajetSummary): TrajetRowElement {
     element.setAttribute('role', 'listitem');
     element.append(content());
 
-    const openButton = query('.trajet-name', HTMLButtonElement, element);
+    const openButton = query('.row-title', HTMLButtonElement, element);
     openButton.textContent = summary.nom;
     openButton.addEventListener('click', () => {
         emitIntent(element, 'open-trajet', { summary });
     });
 
-    query('.trajet-details', HTMLSpanElement, element).textContent = trajetContentsText(
+    query('.row-details', HTMLSpanElement, element).textContent = trajetContentsText(
         summary.imageCount,
         summary.pointCount,
     );
 
-    query('.trajet-footer', HTMLDivElement, element).append(
+    query('.row-footer', HTMLDivElement, element).append(
         ...trajetActions(element, summary).map(createButton),
     );
     return element;

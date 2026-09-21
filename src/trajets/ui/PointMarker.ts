@@ -54,7 +54,7 @@ export function createPointMarker(marker: DisplayedMarker): PointMarkerElement {
         `${String(marker.coordonnee.latitude)},${String(marker.coordonnee.longitude)}`;
     element.append(content());
     element.style.top = `${String(marker.fraction * 100)}%`;
-    const pastille = query('.point-number', HTMLButtonElement, element);
+    const pastille = query('.badge', HTMLButtonElement, element);
     pastille.textContent = String(marker.number);
     // Le nom accessible et l'infobulle disent la même chose : sous 560 px la
     // feuille de style masque les libellés visibles, et une pastille muette
@@ -72,7 +72,7 @@ export function createPointMarker(marker: DisplayedMarker): PointMarkerElement {
             number: marker.number,
         });
     });
-    query('.point-actions', HTMLDivElement, element).append(
+    query('.button-group-point', HTMLDivElement, element).append(
         ...pointActions(element, { pointId: marker.pointId, number: marker.number }, 'floating'),
     );
     return element;

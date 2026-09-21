@@ -54,12 +54,12 @@ export function createImageFrame(framed: FramedPage): ImageFrameElement {
     element.imageId = framed.imageId;
 
     query('.image-name', HTMLSpanElement, element).textContent = framed.nom;
-    query('.image-bar', HTMLDivElement, element).append(
+    query('.button-group-image', HTMLDivElement, element).append(
         ...pageButtons(element, framed).map(createButton),
     );
 
     const area = query('.image-area', HTMLDivElement, element);
-    query('.page-number', HTMLSpanElement, area).textContent = String(framed.pageNumber);
+    query('.badge-page', HTMLSpanElement, area).textContent = String(framed.pageNumber);
     area.append(framed.schemaPage);
     area.append(...framed.markers.map(createPointMarker));
 

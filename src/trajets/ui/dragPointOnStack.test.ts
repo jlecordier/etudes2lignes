@@ -72,7 +72,7 @@ function scene(): Scene {
 
     return {
         stack,
-        pastille: query('.point-number', HTMLButtonElement, repere),
+        pastille: query('.badge', HTMLButtonElement, repere),
         pointId,
         hautId,
         basId,

@@ -601,13 +601,14 @@ describe('Le matériau', () => {
             const classesDuVerre = classesDe(pose?.[2] ?? '');
             const classesDuRepli = classesDe(repli?.[2] ?? '');
 
-            // `.carte-bar` ne portait ni fond ni ombre en dehors du verre :
-            // l'omettre du repli n'est pas un oubli, c'est qu'il n'a jamais
-            // eu de valeur à y répéter — la tâche 5 en décidera. `.header`
-            // en sortait aussi jusqu'à la tâche 2 (partie 2), mais pour la
-            // mauvaise raison : c'était le défaut fondateur du chantier, pas
-            // un choix. Il a désormais son repli, comme tous les autres.
-            const EXCEPTIONS = new Set(['.carte-bar']);
+            // `.map-overlay-bar` ne portait ni fond ni ombre en dehors du
+            // verre : l'omettre du repli n'est pas un oubli, c'est qu'il n'a
+            // jamais eu de valeur à y répéter — la tâche 5 en a décidé.
+            // `.bar-navigation` en sortait aussi jusqu'à la tâche 2
+            // (partie 2), mais pour la mauvaise raison : c'était le défaut
+            // fondateur du chantier, pas un choix. Il a désormais son repli,
+            // comme tous les autres.
+            const EXCEPTIONS = new Set(['.map-overlay-bar']);
 
             const oublies = [...classesDuVerre].filter(
                 (classe) => !EXCEPTIONS.has(classe) && !classesDuRepli.has(classe),
@@ -668,19 +669,19 @@ describe('La famille des contrôles', () => {
             // rather than to each control. » Deux verres empilés ne
             // floutent pas deux fois : le second échantillonne le premier,
             // et le matériau devient laiteux. Un enfant garde le droit à son
-            // propre remplissage plat — les « pairs » de `.action-bar
+            // propre remplissage plat — les « pairs » de `.button-group
             // button` par exemple — ce que la règle interdit, c'est qu'il
             // porte le matériau lui-même : `backdrop-filter`, ou une teinte
             // `--verre*` qui l'imiterait. Sans commentaires : un exemple en
             // prose ne doit ni faire rougir ce témoin, ni compter comme une
             // vraie déclaration — même piège que celui déjà couvert par « La
             // grammaire de light-dark() ».
-            expect(groupe).toMatch(/\.point-actions\b/);
-            expect(groupe).toMatch(/\.image-bar\b/);
+            expect(groupe).toMatch(/\.button-group-point\b/);
+            expect(groupe).toMatch(/\.button-group-image\b/);
 
             const reglesEnfants =
                 groupe.match(
-                    /\.(?:action-bar|image-bar|point-actions)\s+[^\s{,][^{,]*\{([^}]*)\}/g,
+                    /\.(?:button-group|button-group-image|button-group-point)\s+[^\s{,][^{,]*\{([^}]*)\}/g,
                 ) ?? [];
 
             expect(reglesEnfants.length).toBeGreaterThan(0);
@@ -1412,6 +1413,69 @@ describe('Les valeurs littérales du système', () => {
             );
 
             expect(inventees).toEqual([]);
+        });
+    });
+});
+
+describe('Le vocabulaire', () => {
+    describe('Étant donné les composants nommés, quand on regarde ce que les gabarits emploient', () => {
+        it("alors aucune classe de l'ancien vocabulaire ne subsiste", () => {
+            // Mesure d'entree : 41 classes uniques dans les gabarits, dont 38
+            // employees UNE SEULE FOIS — une classe par element, pas un
+            // vocabulaire. La migration est finie quand aucune ne reste.
+            const anciennes = [
+                'header',
+                'suivi-bar',
+                'action-bar',
+                'image-bar',
+                'carte-bar',
+                'floating-button',
+                'floating-add-point-button',
+                'overview-button',
+                'resume-button',
+                'carte-button',
+                'point-number',
+                'page-number',
+                'trajet-name',
+                'trajet-details',
+                'trajet-footer',
+                'trajet-overview',
+                'help',
+                'hint-banner',
+                'list-error',
+                'empty-message',
+                'simulation-banner',
+                'offline-indicator',
+                'point-actions',
+            ];
+            // `index.html` vit a la racine, hors de portee d'un glob parti de
+            // `src/styles/` — et il porte des classes comme les autres. Il est
+            // donc ajoute explicitement : un temoin qui l'oublierait declarerait
+            // la migration finie avec un gabarit entier non migre.
+            const gabarits = [
+                ...Object.keys(import.meta.glob('../**/*.html', { eager: false })),
+                '../../index.html',
+            ];
+            // **L'attribut se decoupe, il ne se compare pas.** Mesure :
+            // `class="header bar bar-navigation"`, `class="secondary
+            // overview-button"` et `class="suivi-bar bar bar-status"` existent
+            // deja dans les gabarits. Un `includes('class="header"')` y repond
+            // `false` et declarerait migrees les trois classes les plus
+            // avancees — exactement celles ou une migration partielle peut se
+            // cacher. C'est le neuvieme temoin vide de ce chantier, et le seul
+            // ecrit d'avance dans le plan.
+            const porteLaClasse = (html: string, nom: string): boolean =>
+                [...html.matchAll(/class="([^"]*)"/g)].some((attribut) =>
+                    (attribut[1] ?? '').split(/\s+/).includes(nom),
+                );
+
+            const restantes = anciennes.filter((nom) =>
+                gabarits.some((chemin) =>
+                    porteLaClasse(readFileSync(new URL(chemin, import.meta.url), 'utf8'), nom),
+                ),
+            );
+
+            expect(restantes).toEqual([]);
         });
     });
 });

@@ -91,7 +91,7 @@ function laisserLesPromessesSAchever(): Promise<void> {
 }
 
 function nomsAffiches(element: HTMLElement): string[] {
-    return queryAll('.trajet-name', HTMLButtonElement, element).map((bouton) => bouton.textContent);
+    return queryAll('.row-title', HTMLButtonElement, element).map((bouton) => bouton.textContent);
 }
 
 function messageDErreur(element: HTMLElement): string | null {
@@ -108,7 +108,7 @@ describe('trajets-list-screen', () => {
             // flex) ; `.bar-navigation` reçoit ce qui n'appartenait qu'à
             // l'en-tête — marge négative, `z-index`. Ni l'un ni l'autre
             // modificateur ne redéclare `--bar-air` ni `--bar-height`.
-            const entete = element.querySelector('.header');
+            const entete = element.querySelector('.bar-navigation');
 
             expect(entete?.classList.contains('bar')).toBe(true);
             expect(entete?.classList.contains('bar-navigation')).toBe(true);
@@ -170,7 +170,7 @@ describe('trajets-list-screen', () => {
             const element = await attacherLEcran();
 
             expect(nomsAffiches(element)).toEqual(['Paris → Bordeaux', 'Tours → Nantes']);
-            expect(queryAll('.trajet-details', HTMLSpanElement, element)[0]?.textContent).toBe(
+            expect(queryAll('.row-details', HTMLSpanElement, element)[0]?.textContent).toBe(
                 '6 images · 4 points',
             );
             expect(query('#empty-list', HTMLParagraphElement, element).hidden).toBe(true);
@@ -192,7 +192,7 @@ describe('trajets-list-screen', () => {
             repository.contient(summary('Tours → Nantes'), paris);
             const element = await attacherLEcran();
 
-            queryAll('.trajet-name', HTMLButtonElement, element)[1]?.click();
+            queryAll('.row-title', HTMLButtonElement, element)[1]?.click();
 
             expect(ouvertures).toEqual([paris.id]);
         });

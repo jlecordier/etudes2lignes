@@ -400,7 +400,7 @@ function glisserLaPastille(element: HTMLElement, numero: number, de: number, ver
     for (const zone of queryAll('.image-area', HTMLDivElement, element)) {
         zone.getBoundingClientRect = () => new DOMRect(0, 0, 800, 1000);
     }
-    const pastille = queryAll('point-marker .point-number', HTMLButtonElement, element).find(
+    const pastille = queryAll('point-marker .badge', HTMLButtonElement, element).find(
         (candidate) => candidate.textContent === String(numero),
     );
     if (pastille === undefined) {
@@ -459,8 +459,7 @@ function marqueurs(element: HTMLElement): PointMarkerElement[] {
 /** Ce qu'on a demandé au navigateur de montrer, dit par ce qui est peint dessus. */
 function elementsMontres(): string[] {
     return montres.map(
-        (montre) =>
-            `${montre.localName} ${query('.point-number', HTMLButtonElement, montre).textContent}`,
+        (montre) => `${montre.localName} ${query('.badge', HTMLButtonElement, montre).textContent}`,
     );
 }
 
@@ -483,7 +482,7 @@ describe('trajet-editor-screen', () => {
             // flex) ; `.bar-navigation` reçoit ce qui n'appartenait qu'à
             // l'en-tête — marge négative, `z-index`. Ni l'un ni l'autre
             // modificateur ne redéclare `--bar-air` ni `--bar-height`.
-            const entete = element.querySelector('.header');
+            const entete = element.querySelector('.bar-navigation');
 
             expect(entete?.classList.contains('bar')).toBe(true);
             expect(entete?.classList.contains('bar-navigation')).toBe(true);
@@ -545,7 +544,7 @@ describe('trajet-editor-screen', () => {
             const element = await attacherLEcran();
 
             expect(
-                queryAll('.page-number', HTMLSpanElement, element).map(
+                queryAll('.badge-page', HTMLSpanElement, element).map(
                     (pastille) => pastille.textContent,
                 ),
             ).toEqual(['1', '2', '3']);
@@ -747,9 +746,10 @@ describe('trajet-editor-screen', () => {
             // Le document se lit de bas en haut : le point 2, posé sur la
             // dernière page du voyage, s'affiche en haut de la pile.
             expect(
-                queryAll('point-marker .point-number', HTMLButtonElement, element).map(
-                    (pastille) => [pastille.textContent, pastille.getAttribute('aria-label')],
-                ),
+                queryAll('point-marker .badge', HTMLButtonElement, element).map((pastille) => [
+                    pastille.textContent,
+                    pastille.getAttribute('aria-label'),
+                ]),
             ).toEqual([
                 ['2', 'Voir le point 2 sur la carte'],
                 ['1', 'Voir le point 1 sur la carte'],
@@ -869,7 +869,7 @@ describe('trajet-editor-screen', () => {
             const element = await attacherLEcran();
 
             glisserLaPastille(element, 1, 500, 250);
-            query('point-marker .point-number', HTMLButtonElement, element).dispatchEvent(
+            query('point-marker .badge', HTMLButtonElement, element).dispatchEvent(
                 new MouseEvent('click', { bubbles: true }),
             );
             await laisserLesPromessesSAchever();
@@ -929,7 +929,7 @@ describe('trajet-editor-screen', () => {
             //
             // « Ma position » n'y figure plus : il est passé sur la carte, en
             // contrôle Leaflet, et c'est `positionControl.test.ts` qui le nomme.
-            const boutons = queryAll('.action-bar button', HTMLButtonElement, element);
+            const boutons = queryAll('.button-group button', HTMLButtonElement, element);
             expect(boutons.map((bouton) => bouton.getAttribute('aria-label'))).toEqual([
                 'Ajouter des images',
                 'Ajouter un point',

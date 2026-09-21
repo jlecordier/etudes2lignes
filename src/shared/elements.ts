@@ -69,7 +69,7 @@ export function createButton(button: Button): HTMLButtonElement {
  */
 function classes(variant: ButtonVariant, danger: boolean): string {
     if (variant === 'floating') {
-        return danger ? 'secondary floating-button danger' : 'secondary floating-button';
+        return danger ? 'secondary button-compact danger' : 'secondary button-compact';
     }
     return danger ? 'secondary danger' : 'secondary';
 }

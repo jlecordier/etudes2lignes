@@ -1,28 +1,29 @@
-/* La barre d'écran : le rythme vertical que partagent l'en-tête (`.header`,
- * sur la liste et l'éditeur) et la barre d'état du suivi (`.suivi-bar`).
+/* La barre d'écran : le rythme vertical que partagent la barre de navigation
+ * (`.bar-navigation`, sur la liste et l'éditeur) et la barre d'état du suivi
+ * (`.bar-status`).
  *
- * `.bar` est le sélecteur partagé — le troisième nom que les deux barres
- * portent désormais, à côté de `.header`/`.suivi-bar` (gelés dans le
- * témoin e2e des hauteurs) et de leur modificateur. Il porte le socle
- * commun : sticky, flex, le rembourrage horizontal, l'effet de bord au
- * défilement. `.bar-navigation` et `.bar-status` sont les deux
- * modificateurs neufs que cette tâche produit, et qui reçoivent chacun ce
- * qui n'appartenait qu'à une seule des deux barres : le premier ce qui
- * était propre à l'en-tête, le second ce qui était propre à la barre de
- * suivi. Ni l'un ni l'autre ne touche à `--bar-air`/`--bar-height`.
+ * `.bar` est le sélecteur partagé — le seul nom que les deux barres portent
+ * désormais, à côté de leur modificateur. Il porte le socle commun : sticky,
+ * flex, le rembourrage horizontal, l'effet de bord au défilement.
+ * `.bar-navigation` et `.bar-status` sont les deux modificateurs que cette
+ * tâche produit, et qui reçoivent chacun ce qui n'appartenait qu'à une seule
+ * des deux barres : le premier ce qui était propre à la navigation, le second
+ * ce qui était propre à la barre de suivi. Ni l'un ni l'autre ne touche à
+ * `--bar-air`/`--bar-height`.
  *
- * Les trois classes sont posées côte à côte sur les gabarits HTML, en plus
- * de `.header`/`.suivi-bar` — jamais à leur place : c'est l'approche
- * additive déjà choisie pour `.surface` dans `components/surface.css`, et
- * celle qui permet à cette tâche de composer sans casser le sélecteur que
- * l'e2e a gelé.
+ * Les deux classes sont posées côte à côte sur les gabarits HTML : le
+ * vocabulaire du dictionnaire devient celui que l'application emploie
+ * réellement — `.header` et `.suivi-bar` ont quitté les gabarits (tâche 6),
+ * `.bar`/`.bar-navigation`/`.bar-status` les remplacent entièrement, y
+ * compris dans l'e2e des hauteurs.
  *
- * Le verre lui-même reste étranger à ce fichier : `.header` et `.suivi-bar`
- * le reçoivent depuis `components/surface.css` (tâche 1), qui reste le seul
- * endroit du système où `backdrop-filter` s'écrit. Le triplet Headline/
- * Footnote du titre et de l'état, lui, se consomme en portant `.text-
- * headline`/`.text-footnote` (`components/text.css`) — le seul endroit du
- * système où `font-size`, `line-height` et `letter-spacing` s'écrivent.
+ * Le verre lui-même reste étranger à ce fichier : `.bar-navigation` et
+ * `.bar-status` le reçoivent depuis `components/surface.css` (tâche 1), qui
+ * reste le seul endroit du système où `backdrop-filter` s'écrit. Le triplet
+ * Headline/Footnote du titre et de l'état, lui, se consomme en portant
+ * `.text-headline`/`.text-footnote` (`components/text.css`) — le seul
+ * endroit du système où `font-size`, `line-height` et `letter-spacing`
+ * s'écrivent.
  *
  * Jetons exposés : `--bar-air`, l'air qu'une barre laisse au-dessus et
  * au-dessous de ses contrôles — et donc ce qui fixe sa hauteur, un contrôle
@@ -33,33 +34,34 @@
  * avant cette tâche — c'est cette émergence que le témoin e2e des deux
  * barres continue de mesurer, sans qu'on l'y ait aidé.
  *
- * Le défaut historique que ce fichier rend inécrivable : `.header` et
- * `.suivi-bar` déclaraient chacune son propre rembourrage vertical, et
- * avaient dérivé de 18 px — 44 px contre 62. Pire, celui de l'en-tête était
- * **nul** : un bouton de 44 px y touchait les deux bords, sans un pixel
- * d'air. Un seul jeton porte désormais la hauteur, et aucun des deux
- * modificateurs n'y touche : la dérive n'a plus où s'écrire.
+ * Le défaut historique que ce fichier rend inécrivable : les deux barres
+ * déclaraient chacune son propre rembourrage vertical, et avaient dérivé de
+ * 18 px — 44 px contre 62. Pire, celui de la navigation était **nul** : un
+ * bouton de 44 px y touchait les deux bords, sans un pixel d'air. Un seul
+ * jeton porte désormais la hauteur, et aucun des deux modificateurs n'y
+ * touche : la dérive n'a plus où s'écrire.
  *
- * Un second défaut, mesuré cette fois pendant cette tâche et non avant
- * elle : `.header .action-bar { flex-wrap: nowrap }` vivait ici tant
+ * Un second défaut, mesuré cette fois pendant la tâche 2 et non avant elle :
+ * `.bar-navigation .button-group { flex-wrap: nowrap }` vivait ici tant
  * qu'elle restait dans `screens/legacy.css`, la même couche que
- * `.action-bar { flex-wrap: wrap }` qu'elle devait battre par spécificité.
+ * `.button-group { flex-wrap: wrap }` qu'elle devait battre par spécificité.
  * Une couche `components` perd **toujours** face à `screens`, quelle que
  * soit la spécificité — cette règle ne peut donc plus gagner depuis ce
- * fichier, et un `flex-wrap` calculé à `wrap` sur `.action-bar` à 360 px
+ * fichier, et un `flex-wrap` calculé à `wrap` sur `.button-group` à 360 px
  * l'a confirmé. Elle est donc restée dans `screens/legacy.css`, avec la
  * dette écrite qui dit pourquoi et ce qui l'en libérera (la tâche 3, quand
- * `.action-bar` lui-même y rejoindra `button-group.css`). Le témoin
+ * `.button-group` lui-même y rejoindra `button-group.css`). Le témoin
  * générique plus bas (`styles.test.ts`, « L'inversion de cascade… ») existe
  * pour qu'aucune des trois extractions restantes ne reproduise ce piège
  * sans qu'un test rougisse.
  *
- * Un troisième défaut, refermé par la tâche 5 : `.header button.secondary,
- * .suivi-bar button.secondary, .carte-bar button.secondary` restait dans
- * `screens/legacy.css`, `.carte-bar` n'ayant pas encore son propre fichier de
- * composant (`components/map-overlay.css`). Les trois barres sont désormais
- * toutes trois des composants ; la règle qui neutralise la surface d'un
- * bouton secondaire à l'intérieur de l'une d'elles vit ici, où deux des trois
+ * Un troisième défaut, refermé par la tâche 5 : `.bar-navigation
+ * button.secondary, .bar-status button.secondary, .map-overlay-bar
+ * button.secondary` restait dans `screens/legacy.css`, `.map-overlay-bar`
+ * n'ayant pas encore son propre fichier de composant
+ * (`components/map-overlay.css`). Les trois barres sont désormais toutes
+ * trois des composants ; la règle qui neutralise la surface d'un bouton
+ * secondaire à l'intérieur de l'une d'elles vit ici, où deux des trois
  * classes qu'elle cible vivent déjà.
  */
 @layer components {
@@ -92,7 +94,7 @@
        sous elle plutôt qu'une ombre portée, et transparente aux clics, pour
        que le contenu continue de passer dessous sans qu'elle l'intercepte.
 
-       Un seul par vue, comme la HIG l'exige : l'en-tête sur la liste et
+       Un seul par vue, comme la HIG l'exige : la navigation sur la liste et
        l'éditeur, la barre d'état sur le suivi — jamais les deux à la fois
        sur un même écran. Et sans filet : un filet et cet effet feraient
        deux transitions pour un seul bord, et le filet est celle qui se voit
@@ -107,8 +109,8 @@
         background: linear-gradient(to bottom, var(--fond-groupe), transparent);
     }
 
-    /* `.bar-navigation` : ce qui n'appartenait qu'à l'en-tête. La barre de
-       navigation flotte au-dessus du contenu : « Liquid Glass forms a
+    /* `.bar-navigation` : ce qui n'appartenait qu'à la navigation. La barre
+       de navigation flotte au-dessus du contenu : « Liquid Glass forms a
        distinct functional layer […] that floats above the content layer. »
        Elle était encartée par le rembourrage de l'écran, ce qui en faisait
        une carte flottante plutôt qu'une barre : la marge négative l'annule,
@@ -129,27 +131,27 @@
         margin-bottom: 1rem;
     }
 
-    /* Un bouton d'en-tête garde sa largeur, c'est le titre qui plie : à
+    /* Un bouton de navigation garde sa largeur, c'est le titre qui plie : à
        trois éléments sur un téléphone, tout se comprimait au prorata et
        « Suivre » se cassait en deux à l'intérieur de son propre bouton. */
-    .header > button {
+    .bar-navigation > button {
         flex-shrink: 0;
     }
 
-    /* `.header .action-bar { flex-wrap: nowrap }` n'est plus ici : voir
-       l'en-tête du fichier. Elle vit dans `screens/legacy.css`, à côté de
-       `.action-bar` elle-même, le temps que la tâche 3 les réunisse dans
-       `button-group.css`. */
+    /* `.bar-navigation .button-group { flex-wrap: nowrap }` n'est plus ici :
+       voir l'en-tête du fichier. Elle vit dans `screens/legacy.css`, à côté
+       de `.button-group` elle-même, le temps que la tâche 3 les réunisse
+       dans `button-group.css`. */
 
     /* La troncature du titre d'une barre de navigation : c'est au titre de
-       céder, pas à la ligne de se casser — `.header` est sans `flex-wrap`
-       précisément pour que la barre garde sa hauteur, et un titre qui se
-       casse en deux la ferait grandir de tout ce qu'on voulait lui
-       épargner. Mesuré : « Paris → Bordeaux » tombait à « Paris → Bordea… »
-       sur 390 px sans l'ellipse. Le style Headline lui-même — taille,
-       interligne, approche — n'est pas ici : il vit dans `.text-headline`,
-       porté par le titre dans son gabarit HTML. */
-    .header :is(h1, h2) {
+       céder, pas à la ligne de se casser — `.bar-navigation` est sans
+       `flex-wrap` précisément pour que la barre garde sa hauteur, et un
+       titre qui se casse en deux la ferait grandir de tout ce qu'on voulait
+       lui épargner. Mesuré : « Paris → Bordeaux » tombait à
+       « Paris → Bordea… » sur 390 px sans l'ellipse. Le style Headline
+       lui-même — taille, interligne, approche — n'est pas ici : il vit dans
+       `.text-headline`, porté par le titre dans son gabarit HTML. */
+    .bar-navigation :is(h1, h2) {
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
@@ -178,12 +180,12 @@
     /* Dans une barre, un bouton n'apporte pas sa propre surface : c'est la
        barre qui en porte une, et deux surfaces empilées sont exactement ce
        que la HIG refuse — « put the glass on the group, not on each
-       button ». `.carte-bar` (le panneau de la carte plein écran,
+       button ». `.map-overlay-bar` (le panneau de la carte plein écran,
        `components/map-overlay.css`) porte la même règle que les deux barres
        d'écran : voir l'en-tête du fichier. */
-    .header button.secondary,
-    .suivi-bar button.secondary,
-    .carte-bar button.secondary {
+    .bar-navigation button.secondary,
+    .bar-status button.secondary,
+    .map-overlay-bar button.secondary {
         background: none;
         box-shadow: none;
         color: var(--label);

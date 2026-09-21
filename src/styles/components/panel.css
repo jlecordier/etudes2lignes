@@ -2,13 +2,13 @@
  * contraire exact du matériau de `components/surface.css`. Cinq porteurs
  * différents, la même règle de fond :
  *
- * - `.help` et `.hint-banner` : une phrase d'aide et un encart de consigne,
- *   sur l'écran d'édition ;
- * - `.list-error` et `.empty-message` : l'erreur et le message vide de la
+ * - `.panel-help` et `.panel-hint` : une phrase d'aide et un encart de
+ *   consigne, sur l'écran d'édition ;
+ * - `.panel-error` et `.panel-empty` : l'erreur et le message vide de la
  *   liste des trajets ;
  * - `.overview-stack`, `.overview-position` et `overview-page` : la pile de
- *   pages de l'aperçu du trajet, incrustée par-dessus le suivi. `.trajet-
- *   overview` et `.overview-ouvert .trajet-overview` — le panneau qui
+ *   pages de l'aperçu du trajet, incrustée par-dessus le suivi. `.panel-
+ *   overview` et `.overview-ouvert .panel-overview` — le panneau qui
  *   contient cette pile — ne sont **pas** ici : voir plus bas.
  *
  * « Don't use Liquid Glass in the content layer » : aucune de ces cartes ne
@@ -27,12 +27,12 @@
  * avant que cette règle ne s'applique, et le filet ne fait que reprendre sa
  * propre formule pour le cas où l'héritage manquerait.
  *
- * `.trajet-overview` et `.overview-ouvert .trajet-overview` **ne sont plus ici
+ * `.panel-overview` et `.overview-ouvert .panel-overview` **ne sont plus ici
  * qu'à moitié** — l'autre moitié vit dans `screens/suivi.css`. Posées ici en
  * entier, `display`, `position`, `top`, `height`, `z-index`, `background` et
  * `box-shadow` auraient été disputés par la variante mobile (ici) et sa
- * variante grand écran (`suivi-screen .trajet-overview`, `suivi-screen
- * .overview-ouvert .trajet-overview`, sous `@media (min-width: 900px)`,
+ * variante grand écran (`suivi-screen .panel-overview`, `suivi-screen
+ * .overview-ouvert .panel-overview`, sous `@media (min-width: 900px)`,
  * restée dans `screens/legacy.css`) depuis deux couches différentes —
  * `@layer components, …, screens` fait perdre `components` face à `screens`
  * *toujours*, quelle que soit la spécificité. Le témoin générique d'inversion
@@ -49,16 +49,16 @@
  *
  * `background: var(--verre-epais)` peut surprendre dans un fichier dont
  * l'en-tête dit « jamais de flou » : ce n'est pas une contradiction.
- * `.trajet-overview` n'est pas une carte de contenu au repos comme les cinq
+ * `.panel-overview` n'est pas une carte de contenu au repos comme les cinq
  * autres de ce fichier — c'est le fond du panneau qui sépare visuellement
  * l'aperçu incrusté du contenu qui défile derrière lui, sans
  * `backdrop-filter` ni la classe `.surface` : la même teinte-sans-flou que
- * `components/button-group.css` pose déjà sur `.image-bar`/`.point-actions`,
- * pour la même raison budgétaire (un flou de plus par élément qui se
- * répète).
+ * `components/button-group.css` pose déjà sur
+ * `.button-group-image`/`.button-group-point`, pour la même raison
+ * budgétaire (un flou de plus par élément qui se répète).
  *
- * `.help` porte un triplet Subheadline **complet**. Comme `.trajet-name`/
- * `.trajet-details` (`components/row.css`), la migration vers `.text-
+ * `.panel-help` porte un triplet Subheadline **complet**. Comme `.row-
+ * title`/`.row-details` (`components/row.css`), la migration vers `.text-
  * subheadline` reste refusée par le validateur de `probity` — aucun témoin
  * rouge de cette session n'exige ce changement de gabarit précis. Mais
  * `screens/legacy.css` doit finir à zéro règle (critère de la tâche 5) : le
@@ -79,15 +79,15 @@
            `bar.css`/`button-group.css` : `scale-unlimited/declaration-
            strict-value` n'admet, dans `components/`, qu'un jeton — jamais un
            littéral — pour `padding`/`gap`/`box-shadow`. */
-        --hint-banner-padding: 0.5rem;
-        --list-error-gap: 0.5rem;
-        --list-error-padding: 0.5rem;
+        --panel-hint-padding: 0.5rem;
+        --panel-error-gap: 0.5rem;
+        --panel-error-padding: 0.5rem;
 
         /* Subhead : 15/20 — voir l'en-tête du fichier pour pourquoi ce
            triplet complet vit ici et non dans `.text-subheadline`. */
-        --help-font-size: 0.882rem;
-        --help-line-height: 1.333;
-        --help-letter-spacing: -0.016em;
+        --panel-help-font-size: 0.882rem;
+        --panel-help-line-height: 1.333;
+        --panel-help-letter-spacing: -0.016em;
 
         /* En ombre et non en bordure : la largeur du panneau doit rester
            exactement celle de sa pile, dont le repère se sert pour savoir où
@@ -96,44 +96,44 @@
         --overview-panel-shadow: -1px 0 0 var(--separateur);
     }
 
-    .help {
+    .panel-help {
         color: var(--label-2);
-        font-size: var(--help-font-size);
-        line-height: var(--help-line-height);
-        letter-spacing: var(--help-letter-spacing);
+        font-size: var(--panel-help-font-size);
+        line-height: var(--panel-help-line-height);
+        letter-spacing: var(--panel-help-letter-spacing);
     }
 
-    .hint-banner {
+    .panel-hint {
         background: var(--fond-consigne);
         border: 1px solid var(--orange);
         border-radius: var(--rayon-section);
-        padding: var(--hint-banner-padding);
+        padding: var(--panel-hint-padding);
     }
 
-    .list-error {
+    .panel-error {
         background: var(--fond);
         border-radius: var(--rayon-section);
         display: flex;
         align-items: center;
-        gap: var(--list-error-gap);
+        gap: var(--panel-error-gap);
         flex-wrap: wrap;
-        padding: var(--list-error-padding);
+        padding: var(--panel-error-padding);
     }
 
-    .empty-message {
+    .panel-empty {
         color: var(--label-2);
     }
 
     /* Voir l'en-tête du fichier : le placement de ces deux règles vit dans
        `screens/suivi.css`, sous les mêmes deux sélecteurs. */
-    .overview-ouvert .trajet-overview {
+    .overview-ouvert .panel-overview {
         background: var(--verre-epais);
         box-shadow: var(--overview-panel-shadow);
     }
 
     @media (min-width: 900px) {
-        suivi-screen .trajet-overview,
-        suivi-screen.overview-ouvert .trajet-overview {
+        suivi-screen .panel-overview,
+        suivi-screen.overview-ouvert .panel-overview {
             background: none;
             box-shadow: var(--overview-panel-shadow);
         }

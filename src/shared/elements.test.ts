@@ -145,7 +145,7 @@ describe('createButton', () => {
             });
 
             expect(button.title).toBe('Déplacer le point 2 sur la carte');
-            expect(button.className).toBe('secondary floating-button');
+            expect(button.className).toBe('secondary button-compact');
         });
     });
 
@@ -177,7 +177,7 @@ describe('createButton', () => {
                 variant: 'floating',
             });
 
-            expect(button.className).toBe('secondary floating-button danger');
+            expect(button.className).toBe('secondary button-compact danger');
         });
     });
 });

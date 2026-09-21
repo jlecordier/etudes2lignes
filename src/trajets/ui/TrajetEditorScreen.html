@@ -1,7 +1,7 @@
 <!-- Le retour cède son libellé sous 560 px pour rendre au titre les 68 px qu'il
      lui prenait ; « Suivre » garde le sien, c'est l'action de l'écran et une
      boussole seule ne la dirait pas. -->
-<header class="header bar bar-navigation">
+<header class="bar bar-navigation">
     <button id="back-to-list-button" type="button" class="secondary" aria-label="Trajets">
         <svg class="icon" aria-hidden="true"><use href="#i-chevron-left" /></svg>
         <span class="button-label">Trajets</span>
@@ -13,7 +13,7 @@
         <svg class="icon" aria-hidden="true"><use href="#i-location-line" /></svg>Suivre
     </button>
 </header>
-<p class="help">
+<p class="panel-help">
     Les pages s'importent de haut en bas, dans l'ordre où vous les sélectionnez, et un nouveau lot
     se pose dessous. Le document se lisant de bas en haut, c'est la dernière page qui ouvre le
     voyage. Conseil : un point près du départ et un près de l'arrivée du trajet, puis densifiez là
@@ -24,7 +24,7 @@
      dans `aria-label`, seul endroit que le masquage n'atteint pas — un bouton
      qui l'oublierait s'annoncerait « 🖼️ ». `TrajetEditorScreen.test.ts` le
      vérifie pour chacun. -->
-<div class="action-bar">
+<div class="button-group">
     <button id="add-images-button" type="button" aria-label="Ajouter des images">
         <svg class="icon" aria-hidden="true"><use href="#i-photo" /></svg>
         <span class="button-label">Ajouter des images</span>
@@ -41,7 +41,7 @@
     </button>
 </div>
 <input id="input-images" type="file" accept="image/jpeg,image/png" multiple hidden />
-<p id="placement-hint" class="hint-banner" hidden>
+<p id="placement-hint" class="panel-hint" hidden>
     <span id="hint-text">Touchez l'image à la hauteur voulue…</span>
     <button id="cancel-placement-button" type="button" class="secondary" aria-label="Annuler">
         <svg class="icon" aria-hidden="true"><use href="#i-xmark" /></svg>
@@ -79,7 +79,7 @@
 <button
     id="floating-add-point-button"
     type="button"
-    class="floating-add-point-button"
+    class="floating-action-add-point"
     aria-label="Ajouter un point"
 >
     <svg class="icon" aria-hidden="true"><use href="#i-mappin" /></svg>
@@ -89,4 +89,4 @@
      sur le schéma. Ce bouton la ramène par-dessus, et l'en retire. Son libellé
      dit où il mène, pas où l'on est : au-dessus de 900 px, où la carte est
      épinglée à côté de la pile, il n'a pas lieu d'être et la feuille le masque. -->
-<button id="carte-button" type="button" class="carte-button"></button>
+<button id="carte-button" type="button" class="floating-action-carte"></button>

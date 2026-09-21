@@ -29,21 +29,26 @@
  * portaient le verre avant l'existence de cette classe restaient listés ici,
  * le temps que chacun d'eux voie son contrat documenté par son propre
  * fichier de composant, chaque tâche retirant son sélecteur au fur et à
- * mesure. **Elle est maintenant vide** : `.header` et `.suivi-bar` en sont
- * sortis en tâche 2 (partie 2, `components/bar.css`, la hauteur commune des
- * deux barres en un seul jeton) ; `.floating-add-point-button`,
- * `.carte-button`, `.overview-button` et `.resume-button` en tâche 3
- * (`components/floating-action.css`, la position, l'empilement et les deux
- * correctifs qui les distinguent) ; `.carte-bar` et `.leaflet-bar` en tâche 5
- * (`components/map-overlay.css`, la carte plein écran et sa réconciliation
- * avec Leaflet). Tous restent listés, eux, dans le `@supports` ci-dessous et
- * dans la retraction d'accessibilité plus bas : ce n'est pas une
- * redéclaration, c'est le même mécanisme qui fait de `.surface` une classe
- * partagée — plusieurs sélecteurs, une seule déclaration de verre.
- * `.suivi-bar` et `.leaflet-bar` avaient déjà leur repli en dessous ;
- * `.header` n'en avait aucun — corrigé au même endroit, voir le commentaire
- * du bloc `@supports not`. Les quatre contrôles flottants avaient, eux, déjà
- * le leur depuis cette même tâche 1.
+ * mesure. **Elle est maintenant vide** : `.bar-navigation` et `.bar-status`
+ * en sont sortis en tâche 2 (partie 2, `components/bar.css`, la hauteur
+ * commune des deux barres en un seul jeton) ; `.floating-action-add-point`,
+ * `.floating-action-carte`, `.floating-action-overview` et
+ * `.floating-action-resume` en tâche 3 (`components/floating-action.css`, la
+ * position, l'empilement et les deux correctifs qui les distinguent) ;
+ * `.map-overlay-bar` et `.leaflet-bar` en tâche 5 (`components/
+ * map-overlay.css`, la carte plein écran et sa réconciliation avec Leaflet).
+ * Tous restent listés, eux, dans le `@supports` ci-dessous et dans la
+ * retraction d'accessibilité plus bas : ce n'est pas une redéclaration,
+ * c'est le même mécanisme qui fait de `.surface` une classe partagée —
+ * plusieurs sélecteurs, une seule déclaration de verre. `.bar-status` et
+ * `.leaflet-bar` avaient déjà leur repli en dessous ; `.bar-navigation` n'en
+ * avait aucun — corrigé au même endroit, voir le commentaire du bloc
+ * `@supports not`. Les quatre contrôles flottants avaient, eux, déjà le leur
+ * depuis cette même tâche 1. La tâche 6 a ensuite fait passer les huit noms
+ * hérités (`.header`, `.suivi-bar`, `.carte-bar`, `.floating-add-point-
+ * button`, `.carte-button`, `.overview-button`, `.resume-button`) à leur nom
+ * de composant : les gabarits ne portent plus le dictionnaire, ils emploient
+ * la langue.
  */
 @layer components {
     :root {
@@ -98,15 +103,15 @@
         .surface,
         /* Les deux barres épinglées et la barre flottante de la carte : une
        par écran, du texte à porter, donc le verre « regular ». */
-        .header,
-    .suivi-bar,
-    .carte-bar,
+        .bar-navigation,
+    .bar-status,
+    .map-overlay-bar,
     /* Les contrôles isolés qui flottent sur le contenu. Deux au plus visibles à
        la fois par écran, ce qui tient le budget. */
-    .floating-add-point-button,
-    .carte-button,
-    .overview-button,
-    .resume-button,
+    .floating-action-add-point,
+    .floating-action-carte,
+    .floating-action-overview,
+    .floating-action-resume,
     /* La colonne de contrôles de Leaflet. Elle vit dans
        `.leaflet-control-container`, **hors** de `.leaflet-map-pane` qui est
        positionné par transformation — un verre à l'intérieur perdrait son
@@ -178,7 +183,7 @@
      * plutôt qu'inventé :
      *   - `.surface`, comme `.surface-regular`, prend le repli **régulier**
      *     — le même que les sélecteurs qui, une fois flous, portent le
-     *     matériau `--verre` : un fond plein (`--fond`, comme `.suivi-bar`)
+     *     matériau `--verre` : un fond plein (`--fond`, comme `.bar-status`)
      *     et l'ombre portée seule (`--ombre-flottante`, comme les quatre
      *     boutons flottants). Aucun sélecteur hérité n'avait besoin des deux
      *     à la fois, mais `.surface` réunit ce qu'ils faisaient séparément :
@@ -193,31 +198,32 @@
      *     classes sont posées ensemble — le même ordre que dans le
      *     `@supports` ci-dessus.
      *
-     * `.carte-bar` reste seul absent, et c'est volontaire : il ne portait ni
-     * fond ni ombre en dehors du verre, donc l'omettre n'est pas une perte —
-     * la tâche 5 en décidera. `.header`, lui, ne l'est plus : c'était le
-     * défaut que la tâche 2 (partie 2) devait corriger. « L'en-tête faisait
-     * 44 px, la barre de suivi 62 » venait pour partie de là — sur un moteur
-     * sans `backdrop-filter`, l'en-tête n'avait **aucun** fond, une vitre
-     * transparente sur le contenu qui défile. Il reçoit ici le même repli
-     * que `.surface` elle-même : le fond plein et l'ombre portée seule, le
-     * matériau « regular » qu'il porte déjà dans le `@supports` ci-dessus.
-     * `styles.test.ts` affirme cette liste d'exceptions par son nom, pour
-     * qu'un futur oubli soit visible plutôt que silencieux. */
+     * `.map-overlay-bar` reste seul absent, et c'est volontaire : il ne
+     * portait ni fond ni ombre en dehors du verre, donc l'omettre n'est pas
+     * une perte — la tâche 5 en a décidé. `.bar-navigation`, lui, ne l'est
+     * plus : c'était le défaut que la tâche 2 (partie 2) devait corriger.
+     * « L'en-tête faisait 44 px, la barre de suivi 62 » venait pour partie
+     * de là — sur un moteur sans `backdrop-filter`, la navigation n'avait
+     * **aucun** fond, une vitre transparente sur le contenu qui défile. Elle
+     * reçoit ici le même repli que `.surface` elle-même : le fond plein et
+     * l'ombre portée seule, le matériau « regular » qu'elle porte déjà dans
+     * le `@supports` ci-dessus. `styles.test.ts` affirme cette liste
+     * d'exceptions par son nom, pour qu'un futur oubli soit visible plutôt
+     * que silencieux. */
     @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-        .suivi-bar {
+        .bar-status {
             background: var(--fond);
         }
 
-        .header {
+        .bar-navigation {
             background: var(--fond);
             box-shadow: var(--ombre-flottante);
         }
 
-        .floating-add-point-button,
-        .overview-button,
-        .carte-button,
-        .resume-button {
+        .floating-action-add-point,
+        .floating-action-overview,
+        .floating-action-carte,
+        .floating-action-resume {
             box-shadow: var(--ombre-flottante);
         }
 
@@ -257,13 +263,13 @@
      * même liste. */
     @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
         .surface,
-        .header,
-        .suivi-bar,
-        .carte-bar,
-        .floating-add-point-button,
-        .carte-button,
-        .overview-button,
-        .resume-button,
+        .bar-navigation,
+        .bar-status,
+        .map-overlay-bar,
+        .floating-action-add-point,
+        .floating-action-carte,
+        .floating-action-overview,
+        .floating-action-resume,
         .leaflet-bar {
             -webkit-backdrop-filter: none;
             backdrop-filter: none;

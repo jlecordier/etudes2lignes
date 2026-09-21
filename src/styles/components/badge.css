@@ -1,9 +1,9 @@
 /* La pastille : le repère numéroté qui identifie un point, sur le schéma
- * (`.point-number`, posé par `PointMarker.html`) comme sur la carte
- * (`.carte-marker`, posé par `numberedIcon.ts`) — un seul symbole, jamais
- * deux sosies qui pourraient diverger d'une vue à l'autre. `.page-number`
- * (le numéro de page de `ImageFrame.html`) vit dans ce même fichier : un
- * autre repère numéroté, mais qui ne partage ni la taille ni la forme de la
+ * (`.badge`, posé par `PointMarker.html`) comme sur la carte (`.carte-
+ * marker`, posé par `numberedIcon.ts`) — un seul symbole, jamais deux
+ * sosies qui pourraient diverger d'une vue à l'autre. `.badge-page` (le
+ * numéro de page de `ImageFrame.html`) vit dans ce même fichier : un autre
+ * repère numéroté, mais qui ne partage ni la taille ni la forme de la
  * pastille d'un point — regroupé ici pour la famille, pas pour un jeton
  * commun.
  *
@@ -15,35 +15,35 @@
  *
  * Le défaut historique que ce fichier rend inécrivable : la cible de 44 px
  * que `button.css` impose (`min-block-size`/`min-inline-size:
- * var(--hit-target)`) s'applique à `.point-number` — un `<button>` — mais
- * pas à `.carte-marker` — un `<div>` de `L.divIcon`, hors de portée de la
- * règle du bouton. Sans les deux lignes qui l'annulent ci-dessous, la
- * pastille du schéma gonflait à 44 px pendant que celle de la carte restait
- * à 26 px : les deux vues cessaient de montrer le même repère, ce que
+ * var(--hit-target)`) s'applique à `.badge` — un `<button>` — mais pas à
+ * `.carte-marker` — un `<div>` de `L.divIcon`, hors de portée de la règle du
+ * bouton. Sans les deux lignes qui l'annulent ci-dessous, la pastille du
+ * schéma gonflait à 44 px pendant que celle de la carte restait à 26 px :
+ * les deux vues cessaient de montrer le même repère, ce que
  * `points.spec.ts` mesure au pixel près.
  *
- * `.page-number` garde son triplet Caption 2 incomplet en clair (l'approche
- * manquait déjà avant cette tâche), et `.point-number`/`.carte-marker`
- * gardent une taille et un interligne choisis pour un numéro dans un petit
- * disque plutôt que les métriques exactes de Caption 1 (son interligne y
- * vaut 1, pas les 1.333 que la HIG publie) : ni l'un ni l'autre n'est donc un
+ * `.badge-page` garde son triplet Caption 2 incomplet en clair (l'approche
+ * manquait déjà avant cette tâche), et `.badge`/`.carte-marker` gardent une
+ * taille et un interligne choisis pour un numéro dans un petit disque
+ * plutôt que les métriques exactes de Caption 1 (son interligne y vaut 1,
+ * pas les 1.333 que la HIG publie) : ni l'un ni l'autre n'est donc un
  * triplet complet qui devrait porter `.text-*` — les migrer le rendrait
  * complet, ce qu'ils n'ont jamais été, une valeur ajoutée plutôt que
  * préservée.
  *
- * `point-marker .point-number` reste positionné dans
- * `screens/trajet-editor.css`, et non ici : sa formule se cale sur
- * `--point-line-thickness`, une propriété personnalisée déclarée dans le
- * `:root` de ce fichier-là — et non dans `tokens/primitives.css`,
- * `tokens/semantic.css` ou `screens/legacy-bridge.css`, les trois seuls que
+ * `point-marker .badge` reste positionné dans `screens/trajet-editor.css`,
+ * et non ici : sa formule se cale sur `--point-line-thickness`, une
+ * propriété personnalisée déclarée dans le `:root` de ce fichier-là — et non
+ * dans `tokens/primitives.css`, `tokens/semantic.css` ou
+ * `screens/legacy-bridge.css`, les trois seuls que
  * `csstools/value-no-unknown-custom-properties` reconnaît. Même contrainte,
- * déjà rencontrée par la tâche 3 pour la position de `.point-actions`. Elle y
- * lit `var(--badge-size, 26px)` — le filet de secours ne joue jamais en
- * pratique, `--badge-size` étant toujours déclaré plus bas dans **ce**
- * fichier et hérité par tout le document, mais c'est ce filet qui autorise la
- * référence à traverser le fichier sans faire échouer le lint.
+ * déjà rencontrée par la tâche 3 pour la position de `.button-group-point`.
+ * Elle y lit `var(--badge-size, 26px)` — le filet de secours ne joue jamais
+ * en pratique, `--badge-size` étant toujours déclaré plus bas dans **ce**
+ * fichier et hérité par tout le document, mais c'est ce filet qui autorise
+ * la référence à traverser le fichier sans faire échouer le lint.
  *
- * `.placement-active .point-number` vit, lui aussi, dans
+ * `.placement-active .badge` vit, lui aussi, dans
  * `screens/trajet-editor.css`, pour une raison différente : la cascade, pas
  * le lint — voir l'en-tête de ce fichier-là pour la mesure qui a levé la
  * dette. Voir le commentaire à l'endroit où la règle aurait dû vivre, plus
@@ -60,7 +60,7 @@
         --badge-line-height: 1;
     }
 
-    .point-number,
+    .badge,
     .carte-points .carte-marker,
     #carte-container .carte-marker {
         display: flex;
@@ -90,11 +90,11 @@
         box-shadow: var(--ombre-pastille);
     }
 
-    /* `.placement-active .point-number` vit dans `screens/trajet-editor.css`,
-       et non ici : `@layer components, … , screens` fait perdre `components`
+    /* `.placement-active .badge` vit dans `screens/trajet-editor.css`, et
+       non ici : `@layer components, … , screens` fait perdre `components`
        face à `screens` quelle que soit la spécificité, et
-       `point-marker .point-number { pointer-events: auto }` — qui vit dans
-       ce même fichier, sa position se calant sur `--point-line-thickness` —
+       `point-marker .badge { pointer-events: auto }` — qui vit dans ce
+       même fichier, sa position se calant sur `--point-line-thickness` —
        gagnerait alors *toujours* contre ce `pointer-events: none`. Mesuré en
        posant la règle ici : le témoin générique d'inversion de cascade la
        dénonce aussitôt. La pastille redeviendrait cliquable en plein mode de
@@ -125,16 +125,16 @@
        un point posé tout en haut de la page couvre le numéro plutôt que
        d'être couvert par lui. C'est le bon ordre — le numéro de page se
        retrouve, un point masqué non. */
-    .page-number {
+    .badge-page {
         /* Mesures propres à ce repère, même principe que le jeton de taille
            ci-dessus : `scale-unlimited/declaration-strict-value` n'admet,
            dans `components/`, qu'un jeton — jamais un littéral. */
-        --page-number-padding-inline: 0.4rem;
+        --badge-page-padding-inline: 0.4rem;
 
         /* Caption 2 : 11/13. L'approche manquait déjà avant cette tâche —
            voir l'en-tête du fichier. */
-        --page-number-font-size: 0.647rem;
-        --page-number-line-height: 1.182;
+        --badge-page-font-size: 0.647rem;
+        --badge-page-line-height: 1.182;
 
         position: absolute;
         left: 0.25rem;
@@ -142,9 +142,9 @@
         background: var(--fond-page);
         color: var(--sur-teinte);
         border-radius: var(--radius-pill);
-        padding: 0 var(--page-number-padding-inline);
-        font-size: var(--page-number-font-size);
-        line-height: var(--page-number-line-height);
+        padding: 0 var(--badge-page-padding-inline);
+        font-size: var(--badge-page-font-size);
+        line-height: var(--badge-page-line-height);
         pointer-events: none;
     }
 }

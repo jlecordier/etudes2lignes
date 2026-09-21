@@ -264,7 +264,7 @@ describe('suivi-screen', () => {
             // flex) ; `.bar-status` reçoit ce qui n'appartenait qu'à la barre
             // de suivi — le pli des actions. Ni l'un ni l'autre modificateur
             // ne redéclare `--bar-air` ni `--bar-height`.
-            const barre = element.querySelector('.suivi-bar');
+            const barre = element.querySelector('.bar-status');
 
             expect(barre?.classList.contains('bar')).toBe(true);
             expect(barre?.classList.contains('bar-status')).toBe(true);

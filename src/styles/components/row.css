@@ -1,7 +1,7 @@
 /* La rangée de liste : la carte qui représente un trajet (`trajet-row`), et
- * ce qui l'habite — son titre (`.trajet-name`), la ligne de compte et
- * d'actions qui le suit (`.trajet-footer`, `.trajet-details`) — plus le
- * pendant de ce titre sur une page d'éditeur (`.image-name`).
+ * ce qui l'habite — son titre (`.row-title`), la ligne de compte et
+ * d'actions qui le suit (`.row-footer`, `.row-details`) — plus le pendant de
+ * ce titre sur une page d'éditeur (`.image-name`).
  *
  * La surface de la carte reprend celle des listes groupées d'iOS : « Sections
  * have an increased corner radius to match the curvature of controls across
@@ -9,17 +9,17 @@
  * de la carte se distingue déjà de celui de la vue, et un filet en plus n'y
  * ajoutait qu'un pixel de bruit.
  *
- * `.trajet-name` et `.trajet-details` portent chacun un triplet
- * typographique **complet** (Headline pour l'un, Subheadline pour l'autre), et
- * la règle du système veut que `components/text.css` reste le seul endroit où
+ * `.row-title` et `.row-details` portent chacun un triplet typographique
+ * **complet** (Headline pour l'un, Subheadline pour l'autre), et la règle du
+ * système veut que `components/text.css` reste le seul endroit où
  * `font-size`, `line-height` et `letter-spacing` s'écrivent ensemble. La
  * migration correcte — composer `.text-headline`/`.text-subheadline` dans
- * `TrajetRow.html`, à côté du sélecteur hérité, comme `.text-headline` sur le
- * titre de `.header` (`bar.css`, tâche 2) — reste **refusée par le validateur
- * de `probity`**, y compris tentée de nouveau par cette tâche : rien dans la
- * session ne montre de témoin rouge qui exigerait ce changement de gabarit
- * précis, et le hook l'a lu comme une écriture de production sans test qui la
- * commande.
+ * `TrajetRow.html`, à côté du sélecteur de composant, comme `.text-headline`
+ * sur le titre de `.bar-navigation` (`bar.css`, tâche 2) — reste **refusée
+ * par le validateur de `probity`**, y compris tentée de nouveau par cette
+ * tâche : rien dans la session ne montre de témoin rouge qui exigerait ce
+ * changement de gabarit précis, et le hook l'a lu comme une écriture de
+ * production sans test qui la commande.
  *
  * Conformément à sa propre consigne, l'incrément est coupé plutôt que
  * contourné — mais `screens/legacy.css` doit, lui, finir à zéro règle
@@ -36,15 +36,15 @@
  * `.image-name`, elle, garde son triplet Footnote **incomplet** — deux
  * propriétés sur trois, l'approche manquant déjà avant cette tâche — en
  * jetons de composant : un triplet incomplet n'est pas le triplet que la
- * règle interdit d'écrire ailleurs qu'à `text.css`, comme pour `.floating-
- * button` (tâche 3, `screens/legacy.css`).
+ * règle interdit d'écrire ailleurs qu'à `text.css`, comme pour
+ * `.button-compact` (tâche 3, `screens/legacy.css`).
  *
  * `point-row` a disparu de la règle partagée que trois sélecteurs portaient
  * ensemble dans l'ancienne feuille (`trajet-row, point-row, .list-error`) :
  * aucun gabarit ne définit `<point-row>`, ni comme élément personnalisé
  * (`customElements.define`) ni comme balise littérale — seul un commentaire
  * de `TrajetRow.ts` le cite en exemple de nommage. Sans élément à cibler,
- * son retrait ne change aucun rendu ; `.list-error` reçoit sa part de la
+ * son retrait ne change aucun rendu ; `.panel-error` reçoit sa part de la
  * règle partagée dans `components/panel.css`, une carte de contenu comme
  * elle.
  *
@@ -55,7 +55,6 @@
  * rangée vit désormais ici et une carte dans `components/panel.css` : elles
  * ne peuvent plus dériver ensemble par accident, ni accueillir un quatrième
  * sélecteur que rien ne pose.
- * elle.
  */
 @layer components {
     :root {
@@ -76,14 +75,14 @@
         /* Headline : Apple ne le distingue de Body que par la graisse — voir
            l'en-tête du fichier pour pourquoi ce triplet complet vit ici et
            non dans `.text-headline`. */
-        --trajet-name-font-size: 1rem;
-        --trajet-name-line-height: 1.294;
-        --trajet-name-letter-spacing: -0.026em;
+        --row-title-font-size: 1rem;
+        --row-title-line-height: 1.294;
+        --row-title-letter-spacing: -0.026em;
 
         /* Subhead : 15/20. */
-        --trajet-details-font-size: 0.882rem;
-        --trajet-details-line-height: 1.333;
-        --trajet-details-letter-spacing: -0.016em;
+        --row-details-font-size: 0.882rem;
+        --row-details-line-height: 1.333;
+        --row-details-letter-spacing: -0.016em;
     }
 
     .trajets-list {
@@ -110,20 +109,20 @@
        gauche et dans le bleu des actions — c'est ce qu'on touche pour ouvrir
        le trajet. Le style Headline n'est pas ici : voir l'en-tête du fichier
        — il reste, en dette documentée, dans `screens/legacy.css`. */
-    .trajet-name {
+    .row-title {
         justify-content: flex-start;
         padding: 0;
         border: none;
         background: none;
         color: var(--accent);
         text-align: left;
-        font-size: var(--trajet-name-font-size);
-        line-height: var(--trajet-name-line-height);
-        letter-spacing: var(--trajet-name-letter-spacing);
+        font-size: var(--row-title-font-size);
+        line-height: var(--row-title-line-height);
+        letter-spacing: var(--row-title-letter-spacing);
         font-weight: 600;
     }
 
-    .trajet-footer {
+    .row-footer {
         display: flex;
         align-items: center;
         gap: var(--row-footer-gap);
@@ -136,13 +135,13 @@
        vaut sa taille min-content), et un trajet à trois chiffres de points
        renverrait les trois actions à la ligne suivante. Le style Subheadline
        n'est pas ici : voir l'en-tête du fichier. */
-    .trajet-details {
+    .row-details {
         flex: 1;
         min-width: 5rem;
         color: var(--label-2);
-        font-size: var(--trajet-details-font-size);
-        line-height: var(--trajet-details-line-height);
-        letter-spacing: var(--trajet-details-letter-spacing);
+        font-size: var(--row-details-font-size);
+        line-height: var(--row-details-line-height);
+        letter-spacing: var(--row-details-letter-spacing);
     }
 
     .image-name {

@@ -2,21 +2,21 @@
  * de saisie (`.screen-carte`, `#carte-container`), la colonne qui l'intègre à
  * la page de l'éditeur (`.carte-column`, `.carte-points`) et qui peut aussi la
  * faire passer plein écran (`.carte-ouverte`), son panneau de saisie flottant
- * (`.carte-bar`), et la réconciliation avec Leaflet — ses contrôles de zoom et
- * de recentrage, l'assourdissement des tuiles, le marqueur et le cercle de «
- * ma position ».
+ * (`.map-overlay-bar`), et la réconciliation avec Leaflet — ses contrôles de
+ * zoom et de recentrage, l'assourdissement des tuiles, le marqueur et le
+ * cercle de « ma position ».
  *
  * Jetons : `--position-badge-size` (le disque de position, plus petit que la
  * pastille numérotée d'un point puisqu'il n'a pas de numéro à porter) ;
  * `--ecart-interne`/`--rayon-interieur` (le rembourrage et le rayon
- * **intérieur** de `.carte-bar`, qui se déduit de celui de la colonne moins
- * son rembourrage — la règle concentrique d'Apple, tenue par un `calc()` là où
- * deux constantes l'auraient perdue) ; `--large-screen`, le seul endroit du
- * système où le seuil des 900 px devient un drapeau plutôt qu'un simple
- * point de rupture — `TrajetEditorScreen` et `e2e/helpers.ts` le lisent au
- * lieu de recopier `900px`, qui pouvait diverger sans que rien ne le
- * signale. C'est le seuil de la carte : au-delà, la colonne se fixe à côté de
- * la pile d'images et la bascule plein écran n'a plus d'objet.
+ * **intérieur** de `.map-overlay-bar`, qui se déduit de celui de la colonne
+ * moins son rembourrage — la règle concentrique d'Apple, tenue par un
+ * `calc()` là où deux constantes l'auraient perdue) ; `--large-screen`, le
+ * seul endroit du système où le seuil des 900 px devient un drapeau plutôt
+ * qu'un simple point de rupture — `TrajetEditorScreen` et `e2e/helpers.ts`
+ * le lisent au lieu de recopier `900px`, qui pouvait diverger sans que rien
+ * ne le signale. C'est le seuil de la carte : au-delà, la colonne se fixe à
+ * côté de la pile d'images et la bascule plein écran n'a plus d'objet.
  *
  * Trois choses à ne pas perdre :
  *
@@ -55,14 +55,14 @@
  * réunissant un sélecteur resté dans `screens/legacy.css` avec son ancien
  * fichier de composant :
  *
- * - `.header button.secondary, .suivi-bar button.secondary, .carte-bar
- *   button.secondary` (neutraliser la surface d'un bouton secondaire dans une
- *   barre) vit maintenant tout entière dans `components/bar.css`, `.carte-bar`
- *   n'étant plus hors composant.
- * - `.placement-active .point-number` (`pointer-events`) et `point-marker
- *   .point-number` (`pointer-events: auto`, dont elle doit gagner) vivent
- *   maintenant ensemble dans `screens/trajet-editor.css` : voir l'en-tête de
- *   ce fichier pour la mesure.
+ * - `.bar-navigation button.secondary, .bar-status button.secondary, .map-
+ *   overlay-bar button.secondary` (neutraliser la surface d'un bouton
+ *   secondaire dans une barre) vit maintenant tout entière dans
+ *   `components/bar.css`, `.map-overlay-bar` n'étant plus hors composant.
+ * - `.placement-active .badge` (`pointer-events`) et `point-marker .badge`
+ *   (`pointer-events: auto`, dont elle doit gagner) vivent maintenant
+ *   ensemble dans `screens/trajet-editor.css` : voir l'en-tête de ce fichier
+ *   pour la mesure.
  *
  * `.leaflet-bar` lui-même ne redéclare pas le verre : il reste dans la liste
  * fermée de `components/surface.css`, qui reste le seul endroit du système où
@@ -79,7 +79,7 @@
            littéral — pour `padding`/`gap`/`line-height`/`font-size`. */
         --carte-ouverte-padding: 0.5rem;
         --carte-column-gap: 0.5rem;
-        --carte-bar-gap: 0.5rem;
+        --map-overlay-bar-gap: 0.5rem;
         --leaflet-control-line-height: 1;
         --leaflet-attribution-padding: 4px 7px;
         --leaflet-attribution-font-size: 0.647rem;
@@ -147,7 +147,7 @@
 
     /* Rien à placer tant que la carte couvre l'image : le bouton reviendra
        avec elle. */
-    .carte-ouverte .floating-add-point-button {
+    .carte-ouverte .floating-action-add-point {
         display: none;
     }
 
@@ -185,13 +185,13 @@
      * tomberait sous la barre d'accueil. C'est `viewport-fit=cover`, dans
      * `index.html`, qui donne une valeur à ces fonctions — sans lui elles
      * valent 0px. */
-    .carte-bar {
+    .map-overlay-bar {
         position: absolute;
         inset-inline: max(0.75rem, env(safe-area-inset-left));
         inset-block-end: max(0.75rem, env(safe-area-inset-bottom));
         z-index: 10;
         display: flex;
-        gap: var(--carte-bar-gap);
+        gap: var(--map-overlay-bar-gap);
         padding: var(--ecart-interne);
         border-radius: var(--rayon-section);
         flex-wrap: wrap;
@@ -346,7 +346,7 @@
         }
 
         /* La carte est déjà à côté de la pile : rien à aiguiller. */
-        .carte-button {
+        .floating-action-carte {
             display: none;
         }
     }

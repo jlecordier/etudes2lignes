@@ -190,7 +190,7 @@ function dragStart(event: PointerEvent): DragStart | null {
         return null;
     }
     const pressed = event.target;
-    if (!(pressed instanceof HTMLElement) || !pressed.classList.contains('point-number')) {
+    if (!(pressed instanceof HTMLElement) || !pressed.classList.contains('badge')) {
         return null;
     }
     const marker = pressed.closest('point-marker');

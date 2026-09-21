@@ -1,26 +1,25 @@
 /* La saisie : le champ de coordonnée du panneau de la carte plein écran
- * (`.carte-bar input`), et les deux lignes d'état qui l'accompagnent
+ * (`.map-overlay-bar input`), et les deux lignes d'état qui l'accompagnent
  * (`.carte-position-bar`, `.carte-position-status`).
  *
- * `.carte-bar input` est concentrique avec le panneau qui le porte —
- * `.carte-bar`, dans `screens/legacy.css` — la règle d'Apple : « consider
- * aligning the shape of controls with other rounded elements ». Son rayon
- * se lit `var(--rayon-interieur, 14px)` : `--rayon-interieur` (`calc(var(--
- * rayon-section) - var(--ecart-interne))`, soit 22 px moins 8 px) est
- * déclaré dans le `:root` de `screens/legacy.css`, pas dans `tokens/
- * primitives.css`, `tokens/semantic.css` ni `screens/legacy-bridge.css` —
- * les trois seuls que `csstools/value-no-unknown-custom-properties`
- * reconnaît hors du fichier courant. Le filet de secours (14 px, la même
- * valeur calculée) traverse cette frontière sans faire échouer le lint ; il
- * ne joue jamais en pratique, `--rayon-interieur` s'appliquant toujours par
- * héritage depuis la racine du document. `.carte-bar` et `--rayon-interieur`
- * vivent désormais dans `components/map-overlay.css` (tâche 5) — mais
- * `csstools/value-no-unknown-custom-properties` ne reconnaît toujours que les
- * trois fichiers cités plus haut pour une référence inter-fichiers : faire de
- * `--rayon-interieur` un jeton partagé sans ce filet demanderait de le
- * promouvoir au palier sémantique, une décision distincte que cette tâche ne
- * prend pas — le filet reste donc, et continue de ne jamais jouer en
- * pratique.
+ * `.map-overlay-bar input` est concentrique avec le panneau qui le porte —
+ * `.map-overlay-bar`, dans `components/map-overlay.css` — la règle d'Apple :
+ * « consider aligning the shape of controls with other rounded elements ».
+ * Son rayon se lit `var(--rayon-interieur, 14px)` : `--rayon-interieur`
+ * (`calc(var(--rayon-section) - var(--ecart-interne))`, soit 22 px moins
+ * 8 px) est déclaré dans le `:root` de `components/map-overlay.css`, pas
+ * dans `tokens/primitives.css`, `tokens/semantic.css` ni
+ * `screens/legacy-bridge.css` — les trois seuls que
+ * `csstools/value-no-unknown-custom-properties` reconnaît hors du fichier
+ * courant. Le filet de secours (14 px, la même valeur calculée) traverse
+ * cette frontière sans faire échouer le lint ; il ne joue jamais en
+ * pratique, `--rayon-interieur` s'appliquant toujours par héritage depuis la
+ * racine du document. `csstools/value-no-unknown-custom-properties` ne
+ * reconnaît toujours que les trois fichiers cités plus haut pour une
+ * référence inter-fichiers : faire de `--rayon-interieur` un jeton partagé
+ * sans ce filet demanderait de le promouvoir au palier sémantique, une
+ * décision distincte que cette tâche ne prend pas — le filet reste donc, et
+ * continue de ne jamais jouer en pratique.
  *
  * `.carte-position-bar` et `.carte-position-status` gardent leur triplet
  * Footnote **incomplet** en clair, comme `components/banner.css` et
@@ -32,8 +31,6 @@
  * de littéral à faire dériver. Ce que ce fichier apporte est un rangement,
  * pas une correction ; sa seule dette est le filet de secours ci-dessus, que
  * la tâche du `map-overlay` retirera.
- * Footnote **incomplet** en clair, comme `components/banner.css` et
- * `components/row.css` : l'approche manquait déjà avant cette tâche.
  */
 @layer components {
     :root {
@@ -48,7 +45,7 @@
         --field-line-height: 1.385;
     }
 
-    .carte-bar input {
+    .map-overlay-bar input {
         font: inherit;
         padding: var(--field-input-padding);
         border: 1px solid var(--separateur);

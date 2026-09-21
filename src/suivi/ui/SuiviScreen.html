@@ -1,4 +1,4 @@
-<div id="suivi-bar" class="suivi-bar bar bar-status">
+<div id="suivi-bar" class="bar bar-status">
     <button id="leave-suivi-button" type="button" class="secondary" aria-label="Éditer">
         <svg class="icon" aria-hidden="true"><use href="#i-chevron-left" /></svg>
         <span class="button-label">Éditer</span>
@@ -8,7 +8,7 @@
         <svg class="icon" aria-hidden="true"><use href="#i-flask" /></svg>
         <span class="button-label">Simuler</span>
     </button>
-    <p id="simulation-banner" class="simulation-banner" hidden>
+    <p id="simulation-banner" class="banner-simulation" hidden>
         Position simulée —
         <button id="leave-simulation-button" type="button" class="secondary" aria-label="Quitter">
             <svg class="icon" aria-hidden="true"><use href="#i-xmark" /></svg>
@@ -20,14 +20,14 @@
     <div id="suivi-stack" class="suivi-stack"></div>
     <!-- Une silhouette du voyage entier : elle n'ajoute aucun nom de page à
          énoncer, et la position se dit déjà en toutes lettres dans l'état. -->
-    <div id="trajet-overview" class="trajet-overview" aria-hidden="true" hidden>
+    <div id="trajet-overview" class="panel-overview" aria-hidden="true" hidden>
         <div id="overview-stack" class="overview-stack">
             <div id="overview-position" class="overview-position" hidden></div>
         </div>
     </div>
 </div>
 <div class="guide-line" aria-hidden="true"></div>
-<button id="resume-button" type="button" class="resume-button" hidden>
+<button id="resume-button" type="button" class="floating-action-resume" hidden>
     <svg class="icon" aria-hidden="true"><use href="#i-play" /></svg>Reprendre le suivi
 </button>
 <!-- Intitulé stable et `aria-pressed` : c'est l'état qui bascule, pas le nom —
@@ -35,7 +35,7 @@
 <button
     id="overview-button"
     type="button"
-    class="secondary overview-button"
+    class="secondary floating-action-overview"
     aria-label="Aperçu du trajet"
     aria-pressed="false"
     title="Aperçu du trajet"
