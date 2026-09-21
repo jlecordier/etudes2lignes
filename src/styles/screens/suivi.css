@@ -7,12 +7,12 @@
  * largeur de l'aperçu n'a pas de taille de système, elle se déduit de ce qui
  * fait tenir toute la pile de pages dans la hauteur disponible — une mesure
  * d'écran, pas un jeton (voir `components/floating-action.css` pour la même
- * exception sur `.resume-button`).
+ * exception sur `.floating-action-resume`).
  *
  * **La dette que ce fichier referme, écrite par la tâche 4 dans
- * `components/panel.css` :** `.trajet-overview`/`.overview-ouvert
- * .trajet-overview` (l'incrustation mobile) et `suivi-screen
- * .trajet-overview`/`suivi-screen.overview-ouvert .trajet-overview` (la
+ * `components/panel.css` :** `.panel-overview`/`.overview-ouvert
+ * .panel-overview` (l'incrustation mobile) et `suivi-screen
+ * .panel-overview`/`suivi-screen.overview-ouvert .panel-overview` (la
  * variante grand écran, sous `@media (min-width: 900px)`) se disputaient
  * `display`, `position`, `top`, `height`, `z-index` depuis deux couches
  * différentes — posées toutes deux dans `components/panel.css`, l'une des
@@ -83,11 +83,11 @@
     /* Voir l'en-tête du fichier pour la mesure : le fond et l'ombre du
        panneau vivent dans `components/panel.css`, disjoints de ce que cette
        règle place. */
-    .trajet-overview {
+    .panel-overview {
         display: none;
     }
 
-    .overview-ouvert .trajet-overview {
+    .overview-ouvert .panel-overview {
         display: flex;
         justify-content: center;
 
@@ -131,7 +131,7 @@
        Reste entier ici, base et correctif grand écran compris, plutôt que
        dans `components/floating-action.css` : voir l'exception nommée dans
        l'en-tête de ce fichier, propre à `--overview-width`. */
-    .resume-button {
+    .floating-action-resume {
         position: fixed;
         bottom: 1rem;
         left: 50%;
@@ -147,8 +147,8 @@
            plus haut dans ce même fichier : le seuil ne s'écrit qu'ici — le
            répéter dans une seconde requête média aurait recopié le 900 —,
            donc c'est la spécificité qui tranche, et non l'ordre. */
-        suivi-screen .trajet-overview,
-        suivi-screen.overview-ouvert .trajet-overview {
+        suivi-screen .panel-overview,
+        suivi-screen.overview-ouvert .panel-overview {
             display: flex;
             justify-content: center;
 
@@ -164,7 +164,7 @@
             z-index: 0;
         }
 
-        suivi-screen .overview-button {
+        suivi-screen .floating-action-overview {
             display: none;
         }
 
@@ -175,7 +175,7 @@
         }
 
         /* Recentré sur la pile, pas sur la fenêtre. */
-        suivi-screen .resume-button {
+        suivi-screen .floating-action-resume {
             left: calc((100% - var(--overview-width)) / 2);
         }
     }

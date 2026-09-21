@@ -55,7 +55,7 @@
         --color-destructive: light-dark(var(--red-light), var(--red-dark));
 
         /* La teinte de **remplissage** de l'orange système — un aplat, une
-           bordure : `.hint-banner` la porte en trait autour de sa teinte de
+           bordure : `.panel-hint` la porte en trait autour de sa teinte de
            fond. Valeur mesurée de l'ancienne feuille en clair ; la branche
            sombre coïncide avec `--orange-dark` et le référence donc, plutôt
            que de recopier le même littéral une seconde fois.

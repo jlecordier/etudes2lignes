@@ -6,29 +6,33 @@
  * `--point-line-thickness` reste ici, propre à ce fichier : le trait qui
  * traverse la page à la hauteur d'un point, et sur le milieu duquel la
  * pastille se cale, n'a de sens que sur cette page — `point-marker`,
- * `.point-ghost` (le trait lui-même) et `.point-actions` (sa position) sont
- * les trois seuls à le lire, tous ici. `--badge-size`, la taille de la
+ * `.point-ghost` (le trait lui-même) et `.button-group-point` (sa position)
+ * sont les trois seuls à le lire, tous ici. `--badge-size`, la taille de la
  * pastille elle-même, vit dans `components/badge.css` ; `point-marker
- * .point-number` la lit avec un filet de secours (`var(--badge-size, 26px)`),
+ * .badge` la lit avec un filet de secours (`var(--badge-size, 26px)`),
  * `csstools/value-no-unknown-custom-properties` ne reconnaissant que
  * `tokens/primitives.css`, `tokens/semantic.css` et `screens/legacy-
  * bridge.css` hors du fichier courant.
  *
  * **La dette que ce fichier referme, écrite par la tâche 4 dans
- * `components/badge.css` :** `.placement-active .point-number`
- * (`pointer-events: none`, le mode de visée) et `point-marker .point-number`
+ * `components/badge.css` :** `.placement-active .badge`
+ * (`pointer-events: none`, le mode de visée) et `point-marker .badge`
  * (`pointer-events: auto`, la pastille cliquable) se disputaient le même
  * repère depuis deux couches différentes — la première restait dans
  * `screens/legacy.css` parce qu'une couche `components` perd *toujours* face
- * à `screens`, quelle que soit la spécificité, et `point-marker
- * .point-number`, elle, ne pouvait pas migrer vers `badge.css` à cause du
- * filet de secours ci-dessus. Réunies ici, dans le même fichier donc la même
- * couche, c'est de nouveau la spécificité qui tranche : `.placement-active
- * .point-number` (deux classes, (0,2,0)) bat `point-marker .point-number`
- * (un type et une classe, (0,1,1)) sur la seule force du nombre de classes,
- * comme avant que badge.css n'existe. Mesuré : `getComputedStyle` sur la
- * pastille en mode de visée rend `pointer-events: none`, la même valeur
- * qu'avant la tâche 4.
+ * à `screens`, quelle que soit la spécificité, et `point-marker .badge`,
+ * elle, ne pouvait pas migrer vers `badge.css` à cause du filet de secours
+ * ci-dessus. Réunies ici, dans le même fichier donc la même couche, c'est de
+ * nouveau la spécificité qui tranche : `.placement-active .badge` (deux
+ * classes, (0,2,0)) bat `point-marker .badge` (un type et une classe,
+ * (0,1,1)) sur la seule force du nombre de classes, comme avant que
+ * badge.css n'existe. Mesuré : `getComputedStyle` sur la pastille en mode de
+ * visée rend `pointer-events: none`, la même valeur qu'avant la tâche 4.
+ *
+ * La tâche 6 a renommé les sélecteurs eux-mêmes (`.point-number` -> `.badge`,
+ * `.point-actions` -> `.button-group-point`), sans toucher à la mesure
+ * ci-dessus : la spécificité relative des deux règles ne dépend que du
+ * nombre de classes, pas de leur nom.
  */
 @layer screens {
     :root {
@@ -71,12 +75,12 @@
     }
 
     /* Voir l'en-tête du fichier pour la mesure : réunie ici avec `point-marker
-       .point-number`, cette règle gagne de nouveau par spécificité.
+       .badge`, cette règle gagne de nouveau par spécificité.
        Tant qu'on vise une hauteur sur le schéma, toute l'image est cible : la
        pastille redevient transparente, sans quoi elle avalerait le clic sur
        ses 26 px et le point ne pourrait pas se poser à la hauteur d'un point
        existant. */
-    .placement-active .point-number {
+    .placement-active .badge {
         pointer-events: none;
     }
 
@@ -105,7 +109,7 @@
      * padding, qui commence sous le trait — d'où la demi-épaisseur de
      * celui-ci ajoutée à la moitié de la pastille pour remonter jusqu'à son
      * milieu. */
-    point-marker .point-number {
+    point-marker .badge {
         position: absolute;
         left: 0.25rem;
 
@@ -127,16 +131,16 @@
        qu'un clic en fait — et ne confirme le glisser qu'au moment où il
        commence. Écart assumé avec le marqueur de la carte, qui montre `grab`
        dès le survol. */
-    point-marker .point-number:active {
+    point-marker .badge:active {
         cursor: grabbing;
     }
 
     /* Sa surface (verre sans flou, teinte) vit dans `components/
-       button-group.css`, avec `.action-bar` et `.image-bar` : les trois
+       button-group.css`, avec `.button-group` et `.button-group-image` : les trois
        groupes dont le verre se pose sur le groupe, jamais sur l'enfant. Sa
        position reste ici, seule : elle se cale sur `--point-line-thickness`,
        propre à ce fichier. */
-    .point-actions {
+    .button-group-point {
         position: absolute;
         right: 0.25rem;
         bottom: calc(var(--point-line-thickness) + 0.75rem);

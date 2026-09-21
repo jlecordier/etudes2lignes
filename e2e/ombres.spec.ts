@@ -36,7 +36,7 @@ test.describe("L'ombre calculée, dans les trois apparences", () => {
     }) => {
         await ouvrirUnTrajetAvecUnePage(page);
         await ajouterUnPoint(page, 0.5, 0);
-        const pastille = page.locator('#images-stack .point-number');
+        const pastille = page.locator('#images-stack .badge');
 
         await page.emulateMedia({ colorScheme: 'light' });
         const clair = await boiteAOmbre(pastille);

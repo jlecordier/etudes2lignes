@@ -68,7 +68,7 @@ test.describe('Import / export JSON', () => {
         await expect(page.locator('point-marker')).toHaveCount(1);
 
         const telechargement = page.waitForEvent('download');
-        await page.locator('.action-bar').getByRole('button', { name: 'Exporter' }).click();
+        await page.locator('.button-group').getByRole('button', { name: 'Exporter' }).click();
 
         // Le nom accessible est cherché tel quel : sur iPhone 14 et Pixel 7, tous
         // deux sous les 560 px, le libellé visible est masqué et seul

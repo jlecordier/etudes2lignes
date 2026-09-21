@@ -153,12 +153,12 @@ export function mesuresDuRepere(page: Page, index = 0): Promise<MesuresDuRepere>
         if (repere === undefined) {
             throw new Error(`Repère ${rang + 1} introuvable : ${reperes.length} sur la page.`);
         }
-        const pastille = repere.querySelector('.point-number');
+        const pastille = repere.querySelector('.badge');
         const numero = pastille?.textContent ?? '';
         return {
             trait: boite(repere, 'Trait du repère'),
             pastille: boite(pastille, 'Pastille du repère'),
-            boutons: boite(repere.querySelector('.point-actions'), 'Boutons du repère'),
+            boutons: boite(repere.querySelector('.button-group-point'), 'Boutons du repère'),
             pastilleDeLaCarte: boite(
                 [...document.querySelectorAll('#carte-points .carte-marker')].find(
                     (candidat) => candidat.textContent === numero,
@@ -383,7 +383,7 @@ export async function ajouterUnPoint(
 ): Promise<void> {
     // Scopé à la barre d'actions : le bouton flottant sur l'image partage le
     // même intitulé (voir e2e/points.spec.ts pour un test dédié à ce dernier).
-    await page.locator('.action-bar').getByRole('button', { name: 'Ajouter un point' }).click();
+    await page.locator('.button-group').getByRole('button', { name: 'Ajouter un point' }).click();
     await cliquerSurLImage(page, fractionOfHeight);
     await choisirUneCoordonneePourUnPoint(page, carteShiftX);
 }

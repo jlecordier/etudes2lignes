@@ -26,7 +26,7 @@ test.describe("Éditeur d'un trajet — les images", () => {
         await expect(page.locator('#images-stack schema-page')).toHaveCount(2);
         // Les pages se comptent depuis le haut de la pile — l'ordre dans lequel
         // l'explorateur les a livrées, et celui que la liste des points annonce.
-        await expect(page.locator('.page-number')).toHaveText(['1', '2']);
+        await expect(page.locator('.badge-page')).toHaveText(['1', '2']);
     });
 
     test('Étant donné deux images, quand je monte visuellement celle du bas, alors elle devient la fin du voyage', async ({
@@ -40,7 +40,7 @@ test.describe("Éditeur d'un trajet — les images", () => {
         await expect(page.locator('.image-name')).toHaveText(['page-2.png', 'page-1.png']);
         // Le numéro dit la rangée, pas le fichier : c'est la page du haut qui
         // porte le 1, quelle qu'elle soit.
-        await expect(page.locator('.page-number')).toHaveText(['1', '2']);
+        await expect(page.locator('.badge-page')).toHaveText(['1', '2']);
     });
 
     test('Étant donné un point sur chaque page, alors les numéros croissent en remontant la pile, comme les PK', async ({
@@ -63,7 +63,7 @@ test.describe("Éditeur d'un trajet — les images", () => {
         // remontant, fini le zigzag « 2 1 / 4 3 » d'un empilement à l'envers.
         // Le voyage part du bas, donc le premier point est celui de la page du
         // bas — dont le numéro de page, lui, est le plus grand.
-        await expect(page.locator('#images-stack .point-number')).toHaveText(['2', '1']);
+        await expect(page.locator('#images-stack .badge')).toHaveText(['2', '1']);
     });
 
     test("Étant donné deux images, quand j'en supprime une et confirme, alors elle disparaît durablement", async ({

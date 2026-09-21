@@ -26,7 +26,10 @@ test.describe('Géoréférencement des points', () => {
 
         // Les trois étapes restent écrites ici : c'est ce test qui spécifie le
         // parcours d'ajout d'un point. Les autres passent par `ajouterUnPoint`.
-        await page.locator('.action-bar').getByRole('button', { name: 'Ajouter un point' }).click();
+        await page
+            .locator('.button-group')
+            .getByRole('button', { name: 'Ajouter un point' })
+            .click();
         await cliquerSurLImage(page, 0.25);
         await choisirUneCoordonneePourUnPoint(page);
 
@@ -255,7 +258,7 @@ test.describe('Géoréférencement des points', () => {
         await page.evaluate(() => {
             window.scrollTo(0, 0);
         });
-        const pastille = page.locator('#images-stack .point-number');
+        const pastille = page.locator('#images-stack .badge');
         await expect(pastille).not.toBeInViewport();
 
         await page.locator('#carte-points .carte-marker').first().click();
@@ -295,7 +298,7 @@ test.describe('Géoréférencement des points', () => {
         // Elle se retire d'elle-même : la garder ouverte cacherait ce qu'on vient
         // de demander à voir.
         await expect(carte).not.toBeInViewport();
-        await expect(page.locator('#images-stack .point-number')).toBeInViewport();
+        await expect(page.locator('#images-stack .badge')).toBeInViewport();
     });
 
     test('Étant donné le choix sur carte, quand je saisis latitude et longitude à la main, alors le point est créé avec ces valeurs', async ({
@@ -306,7 +309,10 @@ test.describe('Géoréférencement des points', () => {
             'La saisie manuelle lat/lon vit dans la carte plein écran : sur grand écran, la coordonnée se choisit directement sur la carte intégrée.',
         );
         await ouvrirUnTrajetAvecUnePage(page);
-        await page.locator('.action-bar').getByRole('button', { name: 'Ajouter un point' }).click();
+        await page
+            .locator('.button-group')
+            .getByRole('button', { name: 'Ajouter un point' })
+            .click();
         await cliquerSurLImage(page, 0.5);
         await expect(page.locator('#screen-carte')).toBeVisible();
 
@@ -414,8 +420,11 @@ test.describe('Géoréférencement des points', () => {
         // (`pointer-events: none` sur `point-marker`), seule la pastille l'est
         // *pendant un placement*. C'est donc elle qu'il faut viser pour que le
         // clic mette réellement le garde à l'épreuve.
-        await page.locator('.action-bar').getByRole('button', { name: 'Ajouter un point' }).click();
-        const pastilleDuPoint1 = page.locator('point-marker .point-number');
+        await page
+            .locator('.button-group')
+            .getByRole('button', { name: 'Ajouter un point' })
+            .click();
+        const pastilleDuPoint1 = page.locator('point-marker .badge');
         await pastilleDuPoint1.scrollIntoViewIfNeeded();
         const pastille = requireDefined(
             await pastilleDuPoint1.boundingBox(),
@@ -436,7 +445,7 @@ test.describe('Géoréférencement des points', () => {
         await ajouterUnPoint(page, 0.3, 0);
 
         const pastille = requireDefined(
-            await page.locator('point-marker .point-number').boundingBox(),
+            await page.locator('point-marker .badge').boundingBox(),
             'pastille du point 1',
         );
         const zone = requireDefined(
@@ -488,7 +497,7 @@ test.describe('Géoréférencement des points', () => {
         const avant = await hauteurDuRepere(page);
 
         const pastille = requireDefined(
-            await page.locator('point-marker .point-number').boundingBox(),
+            await page.locator('point-marker .badge').boundingBox(),
             'pastille du point 1',
         );
         await page.mouse.move(pastille.x + pastille.width / 2, pastille.y + pastille.height / 2);

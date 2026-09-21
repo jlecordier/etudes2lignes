@@ -11,16 +11,16 @@ import {
 const LARGEURS = [360, 390, 430];
 
 async function hauteurDeLaBarre(page: Page): Promise<number> {
-    const boite = await page.locator('.header, .suivi-bar').first().boundingBox();
+    const boite = await page.locator('.bar-navigation, .bar-status').first().boundingBox();
     return Math.round(requireDefined(boite, 'barre').height);
 }
 
 test.describe('La géométrie du système', () => {
     test.describe('La hauteur de la barre', () => {
-        // `.suivi-bar` affiche son état dans un texte (`#suivi-status`) que
-        // `.header` n'a pas, et elle porte `flex-wrap: wrap` là où `.header`
-        // ne le porte jamais (voir le commentaire sur `.header` dans
-        // legacy.css). Sans géolocalisation mockée, le texte affiché varie
+        // `.bar-status` affiche son état dans un texte (`#suivi-status`) que
+        // `.bar-navigation` n'a pas, et elle porte `flex-wrap: wrap` là où
+        // `.bar-navigation` ne le porte jamais (voir le commentaire sur
+        // `.bar-navigation` dans bar.css). Sans géolocalisation mockée, le texte affiché varie
         // d'une exécution à l'autre — vide, « Accès à la position refusé… »,
         // selon le moment où l'API résout — et sa longueur décide parfois la
         // barre à passer sur deux lignes (71 px, mesuré). Géolocalisation
@@ -49,7 +49,7 @@ test.describe('La géométrie du système', () => {
                 await page.getByRole('button', { name: 'Trajets' }).click();
                 hauteurs[`liste-${largeur}`] = await hauteurDeLaBarre(page);
 
-                await page.locator('.trajet-name').first().click();
+                await page.locator('.row-title').first().click();
                 await page.locator('#suivre-button').click();
                 await expect(page.locator('suivi-screen')).toBeVisible();
                 hauteurs[`suivi-${largeur}`] = await hauteurDeLaBarre(page);
@@ -81,7 +81,7 @@ test.describe('La géométrie du système', () => {
         // Deux régimes exclus, et c'est motivé pour chacun. Les contrôles de
         // carte : voir le test suivant, qui leur applique le plancher que la
         // HIG leur laisse — 28 px, distinct du 44 px de l'application. La
-        // pastille numérotée (`.point-number`) : c'est aussi un `<button>`,
+        // pastille numérotée (`.badge`) : c'est aussi un `<button>`,
         // mais son `min-inline-size` est neutralisé à 0 dans legacy.css — la
         // seule fois de la feuille — pour qu'elle garde le même dessin que sa
         // jumelle de la carte, un `div` hors de portée de cette règle ; le
@@ -89,8 +89,7 @@ test.describe('La géométrie du système', () => {
         // carte, pas celui-ci.
         for (const cible of await page.locator('button:visible').all()) {
             const exclu = await cible.evaluate(
-                (n) =>
-                    n.closest('.leaflet-control') !== null || n.classList.contains('point-number'),
+                (n) => n.closest('.leaflet-control') !== null || n.classList.contains('badge'),
             );
             if (exclu) {
                 continue;
@@ -193,7 +192,7 @@ test.describe('La géométrie du système', () => {
     }) => {
         await preparerLApplication(page);
         await ouvrirUnTrajetAvecUnePage(page);
-        // `.point-number` ne paraît qu'une fois un point posé : sans lui, le
+        // `.badge` ne paraît qu'une fois un point posé : sans lui, le
         // sélecteur ne rencontre rien et `length > 0` échouerait pour une
         // raison étrangère à la géométrie qu'on veut mesurer.
         //
@@ -212,10 +211,10 @@ test.describe('La géométrie du système', () => {
         // certains moteurs le marqueur n'est pas encore rendu au retour
         // d'`ajouterUnPoint`. Attendre son attachement plutôt que de mesurer
         // une pile pas encore à jour.
-        await page.locator('.point-number').first().waitFor({ state: 'attached' });
+        await page.locator('.badge').first().waitFor({ state: 'attached' });
 
         const tailles = await page.evaluate(() =>
-            Array.from(document.querySelectorAll('.point-number, .carte-marker')).map((n) => {
+            Array.from(document.querySelectorAll('.badge, .carte-marker')).map((n) => {
                 const r = n.getBoundingClientRect();
                 return `${Math.round(r.width)}x${Math.round(r.height)}`;
             }),
