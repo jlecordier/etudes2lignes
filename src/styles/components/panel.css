@@ -47,7 +47,7 @@
  * l'autre, donc les deux moitiés ne se recontredisent pas en restant chacune
  * dans son fichier.
  *
- * `background: var(--verre-epais)` peut surprendre dans un fichier dont
+ * `background: var(--material-thick)` peut surprendre dans un fichier dont
  * l'en-tête dit « jamais de flou » : ce n'est pas une contradiction.
  * `.panel-overview` n'est pas une carte de contenu au repos comme les cinq
  * autres de ce fichier — c'est le fond du panneau qui sépare visuellement
@@ -93,26 +93,26 @@
            exactement celle de sa pile, dont le repère se sert pour savoir où
            s'arrêter. Un seul jeton pour les deux tailles d'écran, plus bas :
            la valeur ne peut plus diverger entre elles. */
-        --overview-panel-shadow: -1px 0 0 var(--separateur);
+        --overview-panel-shadow: -1px 0 0 var(--color-separator);
     }
 
     .panel-help {
-        color: var(--label-2);
+        color: var(--color-label-secondary);
         font-size: var(--panel-help-font-size);
         line-height: var(--panel-help-line-height);
         letter-spacing: var(--panel-help-letter-spacing);
     }
 
     .panel-hint {
-        background: var(--fond-consigne);
-        border: 1px solid var(--orange);
-        border-radius: var(--rayon-section);
+        background: var(--color-background-hint);
+        border: 1px solid var(--color-warning);
+        border-radius: var(--radius-section);
         padding: var(--panel-hint-padding);
     }
 
     .panel-error {
-        background: var(--fond);
-        border-radius: var(--rayon-section);
+        background: var(--color-background);
+        border-radius: var(--radius-section);
         display: flex;
         align-items: center;
         gap: var(--panel-error-gap);
@@ -121,13 +121,13 @@
     }
 
     .panel-empty {
-        color: var(--label-2);
+        color: var(--color-label-secondary);
     }
 
     /* Voir l'en-tête du fichier : le placement de ces deux règles vit dans
        `screens/suivi.css`, sous les mêmes deux sélecteurs. */
     .overview-ouvert .panel-overview {
-        background: var(--verre-epais);
+        background: var(--material-thick);
         box-shadow: var(--overview-panel-shadow);
     }
 
@@ -152,7 +152,7 @@
        en page et passe au-dessus de la vignette. */
     overview-page {
         display: block;
-        outline: 1px dashed var(--label-3);
+        outline: 1px dashed var(--color-label-tertiary);
         outline-offset: -1px;
     }
 
@@ -173,7 +173,7 @@
         position: absolute;
         left: 0;
         right: 0;
-        border-top: 3px solid var(--position);
+        border-top: 3px solid var(--color-accent);
         pointer-events: none;
     }
 }

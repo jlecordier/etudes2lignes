@@ -86,10 +86,10 @@
 
         /* Le rayon **intérieur** n'est pas une valeur de plus : il se
            *calcule* depuis celui de la section qui le contient
-           (`--rayon-section`, alias du palier sémantique) moins le
+           (`--radius-section`, alias du palier sémantique) moins le
            rembourrage qui les sépare — la règle concentrique d'Apple. */
         --ecart-interne: 8px;
-        --rayon-interieur: calc(var(--rayon-section) - var(--ecart-interne));
+        --rayon-interieur: calc(var(--radius-section) - var(--ecart-interne));
 
         /* Passe à 1 dans la requête média des 900 px, plus bas — le seuil de
            la carte, et nulle part ailleurs. */
@@ -103,7 +103,7 @@
         z-index: 1000;
         display: flex;
         flex-direction: column;
-        background: var(--fond);
+        background: var(--color-background);
     }
 
     /* La carte occupe **tout** l'écran de saisie, et le formulaire flotte
@@ -134,7 +134,7 @@
         position: fixed;
         inset: 0;
         z-index: 15;
-        background: var(--fond);
+        background: var(--color-background);
         padding: var(--carte-ouverte-padding);
     }
 
@@ -166,8 +166,8 @@
            conteneur et se dessinent par-dessus toute la page. */
         position: relative;
         height: 45vh;
-        border: 1px solid var(--separateur);
-        border-radius: var(--rayon-section);
+        border: 1px solid var(--color-separator);
+        border-radius: var(--radius-section);
 
         /* Sous les boutons flottants et les écrans superposés — voir l'en-tête
            du fichier. */
@@ -193,7 +193,7 @@
         display: flex;
         gap: var(--map-overlay-bar-gap);
         padding: var(--ecart-interne);
-        border-radius: var(--rayon-section);
+        border-radius: var(--radius-section);
         flex-wrap: wrap;
         align-items: center;
     }
@@ -208,7 +208,7 @@
      * une boîte carrée. */
     .leaflet-bar {
         border: none;
-        border-radius: var(--rayon-controle);
+        border-radius: var(--radius-control);
         overflow: hidden;
 
         /* Le fond et l'ombre d'un moteur sans le verre vivent dans le repli
@@ -240,7 +240,7 @@
         border-radius: 0;
         background: none;
         box-shadow: none;
-        color: var(--label);
+        color: var(--color-label);
         line-height: var(--leaflet-control-line-height);
     }
 
@@ -248,19 +248,19 @@
        leur donner chacun une surface. */
     .leaflet-bar a + a,
     .leaflet-bar a + .carte-recentrer {
-        border-block-start: 1px solid var(--separateur);
+        border-block-start: 1px solid var(--color-separator);
     }
 
     .leaflet-control-attribution {
         padding: var(--leaflet-attribution-padding);
-        border-radius: var(--rayon-controle) 0 0;
-        background: var(--verre-epais);
-        color: var(--label-2);
+        border-radius: var(--radius-control) 0 0;
+        background: var(--material-thick);
+        color: var(--color-label-secondary);
         font-size: var(--leaflet-attribution-font-size);
     }
 
     .leaflet-control-attribution a {
-        color: var(--accent);
+        color: var(--color-accent);
     }
 
     /* Les tuiles s'assourdissent : « consider using the muted emphasis style
@@ -298,15 +298,15 @@
     #carte-container .carte-position-marker {
         width: var(--position-badge-size);
         height: var(--position-badge-size);
-        background: var(--position);
-        border: 3px solid var(--sur-teinte);
+        background: var(--color-accent);
+        border: 3px solid var(--color-on-accent);
 
         /* `--radius-pill` est un jeton primitif (`tokens/primitives.css`), et
            non sémantique — même écart déjà assumé par `components/badge.css`
            et `components/button.css` pour la même gélule, à trancher par une
            tâche ultérieure (voir le registre de la tâche 4). */
         border-radius: var(--radius-pill);
-        box-shadow: var(--ombre-pastille);
+        box-shadow: var(--shadow-badge);
 
         /* Tient le rôle de l'`iconAnchor` que Leaflet ne reçoit pas : le
            disque est centré sur sa coordonnée, et non posé à sa droite. */
@@ -318,9 +318,9 @@
        mesuré. */
     .carte-points .carte-position-circle,
     #carte-container .carte-position-circle {
-        fill: var(--position);
+        fill: var(--color-accent);
         fill-opacity: 0.12;
-        stroke: var(--position);
+        stroke: var(--color-accent);
         stroke-width: 1;
         stroke-opacity: 0.5;
     }

@@ -51,7 +51,7 @@
         --button-group-image-padding-inline: 0.5rem;
         --button-group-image-margin-block-end: 0.5rem;
         --button-group-point-gap: 2px;
-        --button-group-point-shadow: var(--verre-reflet), var(--ombre-flottante);
+        --button-group-point-shadow: var(--material-sheen), var(--shadow-floating);
     }
 
     /* La barre d'actions d'un écran : nue, chaque bouton restant sa propre
@@ -79,8 +79,8 @@
        que soit la couche où celle-ci vit, puisque `screens` l'emporte de
        toute façon sur `components`. */
     .button-group button {
-        background: color-mix(in srgb, var(--label) 8%, transparent);
-        color: var(--accent);
+        background: color-mix(in srgb, var(--color-label) 8%, transparent);
+        color: var(--color-accent);
     }
 
     /* Sauf dans une **barre**, où ce qui n'est pas `.secondary` est l'action
@@ -90,8 +90,8 @@
        spécificité de ce sélecteur est ce qui le fait gagner contre la règle
        des pairs, ci-dessus, dans la même couche. */
     .bar-navigation .button-group button:not(.secondary) {
-        background: var(--accent);
-        color: var(--sur-teinte);
+        background: var(--color-accent);
+        color: var(--color-on-accent);
     }
 
     /* La barre d'une page d'image : son nom et les actions qui la déplacent.
@@ -105,8 +105,8 @@
         padding-block: var(--group-padding);
         padding-inline: var(--button-group-image-padding-inline);
         border-radius: var(--group-radius);
-        background: var(--verre-epais);
-        box-shadow: var(--verre-reflet);
+        background: var(--material-thick);
+        box-shadow: var(--material-sheen);
     }
 
     /* Les trois actions d'un point : un seul porteur, et c'est lui qui porte
@@ -122,7 +122,7 @@
         gap: var(--button-group-point-gap);
         padding: var(--group-padding);
         border-radius: var(--group-radius);
-        background: var(--verre-epais);
+        background: var(--material-thick);
         box-shadow: var(--button-group-point-shadow);
         pointer-events: auto;
     }
@@ -137,12 +137,12 @@
     .button-group-image button {
         background: none;
         box-shadow: none;
-        color: var(--label);
+        color: var(--color-label);
         border-radius: calc(var(--group-radius) - var(--group-padding));
     }
 
     .button-group-point button.danger,
     .button-group-image button.danger {
-        color: var(--destructif);
+        color: var(--color-destructive);
     }
 }

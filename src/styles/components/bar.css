@@ -78,7 +78,7 @@
 
         /* Seulement l'horizontal ici : le vertical est le rythme commun,
            juste au-dessus — un raccourci `padding` l'écraserait. */
-        padding-inline: var(--marge-ecran);
+        padding-inline: var(--screen-margin);
         padding-block: var(--bar-air);
     }
 
@@ -106,7 +106,7 @@
         top: 100%;
         block-size: 20px;
         pointer-events: none;
-        background: linear-gradient(to bottom, var(--fond-groupe), transparent);
+        background: linear-gradient(to bottom, var(--color-background-grouped), transparent);
     }
 
     /* `.bar-navigation` : ce qui n'appartenait qu'à la navigation. La barre
@@ -125,7 +125,7 @@
         --bar-navigation-gap: 1rem;
 
         z-index: 30;
-        margin-inline: calc(-1 * var(--marge-ecran));
+        margin-inline: calc(-1 * var(--screen-margin));
         justify-content: space-between;
         gap: var(--bar-navigation-gap);
         margin-bottom: 1rem;
@@ -174,7 +174,7 @@
     .suivi-status {
         flex: 1;
         min-width: 8rem;
-        color: var(--avertissement);
+        color: var(--color-warning-text);
     }
 
     /* Dans une barre, un bouton n'apporte pas sa propre surface : c'est la
@@ -188,6 +188,6 @@
     .map-overlay-bar button.secondary {
         background: none;
         box-shadow: none;
-        color: var(--label);
+        color: var(--color-label);
     }
 }

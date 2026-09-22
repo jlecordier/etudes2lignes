@@ -170,8 +170,46 @@ describe('Le palier sémantique', () => {
             // un symbole blanc. Un test l'a vu **après** la publication.
             // `light-dark()` ne laisse pas la place à l'oubli : les deux
             // valeurs sont dans la même déclaration.
-            const blocsSombres =
-                systeme.match(/@media \(prefers-color-scheme: dark\)[\s\S]*?\n\}/g) ?? [];
+            //
+            // Onzième témoin vide de ce chantier, trouvé en substituant les alias
+            // du pont (tâche 7) : `[\s\S]*?\n\}` s'arrête au premier `\n}`
+            // rencontré, y compris dans un COMMENTAIRE qui cite la requête en
+            // prose — l'en-tête de `map-overlay.css` le fait — et avale alors
+            // tout le fichier jusqu'à sa dernière accolade, sans rapport avec le
+            // vrai bloc. Tant que les composants référençaient les alias
+            // français du pont (`--fond`, `--verre-epais`…), cette capture
+            // fantôme ne contenait jamais `--color-` ni `--material-` et restait
+            // invisible ; la substitution vers le palier sémantique l'a fait
+            // rougir en révélant un vrai bloc de 13 000 caractères de large.
+            // Comme « le palier contraste élevé » un peu plus bas : hors
+            // commentaires, et bornage par comptage d'accolades plutôt que par
+            // une regex paresseuse.
+            const sansProse = sansCommentaires(systeme);
+            const blocsSombres: string[] = [];
+            const motif = /@media \(prefers-color-scheme: dark\)\s*\{/g;
+            let ouverture;
+            while ((ouverture = motif.exec(sansProse)) !== null) {
+                let indice = ouverture.index + ouverture[0].length;
+                let profondeur = 1;
+                let bloc = '';
+                while (profondeur > 0 && indice < sansProse.length) {
+                    const caractere = sansProse[indice] ?? '';
+                    if (caractere === '{') {
+                        profondeur += 1;
+                    }
+                    if (caractere === '}') {
+                        profondeur -= 1;
+                    }
+                    if (profondeur > 0) {
+                        bloc += caractere;
+                    }
+                    indice += 1;
+                }
+                blocsSombres.push(bloc);
+            }
+
+            expect(blocsSombres.length).toBeGreaterThan(0);
+
             const couleursDedans = blocsSombres.filter((bloc) => /--color-|--material-/.test(bloc));
 
             expect(couleursDedans).toEqual([]);
@@ -1489,6 +1527,80 @@ describe('Le vocabulaire', () => {
             );
 
             expect(restantes).toEqual([]);
+        });
+    });
+});
+
+describe('Le pont disparu', () => {
+    describe('Étant donné le vocabulaire français que le pont aliasait, quand une feuille du système le lit', () => {
+        it('alors aucune ne le référence plus : le palier sémantique est la seule source', () => {
+            // Les 25 alias que `screens/legacy-bridge.css` posait, chacun vers UN
+            // SEUL rôle du palier sémantique (`tokens/semantic.css`) — la liste est
+            // un instantané du pont au moment de sa suppression (tâche 7), et ne
+            // peut donc plus se lire sur le disque une fois le fichier parti.
+            //
+            // Mesuré à l'écriture de ce témoin : 23 des 25 étaient encore
+            // référencés, dans 12 fichiers — tous les composants et deux feuilles
+            // d'écran. Les six tâches précédentes s'étaient appuyées sur le pont
+            // transitoire au lieu du palier sémantique, alors que « un composant ne
+            // référence que le palier sémantique » était une contrainte de chacun
+            // de leurs briefs, sans qu'aucun témoin ne le vérifie. C'est ce témoin
+            // qui aurait dit la dérive à chaque tâche plutôt qu'à la fin du
+            // chantier.
+            const anciensAlias = [
+                'fond',
+                'fond-groupe',
+                'fond-consigne',
+                'fond-page',
+                'label',
+                'label-2',
+                'label-3',
+                'separateur',
+                'bleu',
+                'accent',
+                'rouge',
+                'destructif',
+                'orange',
+                'avertissement',
+                'succes',
+                'position',
+                'sur-teinte',
+                'verre',
+                'verre-epais',
+                'verre-reflet',
+                'ombre-pastille',
+                'ombre-flottante',
+                'marge-ecran',
+                'rayon-controle',
+                'rayon-section',
+            ];
+
+            // Hors commentaires : l'en-tête de ce fichier et celui de
+            // `tokens/semantic.css` citent plusieurs de ces noms en prose, pour
+            // expliquer d'où vient un rôle sémantique — une citation ne doit pas
+            // faire rougir l'invariant qu'elle documente.
+            //
+            // `screens/legacy-bridge.css` est écarté du balayage : tant qu'il
+            // existe, c'est son rôle d'à lui de déclarer ces alias — c'est leur
+            // EMPLOI ailleurs que ce témoin interdit, pas leur déclaration à la
+            // source. Une fois le pont supprimé, ce filtre ne retire plus rien :
+            // la clé n'existe simplement plus dans `feuilles`.
+            const feuillesAExaminer = Object.entries(feuilles).filter(
+                ([chemin]) => chemin !== './screens/legacy-bridge.css',
+            );
+
+            // Ancré par `(?![\w-])` : sans lui, `--orange` sous-chaînerait
+            // `--orange-dark` et `--orange-light`, deux primitives réelles du
+            // palier — même piège que celui déjà nommé pour `--icon-stroke` dans
+            // l'ancien `legacy.test.ts`.
+            const references = feuillesAExaminer.flatMap(([chemin, contenu]) => {
+                const texte = sansCommentaires(contenu);
+                return anciensAlias
+                    .filter((alias) => new RegExp(`--${alias}(?![\\w-])`).test(texte))
+                    .map((alias) => `${chemin} référence --${alias}`);
+            });
+
+            expect(references).toEqual([]);
         });
     });
 });

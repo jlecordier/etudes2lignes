@@ -62,7 +62,7 @@
        de plusieurs, même tous jetons. Ce jeton de composant compose donc les
        deux références du palier sémantique une fois, pour que la règle plus
        bas n'en porte qu'une. */
-        --surface-shadow: var(--verre-reflet), var(--ombre-flottante);
+        --surface-shadow: var(--material-sheen), var(--shadow-floating);
     }
 
     /* Le verre proprement dit.
@@ -122,7 +122,7 @@
     .leaflet-bar {
             -webkit-backdrop-filter: blur(20px) saturate(180%);
             backdrop-filter: blur(20px) saturate(180%);
-            background: var(--verre);
+            background: var(--material-regular);
 
             /* Monochrome, et c'est la règle : « symbols and text on these elements
            follow a monochromatic color scheme, becoming darker when the
@@ -130,21 +130,21 @@
            fixé en blanc — ce que la règle du bouton principal imposait à
            « Ajouter un point » — disparaît dès que le verre s'éclaircit sur une
            page de schéma. */
-            color: var(--label);
+            color: var(--color-label);
             box-shadow: var(--surface-shadow);
         }
 
         /* Les modificateurs de matériau : sans consommateur pour l'instant —
-       les huit sélecteurs ci-dessus fixent encore `--verre` en dur, hérité
+       les huit sélecteurs ci-dessus fixent encore `--material-regular` en dur, hérité
        de l'ancienne feuille. Ils font partie du contrat que cette tâche
        doit produire pour les tâches 2 à 5, qui poseront l'une ou l'autre
        classe sur leur propre balisage plutôt que de redéclarer le verre. */
         .surface-regular {
-            background: var(--verre);
+            background: var(--material-regular);
         }
 
         .surface-thick {
-            background: var(--verre-epais);
+            background: var(--material-thick);
         }
     }
 
@@ -183,14 +183,14 @@
      * plutôt qu'inventé :
      *   - `.surface`, comme `.surface-regular`, prend le repli **régulier**
      *     — le même que les sélecteurs qui, une fois flous, portent le
-     *     matériau `--verre` : un fond plein (`--fond`, comme `.bar-status`)
-     *     et l'ombre portée seule (`--ombre-flottante`, comme les quatre
+     *     matériau `--material-regular` : un fond plein (`--color-background`, comme `.bar-status`)
+     *     et l'ombre portée seule (`--shadow-floating`, comme les quatre
      *     boutons flottants). Aucun sélecteur hérité n'avait besoin des deux
      *     à la fois, mais `.surface` réunit ce qu'ils faisaient séparément :
      *     c'est elle qui remplace leur redéclaration commune.
      *   - `.surface-thick` prend le repli de `.leaflet-bar`, seul précédent
-     *     du matériau `--verre-epais` : un fond plein plus épais et le
-     *     reflet seul (`--verre-reflet`), sans ombre portée — c'est le choix
+     *     du matériau `--material-thick` : un fond plein plus épais et le
+     *     reflet seul (`--material-sheen`), sans ombre portée — c'est le choix
      *     que la colonne de contrôles Leaflet faisait déjà avant ce fichier,
      *     et `.surface-thick` ne fait que le nommer. Déclarée après
      *     `.surface` : à spécificité égale, l'ordre du fichier tranche, et
@@ -212,38 +212,38 @@
      * que silencieux. */
     @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
         .bar-status {
-            background: var(--fond);
+            background: var(--color-background);
         }
 
         .bar-navigation {
-            background: var(--fond);
-            box-shadow: var(--ombre-flottante);
+            background: var(--color-background);
+            box-shadow: var(--shadow-floating);
         }
 
         .floating-action-add-point,
         .floating-action-overview,
         .floating-action-carte,
         .floating-action-resume {
-            box-shadow: var(--ombre-flottante);
+            box-shadow: var(--shadow-floating);
         }
 
         .leaflet-bar {
-            background: var(--verre-epais);
-            box-shadow: var(--verre-reflet);
+            background: var(--material-thick);
+            box-shadow: var(--material-sheen);
         }
 
         .surface {
-            background: var(--fond);
-            box-shadow: var(--ombre-flottante);
+            background: var(--color-background);
+            box-shadow: var(--shadow-floating);
         }
 
         .surface-regular {
-            background: var(--fond);
+            background: var(--color-background);
         }
 
         .surface-thick {
-            background: var(--verre-epais);
-            box-shadow: var(--verre-reflet);
+            background: var(--material-thick);
+            box-shadow: var(--material-sheen);
         }
     }
 
@@ -273,8 +273,8 @@
         .leaflet-bar {
             -webkit-backdrop-filter: none;
             backdrop-filter: none;
-            background: var(--fond);
-            color: var(--label);
+            background: var(--color-background);
+            color: var(--color-label);
         }
     }
 }

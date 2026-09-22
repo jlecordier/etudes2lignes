@@ -114,7 +114,7 @@
            sur :root par l'écran de suivi : le repère ne peut plus mentir sur
            la position que le défilement vise réellement. */
         top: calc(var(--fraction-position, 0.75) * 100dvh);
-        border-top: 2px dashed var(--position);
+        border-top: 2px dashed var(--color-accent);
         pointer-events: none;
         z-index: 5;
     }

@@ -82,7 +82,7 @@
         font-size: var(--button-compact-font-size);
         line-height: var(--button-compact-line-height);
         white-space: nowrap;
-        box-shadow: var(--ombre-pastille);
+        box-shadow: var(--shadow-badge);
     }
 
     /* Restent à l'écran quel que soit le défilement : sur tactile, seul

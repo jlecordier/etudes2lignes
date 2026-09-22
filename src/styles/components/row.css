@@ -5,7 +5,7 @@
  *
  * La surface de la carte reprend celle des listes groupées d'iOS : « Sections
  * have an increased corner radius to match the curvature of controls across
- * the system. » Le rayon monte à `--rayon-section`, et sans filet — le fond
+ * the system. » Le rayon monte à `--radius-section`, et sans filet — le fond
  * de la carte se distingue déjà de celui de la vue, et un filet en plus n'y
  * ajoutait qu'un pixel de bruit.
  *
@@ -97,8 +97,8 @@
     /* Deux lignes, et dans cet ordre : le trajet d'abord, ce qui agit dessus
        ensuite. Les actions occupaient auparavant la moitié de la hauteur. */
     trajet-row {
-        background: var(--fond);
-        border-radius: var(--rayon-section);
+        background: var(--color-background);
+        border-radius: var(--radius-section);
         display: flex;
         flex-direction: column;
         gap: var(--row-gap);
@@ -114,7 +114,7 @@
         padding: 0;
         border: none;
         background: none;
-        color: var(--accent);
+        color: var(--color-accent);
         text-align: left;
         font-size: var(--row-title-font-size);
         line-height: var(--row-title-line-height);
@@ -138,7 +138,7 @@
     .row-details {
         flex: 1;
         min-width: 5rem;
-        color: var(--label-2);
+        color: var(--color-label-secondary);
         font-size: var(--row-details-font-size);
         line-height: var(--row-details-line-height);
         letter-spacing: var(--row-details-letter-spacing);
@@ -148,7 +148,7 @@
         flex: 1;
         font-size: var(--image-name-font-size);
         line-height: var(--image-name-line-height);
-        color: var(--label-2);
+        color: var(--color-label-secondary);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;

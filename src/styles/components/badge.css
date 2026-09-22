@@ -80,14 +80,14 @@
            ce côté-ci — les deux vues cesseraient de montrer la même
            pastille. */
         padding: 0;
-        background: var(--destructif);
-        color: var(--sur-teinte);
-        border: 2px solid var(--sur-teinte);
+        background: var(--color-destructive);
+        color: var(--color-on-accent);
+        border: 2px solid var(--color-on-accent);
         border-radius: var(--radius-pill);
         font-size: var(--badge-font-size);
         line-height: var(--badge-line-height);
         font-weight: 600;
-        box-shadow: var(--ombre-pastille);
+        box-shadow: var(--shadow-badge);
     }
 
     /* `.placement-active .badge` vit dans `screens/trajet-editor.css`, et
@@ -139,8 +139,8 @@
         position: absolute;
         left: 0.25rem;
         top: 0.25rem;
-        background: var(--fond-page);
-        color: var(--sur-teinte);
+        background: var(--color-page-backdrop);
+        color: var(--color-on-accent);
         border-radius: var(--radius-pill);
         padding: 0 var(--badge-page-padding-inline);
         font-size: var(--badge-page-font-size);

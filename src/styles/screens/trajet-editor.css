@@ -47,7 +47,7 @@
     trajet-editor-screen {
         display: block;
         min-height: 100dvh;
-        padding: var(--marge-ecran);
+        padding: var(--screen-margin);
 
         /* Les boutons flottants ne doivent jamais masquer la fin du contenu :
            on réserve leur place tout en bas, pour pouvoir faire défiler
@@ -63,7 +63,7 @@
     /* La géométrie de l'image vit dans le shadow root de `schema-page` ;
        l'éditeur n'ajoute que sa décoration, sur l'hôte. */
     image-frame schema-page {
-        border: 1px solid var(--separateur);
+        border: 1px solid var(--color-separator);
     }
 
     .image-area {
@@ -99,7 +99,7 @@
         position: absolute;
         left: 0;
         right: 0;
-        border-top: var(--point-line-thickness) dashed var(--destructif);
+        border-top: var(--point-line-thickness) dashed var(--color-destructive);
         pointer-events: none;
     }
 

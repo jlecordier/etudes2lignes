@@ -244,7 +244,7 @@ describe('Le bord de défilement sous une barre', () => {
             const bande = /\n[ \t]*\.bar::after \{([^}]*)\}/.exec(bar);
 
             expect(bande?.[1]).toMatch(/pointer-events:\s*none/);
-            expect(bande?.[1]).toMatch(/linear-gradient\(\s*to bottom,\s*var\(--fond/);
+            expect(bande?.[1]).toMatch(/linear-gradient\(\s*to bottom,\s*var\(--color-background/);
             expect(bande?.[1]).toMatch(/top:\s*100%/);
         });
     });
@@ -298,7 +298,7 @@ describe("L'action qui conclut, dans une barre", () => {
                     groupeCss,
                 );
 
-            expect(proeminente?.[1]).toMatch(/background:\s*var\(--accent\)/);
+            expect(proeminente?.[1]).toMatch(/background:\s*var\(--color-accent\)/);
         });
     });
 });
@@ -377,8 +377,10 @@ describe('La barre de navigation elle-même', () => {
             const navigation = /\n[ \t]*\.bar-navigation \{([^}]*)\}/.exec(bar);
 
             expect(socle?.[1]).toMatch(/position:\s*sticky/);
-            expect(socle?.[1]).toMatch(/padding-inline:\s*var\(--marge-ecran\)/);
-            expect(navigation?.[1]).toMatch(/margin-inline:\s*calc\(-1 \* var\(--marge-ecran\)\)/);
+            expect(socle?.[1]).toMatch(/padding-inline:\s*var\(--screen-margin\)/);
+            expect(navigation?.[1]).toMatch(
+                /margin-inline:\s*calc\(-1 \* var\(--screen-margin\)\)/,
+            );
         });
     });
 });
@@ -524,9 +526,9 @@ describe('Un bouton dans une barre', () => {
                 );
 
             expect(barre?.[1]).toMatch(/background:\s*none/);
-            expect(barre?.[1]).toMatch(/color:\s*var\(--label\)/);
+            expect(barre?.[1]).toMatch(/color:\s*var\(--color-label\)/);
             expect(groupe?.[1]).toMatch(/background:\s*none/);
-            expect(groupe?.[1]).toMatch(/color:\s*var\(--label\)/);
+            expect(groupe?.[1]).toMatch(/color:\s*var\(--color-label\)/);
         });
     });
 });
@@ -547,7 +549,7 @@ describe("Une barre d'actions", () => {
             const barre = /\n[ \t]*\.button-group button \{([^}]*)\}/.exec(groupeCss);
 
             expect(barre?.[1]).toMatch(/background:\s*color-mix\(/);
-            expect(barre?.[1]).toMatch(/color:\s*var\(--accent\)/);
+            expect(barre?.[1]).toMatch(/color:\s*var\(--color-accent\)/);
         });
     });
 });
@@ -583,7 +585,7 @@ describe('Les surfaces qui se répètent', () => {
             for (const surface of ['.button-group-point', '.button-group-image']) {
                 const regle = new RegExp(`\\n[ \\t]*\\${surface} \\{([^}]*)\\}`).exec(groupeCss);
 
-                expect(regle?.[1]).toMatch(/background:\s*var\(--verre/);
+                expect(regle?.[1]).toMatch(/background:\s*var\(--material/);
                 expect(regle?.[1]).not.toMatch(/backdrop-filter/);
             }
         });
@@ -623,7 +625,7 @@ describe('Les cartes de contenu', () => {
 
             // Le rayon passe par son jeton : « Les rayons », plus haut, refuse
             // désormais toute valeur écrite en clair.
-            expect(carte?.[1]).toMatch(/border-radius:\s*var\(--rayon-section\)/);
+            expect(carte?.[1]).toMatch(/border-radius:\s*var\(--radius-section\)/);
             expect(carte?.[1]).not.toMatch(/\bborder:\s*1px/);
         });
     });
@@ -645,7 +647,7 @@ describe('La couleur sur les contrôles', () => {
             const secondaire = /\n[ \t]*button\.secondary \{([^}]*)\}/.exec(boutonCss);
 
             expect(secondaire?.[1]).toMatch(/background:\s*color-mix\(/);
-            expect(secondaire?.[1]).not.toMatch(/var\(--fond\)/);
+            expect(secondaire?.[1]).not.toMatch(/var\(--color-background\)/);
         });
     });
 });
@@ -660,8 +662,8 @@ describe('Les actions destructrices', () => {
             // de la partie 2).
             const danger = /\n[ \t]*button\.danger \{([^}]*)\}/.exec(boutonCss);
 
-            expect(danger?.[1]).toMatch(/color:\s*var\(--destructif\)/);
-            expect(danger?.[1]).not.toMatch(/background:\s*var\(--destructif\)/);
+            expect(danger?.[1]).toMatch(/color:\s*var\(--color-destructive\)/);
+            expect(danger?.[1]).not.toMatch(/background:\s*var\(--color-destructive\)/);
             expect(danger?.[1]).not.toMatch(/border/);
         });
     });
@@ -782,8 +784,8 @@ describe('La couche fonctionnelle', () => {
                 materiau,
             );
 
-            expect(pose?.[2]).toMatch(/color:\s*var\(--label\)/);
-            expect(pose?.[2]).not.toMatch(/color:\s*var\(--sur-teinte\)/);
+            expect(pose?.[2]).toMatch(/color:\s*var\(--color-label\)/);
+            expect(pose?.[2]).not.toMatch(/color:\s*var\(--color-on-accent\)/);
         });
     });
 

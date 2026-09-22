@@ -6,7 +6,7 @@
  * `.map-overlay-bar`, dans `components/map-overlay.css` — la règle d'Apple :
  * « consider aligning the shape of controls with other rounded elements ».
  * Son rayon se lit `var(--rayon-interieur, 14px)` : `--rayon-interieur`
- * (`calc(var(--rayon-section) - var(--ecart-interne))`, soit 22 px moins
+ * (`calc(var(--radius-section) - var(--ecart-interne))`, soit 22 px moins
  * 8 px) est déclaré dans le `:root` de `components/map-overlay.css`, pas
  * dans `tokens/primitives.css`, `tokens/semantic.css` ni
  * `screens/legacy-bridge.css` — les trois seuls que
@@ -48,7 +48,7 @@
     .map-overlay-bar input {
         font: inherit;
         padding: var(--field-input-padding);
-        border: 1px solid var(--separateur);
+        border: 1px solid var(--color-separator);
         border-radius: var(--rayon-interieur, 14px);
         width: 8rem;
     }
@@ -61,7 +61,7 @@
         margin: 0;
         font-size: var(--field-font-size);
         line-height: var(--field-line-height);
-        color: var(--label-2);
+        color: var(--color-label-secondary);
     }
 
     /* La phrase qui dit pourquoi la position manque prend sa propre ligne,
@@ -73,6 +73,6 @@
         margin: 0;
         font-size: var(--field-font-size);
         line-height: var(--field-line-height);
-        color: var(--label-2);
+        color: var(--color-label-secondary);
     }
 }

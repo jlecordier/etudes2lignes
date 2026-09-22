@@ -38,11 +38,11 @@
         padding: var(--banner-padding-block) 0;
         font-size: var(--banner-font-size);
         line-height: var(--banner-line-height);
-        color: var(--succes);
+        color: var(--color-success-text);
     }
 
     .banner-offline {
-        color: var(--succes);
+        color: var(--color-success-text);
         font-size: var(--banner-font-size);
         line-height: var(--banner-line-height);
     }

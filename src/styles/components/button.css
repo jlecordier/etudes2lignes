@@ -65,19 +65,19 @@
         padding-inline: var(--button-padding-inline);
         border: none;
         border-radius: var(--radius-pill);
-        background: var(--accent);
-        color: var(--sur-teinte);
+        background: var(--color-accent);
+        color: var(--color-on-accent);
         cursor: pointer;
     }
 
     button.secondary {
-        background: color-mix(in srgb, var(--label) 8%, transparent);
-        color: var(--accent);
+        background: color-mix(in srgb, var(--color-label) 8%, transparent);
+        color: var(--color-accent);
     }
 
     button.danger {
-        color: var(--destructif);
-        background: color-mix(in srgb, var(--label) 8%, transparent);
+        color: var(--color-destructive);
+        background: color-mix(in srgb, var(--color-label) 8%, transparent);
     }
 
     /* Le nom accessible doit alors vivre dans `aria-label`, seul endroit que
