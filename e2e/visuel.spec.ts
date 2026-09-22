@@ -1,4 +1,5 @@
 import { existsSync, readdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import {
@@ -140,8 +141,14 @@ const VUES: readonly Vue[] = [
  * inconditionnel resterait silencieux pour toujours, y compris le jour où les
  * références disparaîtraient du dépôt.
  */
-const DOSSIER_DES_REFERENCES = fileURLToPath(
-    new URL('./visuel.spec.ts-snapshots', import.meta.url),
+// Assemblé par `join`, et non par `new URL('./…', import.meta.url)` : ce
+// second geste ressemble à un import, et l'analyse de code mort du dépôt le
+// lit comme tel — « unresolved import », porte de qualité en échec. Elle a
+// raison de ne pas savoir le résoudre : le dossier n'existe pas tant que
+// personne n'a généré les références.
+const DOSSIER_DES_REFERENCES = join(
+    dirname(fileURLToPath(import.meta.url)),
+    'visuel.spec.ts-snapshots',
 );
 const referencesPresentes =
     existsSync(DOSSIER_DES_REFERENCES) && readdirSync(DOSSIER_DES_REFERENCES).length > 0;
