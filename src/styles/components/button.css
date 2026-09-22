@@ -29,9 +29,12 @@
  * declaration-strict-value` interdit un littéral dans `components/`, et deux
  * jetons disent explicitement que les deux axes peuvent un jour diverger).
  * La gélule elle-même **ne prend pas** de jeton de composant : son rayon est
- * `var(--radius-pill)`, celui du palier sémantique — un jeton de composant
- * qui ne ferait que le renommer serait une indirection de plus, pas un
- * contrat. Et la cible minimale est `var(--hit-target)`, la mesure de
+ * `var(--radius-pill)` — un jeton de composant qui ne ferait que le renommer
+ * serait une indirection de plus, pas un contrat. Écart assumé et à trancher :
+ * `--radius-pill` vit dans `tokens/primitives.css`, donc au palier A, là où la
+ * règle veut qu'un composant ne lise que le palier B. `components/badge.css`
+ * et `components/map-overlay.css` le lisent pour la même gélule ; ou bien il
+ * monte au palier sémantique, ou bien les trois gardent cette note. Et la cible minimale est `var(--hit-target)`, la mesure de
  * système que plusieurs composants lisent (`bar.css` la lit déjà pour sa
  * propre hauteur), jamais un jeton propre à ce fichier.
  *

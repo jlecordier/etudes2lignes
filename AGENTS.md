@@ -200,7 +200,7 @@ but not all of it — it doesn't know shorthands, and it never inspects what a
   A bar title is Headline — 17 pt semibold — not a content title. Two open
   debts: `--radius-pill` (tier A) is referenced directly by three component
   files instead of a tier-B token; three complete typographic triplets
-  (`.trajet-name`/`.trajet-details`, `.help`) live as component tokens outside
+  (`.row-title`/`.row-details`, `.panel-help`) live as component tokens outside
   `text.css` because composing the `.text-*` class into their templates was
   repeatedly refused by the TDD gate for lack of a failing test — the
   increment was cut rather than routed around.

@@ -91,8 +91,8 @@ assumées comme telles plutôt que masquées :
   les a introduites.
 
 Une troisième, de même nature, tient à la contrainte TDD plutôt qu'aux
-paliers : trois triplets typographiques complets — `.trajet-name` et
-`.trajet-details` (`components/row.css`), `.help` (`components/panel.css`) —
+paliers : trois triplets typographiques complets — `.row-title` et
+`.row-details` (`components/row.css`), `.panel-help` (`components/panel.css`) —
 vivent en jetons de composant, en dehors de `components/text.css`, faute
 d'avoir pu composer `.text-headline`/`.text-subheadline` dans les gabarits
 HTML qui les portent : le hook `probity` a refusé la migration à plusieurs
@@ -163,7 +163,7 @@ mort du brief (six sélecteurs renommés référencés depuis `screens/` en deho
 du périmètre annoncé de onze composants) que c'est la suite e2e, et non la
 relecture, qui a signalé.
 
-**Un phénomène que la spec n'avait pas prévu : douze témoins qui passaient
+**Un phénomène que la spec n'avait pas prévu : treize témoins qui passaient
 sans rien garder.** Chacun relève d'un seul principe : **tout ce que le témoin
 analyse sans l'avoir vérifié.** Décliné en mécanismes distincts, tous mesurés
 avant/après par mutation de ce que le témoin est censé protéger :
@@ -200,18 +200,18 @@ avant/après par mutation de ce que le témoin est censé protéger :
 - **un glob sans plancher** — une occurrence. Le compte de gabarits migrés
   reposait sur un glob sans seuil minimal : un motif changé pour ne plus rien
   trouver laissait le témoin déclarer la migration terminée sur zéro fichier.
-- **et un douzième, d'un mécanisme inverse des onze autres** : un témoin
+- **et un treizième, d'un mécanisme inverse des douze autres** : un témoin
   **creusé par la suppression du fichier qu'il lisait**. Il vérifiait que
   `screens/legacy.css` ne portait plus aucune règle en le lisant par
   `feuilles['./screens/legacy.css'] ?? ''` ; une fois le fichier supprimé
   (tâche 7), le repli rendait la chaîne vide et l'assertion passait pour
-  toujours, sans plus rien garder — le seul des douze où c'est une
+  toujours, sans plus rien garder — le seul des treize où c'est une
   **suppression**, et non un ajout de prose ou une lecture trompée, qui a
   vidé le témoin.
 
 La conduite qui en sort, et qui vaut au-delà de ce chantier : **sonder un
 témoin en mutant ce qu'il garde, jamais en relisant sa formule** — c'est
-exactement ce qu'aucun des douze n'avait reçu avant d'être écrit ou déplacé ;
+exactement ce qu'aucun des treize n'avait reçu avant d'être écrit ou déplacé ;
 **prouver qu'un nom écrit à la main existe avant de l'indexer** dans un
 dictionnaire venu du disque ; et **rendre chaque exception porteuse** —
 vider une liste d'exceptions doit faire rougir le témoin qui la porte, pas

@@ -199,8 +199,8 @@ choisie dans les réglages, de 14 à 53 px, et tous les `rem` suivent.
 
 **Un style est un triplet — taille, interligne, approche — jamais une part.**
 C'était le défaut le plus répandu de l'ancienne feuille, et il survit à trois
-endroits, documentés et assumés : `.trajet-name`/`.trajet-details`
-([`components/row.css`](../src/styles/components/row.css)) et `.help`
+endroits, documentés et assumés : `.row-title`/`.row-details`
+([`components/row.css`](../src/styles/components/row.css)) et `.panel-help`
 ([`components/panel.css`](../src/styles/components/panel.css)) portent chacun
 un triplet complet mais **en jeton de composant**, hors de `text.css`, faute
 d'avoir pu composer la classe correspondante dans les gabarits HTML qui les
@@ -310,7 +310,7 @@ remplace les autres :
   plateforme) : elles ne sont, à ce jour, pas encore committées.
 
 **Un invariant qui ne garde rien est pire qu'absent** : il se lit comme une
-protection sans en être une. Douze témoins de ce système sont passés à
+protection sans en être une. Treize témoins de ce système sont passés à
 l'état vert sans plus rien vérifier avant d'être corrigés — un commentaire
 cité en prose, un nom de jeton lu à la place de sa valeur, une liste
 manuscrite indexant un fichier disparu, entre autres mécanismes. [L'ADR 0011](adr/0011-design-system-css-natif.md#5-ce-que-le-chantier-a-coûté-et-trouvé)

@@ -82,6 +82,13 @@
         background: var(--color-destructive);
         color: var(--color-on-accent);
         border: 2px solid var(--color-on-accent);
+
+        /* `--radius-pill` vit dans `tokens/primitives.css`, donc au palier A,
+           là où la règle veut qu'un composant ne lise que le palier B. Écart
+           assumé et à trancher : `components/button.css` et
+           `components/map-overlay.css` le lisent pour la même gélule. Ou bien
+           il monte au palier sémantique, ou bien les trois gardent cette note
+           — voir l'ADR 0011. */
         border-radius: var(--radius-pill);
         font-size: var(--badge-font-size);
         line-height: var(--badge-line-height);
