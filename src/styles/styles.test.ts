@@ -1280,28 +1280,32 @@ describe('Les écrans', () => {
         });
     });
 
-    describe('Étant donné la feuille en transit, quand cette tâche est finie', () => {
-        it('alors elle ne porte plus aucune règle', () => {
-            // Le critere de la tache : ce qui reste est vide, et la tache 7
-            // pourra la supprimer sans rien emporter.
+    describe('Étant donné le transitoire supprimé, quand on regarde le système', () => {
+        it('alors aucune de ses feuilles ne revient : le provisoire ne se rouvre pas', () => {
+            // **Ce témoin en remplace un autre, devenu vide le jour même.**
+            // Jusqu'à la tâche 7, il vérifiait que `screens/legacy.css` ne
+            // portait plus aucune règle, en la lisant par
+            // `feuilles['./screens/legacy.css'] ?? ''`. La tâche 7 a supprimé
+            // le fichier : le repli rendait la chaîne vide, l'analyse ne
+            // trouvait plus rien, et l'assertion passait pour toujours sans
+            // rien garder. Douzième témoin vide de ce chantier, et le seul
+            // qu'une suppression de fichier ait creusé.
             //
-            // Les preludes d'at-regles (`@layer`, `@media`, `@supports`)
-            // deviennent de simples accolades avant l'analyse : ce sont des
-            // enveloppes, pas des regles, et une feuille parfaitement videe
-            // garde son `@layer screens { }`. Sonde a l'ecriture, sur six
-            // cas : enveloppe seule, enveloppe avec commentaire, `@media`
-            // vide, une regle simple, une regle sous `@media`, un selecteur
-            // d'element nu.
-            const sansProse = (feuilles['./screens/legacy.css'] ?? '').replace(
-                /\/\*[\s\S]*?\*\//g,
-                '',
-            );
-            const sansEnveloppes = sansProse.replace(/@[^{}]*\{/g, '{');
-            const restantes = [...sansEnveloppes.matchAll(/([^{}\s][^{}]*?)\s*\{/g)].map((m) =>
-                (m[1] ?? '').trim(),
-            );
+            // L'invariant qui vaut désormais n'est plus « elle est vide » mais
+            // « elle n'existe pas ». Celui-là garde quelque chose de réel :
+            // rien n'empêchait, avant ce jour, qu'une main future recrée une
+            // feuille fourre-tout sous le même nom pour y ranger ce qui ne
+            // trouve pas sa place — c'est exactement ainsi que la première
+            // était née.
+            const transitoires = ['./screens/legacy.css', './screens/legacy-bridge.css'];
+            const revenues = transitoires.filter((chemin) => Object.hasOwn(feuilles, chemin));
 
-            expect(restantes).toEqual([]);
+            expect(revenues).toEqual([]);
+
+            // Garde de non-vacuité : `feuilles` vient du disque, et un glob qui
+            // cesserait de correspondre rendrait ce témoin vert sans rien
+            // regarder — la famille de défaut que ce fichier documente dix fois.
+            expect(Object.keys(feuilles).length).toBeGreaterThanOrEqual(12);
         });
     });
 });
