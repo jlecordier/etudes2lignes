@@ -57,11 +57,12 @@
 
         /* L'ombre composée du verre : le reflet intérieur et l'ombre portée,
        dans cet ordre. `scale-unlimited/declaration-strict-value` (en erreur
-       ici, sans l'assouplissement que `screens/legacy.css` reçoit) n'admet
-       qu'un seul `var()` par déclaration de `box-shadow` — jamais une liste
-       de plusieurs, même tous jetons. Ce jeton de composant compose donc les
-       deux références du palier sémantique une fois, pour que la règle plus
-       bas n'en porte qu'une. */
+       ici — `screens/legacy.css` recevait un assouplissement avant sa
+       suppression en tâche 7, aucun fichier n'en bénéficie plus aujourd'hui)
+       n'admet qu'un seul `var()` par déclaration de `box-shadow` — jamais une
+       liste de plusieurs, même tous jetons. Ce jeton de composant compose donc
+       les deux références du palier sémantique une fois, pour que la règle
+       plus bas n'en porte qu'une. */
         --surface-shadow: var(--material-sheen), var(--shadow-floating);
     }
 

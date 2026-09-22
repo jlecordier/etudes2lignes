@@ -37,9 +37,10 @@
     :root {
         --point-line-thickness: 2px;
 
-        /* `scale-unlimited/declaration-strict-value` n'admet, hors de
-           `screens/legacy.css`, qu'un jeton — jamais un littéral — pour
-           `gap`. */
+        /* `scale-unlimited/declaration-strict-value` n'admet qu'un jeton —
+           jamais un littéral — pour `gap`. `screens/legacy.css` recevait un
+           assouplissement avant sa suppression en tâche 7 ; aucun fichier
+           n'en bénéficie plus aujourd'hui. */
         --editor-body-gap: 1rem;
     }
 

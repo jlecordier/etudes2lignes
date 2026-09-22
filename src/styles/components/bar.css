@@ -120,8 +120,9 @@
         /* Mesure propre au composant, même principe que le jeton de hauteur
            ci-dessus : `scale-unlimited/declaration-strict-value` n'admet,
            pour `gap`, qu'un jeton — jamais un littéral — dans
-           `components/`, sans l'assouplissement que `screens/legacy.css`
-           reçoit. */
+           `components/`. `screens/legacy.css` recevait un assouplissement
+           (abaissé en avertissement) avant sa suppression en tâche 7 ;
+           aucun fichier n'en bénéficie plus aujourd'hui. */
         --bar-navigation-gap: 1rem;
 
         z-index: 30;

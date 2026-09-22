@@ -100,8 +100,10 @@
            aucun des deux choix littéraux ne les satisfait toutes les deux :
            `value-keyword-case` (de `stylelint-config-standard`) exige
            `currentcolor` en minuscules, `scale-unlimited/declaration-strict-
-           value` — sans l'assouplissement que `screens/legacy.css` reçoit —
-           n'admet la casse exacte `currentColor` de son `ignoreKeywords`. Un
+           value` n'admet que la casse exacte `currentColor` de son
+           `ignoreKeywords` — `screens/legacy.css` recevait un assouplissement
+           (sévérité abaissée à l'avertissement) avant sa suppression en tâche
+           7 ; aucun fichier n'y échappe plus aujourd'hui. Un
            jeton de composant, comme `--surface-blur` pour le plafond de flou,
            tranche : la valeur vit ici, en minuscules, et `stroke` ne porte
            plus qu'un `var()`. */
