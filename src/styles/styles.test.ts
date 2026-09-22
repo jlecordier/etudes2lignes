@@ -243,11 +243,34 @@ describe('Le palier sémantique', () => {
     });
 
     describe('Étant donné la teinte du verre, quand on cherche d où elle vient', () => {
-        it('alors elle se dérive du fond, au lieu de le recopier', () => {
-            // Elle était une copie manuelle : `--verre: rgba(242, 242, 247, .72)`
-            // devait s'accorder à la main avec `--fond-groupe`. Deux valeurs à
-            // tenir d'accord, donc deux valeurs qui dérivent.
-            expect(semantique).toMatch(/--material-regular:[^;]*rgb\(from var\(--grey-grouped/);
+        it('alors elle se dérive de la même primitive que le fond groupé, au lieu de le recopier', () => {
+            // Contrat à sauver n° 3 (registre de la tâche 7, ex-« La teinte du
+            // verre au repos » de `legacy.test.ts`) : la teinte du verre au
+            // repos DOIT dériver de la **même primitive** que le fond groupé —
+            // c'est ce qui rend une barre invisible avant tout défilement.
+            //
+            // Elle était une copie manuelle : `--verre: rgba(242, 242, 247,
+            // .72)` devait s'accorder à la main avec `--fond-groupe`. Deux
+            // valeurs à tenir d'accord, donc deux valeurs qui dérivent — une
+            // teinte blanche sur un fond gris clair formait une bande visible
+            // avant tout défilement, l'anti-motif exact.
+            //
+            // Un simple `toMatch` sur `--grey-grouped` prouverait qu'une
+            // primitive de CE nom-là intervient quelque part, pas que c'est
+            // la MÊME que celle du fond : les deux noms capturés sont donc
+            // comparés entre eux, dans chaque branche `light-dark()`.
+            const fondGroupe =
+                /--color-background-grouped:\s*light-dark\(\s*var\((--[a-z0-9-]+)\)\s*,\s*var\((--[a-z0-9-]+)\)\s*\)/.exec(
+                    semantique,
+                );
+            const verreRegulier =
+                /--material-regular:\s*light-dark\(\s*rgb\(from var\((--[a-z0-9-]+)\)[\s\S]*?,\s*rgb\(from var\((--[a-z0-9-]+)\)/.exec(
+                    semantique,
+                );
+
+            expect(fondGroupe?.[1]).toBeTruthy();
+            expect(verreRegulier?.[1]).toBe(fondGroupe?.[1]);
+            expect(verreRegulier?.[2]).toBe(fondGroupe?.[2]);
         });
     });
 
@@ -1601,6 +1624,596 @@ describe('Le pont disparu', () => {
             });
 
             expect(references).toEqual([]);
+        });
+    });
+});
+
+/**
+ * Les témoins qui suivent viennent de `legacy.test.ts`, supprimé par cette
+ * même tâche. Il en portait 27 blocs `describe` vivants — le brief n'en
+ * tabulait que trois (« trois contrats à sauver ») en tenant les 24 autres
+ * pour équivalents ou redondants. Mesuré : aucun des 24 n'avait de
+ * contrepartie ici, dans aucune forme. Les supprimer avec le fichier les
+ * aurait tous emportés en silence.
+ *
+ * Chacun est donc soit migré tel quel (ce bloc), soit remplacé par une
+ * version structurelle quand une existait déjà, soit supprimé avec sa raison
+ * écrite en commentaire à l'endroit où son sujet est repris. Les fichiers
+ * qu'ils lisaient (`materiau`/`surface`, `bar`, `bouton`/`groupe` déjà sans
+ * commentaires) sont pour la plupart déjà déclarés plus haut dans ce fichier ;
+ * les quelques manquants sont ajoutés ici, au plus près de leur premier
+ * emploi.
+ */
+const flottant = feuilles['./components/floating-action.css'] ?? '';
+const rangee = feuilles['./components/row.css'] ?? '';
+const carteOverlay = feuilles['./components/map-overlay.css'] ?? '';
+const suiviCss = feuilles['./screens/suivi.css'] ?? '';
+const elements = feuilles['./base/elements.css'] ?? '';
+
+/**
+ * Rend la valeur **effective** d'une propriété de `.icon`, un `var()` résolu.
+ *
+ * Écrire `/\.icon\s*\{[^}]*stroke:\s*currentcolor/` ne marche pas depuis que
+ * la règle porte un jeton : `[^}]*` avale jusqu'à `--icon-` et la sous-chaîne
+ * `stroke: currentcolor` du **nom de la propriété personnalisée** satisfait le
+ * motif — troisième témoin vide trouvé par la tâche 3 de cette partie.
+ *
+ * La résolution ne descend que d'un niveau, et c'est assez : le contrat est
+ * que le tracé vaille la couleur courante, pas qu'il passe par un nom précis.
+ */
+const valeurEffectiveDeLIcone = (css: string, propriete: string): string | undefined => {
+    const bloc = /\.icon\s*\{([^}]*)\}/s.exec(css)?.[1] ?? '';
+    const brut = new RegExp(`(?<![\\w-])${propriete}:\\s*([^;]+);`, 'i').exec(bloc)?.[1]?.trim();
+    if (brut === undefined) {
+        return undefined;
+    }
+    const jeton = /^var\(\s*(--[\w-]+)\s*\)$/.exec(brut)?.[1];
+    if (jeton === undefined) {
+        return brut.toLowerCase();
+    }
+    return new RegExp(`${jeton}:\\s*([^;]+);`, 'i').exec(bloc)?.[1]?.trim().toLowerCase();
+};
+
+describe('Les pictogrammes', () => {
+    describe('Étant donné un symbole du jeu, quand une règle doit le dessiner', () => {
+        it('alors la feuille lui donne son tracé et sa taille, que le jeu ne porte pas', () => {
+            // `Icons.html` ne déclare ni épaisseur, ni bouts, ni dimension : un
+            // `<svg>` sans taille sort en 300 × 150, et un tracé sans `fill:
+            // none` sort en noir plein. Sans cette règle, chaque bouton de
+            // l'interface affiche un pavé.
+            expect(valeurEffectiveDeLIcone(bouton, 'fill')).toBe('none');
+            // La valeur effective, jeton résolu, et en minuscules : le contrat
+            // est un tracé de la couleur courante, pas l'orthographe de
+            // `currentcolor` que Stylelint choisit ni le nom du jeton qui la
+            // porte. Ce même contrôle remplace « .icon dimensionnée et tracée »
+            // de l'ancien `legacy.test.ts`, qui ne vérifiait que cette ligne.
+            expect(valeurEffectiveDeLIcone(bouton, 'stroke')).toBe('currentcolor');
+            expect(bouton).toMatch(/\.icon\s*\{[^}]*inline-size:/s);
+        });
+    });
+});
+
+describe('Le contour des contrôles', () => {
+    describe("Étant donné un bouton, quand la feuille décide s'il porte un trait", () => {
+        it("alors il n'en porte aucun : c'est son remplissage qui le délimite", () => {
+            // Un contrôle d'iOS n'a pas de contour propre — c'est sa surface qui
+            // le dessine, teintée pour l'action principale et neutre sinon.
+            const regleBouton = /(?:^|\n)\s*button\s*\{([^}]*)\}/.exec(bouton);
+
+            expect(regleBouton?.[1]).toMatch(/border:\s*none/);
+        });
+    });
+
+    describe('Étant donné un bouton, quand la feuille lui donne sa forme', () => {
+        it('alors il est une gélule', () => {
+            // « Default every button to a capsule » : c'est la forme que le
+            // système donne aux contrôles, et `DefaultGlassEffectShape` est
+            // littéralement une capsule. La cible plancher (44 px, les deux
+            // dimensions) est déjà affirmée par « La famille des contrôles » ;
+            // ce témoin n'en reprend que la forme, pour ne pas la doubler.
+            const regleBouton = /(?:^|\n)\s*button\s*\{([^}]*)\}/.exec(bouton);
+
+            expect(regleBouton?.[1]).toMatch(/border-radius:\s*var\(--radius-pill\)/);
+        });
+    });
+
+    describe("Étant donné un bouton secondaire, quand la feuille l'habille", () => {
+        it("alors il n'a pas de surface blanche, mais le remplissage neutre du système", () => {
+            // « Refrain from adding color to the background of multiple
+            // controls. » Un fond blanc plein sur chaque bouton secondaire
+            // faisait de chacun une petite carte ; le remplissage neutre les
+            // rend au verre qui les porte, et se **dérive** de la couleur du
+            // texte plutôt que de vivre dans son propre jeton.
+            const secondaire = /\n[ \t]*button\.secondary \{([^}]*)\}/.exec(bouton);
+
+            expect(secondaire?.[1]).toMatch(/background:\s*color-mix\(/);
+            expect(secondaire?.[1]).not.toMatch(/var\(--color-background\)/);
+        });
+    });
+
+    describe('Étant donné une suppression, quand la feuille signale son danger', () => {
+        it('alors le rouge est dans le libellé, jamais en aplat sous lui', () => {
+            // « Never make the destructive action the prominent one » : un
+            // aplat rouge attire précisément le pouce qu'on veut voir hésiter.
+            const danger = /\n[ \t]*button\.danger \{([^}]*)\}/.exec(bouton);
+
+            expect(danger?.[1]).toMatch(/color:\s*var\(--color-destructive\)/);
+            expect(danger?.[1]).not.toMatch(/background:\s*var\(--color-destructive\)/);
+            expect(danger?.[1]).not.toMatch(/border/);
+        });
+    });
+});
+
+describe('Les conteneurs de carte face aux panneaux de Leaflet', () => {
+    describe('Étant donné un conteneur de carte, quand la feuille le positionne', () => {
+        it("alors il ouvre son propre contexte d'empilement, sinon ses panneaux s'en échappent", () => {
+            // Les panneaux de Leaflet portent `z-index: 400`. Un conteneur
+            // positionné mais en `z-index: auto` n'ouvre **aucun** contexte
+            // d'empilement : ces 400 remontent alors dans celui du parent et
+            // battent tout ce que l'application pose au-dessus. Mesuré : le
+            // formulaire de saisie, à `z-index: 10`, était intégralement
+            // recouvert par les tuiles.
+            for (const conteneur of ['#carte-container', '.carte-points']) {
+                const regle = new RegExp(`\\n[ \\t]*\\${conteneur} \\{([^}]*)\\}`).exec(
+                    carteOverlay,
+                );
+
+                expect(regle?.[1]).toMatch(/position:\s*(absolute|relative)/);
+                expect(regle?.[1]).toMatch(/z-index:\s*0/);
+            }
+        });
+    });
+
+    describe("Étant donné le choix d'une coordonnée, quand la feuille dispose l'écran", () => {
+        it('alors la carte occupe tout, et le formulaire flotte au-dessus', () => {
+            // « Extend content to fill the screen or window […] Controls and
+            // navigation components appear on top of content rather than on
+            // the same plane. » Le formulaire était une rangée *sous* la
+            // carte, qui lui prenait sa hauteur.
+            const conteneur = /\n[ \t]*#carte-container \{([^}]*)\}/.exec(carteOverlay);
+            const barreCarte = /\n[ \t]*\.map-overlay-bar \{([^}]*)\}/.exec(carteOverlay);
+
+            expect(conteneur?.[1]).toMatch(/position:\s*absolute/);
+            expect(conteneur?.[1]).toMatch(/inset:\s*0/);
+            expect(barreCarte?.[1]).toMatch(/position:\s*absolute/);
+            expect(barreCarte?.[1]).toMatch(/inset-block-end:/);
+        });
+    });
+
+    describe('Étant donné le recentrage et le zoom, quand la feuille les dessine', () => {
+        it('alors ils partagent une seule règle, donc une seule boîte', () => {
+            // Le recentrage vit dans un `.leaflet-bar`, comme le zoom : c'est
+            // la colonne qui porte la surface, et ses enfants n'en ont pas —
+            // sinon une gélule de 44 px dans une boîte carrée, et du verre sur
+            // du verre.
+            const partagee = /\n[ \t]*\.leaflet-bar a,\n[ \t]*\.carte-recentrer \{([^}]*)\}/.exec(
+                carteOverlay,
+            );
+
+            expect(partagee?.[1]).toMatch(/inline-size:\s*34px/);
+            expect(partagee?.[1]).toMatch(/block-size:\s*34px/);
+            expect(partagee?.[1]).toMatch(/background:\s*none/);
+        });
+    });
+
+    describe("Étant donné une carte qui porte de l'information par-dessus, quand la feuille l'habille", () => {
+        it("alors ses tuiles s'assourdissent, et s'assombrissent avec l'apparence", () => {
+            // « Consider using the muted emphasis style […] when you overlay
+            // information-rich content on the map ». En apparence sombre,
+            // OpenStreetMap ne sert aucun jeu de tuiles nocturne : on inverse
+            // et on recolore, faute de mieux.
+            //
+            // Ce contrôle remplace aussi « apparence sombre fournie » de
+            // l'ancien `legacy.test.ts` (« La feuille de style ») : vérifier
+            // que le bloc sombre porte `filter: invert(...)` implique déjà
+            // qu'il existe — l'ancienne ligne, qui ne vérifiait que
+            // l'existence de la requête, ne montait pas la garde en plus de
+            // celui-ci : c'est déjà elle qui aurait attrapé une régression, le
+            // registre de la tâche 5 le dit.
+            const tuiles = /\n[ \t]*\.leaflet-tile-pane \{([^}]*)\}/.exec(carteOverlay);
+            const sombre =
+                /@media \(prefers-color-scheme: dark\) \{\s*\.leaflet-tile-pane \{([^}]*)\}/.exec(
+                    carteOverlay,
+                );
+
+            expect(tuiles?.[1]).toMatch(/filter:\s*saturate\(/);
+            expect(sombre?.[1]).toMatch(/filter:\s*invert\(/);
+        });
+    });
+
+    describe('Étant donné que leaflet.css est chargé en couche vendor, quand la feuille reprend ses contrôles', () => {
+        it("alors elle n'a besoin d'aucun !important pour les tenir", () => {
+            // Une déclaration hors couche l'emporte sur toute déclaration en
+            // couche : c'est la règle de la cascade. Les 16 `!important`
+            // d'origine venaient de ce que leaflet.css arrivait après nous
+            // dans le bundle, avec une spécificité que `.carte-recentrer` ne
+            // pouvait pas battre.
+            const debut = carteOverlay.indexOf('.leaflet-bar');
+
+            // Garde indispensable : `indexOf` renvoie -1 si le marqueur
+            // n'existe pas, et `slice(-1)` rendrait tout le fichier au lieu
+            // d'une tranche vide.
+            expect(debut).toBeGreaterThanOrEqual(0);
+
+            // Sans commentaires : la prose de ce même fichier cite
+            // `!important` pour expliquer qu'il n'en a plus besoin — une
+            // citation qui satisferait le motif si on la laissait entrer.
+            const zoneLeaflet = sansCommentaires(carteOverlay.slice(debut));
+
+            expect(zoneLeaflet).not.toContain('!important');
+        });
+    });
+
+    describe('Étant donné le seuil du grand écran, quand on cherche qui le décide', () => {
+        it("alors il ne s'écrit qu'ici, et bascule à 900 px", () => {
+            // `TrajetEditorScreen` et `e2e/helpers.ts` lisent `--large-screen`
+            // au lieu de recopier 900 px, qui pouvait diverger sans que rien
+            // ne le signale.
+            expect(carteOverlay).toMatch(/:root[^}]*--large-screen:\s*0/s);
+            // Le seuil et le drapeau font le contrat, pas la notation de la
+            // requête média : `min-width: 900px` et `width >= 900px`
+            // l'expriment aussi bien l'une que l'autre.
+            expect(carteOverlay).toMatch(
+                /@media\s*\((?:min-width:\s*900px|width\s*>=\s*900px)\)[\s\S]*--large-screen:\s*1/,
+            );
+        });
+    });
+});
+
+describe('La barre d écran', () => {
+    describe('Étant donné du contenu qui passe sous une barre, quand il en approche', () => {
+        it("alors une bande le fond, et elle n'assombrit ni ne bloque rien", () => {
+            // « Instead of a background, use a scroll edge effect to provide a
+            // transition between content and the control area » : un dégradé
+            // **de la couleur du fond vers rien**, pas un voile. Il appartient
+            // au défilement, pas à la barre : d'où une bande posée sous elle,
+            // transparente aux clics.
+            const bande = /\n[ \t]*\.bar::after \{([^}]*)\}/.exec(bar);
+
+            expect(bande?.[1]).toMatch(/pointer-events:\s*none/);
+            expect(bande?.[1]).toMatch(/linear-gradient\(\s*to bottom,\s*var\(--color-background/);
+            expect(bande?.[1]).toMatch(/top:\s*100%/);
+        });
+    });
+
+    describe("Étant donné un écran qui défile, quand sa barre d'en-tête le surplombe", () => {
+        it('alors elle est épinglée et pleine largeur, sinon son verre ne surplombe rien', () => {
+            // « Liquid Glass forms a distinct functional layer […] that
+            // floats above the content layer. » Une barre en `position:
+            // static` défile avec le contenu, et son flou n'échantillonne
+            // rien. Encartée par le rembourrage de l'écran, une carte
+            // flottante annule cet encart par une marge négative et rend
+            // l'air par un rembourrage interne.
+            const socleBarre = /\n[ \t]*\.bar \{([^}]*)\}/.exec(bar);
+            const navigation = /\n[ \t]*\.bar-navigation \{([^}]*)\}/.exec(bar);
+
+            expect(socleBarre?.[1]).toMatch(/position:\s*sticky/);
+            expect(socleBarre?.[1]).toMatch(/padding-inline:\s*var\(--screen-margin\)/);
+            expect(navigation?.[1]).toMatch(
+                /margin-inline:\s*calc\(-1 \* var\(--screen-margin\)\)/,
+            );
+        });
+    });
+
+    describe('Étant donné 360 px de large, quand la barre porte un titre et deux actions', () => {
+        it('alors rien ne plie : le titre abrège et la barre garde une rangée', () => {
+            // Mesuré sur un iPhone 12 mini, la plus étroite des cibles de la
+            // HIG (360 × 780) : le titre passait à deux lignes, la barre
+            // d'actions se cassait en deux rangées, et l'en-tête doublait de
+            // hauteur.
+            const titre = /\n[ \t]*\.bar-navigation :is\(h1, h2\) \{([^}]*)\}/.exec(bar);
+            const actions = /\n[ \t]*\.bar-navigation \.button-group \{([^}]*)\}/.exec(groupe);
+
+            expect(titre?.[1]).toMatch(/white-space:\s*nowrap/);
+            expect(titre?.[1]).toMatch(/text-overflow:\s*ellipsis/);
+            expect(actions?.[1]).toMatch(/flex-wrap:\s*nowrap/);
+        });
+    });
+
+    describe("Étant donné une barre où une action conclut, quand la feuille l'habille", () => {
+        it('alors elle garde sa teinte, que la règle des pairs lui avait prise', () => {
+            // Régression mesurée : `.button-group button` neutralise les
+            // actions de même rang de l'éditeur — à juste titre —, mais elle
+            // attrapait aussi l'action proéminente de la liste. Dans une
+            // **barre**, ce qui n'est pas `.secondary` est l'action qui
+            // conclut : le sélecteur le dit, et sa spécificité le fait
+            // gagner contre la règle des pairs.
+            const proeminente =
+                /\n[ \t]*\.bar-navigation \.button-group button:not\(\.secondary\) \{([^}]*)\}/.exec(
+                    groupe,
+                );
+
+            expect(proeminente?.[1]).toMatch(/background:\s*var\(--color-accent\)/);
+        });
+    });
+
+    describe('Étant donné une barre qui porte déjà une surface, quand un bouton y entre', () => {
+        it("alors il n'en apporte pas une seconde : seule l'action proéminente garde sa gélule", () => {
+            // « Put the glass on the group, not on each button » : dans une
+            // barre, les items sont monochromes et partagent la surface de la
+            // barre — deux surfaces empilées sur le verre, ce que la HIG
+            // refuse.
+            const barreSecondaire =
+                /\n[ \t]*\.bar-navigation button\.secondary,\n[ \t]*\.bar-status button\.secondary,\n[ \t]*\.map-overlay-bar button\.secondary \{([^}]*)\}/.exec(
+                    bar,
+                );
+            const groupeSecondaire =
+                /\n[ \t]*\.button-group-point button,\n[ \t]*\.button-group-image button \{([^}]*)\}/.exec(
+                    groupe,
+                );
+
+            expect(barreSecondaire?.[1]).toMatch(/background:\s*none/);
+            expect(barreSecondaire?.[1]).toMatch(/color:\s*var\(--color-label\)/);
+            expect(groupeSecondaire?.[1]).toMatch(/background:\s*none/);
+            expect(groupeSecondaire?.[1]).toMatch(/color:\s*var\(--color-label\)/);
+        });
+    });
+
+    describe('Étant donné plusieurs actions de même rang, quand la feuille les habille', () => {
+        it("alors aucune n'est teintée : ce sont des pairs, et la proéminente est ailleurs", () => {
+            // « Keep the number of prominent buttons to one or two per
+            // view. » Teintées toutes les trois, les actions de la barre
+            // faisaient quatre aplats bleus sur un écran, et plus rien ne
+            // disait laquelle compte.
+            const pairs = /\n[ \t]*\.button-group button \{([^}]*)\}/.exec(groupe);
+
+            expect(pairs?.[1]).toMatch(/background:\s*color-mix\(/);
+            expect(pairs?.[1]).toMatch(/color:\s*var\(--color-accent\)/);
+        });
+    });
+});
+
+describe('Les surfaces qui se répètent', () => {
+    describe('Étant donné une surface posée sur le schéma et répétée, quand la feuille la traite', () => {
+        it("alors une teinte la détache du dessin, sans le flou qu'elle multiplierait", () => {
+            // Les actions d'un point existent une fois par point, la barre
+            // d'une page une fois par page : les flouter en donnerait trente
+            // exemplaires là où le budget mesuré sur mobile est de trois à
+            // cinq. L'absence de flou elle-même est déjà affirmée au niveau
+            // du système par « Le matériau » (un seul fichier peut flouter) ;
+            // ce témoin n'ajoute que la teinte de repli.
+            for (const surfaceRepetee of ['.button-group-point', '.button-group-image']) {
+                const regle = new RegExp(`\\n[ \\t]*\\${surfaceRepetee} \\{([^}]*)\\}`).exec(
+                    groupe,
+                );
+
+                expect(regle?.[1]).toMatch(/background:\s*var\(--material/);
+            }
+        });
+    });
+});
+
+describe("L'ordre des actions dans le panneau de saisie", () => {
+    describe('Étant donné une annulation et une validation, quand le panneau les range', () => {
+        it("alors la validation part du côté sortant, et l'annulation reste du côté entrant", () => {
+            // « Only specify one primary action », et les barres d'outils la
+            // placent du côté sortant. C'est l'annulation qui pousse, et non
+            // la validation qui est poussée : en logique d'écriture, la marge
+            // automatique appartient à l'élément qui cède la place.
+            const annuler = /\n[ \t]*#cancel-carte-button \{([^}]*)\}/.exec(flottant);
+
+            expect(annuler?.[1]).toMatch(/margin-inline-end:\s*auto/);
+        });
+    });
+});
+
+describe('Les cartes de contenu', () => {
+    describe('Étant donné une ligne de la liste, quand la feuille lui donne sa surface', () => {
+        it("alors son rayon est celui d'une section, et son fond remplace sa bordure", () => {
+            // « Sections have an increased corner radius to match the
+            // curvature of controls across the system. » Une bordure d'un
+            // pixel n'a plus lieu d'être quand le fond de la carte se
+            // distingue déjà de celui de la vue.
+            const carte = /\n[ \t]*trajet-row\s*\{([^}]*)\}/.exec(rangee);
+
+            expect(carte?.[1]).toMatch(/border-radius:\s*var\(--radius-section\)/);
+            expect(carte?.[1]).not.toMatch(/\bborder:\s*1px/);
+        });
+    });
+});
+
+describe("L'échelle typographique", () => {
+    describe("Étant donné la taille de texte du système, quand la feuille s'en saisit", () => {
+        it("alors la racine suit la taille dynamique d'iOS, avec un repli pour les autres", () => {
+            // Contrat à sauver n° 1 (registre de la tâche 7) : `font-size:
+            // 17px` DOIT précéder `font: -apple-system-body` dans
+            // `base/elements.css` — un reformatage qui inverserait les deux
+            // ferait tomber Chrome à 16 px.
+            //
+            // `font: -apple-system-body` est le **seul** crochet que le web
+            // offre sur la taille dynamique : WebKit y résout la valeur
+            // choisie dans Réglages, de 14 px à 53 px, et tous les `rem` de
+            // la feuille suivent. Chrome jette la déclaration entière, d'où
+            // le `font-size` qui précède et lui sert de repli.
+            //
+            // Tolérant à l'indentation : l'enveloppe `@layer base { … }`
+            // décale tout le fichier d'un niveau.
+            const racine = /\n[ \t]*html\s*\{([^}]*)\}/.exec(elements);
+
+            expect(racine?.[1]).toMatch(/font-size:\s*17px[\s\S]*font:\s*-apple-system-body/);
+            // Une racine transparente retombe sur du blanc en clair et du
+            // noir en sombre : c'est de là que viennent les barres blanches
+            // de Safari 26.
+            expect(racine?.[1]).toMatch(/background-color:\s*var\(/);
+        });
+    });
+
+    describe('Étant donné le corps de la page, quand on cherche ce qui gouverne son geste', () => {
+        it('alors le défilement est vertical, et rien ne se sélectionne au doigt', () => {
+            // Contrat à sauver n° 2 (registre de la tâche 7) : trois
+            // parcours e2e lisent ces valeurs calculées, WebKit seulement par
+            // la propriété préfixée.
+            expect(elements).toMatch(/touch-action:\s*pan-x pan-y/);
+            expect(elements).toContain('-webkit-user-select:');
+        });
+    });
+
+    describe('Étant donné un élément marqué caché, quand une autre règle voudrait le montrer', () => {
+        it('alors il reste cachė : rien ne bat `[hidden]`', () => {
+            // Seize appels TypeScript basculent `hidden`, dont plusieurs sur
+            // des conteneurs en `display: flex` — et le jeu de symboles en
+            // dépend.
+            expect(elements).toMatch(/\[hidden\]\s*\{[^}]*display:\s*none\s*!important/s);
+        });
+    });
+
+    describe('Étant donné une personne qui a demandé moins de mouvement, quand la feuille se charge', () => {
+        it('alors les transitions cèdent, mais le défilement automatique reste', () => {
+            // Ce qui part, ce sont les transitions — pas le défilement, qui
+            // *est* la fonction de l'application. Une durée de 1 ms plutôt
+            // que `none` : les gestionnaires de `transitionend` continuent
+            // de recevoir leur événement, là où `none` les rendrait muets.
+            // Remplace aussi « prefers-reduced-motion honoré » de l'ancien
+            // `legacy.test.ts` : vérifier le contenu du bloc implique déjà
+            // qu'il existe.
+            const bloc =
+                /^([ \t]*)@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([\s\S]*?)\n\1\}/m.exec(
+                    elements,
+                );
+
+            expect(bloc?.[2]).toMatch(/transition-duration:\s*1ms/);
+            expect(bloc?.[2]).not.toMatch(/scroll-behavior:\s*smooth/);
+        });
+    });
+});
+
+describe("L'écran de suivi", () => {
+    describe('Étant donné le repère de position, quand on cherche où il tombe', () => {
+        it('alors il est calé sur --fraction-position, en dvh', () => {
+            // Le repère du suivi tombe là où le domaine vise, et se mesure en
+            // `dvh` parce que le calcul du défilement lit
+            // `window.innerHeight`.
+            expect(suiviCss).toMatch(/--fraction-position,\s*0\.75\)\s*\*\s*100dvh/);
+        });
+    });
+});
+
+/**
+ * « Les contrôles » (l'ancien `legacy.test.ts`) vérifiait aussi que le
+ * plancher de 44 px porte sur les deux dimensions du bouton — repris tel
+ * quel par « La famille des contrôles » plus haut dans ce fichier, qui
+ * l'affirme déjà sur `min-block-size` ET `min-inline-size`. Non dupliqué ici.
+ *
+ * « Le verre de la couche fonctionnelle » (jumelle préfixée présente et
+ * comptée, aucun `var()` dans la valeur de flou) est repris À L'IDENTIQUE
+ * par « Le matériau » › « Étant donné WebKit… » et « Étant donné les bogues
+ * 289800 et 297620… », écrits dès la tâche 1 de cette partie sur les mêmes
+ * ancres en début de ligne. Non dupliqué ici.
+ *
+ * Dans l'ancien test « La feuille de style », trois autres `exige` étaient
+ * déjà redondants avant même la suppression du fichier : l'existence de
+ * `prefers-reduced-transparency` et le compte des jumelles `-webkit-` sont
+ * tous deux repris plus strictement par « Le matériau » (tâche 1) ; leur
+ * suppression ici n'enlève donc rien que ce fichier ne garde déjà.
+ */
+
+describe('La couche fonctionnelle', () => {
+    /**
+     * La liste **close** des surfaces en verre flouté.
+     *
+     * Ce que le flou coûte gouverne cette liste autant que la HIG : une
+     * surface qui se répète — la barre d'une page, les actions d'un point —
+     * en aurait autant d'exemplaires que d'éléments, et le budget mesuré sur
+     * mobile est de trois à cinq flous simultanés. Celles-là reçoivent la
+     * teinte du verre sans son flou.
+     */
+    const surfacesFlouteesSansRepetition = [
+        '.bar-navigation',
+        '.bar-status',
+        '.map-overlay-bar',
+        '.floating-action-add-point',
+        '.floating-action-carte',
+        '.floating-action-overview',
+        '.floating-action-resume',
+        '.leaflet-bar',
+    ];
+    // `.carte-recentrer` **n'y est pas**, et c'est une correction : il vit
+    // dans un `.leaflet-bar`, donc l'y mettre aussi empilait deux verres.
+
+    describe("Étant donné une surface en verre, quand une autre l'habite", () => {
+        it("alors l'enfant n'en reçoit pas : deux verres empilés sont refusés", () => {
+            // « Avoid overcrowding or layering Liquid Glass elements on top
+            // of each other. » Le recentrage vit dans un `.leaflet-bar` ;
+            // c'est la colonne qui porte la surface, et le bouton la
+            // traverse.
+            //
+            // Sans commentaires : ce qu'on interroge sont des sélecteurs, pas
+            // de la prose. L'indentation de `@supports` est capturée puis
+            // rejouée en rétro-référence pour sa propre fermeture.
+            const pose = /^([ \t]*)@supports \(\(backdrop-filter[^{]*\{([\s\S]*?)\n\1\}/m.exec(
+                sansCommentaires(surface),
+            );
+
+            expect(pose?.[2]).toContain('.leaflet-bar');
+            expect(pose?.[2]).not.toContain('.carte-recentrer');
+        });
+    });
+
+    describe('Étant donné une surface en verre, quand elle porte un libellé', () => {
+        it('alors il est monochrome, car le verre adapte sa clarté au contenu', () => {
+            // « By default, symbols and text on these elements follow a
+            // monochromatic color scheme, becoming darker when the
+            // underlying content is light, and lighter when it's dark. » Un
+            // libellé fixé en blanc disparaît dès que le verre s'éclaircit
+            // sur une page de schéma.
+            const pose = /^([ \t]*)@supports \(\(backdrop-filter[^{]*\{([\s\S]*?)\n\1\}/m.exec(
+                surface,
+            );
+
+            expect(pose?.[2]).toMatch(/color:\s*var\(--color-label\)/);
+            expect(pose?.[2]).not.toMatch(/color:\s*var\(--color-on-accent\)/);
+        });
+    });
+
+    describe('Étant donné une surface en verre, quand la feuille la traite', () => {
+        it('alors elle est de la liste close, floutée, et rendue opaque par les réglages', () => {
+            const pose = /^([ \t]*)@supports \(\(backdrop-filter[^{]*\{([\s\S]*?)\n\1\}/m.exec(
+                surface,
+            );
+            const retrait =
+                /^([ \t]*)@media \(prefers-reduced-transparency[^{]*\{([\s\S]*?)\n\1\}/m.exec(
+                    surface,
+                );
+
+            // Aucune surface n'est floutée en dehors de ces deux blocs : le
+            // premier ajoute le verre, le second le retire.
+            const flousHorsBlocs = surface
+                .replace(pose?.[0] ?? '', '')
+                .replace(retrait?.[0] ?? '', '')
+                .match(/^\s*(-webkit-)?backdrop-filter:/gm);
+            expect(flousHorsBlocs).toBeNull();
+
+            for (const nomSurface of surfacesFlouteesSansRepetition) {
+                // Posée, puis retirée : oublier le retrait laisse le flou en
+                // place quand la personne a demandé moins de transparence.
+                expect(pose?.[2]).toContain(nomSurface);
+                expect(retrait?.[2]).toContain(nomSurface);
+            }
+        });
+    });
+
+    describe('Étant donné une personne qui a demandé moins de transparence ou plus de contraste, quand la feuille se charge', () => {
+        it('alors le flou est coupé, et pas seulement recouvert', () => {
+            // Rendre la surface opaque ne suffit pas : le flou ne part pas
+            // tout seul, il faut couper les deux propriétés, préfixée
+            // comprise. Et le bloc doit venir **après** le `@supports` qui
+            // pose le verre — à spécificité égale, c'est l'ordre du fichier
+            // qui tranche.
+            const retrait =
+                /@media\s*\(prefers-reduced-transparency:\s*reduce\)[^{]*\{[\s\S]*?backdrop-filter:\s*none/.exec(
+                    surface,
+                );
+            const pose = surface.indexOf('@supports (');
+
+            expect(retrait).not.toBeNull();
+            expect(retrait?.index ?? -1).toBeGreaterThan(pose);
+
+            // iOS ne publie toujours pas `prefers-reduced-transparency` — le
+            // contraste renforcé, lui, y est honoré, d'où les deux conditions
+            // dans le même prélude `@media`, séparées par une virgule.
+            // Tolérant à la position : `prefers-contrast: more` y est la
+            // seconde condition, jamais collée à `@media`.
+            expect(surface).toMatch(/@media[^{]*\(prefers-contrast:\s*more\)[^{]*\{/);
         });
     });
 });
