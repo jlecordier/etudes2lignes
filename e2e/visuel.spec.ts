@@ -1,3 +1,5 @@
+import { existsSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import {
     ajouterUnPoint,
@@ -114,7 +116,42 @@ const VUES: readonly Vue[] = [
     },
 ];
 
+/**
+ * Les références n'existent que là où quelqu'un les a générées.
+ *
+ * Playwright suffixe chaque capture par plateforme, et la CI tourne sur
+ * `ubuntu-latest` (`.github/workflows/deploy.yml`) : des références produites
+ * sur macOS ne s'y compareraient jamais. Elles se génèrent donc sous Linux,
+ * dans le dev container, par un geste délibéré :
+ *
+ *     pnpm exec playwright test e2e/visuel.spec.ts --update-snapshots
+ *
+ * Tant qu'elles manquent, ce fichier ferait échouer toute la suite — mesuré :
+ * trente échecs, `pnpm test:e2e` en code 1. D'où la garde ci-dessous, et son
+ * asymétrie, qui est l'essentiel :
+ *
+ * - **sur la plateforme de la CI, l'absence est une erreur** : quelqu'un a
+ *   oublié de committer les références, et le dire tôt vaut mieux que laisser
+ *   six vues sans filet ;
+ * - **ailleurs, elle est une abstention** : un développeur sur macOS n'a pas à
+ *   être bloqué par des références qu'il ne doit pas produire.
+ *
+ * Sans cette asymétrie, la garde serait un témoin vide de plus : un `skip`
+ * inconditionnel resterait silencieux pour toujours, y compris le jour où les
+ * références disparaîtraient du dépôt.
+ */
+const DOSSIER_DES_REFERENCES = fileURLToPath(
+    new URL('./visuel.spec.ts-snapshots', import.meta.url),
+);
+const referencesPresentes =
+    existsSync(DOSSIER_DES_REFERENCES) && readdirSync(DOSSIER_DES_REFERENCES).length > 0;
+
 test.describe('Les six vues du système, dans les trois apparences', () => {
+    test.skip(
+        !referencesPresentes && process.platform !== 'linux',
+        "Références de capture absentes : elles se génèrent sous Linux, dans le dev container, par `pnpm exec playwright test e2e/visuel.spec.ts --update-snapshots`. Sur la plateforme de la CI, cette absence échoue au lieu d'être ignorée.",
+    );
+
     for (const vue of VUES) {
         test(`Étant donné ${vue.description}, quand l'apparence change, alors sa capture correspond à la référence`, async ({
             page,
