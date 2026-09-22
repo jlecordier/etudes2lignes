@@ -153,17 +153,41 @@ never glass. The _functional_ layer — bars, floating controls, map controls �
 is glass and floats above it. Apple states the corollary in as many words:
 "Don't use Liquid Glass in the content layer."
 
+**Everything below the floor is governed by one rule: a tier references only
+the tier above it.** Three tiers, each its own file(s), each owning what the
+old flat `src/style.css` left unowned ([ADR 0011](docs/adr/0011-design-system-css-natif.md)):
+
+- **A — primitives** (`src/styles/tokens/primitives.css`): raw scales, no
+  meaning — colour ramps, the spacing/radius scales, the eleven iOS text
+  styles as complete triplets. References nothing.
+- **B — semantic** (`src/styles/tokens/semantic.css`): roles. References only
+  A. Every colour is `light-dark()`, once — the two hand-written dark blocks
+  that used to drift apart are gone. `--hit-target` (44 px) lives here: a
+  token two components share is not a component token.
+- **C — component** (`src/styles/components/*.css`, twelve files — eleven
+  components plus `text.css`): declared in the component's own file,
+  references only B.
+
+Stylelint enforces part of this mechanically
+(`stylelint-declaration-strict-value`, `stylelint-value-no-unknown-custom-properties`)
+but not all of it — it doesn't know shorthands, and it never inspects what a
+`var()` resolves to. The gap is closed by structural invariants in
+`src/styles/styles.test.ts`, verified by ADR 0011.
+
 - **One file writes the glass, and it is the one that names it.**
   `src/styles/components/surface.css` is the sole declarer of `backdrop-filter`;
   [`src/styles/styles.test.ts`](src/styles/styles.test.ts) fails the moment a
   second sheet declares one. Eight rules used to redeclare it, and each was a
   chance to forget the `-webkit-` twin, the blur ceiling or the accessibility
-  retraction — two had already forgotten. To give something glass, have it carry
-  `.surface`; do not write the property a second time.
-- **A repeated surface gets the tint without the blur.** `.image-bar` exists once
-  per page, `.point-actions` once per point; the measured mobile ceiling is three
-  to five simultaneous blurs. Legibility is what those needed, and a fill gives
-  it for free.
+  retraction — two had already forgotten. `.surface` (and its
+  `.surface-regular`/`.surface-thick` modifiers) is that one shared
+  declaration; a functional component enters it by having its own selector
+  listed alongside `.surface` in that file's `@supports` block, rather than
+  redeclaring the property.
+- **A repeated surface gets the tint without the blur.** `.button-group-image`
+  exists once per page, `.button-group-point` once per point; the measured
+  mobile ceiling is three to five simultaneous blurs. Legibility is what those
+  needed, and a fill gives it for free.
 - **Never nest glass in glass**, and put the surface on the group rather than on
   each button. A button inside a bar is transparent and monochrome.
 - **One tinted action per screen** — the one that gives the screen its purpose.
@@ -171,26 +195,45 @@ is glass and floats above it. Apple states the corollary in as many words:
 - **Symbols are monochrome `currentColor`**, never emoji: an emoji cannot invert
   with the material. The set is `src/shared/Icons.html`; `IconName` is a closed
   union, and a `<use href="#i-…">` in a template is checked by `icons.test.ts`.
-- **Text uses the iOS scale only** (eleven styles, expressed as fractions of the
-  body size). A bar title is Headline — 17 pt semibold — not a content title.
-- **Radii are `999px`, `0`, or a `--rayon-*` token**; an inner radius is
-  `calc()`-derived from its container, never a second constant.
+- **Text uses the iOS scale only** (eleven styles, `.text-*` in
+  `src/styles/components/text.css`, expressed as fractions of the body size).
+  A bar title is Headline — 17 pt semibold — not a content title. Two open
+  debts: `--radius-pill` (tier A) is referenced directly by three component
+  files instead of a tier-B token; three complete typographic triplets
+  (`.trajet-name`/`.trajet-details`, `.help`) live as component tokens outside
+  `text.css` because composing the `.text-*` class into their templates was
+  repeatedly refused by the TDD gate for lack of a failing test — the
+  increment was cut rather than routed around.
+- **Radii are `999px` (`--radius-pill`), `0`, or a `--radius-*`/`--rayon-*`
+  token**; an inner radius is `calc()`-derived from its container, never a
+  second constant.
 - **Every colour token needs its dark counterpart.** A token added to `:root`
   after the dark block was written silently stays light — that is how a floating
-  button became a white disc bearing a white symbol.
+  button became a white disc bearing a white symbol. This is now structurally
+  impossible for a tier-B token (`light-dark()` forces both branches at
+  declaration site); `--color-warning` and `--color-success-text` still carry
+  a documented, undecided choice between their historical value and Apple's
+  published one.
 
 Six engine traps, each of which has already cost a visible defect here. They are
 not deducible; do not rediscover them:
 
 1. `-webkit-backdrop-filter` precedes `backdrop-filter`, byte-identical value.
 2. **No `var()` inside a `backdrop-filter`** — WebKit ignores the declaration.
-3. Opaque background first and unconditionally; glass only inside the
-   `@supports`; the accessibility retraction **after** it, since specificity ties
-   and source order decides.
+3. The glass rule and its no-support fallback are two mutually exclusive
+   `@supports` blocks in the same `components` layer, not "fallback first,
+   unconditionally." A later-declared layer (`screens`) always beats an
+   earlier one regardless of specificity, so an unconditional fallback there
+   would beat the glass rule even on an engine that supports it — the
+   fallback has to be its own `@supports not`. The accessibility retraction
+   (reduced transparency / more contrast) comes last in source order, to win
+   the specificity tie against whichever of the two applied.
 4. A Leaflet container needs `z-index: 0` to open its own stacking context, or
    its panes (`z-index: 400`) escape and cover whatever you put above them.
-5. `leaflet.css` loads **after** this sheet, and specificity cannot win the tie —
-   hence `!important` on the map controls, and only there.
+5. `leaflet.css` enters via `@import … layer(vendor);` — the lowest layer —
+   so no component rule needs `!important` to beat it any more, regardless of
+   specificity; that import is what made the 16 Leaflet-reconciliation
+   `!important`s disappear.
 6. No `filter` on an ancestor of a glass element; it cancels the blur.
 
 ## The TDD gate is enforced, not encouraged

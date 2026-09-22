@@ -17,9 +17,11 @@ nomme le métier et l'anglais la technique
 - [GLOSSAIRE](GLOSSAIRE.md) — langage ubiquitaire (métier, architecture, plateforme)
   et le [lexique](GLOSSAIRE.md#lexique) qui tranche français/anglais mot à mot.
 - [EXIGENCES](EXIGENCES.md) — exigences par capacité, reliées aux tests qui les vérifient.
-- [LIQUID-GLASS](LIQUID-GLASS.md) — les règles de l'interface : les deux couches,
-  la liste close des surfaces en verre, l'échelle typographique d'iOS, et les
-  sept pièges de moteur qui ont chacun coûté un défaut visible.
+- [LIQUID-GLASS](LIQUID-GLASS.md) — les règles de l'interface, et où chacune
+  vit dans le code : les deux couches, le fichier qui porte seul le verre,
+  l'échelle typographique d'iOS, et les sept pièges de moteur qui ont chacun
+  coûté un défaut visible. Le système qui porte ces règles — trois paliers de
+  jetons, CSS natif — est l'[ADR 0011](adr/0011-design-system-css-natif.md).
 - [adr/](adr/README.md) — décisions d'architecture (le « pourquoi »).
 
 ## Opérer

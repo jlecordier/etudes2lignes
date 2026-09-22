@@ -22,3 +22,4 @@ d'ADR dédié pour éviter la duplication.
 | [0008](0008-interface-en-custom-elements-natifs.md)              | Interface en custom elements natifs                  | Acceptée |
 | [0009](0009-flux-du-temps-en-rxjs.md)                            | Les flux du temps en RxJS                            | Acceptée |
 | [0010](0010-outillage-des-agents.md)                             | Outillage des agents : déclaré, versionné, documenté | Acceptée |
+| [0011](0011-design-system-css-natif.md)                          | Système de design en CSS natif, à trois paliers      | Acceptée |
