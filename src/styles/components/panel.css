@@ -32,8 +32,8 @@
  * entier, `display`, `position`, `top`, `height`, `z-index`, `background` et
  * `box-shadow` auraient été disputés par la variante mobile (ici) et sa
  * variante grand écran (`suivi-screen .panel-overview`, `suivi-screen
- * .overview-ouvert .panel-overview`, sous `@media (min-width: 900px)`,
- * restée dans `screens/legacy.css`) depuis deux couches différentes —
+ * .overview-ouvert .panel-overview`, sous `@media (min-width: 900px)`, qui
+ * vit dans `screens/suivi.css`) depuis deux couches différentes —
  * `@layer components, …, screens` fait perdre `components` face à `screens`
  * *toujours*, quelle que soit la spécificité. Le témoin générique d'inversion
  * de cascade l'avait dénoncé.

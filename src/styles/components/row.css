@@ -107,8 +107,9 @@
 
     /* Le titre de la ligne, pas un champ de saisie : à plat, aligné à
        gauche et dans le bleu des actions — c'est ce qu'on touche pour ouvrir
-       le trajet. Le style Headline n'est pas ici : voir l'en-tête du fichier
-       — il reste, en dette documentée, dans `screens/legacy.css`. */
+       le trajet. Le style Headline n'est pas `.text-headline` : voir
+       l'en-tête du fichier — il vit ici, en clair, dette documentée faute du
+       témoin de gabarit que `probity` exigerait pour la migration. */
     .row-title {
         justify-content: flex-start;
         padding: 0;

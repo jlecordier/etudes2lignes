@@ -139,9 +139,8 @@
     }
 
     /* `.bar-navigation .button-group { flex-wrap: nowrap }` n'est plus ici :
-       voir l'en-tête du fichier. Elle vit dans `screens/legacy.css`, à côté
-       de `.button-group` elle-même, le temps que la tâche 3 les réunisse
-       dans `button-group.css`. */
+       voir l'en-tête du fichier. Elle vit dans `components/button-group.css`,
+       à côté de `.button-group` elle-même, réunies par la tâche 3. */
 
     /* La troncature du titre d'une barre de navigation : c'est au titre de
        céder, pas à la ligne de se casser — `.bar-navigation` est sans

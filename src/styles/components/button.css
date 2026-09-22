@@ -45,8 +45,9 @@
  * les deux dimensions ne peuvent plus diverger d'une future refonte à
  * l'autre. Les deux exceptions à ce plancher — la pastille numérotée d'un
  * point et les contrôles de carte — annulent déjà `min-inline-size` avec une
- * spécificité supérieure à celle-ci ; elles restent dans
- * `screens/legacy.css`, hors du périmètre de ce fichier.
+ * spécificité supérieure à celle-ci ; elles vivent respectivement dans
+ * `components/badge.css` et `components/map-overlay.css`, hors du périmètre
+ * de ce fichier.
  */
 @layer components {
     button {
