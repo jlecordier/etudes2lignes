@@ -1469,6 +1469,19 @@ describe('Le vocabulaire', () => {
                     (attribut[1] ?? '').split(/\s+/).includes(nom),
                 );
 
+            // Garde de non-vacuité, et c'est le dixième de la série. Mesuré :
+            // le motif du glob changé en `*.htmlx` et l'entrée `index.html`
+            // retirée, ce témoin **passait** — plus rien à balayer, donc plus
+            // rien à trouver, donc vert. Il aurait déclaré la migration finie
+            // sur zéro gabarit.
+            //
+            // Neuf gabarits : les huit de `src/` et `index.html`, qui vit à la
+            // racine et échappe au glob. Le nombre est un plancher, pas une
+            // égalité : ajouter un écran ne doit pas faire rougir ce témoin,
+            // mais en perdre un doit forcer quelqu'un à venir regarder.
+            expect(gabarits.length).toBeGreaterThanOrEqual(9);
+            expect(gabarits).toContain('../../index.html');
+
             const restantes = anciennes.filter((nom) =>
                 gabarits.some((chemin) =>
                     porteLaClasse(readFileSync(new URL(chemin, import.meta.url), 'utf8'), nom),
