@@ -41,19 +41,19 @@
  * jeton porte désormais la hauteur, et aucun des deux modificateurs n'y
  * touche : la dérive n'a plus où s'écrire.
  *
- * Un second défaut, mesuré cette fois pendant la tâche 2 et non avant elle :
- * `.bar-navigation .button-group { flex-wrap: nowrap }` vivait ici tant
- * qu'elle restait dans `screens/legacy.css`, la même couche que
- * `.button-group { flex-wrap: wrap }` qu'elle devait battre par spécificité.
- * Une couche `components` perd **toujours** face à `screens`, quelle que
- * soit la spécificité — cette règle ne peut donc plus gagner depuis ce
- * fichier, et un `flex-wrap` calculé à `wrap` sur `.button-group` à 360 px
- * l'a confirmé. Elle est donc restée dans `screens/legacy.css`, avec la
- * dette écrite qui dit pourquoi et ce qui l'en libérera (la tâche 3, quand
- * `.button-group` lui-même y rejoindra `button-group.css`). Le témoin
- * générique plus bas (`styles.test.ts`, « L'inversion de cascade… ») existe
- * pour qu'aucune des trois extractions restantes ne reproduise ce piège
- * sans qu'un test rougisse.
+ * Un second défaut, mesuré cette fois pendant la tâche 2 et non avant elle,
+ * et refermé depuis : `.bar-navigation .button-group { flex-wrap: nowrap }`
+ * avait été posée ici, alors que `.button-group { flex-wrap: wrap }`, qu'elle
+ * devait battre par spécificité, vivait encore dans `screens/legacy.css`. Une
+ * couche `components` perd **toujours** face à `screens`, quelle que soit la
+ * spécificité : la règle ne pouvait donc pas gagner depuis ce fichier, et un
+ * `flex-wrap` calculé à `wrap` sur `.button-group` à 360 px l'a confirmé.
+ * Elle est restée dans la feuille en transit le temps que la tâche 3 y
+ * rapatrie `.button-group` ; les deux vivent aujourd'hui dans
+ * `components/button-group.css`, donc dans la même couche, où la spécificité
+ * tranche de nouveau. Le témoin générique né de ce défaut (`styles.test.ts`,
+ * « L'inversion de cascade… ») reste : il a dénoncé trois autres inversions
+ * d'un coup pendant la tâche 4, qu'aucune relecture n'avait vues.
  *
  * Un troisième défaut, refermé par la tâche 5 : `.bar-navigation
  * button.secondary, .bar-status button.secondary, .map-overlay-bar
