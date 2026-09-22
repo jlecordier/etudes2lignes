@@ -29,8 +29,6 @@
 @import url('./components/banner.css');
 @import url('./components/field.css');
 @import url('./components/map-overlay.css');
-@import url('./screens/legacy-bridge.css');
-@import url('./screens/legacy.css');
 @import url('./screens/trajets-list.css');
 @import url('./screens/trajet-editor.css');
 @import url('./screens/suivi.css');

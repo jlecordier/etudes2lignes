@@ -160,7 +160,6 @@ describe('Le palier des primitives', () => {
 });
 
 const semantique = feuilles['./tokens/semantic.css'] ?? '';
-const pont = feuilles['./screens/legacy-bridge.css'] ?? '';
 
 describe('Le palier sémantique', () => {
     describe('Étant donné les deux apparences, quand on cherche où elles sont écrites', () => {
@@ -274,15 +273,19 @@ describe('Le palier sémantique', () => {
         });
     });
 
-    describe("Étant donné le pont vers la feuille en transit, quand on l'ouvre", () => {
-        it("alors il n'y a que des alias : aucune valeur ne s'y décide", () => {
-            const declarations = pont.match(/--[a-z-]+:[^;]+;/g) ?? [];
-            const quiDecident = declarations.filter((d) => !/:\s*var\(--/.test(d));
-
-            expect(declarations.length).toBeGreaterThan(0);
-            expect(quiDecident).toEqual([]);
-        });
-    });
+    /**
+     * « Étant donné le pont vers la feuille en transit… » vivait ici et
+     * affirmait que `screens/legacy-bridge.css` ne contenait que des alias,
+     * aucune valeur en propre. Supprimée, et non laissée vide, pour la même
+     * raison que « Les rayons » dans l'ancien `legacy.test.ts` : son
+     * mécanisme n'était pas cassé, mais son sujet a disparu — le pont est
+     * supprimé par cette même tâche 7. `pont` vaudrait désormais `''` par
+     * construction (`feuilles['./screens/legacy-bridge.css'] ?? ''`), et ce
+     * témoin serait resté vert pour toujours en ne gardant plus rien.
+     * L'absence de toute référence au vocabulaire du pont est déjà affirmée,
+     * au périmètre du système entier, par « Le pont disparu » plus bas dans
+     * ce fichier.
+     */
 
     describe("Étant donné le palier contraste élevé, quand on regarde ce qu'il surcharge", () => {
         it("alors les sept rôles que l'ancienne feuille y redéfinissait y sont, le séparateur compris", () => {

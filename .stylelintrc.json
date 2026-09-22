@@ -52,41 +52,6 @@
             "rules": { "scale-unlimited/declaration-strict-value": null }
         },
         {
-            "files": ["src/styles/screens/legacy.css"],
-            "rules": {
-                "scale-unlimited/declaration-strict-value": [
-                    [
-                        "color",
-                        "background-color",
-                        "fill",
-                        "stroke",
-                        "font-size",
-                        "line-height",
-                        "letter-spacing",
-                        "border-radius",
-                        "gap",
-                        "padding",
-                        "margin",
-                        "box-shadow"
-                    ],
-                    {
-                        "ignoreKeywords": [
-                            "inherit",
-                            "currentColor",
-                            "transparent",
-                            "none",
-                            "auto",
-                            "unset",
-                            "initial"
-                        ],
-                        "ignoreValues": ["0"],
-                        "disableFix": true,
-                        "severity": "warning"
-                    }
-                ]
-            }
-        },
-        {
             "files": ["design/*.css"],
             "rules": { "scale-unlimited/declaration-strict-value": null }
         }
