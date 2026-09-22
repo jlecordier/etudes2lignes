@@ -8,14 +8,13 @@
  * Son rayon se lit `var(--rayon-interieur, 14px)` : `--rayon-interieur`
  * (`calc(var(--radius-section) - var(--ecart-interne))`, soit 22 px moins
  * 8 px) est déclaré dans le `:root` de `components/map-overlay.css`, pas
- * dans `tokens/primitives.css`, `tokens/semantic.css` ni
- * `screens/legacy-bridge.css` — les trois seuls que
+ * dans `tokens/primitives.css` ni `tokens/semantic.css` — les deux seuls que
  * `csstools/value-no-unknown-custom-properties` reconnaît hors du fichier
  * courant. Le filet de secours (14 px, la même valeur calculée) traverse
  * cette frontière sans faire échouer le lint ; il ne joue jamais en
  * pratique, `--rayon-interieur` s'appliquant toujours par héritage depuis la
  * racine du document. `csstools/value-no-unknown-custom-properties` ne
- * reconnaît toujours que les trois fichiers cités plus haut pour une
+ * reconnaît toujours que les deux fichiers cités plus haut pour une
  * référence inter-fichiers : faire de `--rayon-interieur` un jeton partagé
  * sans ce filet demanderait de le promouvoir au palier sémantique, une
  * décision distincte que cette tâche ne prend pas — le filet reste donc, et

@@ -34,8 +34,7 @@
  * `point-marker .badge` reste positionné dans `screens/trajet-editor.css`,
  * et non ici : sa formule se cale sur `--point-line-thickness`, une
  * propriété personnalisée déclarée dans le `:root` de ce fichier-là — et non
- * dans `tokens/primitives.css`, `tokens/semantic.css` ou
- * `screens/legacy-bridge.css`, les trois seuls que
+ * dans `tokens/primitives.css` ni `tokens/semantic.css`, les deux seuls que
  * `csstools/value-no-unknown-custom-properties` reconnaît. Même contrainte,
  * déjà rencontrée par la tâche 3 pour la position de `.button-group-point`.
  * Elle y lit `var(--badge-size, 26px)` — le filet de secours ne joue jamais

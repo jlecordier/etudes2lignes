@@ -11,8 +11,7 @@
  * pastille elle-même, vit dans `components/badge.css` ; `point-marker
  * .badge` la lit avec un filet de secours (`var(--badge-size, 26px)`),
  * `csstools/value-no-unknown-custom-properties` ne reconnaissant que
- * `tokens/primitives.css`, `tokens/semantic.css` et `screens/legacy-
- * bridge.css` hors du fichier courant.
+ * `tokens/primitives.css` et `tokens/semantic.css` hors du fichier courant.
  *
  * **La dette que ce fichier referme, écrite par la tâche 4 dans
  * `components/badge.css` :** `.placement-active .badge`

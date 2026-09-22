@@ -15,12 +15,12 @@
  * porte `backdrop-filter` ni la classe `.surface`.
  *
  * `.overview-stack` lit `var(--overview-width)`, une propriété
- * personnalisée que `suivi-screen` calcule dans `screens/legacy.css` (elle
+ * personnalisée que `suivi-screen` calcule dans `screens/suivi.css` (elle
  * dépend de mesures prises par TypeScript, pas d'un jeton de système) et qui
  * n'est déclarée ni dans `tokens/primitives.css`, ni dans `tokens/
- * semantic.css`, ni dans `screens/legacy-bridge.css` — les trois seuls
- * fichiers que `csstools/value-no-unknown-custom-properties` reconnaît hors
- * du fichier courant. Un filet de secours (`var(--overview-width, min(12rem,
+ * semantic.css` — les deux seuls fichiers que
+ * `csstools/value-no-unknown-custom-properties` reconnaît hors du fichier
+ * courant. Un filet de secours (`var(--overview-width, min(12rem,
  * 33vw))`) traverse cette frontière sans faire échouer le lint — même
  * technique que `var(--suivi-bar-height, 3rem)` ailleurs dans le système. Il
  * ne joue jamais en pratique : `suivi-screen` déclare toujours la propriété

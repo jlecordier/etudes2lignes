@@ -55,9 +55,9 @@
  * entier dans `screens/suivi.css`, base et correctif grand écran compris, et
  * non ici. Son recentrage au-delà de 900 px se cale sur `--overview-width`,
  * une propriété personnalisée que `suivi-screen` calcule et qui n'est
- * déclarée ni dans `tokens/primitives.css`, ni dans `tokens/semantic.css`,
- * ni dans `screens/legacy-bridge.css` : `csstools/value-no-unknown-custom-
- * properties` ne connaît que ces trois-là, et la référencer depuis un
+ * déclarée ni dans `tokens/primitives.css`, ni dans `tokens/semantic.css` :
+ * `csstools/value-no-unknown-custom-properties` ne connaît que ces
+ * deux-là, et la référencer depuis un
  * composant échouerait au lint quelle que soit sa justesse. Séparer la base
  * (ici) du correctif (là-bas) recréerait en plus la dette de `.button-group`
  * sur `left`/`bottom` — la même famille de propriété coupée en deux couches.

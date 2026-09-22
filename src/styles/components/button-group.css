@@ -74,10 +74,9 @@
        en perdant leur couleur — « use style, not size, to visually
        distinguish the preferred choice ». L'exception qui rend à l'action
        conclusive de la navigation sa teinte (`.bar-navigation .button-group
-       button:not(.secondary)`) reste dans `screens/legacy.css` : sa
-       spécificité plus élevée la fait gagner contre cette règle-ci quelle
-       que soit la couche où celle-ci vit, puisque `screens` l'emporte de
-       toute façon sur `components`. */
+       button:not(.secondary)`) vit plus bas dans ce même fichier : sa
+       spécificité plus élevée la fait gagner contre cette règle-ci, les deux
+       vivant désormais dans la même couche `components`. */
     .button-group button {
         background: color-mix(in srgb, var(--color-label) 8%, transparent);
         color: var(--color-accent);
@@ -110,12 +109,12 @@
     }
 
     /* Les trois actions d'un point : un seul porteur, et c'est lui qui porte
-       la surface. Sa position reste dans `screens/legacy.css`, à côté de
+       la surface. Sa position vit dans `screens/trajet-editor.css`, à côté de
        `--point-line-thickness` : `csstools/value-no-unknown-custom-
        properties` ne reconnaît que les jetons importés de `tokens/
-       primitives.css`, `tokens/semantic.css` et `screens/legacy-bridge.css`
-       — pas les propriétés personnalisées propres à `screens/legacy.css`,
-       où vit la géométrie partagée du repère. */
+       primitives.css` et `tokens/semantic.css` — pas les propriétés
+       personnalisées propres à `screens/trajet-editor.css`, où vit la
+       géométrie partagée du repère. */
     .button-group-point {
         display: flex;
         align-items: center;
