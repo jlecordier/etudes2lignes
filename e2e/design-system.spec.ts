@@ -124,6 +124,50 @@ test.describe('La géométrie du système', () => {
                 await hauteurAvecLEtat(ETAT_COURT),
             );
         });
+
+        /**
+         * Le même défaut, l'autre barre — et c'est celui-là que la CI mesure :
+         * elle nomme `liste-360` et `liste-390`, jamais `suivi-*`.
+         *
+         * `.bar-navigation > button { flex-shrink: 0 }` protège les boutons
+         * qui sont ses enfants directs, ce que l'éditeur et le suivi ont.
+         * L'écran de la liste range les siens dans un `.button-group`, hors de
+         * portée de ce sélecteur : le groupe ne passe pas à la ligne
+         * (`.bar-navigation .button-group { flex-wrap: nowrap }`) mais rien ne
+         * l'empêche de se comprimer, et « Nouveau trajet » se casse alors en
+         * deux à l'intérieur de son propre bouton — mot pour mot le défaut que
+         * `bar.css` raconte avoir refermé pour « Suivre ».
+         *
+         * Mesuré à 360 px : le libellé nominal laisse la barre à 61 px ; un
+         * libellé assez large pour déborder la porte à 80, le bouton passant
+         * de 44 à 63. Allonger le texte est ici la façon de demander la largeur
+         * que le runner réclame avec sa propre police — le seul moyen de
+         * reproduire sur une machine de développement une contrainte qui n'y
+         * existe pas. Le témoin frère ci-dessus repose sur le même
+         * raisonnement, et la CI l'a validé.
+         */
+        const LIBELLE_NOMINAL = 'Nouveau trajet';
+        const LIBELLE_PLUS_LARGE_QUE_SA_PLACE = 'Nouveau trajet bien plus long';
+
+        test("Étant donné un libellé plus large que sa place, quand la barre de la liste le porte, alors elle garde la hauteur qu'elle a sans lui", async ({
+            page,
+        }) => {
+            await preparerLApplication(page);
+            await page.setViewportSize({ width: Math.min(...LARGEURS), height: 780 });
+
+            async function hauteurAvecLeLibelle(libelle: string): Promise<number> {
+                await page
+                    .locator('.bar-navigation .button-group > :last-child')
+                    .evaluate((bouton, texte) => {
+                        bouton.textContent = texte;
+                    }, libelle);
+                return hauteurDeLaBarre(page);
+            }
+
+            expect(await hauteurAvecLeLibelle(LIBELLE_PLUS_LARGE_QUE_SA_PLACE)).toBe(
+                await hauteurAvecLeLibelle(LIBELLE_NOMINAL),
+            );
+        });
     });
 
     test("Étant donné les contrôles de l'application, dont ceux d'un point posé, quand je mesure leur cible, alors aucun n'est sous 44 px", async ({

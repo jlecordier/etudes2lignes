@@ -64,9 +64,21 @@
 
     /* Voir l'en-tête du fichier : cette règle doit sa victoire à vivre dans
        la même couche que `.button-group` ci-dessus, pas seulement à sa
-       spécificité plus élevée. */
+       spécificité plus élevée.
+
+       `flex-shrink: 0` l'accompagne parce que interdire la ligne suivante ne
+       suffit pas : le groupe se comprimait à la place, et « Nouveau trajet »
+       se cassait en deux à l'intérieur de son propre bouton — ce que
+       `bar.css` avait refermé pour « Suivre » avec `.bar-navigation > button
+       { flex-shrink: 0 }`, un sélecteur que les boutons de la liste
+       n'atteignent pas puisqu'ils vivent dans ce groupe. Mesuré à 360 px : la
+       barre de la liste passait de 61 px à 80, son bouton de 44 à 63, dès
+       qu'un libellé réclamait plus que sa place. C'est au titre de céder —
+       il a son ellipse dans `bar.css`, et c'est le parti que ce système
+       prend partout. */
     .bar-navigation .button-group {
         flex-wrap: nowrap;
+        flex-shrink: 0;
     }
 
     /* Des **pairs**, donc aucune teinte propre : « keep the number of
