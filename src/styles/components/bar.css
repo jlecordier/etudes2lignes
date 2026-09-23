@@ -170,11 +170,23 @@
 
     /* L'état du suivi. Le style Footnote — taille, interligne, approche —
        n'est pas ici non plus : il vit dans `.text-footnote`, porté par
-       l'élément dans son gabarit HTML. */
+       l'élément dans son gabarit HTML.
+
+       C'est à l'état de céder, pas à la barre de grandir — le même parti que
+       le titre d'une barre de navigation prend plus haut, et pour la même
+       raison. Sans cette ellipse, « Accès à la position refusé — autorisez la
+       localisation pour ce site puis revenez. » tenait trois lignes à 360 px,
+       soit 54 px, au-delà des 44 px du bouton dont la barre tire sa hauteur :
+       71 px au lieu de 61, mesuré. À 390 px il tenait sur deux lignes et rien
+       ne dépassait, ce qui explique qu'une machine de développement n'ait
+       jamais vu le défaut que la CI signalait sur ses cinq projets. */
     .suivi-status {
         flex: 1;
         min-width: 8rem;
+        overflow: hidden;
         color: var(--color-warning-text);
+        white-space: nowrap;
+        text-overflow: ellipsis;
     }
 
     /* Dans une barre, un bouton n'apporte pas sa propre surface : c'est la

@@ -62,6 +62,58 @@ test.describe('La géométrie du système', () => {
             // valeur distincte, où la dérive est revenue.
             expect([...new Set(Object.values(hauteurs))]).toHaveLength(1);
         });
+
+        /**
+         * Le test ci-dessus mocke la géolocalisation pour que l'état se pose
+         * sur le court « En attente du signal GPS… ». Il fige la position, pas
+         * le message qui finit à l'écran : la CI mesure 74 px là où une machine
+         * de développement en mesure 61, parce que le long message de refus s'y
+         * affiche quand même. Le mock rend donc la barre stable *en général*,
+         * et ce témoin-ci vérifie ce qu'il ne peut pas promettre — qu'aucun
+         * message ne la fasse grandir.
+         *
+         * Le texte est posé dans le DOM plutôt qu'obtenu en refusant vraiment
+         * la permission : ce second chemin dépend du régime de chaque moteur
+         * (Firefox ne délivre aucun callback d'erreur sur refus, voir
+         * `e2e/suivi.spec.ts`) et rendrait le témoin muet là où il doit parler.
+         * Les deux messages sont ceux que `src/suivi/domain/presentation.ts`
+         * produit, copiés — si l'un d'eux y change, ce témoin cesse de décrire
+         * le pire cas, et c'est le seul couplage qu'il accepte.
+         *
+         * Mesuré avant le correctif, à 360 px : l'état de refus occupait trois
+         * lignes, soit 54 px, au-delà des 44 px du bouton qui donnaient
+         * jusque-là sa hauteur à la barre — 71 px au total. À 390 px il tenait
+         * sur deux lignes et rien ne dépassait, ce qui est exactement pourquoi
+         * la plus étroite des largeurs est la seule à interroger ici.
+         */
+        const ETAT_COURT = 'En attente du signal GPS…';
+        const ETAT_LE_PLUS_LONG =
+            'Accès à la position refusé — autorisez la localisation pour ce site puis revenez.';
+
+        test("Étant donné le plus long des états, quand l'écran est le plus étroit, alors la barre garde la hauteur qu'elle a sans lui", async ({
+            page,
+        }) => {
+            await preparerLApplication(page);
+            await ouvrirUnTrajetAvecUnePage(page);
+            await ajouterUnPoint(page, 0.8, 0);
+            await ajouterUnPoint(page, 0.2, 150);
+            await page.getByRole('button', { name: 'Suivre' }).click();
+            await expect(page.locator('suivi-screen')).toBeVisible();
+            await page.setViewportSize({ width: Math.min(...LARGEURS), height: 780 });
+
+            async function hauteurAvecLEtat(message: string): Promise<number> {
+                await page.locator('#suivi-status').evaluate((element, texte) => {
+                    element.textContent = texte;
+                }, message);
+                return hauteurDeLaBarre(page);
+            }
+
+            // Aucune hauteur en dur : c'est l'égalité qui est l'invariant, et
+            // elle survit au jour où le rembourrage de la barre changera.
+            expect(await hauteurAvecLEtat(ETAT_LE_PLUS_LONG)).toBe(
+                await hauteurAvecLEtat(ETAT_COURT),
+            );
+        });
     });
 
     test("Étant donné les contrôles de l'application, dont ceux d'un point posé, quand je mesure leur cible, alors aucun n'est sous 44 px", async ({
