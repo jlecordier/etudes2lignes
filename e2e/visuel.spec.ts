@@ -161,6 +161,31 @@ const DOSSIER_DES_REFERENCES = join(
 const referencesPresentes =
     existsSync(DOSSIER_DES_REFERENCES) && readdirSync(DOSSIER_DES_REFERENCES).length > 0;
 
+/**
+ * Ce que la capture doit attendre, et ce qu'elle ne doit jamais attendre.
+ *
+ * `toHaveScreenshot` sait patienter jusqu'à ce que deux prises consécutives
+ * soient identiques, et il attend les polices. Il n'attend **pas** les
+ * images : une page dont le schéma n'est pas encore décodé est parfaitement
+ * stable, simplement vide. Mesuré le 24 septembre 2026 : la même référence
+ * pesait 307 Ko avec l'image et 36 Ko sans, et la CI comparait l'une à
+ * l'autre — 37 % des pixels, un écart qu'aucune tolérance ne distingue d'une
+ * régression, et qui n'en était pas une.
+ */
+async function attendreLesImages(page: Page): Promise<void> {
+    await page.evaluate(async () => {
+        await Promise.all(
+            [...document.images].map((image) =>
+                // `decode()` et non `complete` : une image peut être reçue
+                // sans être encore peinte. L'échec est avalé — une image
+                // cassée est un défaut que d'autres témoins doivent dénoncer,
+                // pas de quoi faire tomber une capture.
+                image.decode().catch(() => undefined),
+            ),
+        );
+    });
+}
+
 test.describe('Les six vues du système, dans les trois apparences', () => {
     test.skip(
         !referencesPresentes && process.platform !== 'linux',
@@ -175,6 +200,7 @@ test.describe('Les six vues du système, dans les trois apparences', () => {
 
             for (const apparence of APPARENCES) {
                 await page.emulateMedia(apparence.media);
+                await attendreLesImages(page);
                 await expect(page).toHaveScreenshot(`${vue.nom}-${apparence.nom}.png`, {
                     // Animations et transitions figées à l'instant de l'obturateur :
                     // sans quoi une capture prise en plein fondu ne se
@@ -190,7 +216,21 @@ test.describe('Les six vues du système, dans les trois apparences', () => {
                     // (`LeafletCoordonneeSelector.ts`) ; ni l'un ni l'autre
                     // n'existe sur les vues qui ne les affichent pas, où le
                     // masque ne trouve simplement rien.
-                    mask: [page.locator('#suivi-status'), page.locator('#carte-position-status')],
+                    // `.leaflet-tile-pane` rejoint les deux textes d'état pour
+                    // la même raison qu'eux : ce qu'il montre ne dépend pas de
+                    // cette application. Les tuiles viennent d'un serveur
+                    // tiers, arrivent quand elles peuvent et changent quand
+                    // leur éditeur le décide — sur le runner elles n'arrivent
+                    // pas du tout, et la référence du 24 septembre 2026 a figé
+                    // une carte vide que le run suivant a comparée à une carte
+                    // pleine. Les marqueurs vivent dans `.leaflet-marker-pane`
+                    // et restent donc visibles : c'est le fond qui part, pas
+                    // ce que l'application y pose.
+                    mask: [
+                        page.locator('#suivi-status'),
+                        page.locator('#carte-position-status'),
+                        page.locator('.leaflet-tile-pane'),
+                    ],
                     // Échelle de pixel fixée en CSS plutôt qu'en pixels
                     // matériels : sans quoi une référence générée sur un
                     // projet à `deviceScaleFactor` élevé (les projets mobiles)
