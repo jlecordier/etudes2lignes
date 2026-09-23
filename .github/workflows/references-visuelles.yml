@@ -1,0 +1,55 @@
+# Régénère les captures de référence de `e2e/visuel.spec.ts` sur la plateforme
+# qui les compare, et les committe. Déclenchement manuel seulement : rien ici
+# n'a de raison de tourner à chaque poussée.
+#
+# Pourquoi le runner et non une machine de développement. `src/styles/base/elements.css`
+# déclare `font-family: system-ui, sans-serif` et le dépôt n'embarque aucune
+# webfont : la police résolue est donc celle de la machine — SF Pro sur macOS,
+# autre chose dans l'image `mcr.microsoft.com/playwright`, autre chose encore
+# sur `ubuntu-latest`. Mesuré le 23 septembre 2026, avec des références
+# produites en local sous Linux arm64 : de 2 % à 37 % des pixels divergeaient
+# ici, un écart qu'aucune tolérance ne sépare d'une vraie régression. Seul le
+# runner peut produire ce que le runner compare.
+name: Références visuelles
+
+on:
+    workflow_dispatch:
+
+# Ce job réécrit les références et les pousse ; `deploy.yml` se contente de
+# lire, d'où le `contents: read` qu'il garde.
+permissions:
+    contents: write
+
+jobs:
+    regenerer:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 9
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: pnpm
+            - run: pnpm install --frozen-lockfile
+            - run: pnpm exec playwright install --with-deps chromium webkit firefox
+            # `--retries=2` ici plutôt qu'un `toHaveScreenshot.timeout` élargi
+            # dans `playwright.config.ts` : la contention entre workers a fait
+            # échouer une capture webkit sur trente pendant la génération
+            # locale, et ce réglage ne vaut que pour cette régénération —
+            # il ne touche pas la configuration du reste de la suite.
+            - run: pnpm exec playwright test e2e/visuel.spec.ts --update-snapshots --retries=2
+            - name: Committer ce que le runner vient de produire
+              run: |
+                  git config user.name 'github-actions[bot]'
+                  git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+                  git add e2e/visuel.spec.ts-snapshots
+                  # N'avoir rien à committer est un succès, pas une panne : les
+                  # références étaient déjà celles que ce runner produit.
+                  if git diff --cached --quiet; then
+                      echo 'Références inchangées : rien à committer.'
+                  else
+                      git commit -m 'Régénère les références visuelles sur la plateforme qui les compare'
+                      git push
+                  fi
