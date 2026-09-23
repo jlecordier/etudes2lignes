@@ -98,6 +98,32 @@
         }
     }
 
+    /* Un bouton qui ne montre pas de libellé est un disque, pas une capsule.
+       `--radius-pill` le promet déjà ; encore faut-il que la boîte soit
+       carrée, et le rembourrage horizontal ci-dessus ne sert qu'à espacer un
+       libellé de son pictogramme. Appliqué là où il n'y a rien à espacer, il
+       étirait le disque : trois boutons mesurés à 47,4 × 44 px le 24
+       septembre 2026, l'aperçu du trajet et les deux flèches de page, avant
+       que le témoin e2e n'en dénonce d'autres du même coup.
+
+       Deux façons de ne pas montrer de libellé, d'où les deux sélecteurs :
+       `.button-icon` pour les boutons qui n'en ont jamais eu — `createButton`
+       la pose, et `SuiviScreen.html` l'écrit à la main — et le repli sous
+       560 px pour ceux dont `.button-label` vient de passer à `display:
+       none`, qui deviennent des boutons à icône le temps que l'écran soit
+       étroit. */
+    .button-icon,
+    button:has(> .button-label) {
+        padding-inline: var(--button-padding-block);
+    }
+
+    @media (min-width: 560px) {
+        /* Le libellé reparaît, et le rembourrage qui l'espace avec lui. */
+        button:has(> .button-label) {
+            padding-inline: var(--button-padding-inline);
+        }
+    }
+
     .icon {
         /* Deux règles Stylelint se disputent l'orthographe de ce mot-clé, et
            aucun des deux choix littéraux ne les satisfait toutes les deux :

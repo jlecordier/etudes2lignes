@@ -46,6 +46,16 @@ export function createButton(button: Button): HTMLButtonElement {
         label.className = 'button-label';
         label.textContent = button.label;
         element.append(label);
+    } else {
+        // Sans libellé, le bouton n'est plus une capsule mais un disque, et
+        // `button.css` a besoin de le savoir : aucun sélecteur ne distingue un
+        // bouton qui ne porte qu'une icône d'un bouton dont le libellé est un
+        // texte nu (« Suivre », « Nouveau trajet », « Reprendre le suivi »),
+        // le texte d'un nœud échappant à `:has()`. La classe est posée à part
+        // plutôt qu'ajoutée aux quatre combinaisons de `classes()`, qui les
+        // écrit en clair exprès — un littéral reste un littéral, donc encore
+        // lisible pour qui relit et pour l'analyse de règles mortes.
+        element.classList.add('button-icon');
     }
     element.setAttribute('aria-label', button.ariaLabel);
     if (variant === 'floating') {

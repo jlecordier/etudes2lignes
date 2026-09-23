@@ -145,7 +145,12 @@ describe('createButton', () => {
             });
 
             expect(button.title).toBe('Déplacer le point 2 sur la carte');
-            expect(button.className).toBe('secondary button-compact');
+            // `button-icon` s'ajoute aux combinaisons de `classes()` sans en
+            // faire partie : ce bouton n'a pas de `label`, donc il ne montrera
+            // jamais de texte, et `button.css` lui doit un disque plutôt
+            // qu'une capsule. La classe est posée à part, et cette égalité
+            // exacte est ce qui le dit.
+            expect(button.className).toBe('secondary button-compact button-icon');
         });
     });
 
@@ -177,7 +182,7 @@ describe('createButton', () => {
                 variant: 'floating',
             });
 
-            expect(button.className).toBe('secondary button-compact danger');
+            expect(button.className).toBe('secondary button-compact danger button-icon');
         });
     });
 });

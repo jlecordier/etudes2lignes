@@ -170,6 +170,61 @@ test.describe('La géométrie du système', () => {
         });
     });
 
+    /**
+     * Le plancher de 44 px dit la cible ; celui-ci dit la forme.
+     *
+     * `border-radius: var(--radius-pill)` promet un disque à un bouton qui ne
+     * montre qu'une icône — mais la promesse ne tient que si la boîte est
+     * carrée. Le rembourrage horizontal de `button.css` sert à espacer un
+     * libellé de son icône : appliqué là où il n'y a pas de libellé, il
+     * étire le disque en capsule.
+     *
+     * Mesuré le 24 septembre 2026 : trois boutons à 47,4 × 44 px — l'aperçu
+     * du trajet, et les deux flèches de page de l'éditeur. Aucun test ne
+     * pouvait le voir, `button.css` n'ayant jamais eu de règle pour le cas
+     * icône seule.
+     *
+     * `innerText` et non `textContent` : seul le premier ne rend que le
+     * texte **affiché**, et c'est exactement la distinction qui compte ici —
+     * sous 560 px, `.button-label` passe à `display: none` et un bouton
+     * libellé devient, de fait, un bouton à icône.
+     */
+    test("Étant donné un bouton qui ne montre qu'une icône, quand je mesure sa boîte, alors elle est carrée et son disque tient", async ({
+        page,
+    }) => {
+        await preparerLApplication(page);
+        await ouvrirUnTrajetAvecUnePage(page);
+        await ajouterUnPoint(page, 0.5, 0);
+        await page.setViewportSize({ width: Math.min(...LARGEURS), height: 780 });
+
+        const capsules: string[] = [];
+        for (const cible of await page.locator('button:visible').all()) {
+            // Mêmes deux régimes exclus que le témoin des 44 px, pour les
+            // mêmes raisons : les contrôles de carte relèvent du plancher que
+            // la HIG leur laisse, et la pastille numérotée voit son
+            // `min-inline-size` neutralisé pour égaler sa jumelle de la carte.
+            const etat = await cible.evaluate((n) => ({
+                exclu: n.closest('.leaflet-control') !== null || n.classList.contains('badge'),
+                montreDuTexte: (n instanceof HTMLElement ? n.innerText : '').trim() !== '',
+            }));
+            if (etat.exclu || etat.montreDuTexte) {
+                continue;
+            }
+            const boite = requireDefined(await cible.boundingBox(), 'bouton à icône');
+            // Même arrondi que le témoin des 44 px, et pour le même résidu de
+            // sous-pixel : c'est un écart de conception qu'on cherche, pas un
+            // millième de pixel de rendu.
+            const largeur = Math.round(boite.width);
+            const hauteur = Math.round(boite.height);
+            if (largeur !== hauteur) {
+                const nom = (await cible.getAttribute('aria-label')) ?? '';
+                capsules.push(`${nom} ${largeur}x${hauteur}`);
+            }
+        }
+
+        expect(capsules).toEqual([]);
+    });
+
     test("Étant donné les contrôles de l'application, dont ceux d'un point posé, quand je mesure leur cible, alors aucun n'est sous 44 px", async ({
         page,
     }) => {

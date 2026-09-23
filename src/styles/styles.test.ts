@@ -2137,6 +2137,55 @@ describe('La couche fonctionnelle', () => {
     // `.carte-recentrer` **n'y est pas**, et c'est une correction : il vit
     // dans un `.leaflet-bar`, donc l'y mettre aussi empilait deux verres.
 
+    describe('Étant donné une surface en verre, quand un gabarit la pose', () => {
+        it('alors elle ne porte pas de variante de bouton, qui lui reprendrait son matériau', () => {
+            // Les variantes redéclarent `background` sur `button.<classe>`,
+            // soit une spécificité de 0,1,1 — les huit surfaces ci-dessus ne
+            // valent que 0,1,0, et vivent dans la même couche `components`.
+            // La variante gagne donc toujours, et le verre perd le matériau
+            // qui, lui, bascule avec l'apparence.
+            //
+            // Mesuré le 24 septembre 2026 sur `#overview-button`, seul cas
+            // du dépôt : en apparence sombre il recevait du blanc à 8 % au
+            // lieu du noir à 72 % de `--material-regular`. Un voile de 8 %
+            // ne masque rien, le `backdrop-filter` laissait donc voir le
+            // schéma blanc dessous, et le bouton paraissait clair alors que
+            // ses jetons avaient correctement basculé. Un défaut que rien ne
+            // pouvait signaler : les captures de référence l'avaient figé
+            // comme étant la norme.
+            //
+            // Le sélecteur **descendant** reste licite et n'est pas visé
+            // ici : `.bar-navigation button.secondary` habille un bouton
+            // *dans* une barre, et la barre garde son propre matériau. Ce
+            // que ce témoin refuse, c'est qu'un seul et même élément soit à
+            // la fois la surface et la variante.
+            const variantesQuiReposentUnFond = ['secondary', 'danger'];
+            const gabarits = [
+                ...Object.keys(import.meta.glob('../**/*.html', { eager: false })),
+                '../../index.html',
+            ];
+            expect(gabarits.length).toBeGreaterThanOrEqual(9);
+
+            const cumuls = gabarits.flatMap((chemin) =>
+                [
+                    ...readFileSync(new URL(chemin, import.meta.url), 'utf8').matchAll(
+                        /class="([^"]*)"/g,
+                    ),
+                ]
+                    .map((attribut) => (attribut[1] ?? '').split(/\s+/))
+                    .filter(
+                        (classes) =>
+                            classes.some((nom) =>
+                                surfacesFlouteesSansRepetition.includes(`.${nom}`),
+                            ) && classes.some((nom) => variantesQuiReposentUnFond.includes(nom)),
+                    )
+                    .map((classes) => `${chemin} : ${classes.join(' ')}`),
+            );
+
+            expect(cumuls).toEqual([]);
+        });
+    });
+
     describe("Étant donné une surface en verre, quand une autre l'habite", () => {
         it("alors l'enfant n'en reçoit pas : deux verres empilés sont refusés", () => {
             // « Avoid overcrowding or layering Liquid Glass elements on top
