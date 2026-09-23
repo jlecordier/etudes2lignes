@@ -127,6 +127,14 @@ const VUES: readonly Vue[] = [
  *
  *     pnpm exec playwright test e2e/visuel.spec.ts --update-snapshots
  *
+ * Ce suffixe s'arrête à la plateforme : il ne dit rien de l'architecture, ni
+ * du jeu de polices installé. Les références présentes sont nées en arm64,
+ * dans l'image `mcr.microsoft.com/playwright:v1.61.1-noble`, quand la CI les
+ * compare en amd64 sur un runner nu qui n'a ni la même image ni les mêmes
+ * polices. Le `maxDiffPixelRatio` plus bas est le prix de cet écart, et les
+ * régénérer ailleurs qu'en arm64 rouvrirait un diff qui ne signale aucune
+ * régression.
+ *
  * Tant qu'elles manquent, ce fichier ferait échouer toute la suite — mesuré :
  * trente échecs, `pnpm test:e2e` en code 1. D'où la garde ci-dessous, et son
  * asymétrie, qui est l'essentiel :
@@ -189,6 +197,15 @@ test.describe('Les six vues du système, dans les trois apparences', () => {
                     // ne se comparerait plus à sa propre géométrie CSS d'un
                     // moteur à l'autre.
                     scale: 'css',
+                    // Une comparaison au pixel près supposerait que la
+                    // référence et la CI rendent le texte identiquement, ce
+                    // que l'écart arm64 / amd64 décrit plus haut interdit.
+                    // 1 % des pixels absorbe cet antialiasing — et, dit
+                    // franchement, laisse aussi passer l'équivalent d'un
+                    // carré de 96 × 96 sur une capture de bureau
+                    // (1280 × 720). À resserrer le jour où une régression y
+                    // échappe ; l'élargir serait renoncer au filet.
+                    maxDiffPixelRatio: 0.01,
                 });
             }
         });
