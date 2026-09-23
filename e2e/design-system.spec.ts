@@ -60,7 +60,17 @@ test.describe('La géométrie du système', () => {
             // Mesuré le 3 septembre : l'en-tête faisait 44 px et la barre de suivi
             // 62, parce que chacune écrivait son rembourrage de son côté. Une seule
             // valeur distincte, où la dérive est revenue.
-            expect([...new Set(Object.values(hauteurs))]).toHaveLength(1);
+            // Compter les valeurs distinctes disait qu'il y en avait deux,
+            // jamais lesquelles. L'écart ne se reproduisant pas hors CI, le
+            // détail est justement ce qui manquait : nommer les écrans qui
+            // divergent est le seul moyen d'enquêter à distance. Même
+            // invariant — aucune hauteur ne s'écarte de la première — dit de
+            // façon à ce que l'échec se lise.
+            const premiere = requireDefined(Object.values(hauteurs)[0], 'première hauteur');
+            const divergentes = Object.fromEntries(
+                Object.entries(hauteurs).filter(([, hauteur]) => hauteur !== premiere),
+            );
+            expect({ divergentes, premiere }).toEqual({ divergentes: {}, premiere });
         });
 
         /**
