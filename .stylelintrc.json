@@ -1,5 +1,6 @@
 {
     "//media-feature-range-notation": "force la notation `(min-width: 560px)` : la notation `(width >= 560px)` que corrige stylelint --fix n'est comprise qu'à partir de Safari 16.4, et ce dépôt vise plus bas.",
+    "//background": "le raccourci `background` rejoint `background-color` dans les propriétés surveillées : il passait au travers, et `design/gallery.css` écrivait ainsi trois fonds en dur sans qu'aucune règle ne proteste.",
     "extends": ["stylelint-config-standard"],
     "plugins": [
         "stylelint-declaration-strict-value",
@@ -14,6 +15,7 @@
             [
                 "color",
                 "background-color",
+                "background",
                 "fill",
                 "stroke",
                 "font-size",
@@ -52,6 +54,7 @@
             "rules": { "scale-unlimited/declaration-strict-value": null }
         },
         {
+            "//": "L'exemption de `design/*.css` reste, et l'en-tête de `gallery.css` dit pourquoi : une planche peinte avec le système qu'elle expose devient illisible le jour où celui-ci casse, c'est-à-dire le jour où on la consulte. Ce que cette exemption ne dispense pas, en revanche, c'est de basculer avec l'apparence — la planche déclare donc ses deux jeux de couleurs elle-même.",
             "files": ["design/*.css"],
             "rules": { "scale-unlimited/declaration-strict-value": null }
         }

@@ -192,3 +192,13 @@ if (document.readyState === 'complete') {
 } else {
     window.addEventListener('load', rendre, { once: true });
 }
+
+// Les pastilles sont peintes une fois, à partir des valeurs calculées à cet
+// instant : elles ne se remettent donc pas à jour toutes seules quand le
+// système change d'apparence. Les trois boutons appellent `rendre()`, mais
+// personne ne le faisait pour la préférence du système — une planche laissée
+// ouverte au passage au sombre continuait d'afficher les valeurs claires, et
+// c'est cette page-là que la capture `planche-sombre` figeait.
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    rendre();
+});
